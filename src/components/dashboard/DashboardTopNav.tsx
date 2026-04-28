@@ -129,9 +129,9 @@ export default function DashboardTopNav({
         </button>
 
         {/* Brand */}
-        <Link href="/" className="topnav-brand">
+        <a href="/" target="_blank" rel="noopener noreferrer" className="topnav-brand">
           KJ <span>Homedecor</span>
-        </Link>
+        </a>
 
         {/* Nav links - desktop */}
         <div className="topnav-nav">

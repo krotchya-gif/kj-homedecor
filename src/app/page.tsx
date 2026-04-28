@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import type { Product, Category, Banner, PortfolioPost } from '@/types'
 import ProductCatalog from '@/components/landing/ProductCatalog'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -53,7 +54,7 @@ export default async function LandingPage() {
   const banners = (bannersRes.data ?? []) as Banner[]
   const settings = settingsRes.data as any
 
-  const heroTitle = settings?.hero_title ?? 'Percantik Ruanganmu\ndengan Gorden Premium'
+  const heroTitle = settings?.hero_title ?? 'Percantik Ruanganmu dengan Gorden Premium'
   const heroSubtitle = settings?.hero_subtitle ?? 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'
   const heroCtaText = settings?.hero_cta_text ?? 'Lihat Katalog'
   const heroCtaLink = settings?.hero_cta_link ?? '#products'
@@ -88,6 +89,7 @@ export default async function LandingPage() {
           <a href="#contact" className="landing-nav-link">Kontak</a>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <ThemeToggle />
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
             target="_blank"
@@ -97,9 +99,6 @@ export default async function LandingPage() {
           >
             <MessageCircle size={15} /> WhatsApp
           </a>
-          <Link href="/login" style={{ fontSize: '0.8rem', color: '#9ca3af', textDecoration: 'none', padding: '0.375rem 0.5rem' }}>
-            Staff Portal
-          </Link>
         </div>
       </nav>
 
@@ -198,7 +197,7 @@ export default async function LandingPage() {
             <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>
               Temukan Gaya Favoritmu
             </h2>
-            <p style={{ color: '#9ca3af', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
+            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
               Pilihan gorden dan aksesoris premium untuk setiap ruangan
             </p>
           </div>
@@ -251,17 +250,17 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ===== PRODUCT CATALOG (Client Component with Search/Filter) ===== */}
+      {/* ===== PRODUCT CATALOG (Featured Only) ===== */}
       <section id="products" style={{ padding: '6rem 0' }}>
         <div className="landing-section" style={{ padding: '0 1.5rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="landing-section-label">Katalog</div>
-            <h2 className="landing-section-title" style={{ margin: '0 auto 0.75rem' }}>Semua Produk</h2>
-            <p style={{ color: '#9ca3af', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
+            <div className="landing-section-label">Rekomendasi</div>
+            <h2 className="landing-section-title" style={{ margin: '0 auto 0.75rem' }}>Produk Pilihan</h2>
+            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
               Pilihan gorden, vitras, roman blind, dan aksesoris berkualitas tinggi
             </p>
           </div>
-          <ProductCatalog />
+          <ProductCatalog maxProducts={8} showViewAll />
         </div>
       </section>
 
@@ -298,7 +297,7 @@ export default async function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div className="landing-section-label">Inspirasi</div>
             <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Portofolio Kami</h2>
-            <p style={{ color: '#9ca3af', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
+            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
               Hasil karya dan instalasi dari tim profesional KJ Homedecor
             </p>
           </div>
@@ -311,7 +310,7 @@ export default async function LandingPage() {
                   </div>
                   <div style={{ padding: '1.25rem' }}>
                     <h3 style={{ fontWeight: '700', color: '#1f2937', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#9ca3af' }}>Hasil pemasangan terbaru oleh tim KJ Homedecor</p>
+                    <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>Hasil pemasangan terbaru oleh tim KJ Homedecor</p>
                   </div>
                 </div>
               ))}
@@ -329,7 +328,7 @@ export default async function LandingPage() {
                   </div>
                   <div style={{ padding: '1.25rem' }}>
                     <h3 style={{ fontWeight: '700', color: '#1f2937', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{post.title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
+                    <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>
                       {new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </p>
                   </div>
@@ -372,7 +371,7 @@ export default async function LandingPage() {
               <MessageCircle size={18} /> Chat WhatsApp
             </a>
             <a
-              href="#contact"
+              href="/booking"
               className="cta-btn-outline"
             >
               <Calendar size={18} /> Buat Janji

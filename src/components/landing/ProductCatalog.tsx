@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { Search, MessageCircle, Package, X, Grid, List } from 'lucide-react'
+import { Search, MessageCircle, Package, X } from 'lucide-react'
 import type { Product, Category } from '@/types'
 
 const formatRp = (n: number) =>
@@ -11,7 +11,12 @@ const formatRp = (n: number) =>
 
 const WA_NUMBER = '6281234567890'
 
-export default function ProductCatalog() {
+interface ProductCatalogProps {
+  maxProducts?: number
+  showViewAll?: boolean
+}
+
+export default function ProductCatalog({ maxProducts, showViewAll }: ProductCatalogProps) {
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,6 +45,8 @@ export default function ProductCatalog() {
     return matchSearch && matchCat
   })
 
+  const displayProducts = maxProducts ? filtered.slice(0, maxProducts) : filtered
+
   function getWhatsAppLink(product: Product) {
     const msg = `Halo KJ Homedecor, saya tertarik dengan produk "${product.name}" (${formatRp(product.price)}). Mohon info lebih lanjut.`
     return `https://wa.me/${WA_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
@@ -47,7 +54,8 @@ export default function ProductCatalog() {
 
   return (
     <div>
-      {/* Search & Filter Bar - Improved */}
+      {!maxProducts && (
+      /* Search & Filter Bar - Improved */
       <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb', marginBottom: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
         <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Search */}
@@ -95,6 +103,7 @@ export default function ProductCatalog() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Product Grid */}
       {loading ? (
@@ -102,15 +111,16 @@ export default function ProductCatalog() {
           <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#cc7030', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
           <p>Memuat produk...</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : displayProducts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af', background: '#fff', borderRadius: '1rem', border: '1px solid #e5e7eb' }}>
           <Package size={40} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
           <p style={{ fontSize: '1rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem' }}>Tidak ada produk ditemukan</p>
           <p style={{ fontSize: '0.875rem' }}>Coba ubah kata kunci atau filter kategori</p>
         </div>
       ) : (
+        <>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem' }}>
-          {filtered.map(p => (
+          {displayProducts.map(p => (
             <div key={p.id} style={{ background: '#fff', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }}
             onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)' }}
             onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
@@ -139,7 +149,7 @@ export default function ProductCatalog() {
                 </Link>
                 <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#cc7030', marginBottom: '1rem' }}>
                   {formatRp(p.price)}
-                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#9ca3af', marginLeft: '0.25rem' }}>/unit</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6b7280', marginLeft: '0.25rem' }}>/unit</span>
                 </div>
 
                 {/* WhatsApp order button */}
@@ -164,6 +174,35 @@ export default function ProductCatalog() {
             </div>
           ))}
         </div>
+
+        {/* View All button */}
+        {showViewAll && filtered.length > (maxProducts ?? 0) && (
+          <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+            <Link
+              href="/catalog"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '1rem 2.5rem',
+                background: 'transparent', color: '#cc7030',
+                borderRadius: '0.625rem', textDecoration: 'none',
+                fontSize: '1rem', fontWeight: '600',
+                border: '2px solid #cc7030',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLAnchorElement).style.background = '#cc7030'
+                ;(e.currentTarget as HTMLAnchorElement).style.color = '#fff'
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+                ;(e.currentTarget as HTMLAnchorElement).style.color = '#cc7030'
+              }}
+            >
+              <Search size={18} /> Lihat Semua Katalog ({filtered.length} produk)
+            </Link>
+          </div>
+        )}
+        </>
       )}
 
       <style jsx global>{`

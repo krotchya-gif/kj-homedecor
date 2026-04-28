@@ -1132,6 +1132,25 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Touch targets - minimum 44px for iOS */
+  input, select, textarea {
+    min-height: 44px;
+    font-size: 16px !important; /* prevent iOS zoom on focus */
+  }
+
+  button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Form buttons - full width on mobile */
+  button[type="submit"],
+  a.btn-hero-primary,
+  a.cta-btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
   /* Show hamburger button on mobile */
   .hamburger-btn {
     display: flex;
@@ -1233,6 +1252,17 @@ body {
     min-height: 100vh;
   }
 
+  /* Mobile drawer - full width */
+  .mobile-drawer {
+    width: 100vw;
+    max-width: 100vw;
+  }
+
+  /* Page subtitle - smaller on mobile */
+  .page-subtitle {
+    font-size: 0.8rem;
+  }
+
   /* Top nav - more compact */
   .topnav {
     padding: 0 1rem;
@@ -1274,6 +1304,68 @@ body {
 
   .stat-card-value {
     font-size: 1.25rem;
+  }
+
+  /* Landing nav - stack vertically if needed */
+  .landing-nav {
+    height: auto;
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .landing-nav-links {
+    display: none; /* hide on very small screens */
+  }
+
+  /* Product grid - single column on phone */
+  .product-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Category grid - 2 columns on small phone */
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Form inputs - full width */
+  input, select, textarea {
+    width: 100%;
+  }
+
+  /* Hero CTA buttons - stack vertically */
+  .landing-hero-cta {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .landing-hero-cta a {
+    width: 100%;
+    justify-content: center;
+    max-width: 300px;
+  }
+
+  /* Trust badges - stack */
+  .landing-hero-content > div:nth-child(4) {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Why us cards */
+  .why-us-card {
+    padding: 1.5rem 1rem;
+  }
+
+  /* Table cells - smaller text */
+  .data-table td {
+    font-size: 0.8rem;
+    padding: 0.625rem 0.75rem;
+  }
+
+  .data-table th {
+    font-size: 0.7rem;
+    padding: 0.625rem 0.75rem;
   }
 }
 
@@ -1371,4 +1463,98 @@ body {
 }
 .footer-social:hover {
   background: rgba(255,255,255,0.15);
+}
+
+/* ========== LANDING PAGE DARK MODE ========== */
+.dark .landing-nav {
+  background: rgba(17, 24, 39, 0.95);
+  border-color: #374151;
+}
+
+.dark .landing-nav-link {
+  color: #9ca3af;
+}
+
+.dark .landing-nav-link:hover {
+  color: #f4a857;
+  background: rgba(204, 112, 48, 0.1);
+}
+
+.dark .landing-nav-brand {
+  color: #f4a857;
+}
+
+.dark #categories,
+.dark #portfolio {
+  background: #1a1a1a;
+}
+
+.dark .landing-section-label {
+  color: #f4a857;
+}
+
+.dark .landing-section-title {
+  color: #f9fafb;
+}
+
+.dark .landing-section-subtitle {
+  color: #9ca3af;
+}
+
+.dark .category-grid > div {
+  background: #262626 !important;
+}
+
+.dark .category-grid > div span {
+  color: #f4a857 !important;
+}
+
+.dark .product-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.dark .product-card-name {
+  color: #f9fafb;
+}
+
+.dark .product-card-cat {
+  color: #f4a857;
+}
+
+.dark .product-card-price {
+  color: #f4a857;
+}
+
+.dark .portfolio-card {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+.dark .portfolio-card h3 {
+  color: #f9fafb;
+}
+
+.dark .landing-footer {
+  background: #0a0a0a;
+}
+
+.dark .footer-link {
+  color: rgba(255,255,255,0.4);
+}
+
+.dark .footer-link:hover {
+  color: #f4a857;
+}
+
+/* Font contrast fix - light mode */
+.landing-section-subtitle,
+section p,
+#categories p,
+#portfolio p {
+  color: #6b7280 !important;
+}
+
+p.landing-section-subtitle {
+  color: #6b7280 !important;
 }
