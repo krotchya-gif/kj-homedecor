@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
+
+export const viewport: Viewport = {
+  themeColor: "#cc7030",
+}
 
 export const metadata: Metadata = {
   title: "KJ Homedecor — Gorden & Curtain Premium",
@@ -8,7 +12,6 @@ export const metadata: Metadata = {
     "Spesialis gorden, curtain, roman blind, dan vitras premium. Pemasangan profesional ke seluruh Jabodetabek. Hub. kami untuk konsultasi gratis.",
   keywords: "gorden, curtain, roman blind, vitras, home decor, interior, Jakarta",
   manifest: "/manifest.json",
-  themeColor: "#cc7030",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -30,7 +33,6 @@ export default function RootLayout({
     <html lang="id" className="h-full" suppressHydrationWarning>
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#cc7030" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="KJ Homedecor" />
