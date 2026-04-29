@@ -421,7 +421,7 @@ export default function AdminLandingSettingsPage() {
 
         {/* RIGHT — Live Preview */}
         <div>
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden', position: 'sticky', top: '1rem' }}>
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden', position: 'sticky', top: '1rem' }} className="settings-preview-panel">
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
               <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
                 <Eye size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />

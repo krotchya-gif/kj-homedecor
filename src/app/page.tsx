@@ -302,7 +302,7 @@ export default async function LandingPage() {
       {/* ===== FOOTER ===== */}
       <footer id="contact" style={{ background: '#0f0703', padding: '4rem 1.5rem 2rem' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-12 footer-grid">
             {/* Brand column */}
             <div>
               <div style={{ marginBottom: '1.5rem' }}>

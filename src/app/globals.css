@@ -1449,6 +1449,40 @@ body {
     gap: 1.5rem;
   }
 
+  /* Footer grid - responsive with proper gap and centered social icons */
+  .footer-grid {
+    gap: 1.25rem !important;
+  }
+
+  .footer-brand-col {
+    grid-column: 1 / -1;
+  }
+
+  .footer-social {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Staff page mobile */
+  .staff-search-wrapper {
+    width: 100% !important;
+  }
+
+  .role-selector-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .staff-form-section {
+    position: static !important;
+    margin-top: 1.5rem;
+  }
+
+  /* Landing settings mobile */
+  .settings-preview-panel {
+    position: static !important;
+    margin-top: 1.5rem;
+  }
+
   /* Hide user name on mobile */
   .user-menu-btn > div:last-child {
     display: none;

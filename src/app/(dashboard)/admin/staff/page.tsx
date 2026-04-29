@@ -137,7 +137,7 @@ export default function StaffPage() {
                 <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.2rem' }}>Daftar Staff</h2>
                 <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{staff.length} staff terdaftar</p>
               </div>
-              <div style={{ position: 'relative', width: 280 }}>
+              <div style={{ position: 'relative', width: 280 }} className="staff-search-wrapper">
                 <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
                 <input
                   type="text"
@@ -271,7 +271,7 @@ export default function StaffPage() {
         </div>
 
         {/* RIGHT — Create Form */}
-        <div style={{ position: 'sticky', top: '1.5rem' }}>
+        <div style={{ position: 'sticky', top: '1.5rem' }} className="staff-form-section">
           <div className="form-section">
             <div className="form-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <UserPlus size={16} /> Buat Akun Staff Baru
@@ -321,7 +321,7 @@ export default function StaffPage() {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Role *</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }} className="role-selector-grid">
                   {ROLES.map((r) => (
                     <label
                       key={r.value}
