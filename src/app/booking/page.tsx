@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Calendar, Clock, MapPin, Phone, MessageCircle, CheckCircle, AlertCircle } from 'lucide-react'
+import { Calendar, Clock, MessageCircle, CheckCircle, AlertCircle, Home, MapPinned } from 'lucide-react'
 import Link from 'next/link'
 
 const TIME_SLOTS = [
@@ -11,9 +11,8 @@ const TIME_SLOTS = [
 ]
 
 const SERVICE_TYPES = [
-  { value: 'survey', label: 'Survey Gratis', desc: 'Tim kami datang untuk mengukur ruangan' },
-  { value: 'pasang', label: 'Pasang Gorden', desc: 'Pemasangan gorden oleh tim profesional' },
-  { value: 'konsultasi', label: 'Konsultasi', desc: 'Konsultasi desain dan pilihan produk' },
+  { value: 'survey', label: 'Visit Toko', desc: 'Saya akan datang ke toko untuk konsultasi', icon: <Home size={18} /> },
+  { value: 'pasang', label: 'Pemasangan', desc: 'Tim KJ Homedecor datang ke lokasi saya', icon: <MapPinned size={18} /> },
 ]
 
 export default function BookingPage() {
@@ -39,36 +38,45 @@ export default function BookingPage() {
 
     try {
       // Get WhatsApp number from landing settings
+      let whatsappNumber = '6281234567890'
+      let whatsappMessage = 'Halo KJ Homedecor'
       const { data: settings } = await supabase
         .from('landing_settings')
         .select('whatsapp_number, whatsapp_message')
         .eq('id', 'hero')
         .single()
 
-      const whatsappNumber = settings?.whatsapp_number ?? '6281234567890'
-      const whatsappMessage = settings?.whatsapp_message ?? 'Halo KJ Homedecor'
+      if (settings) {
+        whatsappNumber = settings.whatsapp_number ?? whatsappNumber
+        whatsappMessage = settings.whatsapp_message ?? whatsappMessage
+      }
 
-      // Insert directly with browser client (no auth required for public booking)
+      // Insert booking
       const { error: insertError } = await supabase
         .from('install_bookings')
         .insert({
           customer_name: form.name,
           customer_phone: form.phone,
-          address: form.address,
-          scheduled_date: form.date,
-          scheduled_time: form.time,
+          address: form.service_type === 'survey' ? null : form.address,
+          scheduled_date: form.date || null,
+          scheduled_time: form.time || null,
           type: form.service_type,
           notes: form.notes,
           status: 'pending',
+          source: 'website',
         })
 
-      if (insertError) throw new Error('Gagal menyimpan booking')
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        throw new Error('Gagal menyimpan booking')
+      }
 
       setSuccess(true)
 
       // Open WhatsApp with pre-filled message
-      const bookingRef = `BOOKING-${Date.now().toString(36).toUpperCase()}`
-      const waMessage = `${whatsappMessage}\n\n📋 Booking Reference: ${bookingRef}\n👤 Nama: ${form.name}\n📅 Tanggal: ${form.date}\n⏰ Jam: ${form.time}\n📍 Alamat: ${form.address}\n🔧 Jenis Layanan: ${SERVICE_TYPES.find(s => s.value === form.service_type)?.label}`
+      const bookingRef = `BOOK-${Date.now().toString(36).toUpperCase()}`
+      const serviceLabel = form.service_type === 'survey' ? 'Visit Toko' : 'Pemasangan'
+      const waMessage = `${whatsappMessage}\n\n📋 Booking: ${bookingRef}\n👤 ${form.name}\n📱 ${form.phone}\n🔧 ${serviceLabel}\n📅 ${form.date || 'Belum ditentukan'}\n⏰ ${form.time || 'Belum ditentukan'}\n${form.service_type === 'survey' ? '🏪' : '📍'} ${form.service_type === 'survey' ? 'Konsultasi di Toko' : 'Alamat: ' + form.address}`
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(waMessage)}`, '_blank')
     } catch (err) {
       setError('Terjadi kesalahan. Silakan coba lagi atau hubungi via WhatsApp.')
@@ -118,7 +126,7 @@ export default function BookingPage() {
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.5rem' }}>
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.5rem' }}>Booking Survey & Pasang</h1>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Isi form di bawah untuk menjadwalkan survey atau pemasangan. Tim kami akan menghubungi Anda untuk konfirmasi.</p>
+          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Isi form di bawah untuk menjadwalkan kunjungan. Tim kami akan menghubungi Anda untuk konfirmasi.</p>
         </div>
 
         {error && (
@@ -157,35 +165,43 @@ export default function BookingPage() {
             />
           </div>
 
-          {/* Address */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }}>Alamat Lengkap *</label>
-            <textarea
-              required
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              placeholder="Jl. Example No.1, RT/RW, Kota"
-              rows={3}
-              style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
-            />
-          </div>
-
           {/* Service Type */}
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }}>Jenis Layanan *</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {SERVICE_TYPES.map(s => (
-                <label key={s.value} style={{ display: 'flex', gap: '0.75rem', padding: '1rem', border: `2px solid ${form.service_type === s.value ? '#cc7030' : '#e5e7eb'}`, borderRadius: '0.75rem', cursor: 'pointer', background: form.service_type === s.value ? '#fff3e8' : '#fff' }}>
+                <label key={s.value} style={{ display: 'flex', gap: '0.75rem', padding: '1rem', border: `2px solid ${form.service_type === s.value ? '#cc7030' : '#e5e7eb'}`, borderRadius: '0.75rem', cursor: 'pointer', background: form.service_type === s.value ? '#fff3e8' : '#fff', transition: 'all 0.15s' }}>
                   <input type="radio" name="service_type" value={s.value} checked={form.service_type === s.value} onChange={handleChange} style={{ accentColor: '#cc7030', marginTop: 3 }} />
-                  <div>
-                    <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{s.label}</div>
-                    <div style={{ color: '#9ca3af', fontSize: '0.8rem' }}>{s.desc}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span style={{ color: form.service_type === s.value ? '#cc7030' : '#6b7280' }}>{s.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{s.label}</div>
+                      <div style={{ color: '#9ca3af', fontSize: '0.8rem' }}>{s.desc}</div>
+                    </div>
                   </div>
                 </label>
               ))}
             </div>
           </div>
+
+          {/* Address - only for Pemasangan */}
+          {form.service_type === 'pasang' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }}>
+                <MapPinned size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                Alamat Pemasangan *
+              </label>
+              <textarea
+                required
+                name="address"
+                value={form.address}
+                onChange={handleChange}
+                placeholder="Jl. Example No.1, RT/RW, Kota, Provinsi"
+                rows={3}
+                style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
+              />
+            </div>
+          )}
 
           {/* Date */}
           <div>
@@ -236,16 +252,16 @@ export default function BookingPage() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading || !form.name || !form.phone || !form.address || !form.date || !form.time || !form.service_type}
+            disabled={loading || !form.name || !form.phone || !form.date || !form.time || !form.service_type || (form.service_type === 'pasang' && !form.address)}
             style={{
               padding: '1rem',
-              background: (!form.name || !form.phone || !form.address || !form.date || !form.time || !form.service_type) ? '#d1d5db' : '#cc7030',
+              background: (!form.name || !form.phone || !form.date || !form.time || !form.service_type || (form.service_type === 'pasang' && !form.address)) ? '#d1d5db' : '#cc7030',
               color: '#fff',
               border: 'none',
               borderRadius: '0.5rem',
               fontWeight: '600',
               fontSize: '1rem',
-              cursor: (!form.name || !form.phone || !form.address || !form.date || !form.time || !form.service_type) ? 'not-allowed' : 'pointer',
+              cursor: (!form.name || !form.phone || !form.date || !form.time || !form.service_type || (form.service_type === 'pasang' && !form.address)) ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -265,9 +281,9 @@ export default function BookingPage() {
 
         {/* Alternative contact */}
         <div style={{ marginTop: '2rem', padding: '1.25rem', background: '#f9fafb', borderRadius: '0.75rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>lebih sukachat langsung?</p>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>lebih suka chat langsung?</p>
           <a
-            href="https://wa.me/6281234567890?text=Halo%20KJ%20Homedecor,%20saya%20ingin%20booking%20survey"
+            href="https://wa.me/6281234567890?text=Halo%20KJ%20Homedecor,%20saya%20ingin%20booking"
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: '#25D366', color: '#fff', borderRadius: '0.5rem', fontWeight: '600', textDecoration: 'none', fontSize: '0.9rem' }}
