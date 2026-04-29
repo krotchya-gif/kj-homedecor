@@ -21,6 +21,8 @@ export type OrderStatus =
   | "payment_ok"
   | "production"
   | "ready"
+  | "packed"
+  | "shipped"
   | "done"
   | "returned"
   | "cancelled";
@@ -120,8 +122,14 @@ export interface Order {
   payment_status: PaymentStatus;
   notes?: string;
   return_reason?: string;
+  tracking_number?: string;
+  courier?: string;
+  packed_at?: string;
+  packed_by?: string;
   shipped_at?: string;
+  shipped_by?: string;
   installed_at?: string;
+  installed_by?: string;
   created_at: string;
   customer?: Customer;
   order_items?: OrderItem[];
@@ -289,6 +297,8 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   payment_ok: "Pembayaran OK",
   production: "Produksi",
   ready: "Siap",
+  packed: "Dikemas",
+  shipped: "Terkirim",
   done: "Selesai",
   returned: "Return",
   cancelled: "Batal",

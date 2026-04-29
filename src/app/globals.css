@@ -1236,6 +1236,8 @@ body {
 .badge-payment  { background: #d1fae5; color: #065f46; }
 .badge-prod     { background: #fef3c7; color: #92400e; }
 .badge-ready    { background: #cffafe; color: #155e75; }
+.badge-packed   { background: #fef3c7; color: #92400e; }
+.badge-shipped  { background: #d1fae5; color: #065f46; }
 .badge-done     { background: #f0fdf4; color: #166534; }
 .badge-pending  { background: #fef2f2; color: #991b1b; }
 .badge-partial  { background: #fffbeb; color: #92400e; }

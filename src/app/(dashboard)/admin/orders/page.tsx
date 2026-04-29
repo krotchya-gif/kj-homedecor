@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, ShoppingCart, ExternalLink } from 'lucide-react'
 import type { Order } from '@/types'
-import { SOURCE_LABELS, STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
+import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -16,13 +16,9 @@ const STATUS_COLORS: Record<string, string> = {
   payment_ok: 'badge-payment',
   production: 'badge-prod',
   ready: 'badge-ready',
+  packed: 'badge-packed',
+  shipped: 'badge-shipped',
   done: 'badge-done',
-}
-
-const PAYMENT_COLORS: Record<string, string> = {
-  pending: 'badge-pending',
-  partial: 'badge-partial',
-  paid: 'badge-paid',
 }
 
 export default function OrdersPage() {
@@ -61,8 +57,12 @@ export default function OrdersPage() {
     const matchSearch =
       !search ||
       (o.customer as { name: string } | null)?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      o.id.includes(search)
-    const matchStatus = !filterStatus || o.status === filterStatus
+      o.id.includes(search) ||
+      (o.tracking_number || '').includes(search)
+    let matchStatus = true
+    if (filterStatus === 'ready_to_pack') matchStatus = o.status === 'ready' && o.classification === 'kirim'
+    else if (filterStatus === 'ready_to_ship') matchStatus = o.status === 'packed'
+    else if (filterStatus) matchStatus = o.status === filterStatus
     return matchSearch && matchStatus
   })
 
@@ -144,6 +144,8 @@ export default function OrdersPage() {
           {Object.entries(STATUS_LABELS).map(([val, label]) => (
             <option key={val} value={val}>{label}</option>
           ))}
+          <option value="ready_to_pack">Siap Dikemas</option>
+          <option value="ready_to_ship">Siap Kirim</option>
         </select>
         <button
           onClick={() => setShowForm(true)}
@@ -172,7 +174,8 @@ export default function OrdersPage() {
                 <th>Jenis</th>
                 <th>Total</th>
                 <th>Status</th>
-                <th>Pembayaran</th>
+                <th>Resi</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -208,9 +211,14 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td>
-                    <span className={PAYMENT_COLORS[o.payment_status]} style={{ padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '600' }}>
-                      {PAYMENT_STATUS_LABELS[o.payment_status]}
-                    </span>
+                    {o.tracking_number ? (
+                      <div style={{ fontSize: '0.75rem' }}>
+                        <div style={{ fontWeight: '600', color: '#374151' }}>{o.courier}</div>
+                        <div style={{ color: '#6b7280', fontFamily: 'monospace' }}>{o.tracking_number}</div>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
+                    )}
                   </td>
                   <td>
                     <Link href={`/admin/orders/${o.id}`} style={{ color: '#cc7030', display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.78rem', fontWeight: '600', textDecoration: 'none' }}>
