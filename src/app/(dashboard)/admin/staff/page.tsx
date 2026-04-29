@@ -126,7 +126,7 @@ export default function StaffPage() {
       </div>
 
       {/* Two column layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '1.5rem', alignItems: 'start' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 items-start">
 
         {/* LEFT — Staff List */}
         <div>
@@ -163,7 +163,7 @@ export default function StaffPage() {
           )}
 
           {/* Table */}
-          <div className="data-table">
+          <div className="data-table overflow-x-auto">
             {loading ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
                 <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem' }} />
