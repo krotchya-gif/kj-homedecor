@@ -75,9 +75,13 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   ],
   owner: [
     { label: 'Overview', href: '/owner', icon: <Eye size={16} /> },
+    { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={16} /> },
+    { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={16} /> },
+    { label: 'Stok Gudang', href: '/gudang/stock', icon: <Warehouse size={16} /> },
     { label: 'Staff', href: '/owner/staff', icon: <Users size={16} /> },
     { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingCart size={16} /> },
     { label: 'Top Produk', href: '/owner/products', icon: <Package size={16} /> },
+    { label: 'Laporan', href: '/admin/reports', icon: <BarChart3 size={16} /> },
   ],
 }
 
