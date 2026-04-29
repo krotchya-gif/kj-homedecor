@@ -1,9 +1,7 @@
-import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import {
   Phone,
   MessageCircle,
-  ExternalLink,
   MapPin,
   ChevronRight,
   Sparkles,
@@ -12,20 +10,14 @@ import {
   Star,
   CheckCircle,
   Clock,
-  Package,
   Calendar,
   ShoppingBag,
 } from 'lucide-react'
-import type { Product, Category, Banner, PortfolioPost } from '@/types'
+import type { Category, Banner, PortfolioPost } from '@/types'
 import ProductCatalog from '@/components/landing/ProductCatalog'
-import ThemeToggle from '@/components/ui/ThemeToggle'
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(n)
+import ScrollNav from '@/components/landing/ScrollNav'
+import HeroParticles from '@/components/landing/HeroParticles'
+import AnimatedCounter from '@/components/landing/AnimatedCounter'
 
 const CATEGORY_COLORS = [
   '#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626',
@@ -78,114 +70,70 @@ export default async function LandingPage() {
   return (
     <div style={{ background: '#fff', fontFamily: 'Inter, sans-serif' }}>
       {/* ===== NAVBAR ===== */}
-      <nav className="landing-nav">
-        <Link href="/" className="landing-nav-brand">
-          KJ Homedecor
-        </Link>
-        <div className="landing-nav-links">
-          <a href="#products" className="landing-nav-link">Produk</a>
-          <a href="#categories" className="landing-nav-link">Kategori</a>
-          <a href="#portfolio" className="landing-nav-link">Portofolio</a>
-          <a href="#contact" className="landing-nav-link">Kontak</a>
-        </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <ThemeToggle />
-          <a
-            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="landing-nav-link landing-nav-cta"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
-          >
-            <MessageCircle size={15} /> WhatsApp
-          </a>
-        </div>
-      </nav>
+      <ScrollNav whatsappNumber={whatsappNumber} whatsappMessage={whatsappMessage} />
 
       {/* ===== HERO ===== */}
       <section className="landing-hero">
-        {/* Banner images or decorative circles */}
+        {/* Particles layer */}
+        <HeroParticles />
+
+        {/* Background: banner image or animated blobs */}
         {banners.length > 0 ? (
-          /* Banner image background */
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <img
-              src={banners[0].image_url}
-              alt="Hero"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(26,10,0,0.7) 0%, rgba(61,26,8,0.6) 50%, rgba(107,45,15,0.65) 100%)' }} />
+            <img src={banners[0].image_url} alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(15,5,0,0.82) 0%, rgba(45,16,5,0.7) 50%, rgba(90,35,14,0.75) 100%)' }} />
           </div>
         ) : (
           <>
-            <div style={{
-              position: 'absolute', top: '-10%', right: '-5%',
-              width: 600, height: 600, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(204,112,48,0.15) 0%, transparent 70%)',
-              zIndex: 1,
-            }} />
-            <div style={{
-              position: 'absolute', bottom: '-15%', left: '-8%',
-              width: 500, height: 500, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(244,168,87,0.1) 0%, transparent 70%)',
-              zIndex: 1,
-            }} />
+            <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle, rgba(204,112,48,0.18) 0%, transparent 65%)', animation: 'blobMove 12s ease-in-out infinite', zIndex: 0 }} />
+            <div style={{ position: 'absolute', bottom: '-25%', left: '-12%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(244,168,87,0.12) 0%, transparent 65%)', animation: 'blobMove 15s ease-in-out infinite reverse', zIndex: 0 }} />
+            <div style={{ position: 'absolute', top: '30%', left: '20%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(150,67,26,0.1) 0%, transparent 70%)', animation: 'blobMove 10s ease-in-out infinite 3s', zIndex: 0 }} />
           </>
         )}
 
-        <div className="landing-hero-content animate-fade-up" style={{ position: 'relative', zIndex: 2 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: '999px', padding: '0.5rem 1.25rem', marginBottom: '2rem' }}>
-            <span style={{ color: '#ffd6a5', fontSize: '0.8rem', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase' }}>✨ Home Decor Premium Indonesia</span>
-          </div>
+        <div className="landing-hero-content" style={{ position: 'relative', zIndex: 2 }}>
+          {/* Badge */}
+          <div className="landing-hero-badge">✨ Home Decor Premium Indonesia</div>
 
-          <h1 className="landing-hero-title" style={{ whiteSpace: 'pre-line', marginBottom: '1.5rem' }}>
+          {/* Title */}
+          <h1 className="landing-hero-title">
             {heroTitle.split('\n').map((line: string, i: number, arr: string[]) => (
               <span key={i}>
-                {i === arr.length - 1 ? <>{line} <span>Gorden Premium</span></> : line}
+                {i === arr.length - 1
+                  ? <>{line} <span className="title-highlight">Premium</span></>
+                  : line}
                 {i < arr.length - 1 && <br />}
               </span>
             ))}
           </h1>
 
-          <p className="landing-hero-subtitle" style={{ whiteSpace: 'pre-line', maxWidth: '540px', margin: '0 auto 2.5rem' }}>
-            {heroSubtitle}
-          </p>
+          {/* Subtitle */}
+          <p className="landing-hero-subtitle" style={{ whiteSpace: 'pre-line' }}>{heroSubtitle}</p>
 
-          <div className="landing-hero-cta" style={{ gap: '1rem' }}>
-            <a href={heroCtaLink} className="btn-hero-primary" style={{ padding: '1rem 2.25rem', fontSize: '1rem' }}>
-              {heroCtaText} <ChevronRight size={18} />
-            </a>
-            <a
-              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-hero-outline"
-              style={{ padding: '1rem 2.25rem', fontSize: '1rem' }}
-            >
+          {/* CTA */}
+          <div className="landing-hero-cta">
+            <a href={heroCtaLink} className="btn-hero-primary">{heroCtaText} <ChevronRight size={18} /></a>
+            <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noopener noreferrer" className="btn-hero-outline">
               <MessageCircle size={18} /> Konsultasi Gratis
             </a>
           </div>
 
-          {/* Trust badges */}
-          {trustBadges.length > 0 && (
-            <div style={{
-              display: 'flex', gap: '2rem', justifyContent: 'center',
-              marginTop: '3.5rem', flexWrap: 'wrap',
-            }}>
-              {trustBadges.map((b: any, i: number) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: '0.5rem',
-                  color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem',
-                  background: 'rgba(255,255,255,0.06)',
-                  padding: '0.5rem 1rem',
-                  borderRadius: '999px',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}>
-                  <span style={{ color: '#f4a857' }}>{TRUST_ICON_MAP[b.icon] ?? <Star size={16} />}</span>
-                  {b.label}
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Stats row */}
+          <div className="stats-row">
+            {[{n:500,suf:'+',label:'Pelanggan Puas'},{n:8,suf:'+',label:'Tahun Pengalaman'},{n:100,suf:'%',label:'Garansi Kualitas'}].map((s) => (
+              <div key={s.label} className="stat-item">
+                <div className="stat-number"><AnimatedCounter target={s.n} suffix={s.suf} /></div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Scroll indicator */}
+          <div className="scroll-indicator">
+            <div className="scroll-dot" />
+            <div className="scroll-dot" />
+            <div className="scroll-dot" />
+          </div>
         </div>
       </section>
 
@@ -194,61 +142,39 @@ export default async function LandingPage() {
         <div className="landing-section" style={{ padding: '0 1.5rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <div className="landing-section-label">Koleksi Kami</div>
-            <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>
-              Temukan Gaya Favoritmu
-            </h2>
-            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-              Pilihan gorden dan aksesoris premium untuk setiap ruangan
-            </p>
+            <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Temukan Gaya Favoritmu</h2>
+            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Pilihan gorden dan aksesoris premium untuk setiap ruangan</p>
           </div>
 
-          {categories.length === 0 ? (
-            <div className="category-grid">
-              {['Gorden', 'Vitras', 'Roman Blind', 'Kupu-Kupu', 'Kait & Aksesoris', 'Custom'].map(
-                (name, i) => (
-                  <div
-                    key={name}
-                    style={{
-                      aspectRatio: '1', borderRadius: '1rem', overflow: 'hidden',
-                      background: `linear-gradient(135deg, ${CATEGORY_COLORS[i]}22 0%, ${CATEGORY_COLORS[i]}55 100%)`,
-                      display: 'flex', alignItems: 'flex-end',
-                      padding: '1.25rem',
-                      border: `2px solid ${CATEGORY_COLORS[i]}33`,
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span style={{ color: CATEGORY_COLORS[i], fontWeight: '700', fontSize: '1rem' }}>
-                      {name}
-                    </span>
-                  </div>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="category-grid">
-              {categories.map((cat, i) => (
-                <div
-                  key={cat.id}
-                  style={{
-                    aspectRatio: '1', borderRadius: '1rem', overflow: 'hidden',
-                    background: `linear-gradient(135deg, ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}22 0%, ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}55 100%)`,
-                    display: 'flex', alignItems: 'flex-end',
-                    padding: '1.25rem',
-                    border: `2px solid ${CATEGORY_COLORS[i % CATEGORY_COLORS.length]}33`,
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s, box-shadow 0.2s',
-                  }}
-                >
-                  <span style={{ color: CATEGORY_COLORS[i % CATEGORY_COLORS.length], fontWeight: '700', fontSize: '1rem' }}>
-                    {cat.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+          {(() => {
+            const names = categories.length > 0
+              ? categories.map(c => c.name)
+              : ['Gorden', 'Vitras', 'Roman Blind', 'Kupu-Kupu', 'Kait & Aksesoris', 'Custom']
+            const styles = [
+              { bg: 'linear-gradient(135deg,#2d1005 0%,#7a3210 100%)', icon: '🪟', sub: 'Pilihan terlengkap' },
+              { bg: 'linear-gradient(135deg,#0d3b2e 0%,#16a34a 100%)', icon: '🌿', sub: 'Elegan & ringan' },
+              { bg: 'linear-gradient(135deg,#1e3a5f 0%,#2563eb 100%)', icon: '✨', sub: 'Modern minimalis' },
+              { bg: 'linear-gradient(135deg,#3b0764 0%,#9333ea 100%)', icon: '🎨', sub: 'Unik & eksklusif' },
+              { bg: 'linear-gradient(135deg,#1a1a2e 0%,#0d9488 100%)', icon: '⚡', sub: 'Fungsional & stylish' },
+              { bg: 'linear-gradient(135deg,#4a1c1c 0%,#dc2626 100%)', icon: '🏠', sub: 'Sesuai permintaan' },
+            ]
+            return (
+              <div className="category-grid">
+                {names.map((name, i) => (
+                  <a key={name} href="#products" className="category-card" style={{ background: styles[i % styles.length].bg }}>
+                    <div className="category-card-inner">
+                      <div className="category-card-icon">{styles[i % styles.length].icon}</div>
+                      <div className="category-card-name">{name}</div>
+                      <div className="category-card-sub">{styles[i % styles.length].sub}</div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )
+          })()}
         </div>
       </section>
+
 
       {/* ===== PRODUCT CATALOG (Featured Only) ===== */}
       <section id="products" style={{ padding: '6rem 0' }}>
@@ -265,26 +191,26 @@ export default async function LandingPage() {
       </section>
 
       {/* ===== WHY US ===== */}
-      <section style={{ padding: '6rem 0', background: 'linear-gradient(135deg, #1a0a00 0%, #2d1508 50%, #3d1a08 100%)' }}>
+      <section style={{ padding: '6rem 0', background: 'linear-gradient(160deg, #0f0500 0%, #2d1005 40%, #4a1f0a 100%)' }}>
         <div className="landing-section" style={{ padding: '0 1.5rem', textAlign: 'center' }}>
           <div className="landing-section-label" style={{ color: '#f4a857' }}>Keunggulan Kami</div>
           <h2 className="landing-section-title" style={{ color: '#fff', textAlign: 'center', margin: '0 auto 1rem' }}>
-            Dipercaya Lebih dari 500 Pelanggan
+            Dipercaya <AnimatedCounter target={500} suffix="+" /> Pelanggan
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '1rem', maxWidth: 480, margin: '0 auto 3rem' }}>
+          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '1rem', maxWidth: 480, margin: '0 auto 3rem' }}>
             Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.5rem', marginTop: '0' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
             {[
-              { icon: <Sparkles size={32} />, title: 'Kualitas Premium', desc: 'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman', color: '#f4a857' },
-              { icon: <Star size={32} />, title: '500+ Pelanggan Puas', desc: 'Telah melayani ratusan pelanggan di seluruh Jabodetabek', color: '#fbbf24' },
-              { icon: <Truck size={32} />, title: 'Pasang Profesional', desc: 'Tim installer bersertifikat siap membantu di rumah Anda', color: '#34d399' },
-              { icon: <Shield size={32} />, title: 'Garansi Resmi', desc: 'Garansi kualitas untuk setiap produk yang kami hasilkan', color: '#60a5fa' },
+              { icon: <Sparkles size={34} />, title: 'Kualitas Premium', desc: 'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman', color: '#f4a857' },
+              { icon: <Star size={34} />, title: 'Ratusan Pelanggan', desc: 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek', color: '#fbbf24' },
+              { icon: <Truck size={34} />, title: 'Pasang Profesional', desc: 'Tim installer bersertifikat siap membantu langsung ke rumah Anda', color: '#34d399' },
+              { icon: <Shield size={34} />, title: 'Garansi Resmi', desc: 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan', color: '#60a5fa' },
             ].map((f) => (
               <div key={f.title} className="why-us-card">
-                <div style={{ color: f.color, marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>{f.icon}</div>
-                <div style={{ color: '#fff', fontWeight: '700', fontSize: '1.1rem', marginBottom: '0.5rem' }}>{f.title}</div>
-                <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.875rem', lineHeight: 1.6 }}>{f.desc}</div>
+                <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${f.color}22`, border: `2px solid ${f.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: f.color, animation: 'pulseGlow 3s ease-in-out infinite' }}>{f.icon}</div>
+                <div style={{ color: '#fff', fontWeight: '700', fontSize: '1.1rem', marginBottom: '0.625rem' }}>{f.title}</div>
+                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem', lineHeight: 1.7 }}>{f.desc}</div>
               </div>
             ))}
           </div>
@@ -297,16 +223,19 @@ export default async function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div className="landing-section-label">Inspirasi</div>
             <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Portofolio Kami</h2>
-            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-              Hasil karya dan instalasi dari tim profesional KJ Homedecor
-            </p>
+            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Hasil karya dan instalasi dari tim profesional KJ Homedecor</p>
           </div>
           {portfolio.length === 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
               {['Instalasi Gorden Mewah', 'Roman Blind Modern', 'Vitras Elegan'].map((title, i) => (
                 <div key={title} className="portfolio-card">
-                  <div style={{ height: 220, background: `linear-gradient(135deg, ${CATEGORY_COLORS[i]}22, ${CATEGORY_COLORS[i]}55)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Sparkles size={40} style={{ color: CATEGORY_COLORS[i], opacity: 0.6 }} />
+                  <div className="portfolio-card-img-wrap">
+                    <div className="portfolio-placeholder" style={{ height: 240, background: `linear-gradient(135deg, ${CATEGORY_COLORS[i]}33, ${CATEGORY_COLORS[i]}77)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Sparkles size={44} style={{ color: CATEGORY_COLORS[i], opacity: 0.7 }} />
+                    </div>
+                    <div className="portfolio-card-overlay">
+                      <span style={{ color: '#fff', fontWeight: '700', fontSize: '0.95rem' }}>{title}</span>
+                    </div>
                   </div>
                   <div style={{ padding: '1.25rem' }}>
                     <h3 style={{ fontWeight: '700', color: '#1f2937', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{title}</h3>
@@ -319,18 +248,19 @@ export default async function LandingPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
               {portfolio.map((post) => (
                 <div key={post.id} className="portfolio-card">
-                  <div style={{ height: 220, background: 'linear-gradient(135deg, #f5e6d3, #e8c898)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                    {(post.images as string[])?.[0] ? (
-                      <img src={(post.images as string[])[0]} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <Sparkles size={40} style={{ color: '#cc7030', opacity: 0.6 }} />
-                    )}
+                  <div className="portfolio-card-img-wrap">
+                    <div style={{ height: 240, background: 'linear-gradient(135deg, #f5e6d3, #e8c898)', overflow: 'hidden' }}>
+                      {(post.images as string[])?.[0]
+                        ? <img src={(post.images as string[])[0]} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={44} style={{ color: '#cc7030', opacity: 0.5 }} /></div>}
+                    </div>
+                    <div className="portfolio-card-overlay">
+                      <span style={{ color: '#fff', fontWeight: '700', fontSize: '0.95rem' }}>{post.title}</span>
+                    </div>
                   </div>
                   <div style={{ padding: '1.25rem' }}>
                     <h3 style={{ fontWeight: '700', color: '#1f2937', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{post.title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                      {new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </p>
+                    <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>{new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
                 </div>
               ))}
@@ -340,40 +270,29 @@ export default async function LandingPage() {
       </section>
 
       {/* ===== CTA Banner ===== */}
-      <section style={{
-        background: 'linear-gradient(135deg, #cc7030 0%, #b85a22 50%, #96431a 100%)',
-        padding: '5rem 1.5rem',
-        textAlign: 'center',
-        position: 'relative',
-        overflow: 'hidden',
-      }}>
-        {/* Decorative elements */}
-        <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: 400, height: 400, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-30%', left: '-5%', width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <section style={{ background: 'linear-gradient(135deg,#b85a22 0%,#cc7030 40%,#e8893a 100%)', padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+        {/* Animated blobs */}
+        <div style={{ position: 'absolute', top: '-30%', right: '-15%', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', animation: 'blobMove 10s ease-in-out infinite', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-40%', left: '-10%', width: 450, height: 450, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', animation: 'blobMove 14s ease-in-out infinite reverse', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: '20%', left: '50%', width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', animation: 'blobMove 8s ease-in-out infinite 2s', pointerEvents: 'none' }} />
+        {/* Decorative ring */}
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 600, height: 600, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
 
-        <div style={{ maxWidth: 600, margin: '0 auto', position: 'relative', zIndex: 1 }}>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', borderRadius: '999px', padding: '0.4rem 1rem', marginBottom: '1.5rem' }}>
-            <span style={{ color: '#fff', fontSize: '0.85rem', fontWeight: '600' }}>✨ Konsultasi Gratis</span>
+        <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.18)', borderRadius: '999px', padding: '0.5rem 1.25rem', marginBottom: '1.75rem', backdropFilter: 'blur(8px)' }}>
+            <span style={{ color: '#fff', fontSize: '0.82rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase' }}>✨ Konsultasi Gratis</span>
           </div>
-          <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: 'clamp(2rem, 5vw, 3rem)', color: '#fff', fontWeight: '700', marginBottom: '1rem', lineHeight: 1.2 }}>
-            Siap Mempercantik Ruanganmu?
+          <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', color: '#fff', fontWeight: '700', marginBottom: '1.25rem', lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.15)' }}>
+            Siap Mempercantik<br />Ruanganmu?
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.9)', marginBottom: '2rem', fontSize: '1.05rem', lineHeight: 1.7 }}>
+          <p style={{ color: 'rgba(255,255,255,0.88)', marginBottom: '2.5rem', fontSize: '1.05rem', lineHeight: 1.8, maxWidth: 500, margin: '0 auto 2.5rem' }}>
             Hubungi kami sekarang untuk konsultasi gratis. Tim kami siap membantu pilihkan gorden, vitras, atau roman blind terbaik sesuai kebutuhan dan budget Anda.
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a
-              href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="cta-btn-primary"
-            >
+            <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noopener noreferrer" className="cta-btn-primary">
               <MessageCircle size={18} /> Chat WhatsApp
             </a>
-            <a
-              href="/booking"
-              className="cta-btn-outline"
-            >
+            <a href="/booking" className="cta-btn-outline">
               <Calendar size={18} /> Buat Janji
             </a>
           </div>
@@ -386,7 +305,9 @@ export default async function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr 1fr', gap: '2.5rem', marginBottom: '3rem' }}>
             {/* Brand column */}
             <div>
-              <div style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: '1.75rem', fontWeight: '700', color: '#fff', marginBottom: '1rem' }}>KJ Homedecor</div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <img src="/kjlogo.png" alt="KJ Homedecor" style={{ height: '42px', width: 'auto' }} suppressHydrationWarning />
+              </div>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.5)', maxWidth: 280, marginBottom: '1.5rem' }}>
                 Spesialis gorden, curtain, roman blind, dan vitras premium. Pemasangan profesional ke seluruh Jabodetabek.
               </p>
