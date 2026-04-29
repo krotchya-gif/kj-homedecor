@@ -23,6 +23,7 @@ import {
   Menu,
   X,
   Truck,
+  Search,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -45,6 +46,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Staff', href: '/admin/staff', icon: <Users size={16} /> },
     { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={16} /> },
     { label: 'Landing', href: '/admin/landing-settings', icon: <Settings size={16} /> },
+    { label: 'SEO', href: '/admin/seo', icon: <Search size={16} /> },
   ],
   gudang: [
     { label: 'Dashboard',  href: '/gudang',            icon: <LayoutDashboard size={16} /> },
