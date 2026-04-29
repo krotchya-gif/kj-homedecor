@@ -129,7 +129,7 @@ export default function DashboardTopNav({
         </button>
 
         {/* Brand */}
-        <a href="/" target="_blank" rel="noopener noreferrer" className="topnav-brand">
+        <a href="/" target="_blank" rel="noopener noreferrer" className="topnav-brand" suppressHydrationWarning>
           KJ <span>Homedecor</span>
         </a>
 
