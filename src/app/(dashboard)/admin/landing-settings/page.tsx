@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Save, Plus, Trash2, Eye, MessageCircle, Loader2, Star, Shield, Truck, Clock, CheckCircle, Phone, MapPin, ShoppingBag } from 'lucide-react'
+import { Save, Plus, Trash2, Eye, MessageCircle, Loader2, Star, Shield, Truck, Clock, CheckCircle, Phone, MapPin, ShoppingBag, Upload, ImageIcon } from 'lucide-react'
+import { uploadToLocal } from '@/lib/upload'
 
 interface TrustBadge {
   icon: string
@@ -15,6 +16,7 @@ interface LandingSettings {
   hero_subtitle: string
   hero_cta_text: string
   hero_cta_link: string
+  hero_image_url: string
   whatsapp_number: string
   whatsapp_message: string
   trust_badges: TrustBadge[]
@@ -45,6 +47,7 @@ export default function AdminLandingSettingsPage() {
     hero_subtitle: '',
     hero_cta_text: '',
     hero_cta_link: '',
+    hero_image_url: '',
     whatsapp_number: '',
     whatsapp_message: '',
     instagram: '',
@@ -56,6 +59,7 @@ export default function AdminLandingSettingsPage() {
     phone: '',
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
+  const [heroImageUploading, setHeroImageUploading] = useState(false)
 
   const supabase = createClient()
 
@@ -76,6 +80,7 @@ export default function AdminLandingSettingsPage() {
         hero_subtitle: data.hero_subtitle ?? '',
         hero_cta_text: data.hero_cta_text ?? '',
         hero_cta_link: data.hero_cta_link ?? '',
+        hero_image_url: (data as any).hero_image_url ?? '',
         whatsapp_number: data.whatsapp_number ?? '',
         whatsapp_message: data.whatsapp_message ?? '',
         instagram: (data as any).instagram ?? '',
@@ -100,6 +105,7 @@ export default function AdminLandingSettingsPage() {
         hero_subtitle: form.hero_subtitle,
         hero_cta_text: form.hero_cta_text,
         hero_cta_link: form.hero_cta_link,
+        hero_image_url: form.hero_image_url,
         whatsapp_number: form.whatsapp_number,
         whatsapp_message: form.whatsapp_message,
         trust_badges: trustBadges,
@@ -124,6 +130,20 @@ export default function AdminLandingSettingsPage() {
 
   function addTrustBadge() {
     setTrustBadges(prev => [...prev, { icon: 'Star', label: 'Badge Baru' }])
+  }
+
+  async function handleHeroImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setHeroImageUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'banners', { compress: true, maxSizeMB: 2 })
+      setForm(f => ({ ...f, hero_image_url: result.url }))
+    } catch (err) {
+      alert('Gagal upload gambar hero')
+    } finally {
+      setHeroImageUploading(false)
+    }
   }
 
   function removeTrustBadge(idx: number) {
@@ -218,6 +238,37 @@ export default function AdminLandingSettingsPage() {
                     placeholder="#products"
                   />
                 </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Hero Image</label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="text"
+                      value={form.hero_image_url}
+                      onChange={e => setForm(f => ({ ...f, hero_image_url: e.target.value }))}
+                      style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                      placeholder="/uploads/banners/xxx.jpg"
+                    />
+                    <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>URL gambar atau upload file baru</p>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: heroImageUploading ? '#e5e7eb' : '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, cursor: heroImageUploading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleHeroImageUpload}
+                      disabled={heroImageUploading}
+                      style={{ display: 'none' }}
+                    />
+                    {heroImageUploading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} />}
+                    {heroImageUploading ? 'Upload...' : 'Upload'}
+                  </label>
+                </div>
+                {form.hero_image_url && (
+                  <div style={{ marginTop: '0.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                    <img src={form.hero_image_url} alt="Hero preview" style={{ width: '100%', height: 120, objectFit: 'cover' }} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

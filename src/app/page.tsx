@@ -58,6 +58,9 @@ export default async function LandingPage() {
     { icon: 'Truck', label: 'Pasang Se-Jabodetabek' },
   ]
 
+  // Hero image: landing_settings hero_image_url overrides banners[0]
+  const heroImageUrl = settings?.hero_image_url || (banners.length > 0 ? banners[0].image_url : null)
+
   // Social media & contact
   const instagram = settings?.instagram ?? ''
   const facebook = settings?.facebook ?? ''
@@ -77,10 +80,10 @@ export default async function LandingPage() {
         {/* Particles layer */}
         <HeroParticles />
 
-        {/* Background: banner image or animated blobs */}
-        {banners.length > 0 ? (
+        {/* Background: hero_image_url from settings, or banners[0], or animated blobs */}
+        {heroImageUrl ? (
           <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <img src={banners[0].image_url} alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={heroImageUrl} alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover', animation: 'fadeIn 0.5s ease-out' }} />
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(15,5,0,0.82) 0%, rgba(45,16,5,0.7) 50%, rgba(90,35,14,0.75) 100%)' }} />
           </div>
         ) : (

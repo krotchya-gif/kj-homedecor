@@ -27,6 +27,15 @@ import {
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 
 interface NavItem {
   label: string
@@ -108,6 +117,7 @@ export default function DashboardTopNav({
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const navItems = NAV_BY_ROLE[role] ?? []
 
   useEffect(() => {
@@ -118,6 +128,7 @@ export default function DashboardTopNav({
   }, [])
 
   async function handleLogout() {
+    setLogoutOpen(false)
     const supabase = createClient()
     await supabase.auth.signOut()
     router.push('/login')
@@ -175,7 +186,31 @@ export default function DashboardTopNav({
             <Bell size={18} />
           </button>
 
-          {/* User menu */}
+          {/* Always-visible Logout button */}
+          <button
+            className="logout-visible-btn"
+            title="Keluar"
+            onClick={() => setLogoutOpen(true)}
+          >
+            <LogOut size={16} />
+            {!isMobile && <span>Keluar</span>}
+          </button>
+          <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
+            <DialogContent showCloseButton={false}>
+              <DialogHeader>
+                <DialogTitle>Konfirmasi Keluar</DialogTitle>
+                <DialogDescription>
+                  Apakah Anda yakin ingin keluar dari dashboard?
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setLogoutOpen(false)}>Batal</Button>
+                <Button onClick={handleLogout}>Ya, Keluar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* User info — clickable for profile dropdown */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -185,29 +220,22 @@ export default function DashboardTopNav({
                 {userName.charAt(0).toUpperCase()}
               </div>
               <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#111827' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
                   {userName}
                 </div>
-                <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                <div style={{ fontSize: '0.7rem' }}>
                   {ROLE_LABELS[role] ?? role}
                 </div>
               </div>
-              <ChevronDown size={14} style={{ color: '#9ca3af' }} />
+              <ChevronDown size={14} />
             </button>
 
-            {/* Dropdown */}
+            {/* Dropdown — profile only, no logout */}
             {userMenuOpen && (
               <div className="user-dropdown">
                 <div className="user-dropdown-header">
-                  Masuk sebagai <strong style={{ color: '#111827' }}>{ROLE_LABELS[role]}</strong>
+                  Masuk sebagai <strong>{ROLE_LABELS[role]}</strong>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="logout-btn"
-                >
-                  <LogOut size={15} />
-                  Keluar
-                </button>
               </div>
             )}
           </div>
@@ -240,8 +268,8 @@ export default function DashboardTopNav({
                   {userName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.9rem' }}>{userName}</div>
-                  <div style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{ROLE_LABELS[role]}</div>
+                  <div style={{ fontWeight: '600', fontSize: '0.9rem' }}>{userName}</div>
+                  <div style={{ fontSize: '0.75rem' }}>{ROLE_LABELS[role]}</div>
                 </div>
               </div>
               <button
@@ -271,7 +299,10 @@ export default function DashboardTopNav({
               })}
             </div>
             <div className="mobile-drawer-footer">
-              <button onClick={handleLogout} className="logout-btn-mobile">
+              <button
+                className="logout-btn-mobile"
+                onClick={() => setLogoutOpen(true)}
+              >
                 <LogOut size={16} />
                 Keluar
               </button>

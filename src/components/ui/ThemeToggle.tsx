@@ -14,35 +14,15 @@ export default function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div style={{ width: 36, height: 36 }} />
+      <div className="w-9 h-9" />
     )
   }
 
   return (
     <button
       onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-      style={{
-        width: 36,
-        height: 36,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'none',
-        border: '1px solid #e5e7eb',
-        borderRadius: '0.5rem',
-        cursor: 'pointer',
-        color: '#6b7280',
-        transition: 'all 0.15s',
-      }}
+      className="w-9 h-9 flex items-center justify-center rounded-lg border border-neutral-200 dark:border-neutral-700 cursor-pointer text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-all duration-150"
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = '#f3f4f6'
-        ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#d1d5db'
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLButtonElement).style.background = 'none'
-        ;(e.currentTarget as HTMLButtonElement).style.borderColor = '#e5e7eb'
-      }}
     >
       {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
     </button>

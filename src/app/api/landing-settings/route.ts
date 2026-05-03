@@ -40,7 +40,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { hero_title, hero_subtitle, hero_cta_text, hero_cta_link, whatsapp_number, whatsapp_message, trust_badges } = body
+    const { hero_title, hero_subtitle, hero_cta_text, hero_cta_link, whatsapp_number, whatsapp_message, trust_badges, hero_image_url } = body
 
     const { data, error } = await supabase
       .from('landing_settings')
@@ -52,6 +52,7 @@ export async function PUT(request: Request) {
         whatsapp_number,
         whatsapp_message,
         trust_badges,
+        hero_image_url,
         updated_at: new Date().toISOString(),
       })
       .eq('id', 'hero')
