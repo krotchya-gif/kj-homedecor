@@ -59,103 +59,103 @@ html, body {
   --neutral-800: #f5f5f5;
   --neutral-900: #fafafa;
 
-  /* Warm dark background */
+  /* Dark backgrounds */
   background-color: #0a0a0a;
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark body {
   background-color: #0a0a0a;
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .topnav {
-  background: #0a0a0a;
-  border-color: #262626;
+  background: var(--neutral-50);
+  border-color: var(--neutral-200);
 }
 
 .dark .topnav-brand {
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .topnav-link {
-  color: #a1a1aa;
+  color: var(--neutral-600);
 }
 
 .dark .topnav-link:hover {
   background: rgba(249, 115, 22, 0.12);
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .topnav-link.active {
   background: rgba(249, 115, 22, 0.18);
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .dashboard-layout {
-  background: #0a0a0a;
+  background: var(--neutral-50);
 }
 
 .dark .dashboard-content {
-  background: #0a0a0a;
+  background: var(--neutral-50);
 }
 
 .dark .stat-card,
 .dark .module-card,
 .dark .data-table,
 .dark .form-section {
-  background: #141414;
-  border-color: #262626;
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
 }
 
 .dark .stat-card-label,
 .dark .module-card-desc,
 .dark .stat-card-sub {
-  color: #71717a;
+  color: var(--neutral-500);
 }
 
 .dark .stat-card-value,
 .dark .module-card-title {
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .page-title {
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .page-subtitle {
-  color: #a1a1aa;
+  color: var(--neutral-600);
 }
 
 .dark .data-table th {
-  background: #141414;
-  color: #a1a1aa;
-  border-color: #262626;
+  background: var(--neutral-100);
+  color: var(--neutral-600);
+  border-color: var(--neutral-200);
 }
 
 .dark .data-table td {
-  color: #e5e5e5;
-  border-color: #1f1f1f;
+  color: var(--neutral-700);
+  border-color: var(--neutral-200);
 }
 
 .dark .data-table tr:hover td {
-  background: #1a1a1a;
+  background: var(--neutral-100);
 }
 
 .dark .user-menu-btn {
-  background: #1a1a1a;
-  border-color: #262626;
-  color: #fafafa;
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
+  color: var(--neutral-900);
 }
 
 .dark .user-dropdown {
-  background: #141414;
-  border-color: #262626;
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
 }
 
 .dark .user-dropdown-header {
-  color: #71717a;
-  border-color: #262626;
+  color: var(--neutral-500);
+  border-color: var(--neutral-200);
 }
 
 .dark .logout-btn {
@@ -167,33 +167,33 @@ html, body {
 }
 
 .dark .mobile-drawer {
-  background: #141414;
+  background: var(--neutral-100);
 }
 
 .dark .mobile-drawer-header {
-  background: #0a0a0a;
-  border-color: #262626;
+  background: var(--neutral-50);
+  border-color: var(--neutral-200);
 }
 
 .dark .mobile-user-info {
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .mobile-nav-item {
-  color: #a1a1aa;
+  color: var(--neutral-600);
 }
 
 .dark .mobile-nav-item:hover {
-  background: #1a1a1a;
+  background: var(--neutral-100);
 }
 
 .dark .mobile-nav-item.active {
   background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .mobile-drawer-footer {
-  border-color: #262626;
+  border-color: var(--neutral-200);
 }
 
 .dark .logout-btn-mobile {
@@ -203,19 +203,19 @@ html, body {
 }
 
 .dark .notification-btn {
-  color: #a1a1aa;
+  color: var(--neutral-600);
 }
 
 .dark .notification-btn:hover {
-  background: #1a1a1a;
+  background: var(--neutral-100);
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: #141414;
+  background: var(--neutral-100);
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: var(--neutral-300);
 }
 
 * {
@@ -1838,21 +1838,21 @@ body {
 
 /* ========== LANDING PAGE DARK MODE ========== */
 .dark .landing-nav {
-  background: rgba(10, 10, 10, 0.95) !important;
-  border-color: #262626;
+  background: var(--neutral-50) !important;
+  border-color: var(--neutral-200);
 }
 
 .dark .landing-nav-link {
-  color: #a1a1aa;
+  color: var(--neutral-600);
 }
 
 .dark .landing-nav-link:hover {
-  color: #f97316;
+  color: var(--brand-500);
   background: rgba(249, 115, 22, 0.1);
 }
 
 .dark .landing-nav-brand {
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .landing-hero {
@@ -1861,58 +1861,58 @@ body {
 
 .dark #categories,
 .dark #portfolio {
-  background: #0a0a0a;
+  background: var(--neutral-50);
 }
 
 .dark .landing-section-label {
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .landing-section-title {
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .landing-section-subtitle {
-  color: #71717a;
+  color: var(--neutral-500);
 }
 
 .dark .category-grid > div {
-  background: #1a1a1a !important;
-  border-color: #262626;
+  background: var(--neutral-100) !important;
+  border-color: var(--neutral-200);
 }
 
 .dark .category-grid > div span {
-  color: #f97316 !important;
+  color: var(--brand-500) !important;
 }
 
 .dark .product-card {
-  background: #141414;
-  border-color: #262626;
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
 }
 
 .dark .product-card-name {
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .product-card-cat {
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .product-card-price {
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 .dark .portfolio-card {
-  background: #141414;
-  border-color: #262626;
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
 }
 
 .dark .portfolio-card h3 {
-  color: #fafafa;
+  color: var(--neutral-900);
 }
 
 .dark .landing-footer {
-  background: #0a0a0a;
+  background: var(--neutral-50);
 }
 
 .dark .footer-link {
@@ -1920,7 +1920,7 @@ body {
 }
 
 .dark .footer-link:hover {
-  color: #f97316;
+  color: var(--brand-500);
 }
 
 /* Font contrast fix - light mode */
