@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { CheckCircle2, Clock, Layers, ExternalLink } from 'lucide-react'
+import { CheckCircle2, Clock, Layers, ExternalLink, UserPlus, X } from 'lucide-react'
 
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   waiting:     {bg:'#fef2f2',text:'#991b1b'},
@@ -11,19 +11,28 @@ const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   done:        {bg:'#d1fae5',text:'#065f46'},
 }
 
+interface UserType { id: string; name: string; role: string }
+
 export default function GudangProductionPage() {
   const [jobs, setJobs]       = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter]   = useState('')
+  const [penjahits, setPenjahits] = useState<UserType[]>([])
+  const [assignJob, setAssignJob] = useState<any|null>(null)
+  const [assigning, setAssigning] = useState(false)
   const supabase = createClient()
 
   async function load() {
     setLoading(true)
-    const { data } = await supabase
-      .from('production_jobs')
-      .select('*, order:orders(id, customer:customers(name)), penjahit:users(name)')
-      .order('created_at', { ascending: false })
+    const [{ data }, { data: penjahitData }] = await Promise.all([
+      supabase
+        .from('production_jobs')
+        .select('*, order:orders(id, customer:customers(name)), penjahit:users(name)')
+        .order('created_at', { ascending: false }),
+      supabase.from('users').select('id, name, role').eq('role', 'penjahit'),
+    ])
     setJobs(data ?? [])
+    setPenjahits((penjahitData ?? []) as UserType[])
     setLoading(false)
   }
   useEffect(() => { load() }, [])
@@ -36,7 +45,6 @@ export default function GudangProductionPage() {
       ...(status === 'done'        ? { completed_at: new Date().toISOString() } : {}),
     }).eq('id', jobId)
 
-    // Log the action
     await supabase.from('order_logs').insert({
       order_id: jobs.find(j => j.id === jobId)?.order_id,
       action: status === 'in_progress' ? 'production_started' : 'production_done',
@@ -45,6 +53,23 @@ export default function GudangProductionPage() {
         : `Produksi selesai — siap QC`,
       staff_id: user?.id ?? null,
     })
+    load()
+  }
+
+  async function handleAssignPenjahit(penjahitId: string) {
+    if (!assignJob) return
+    setAssigning(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('production_jobs').update({ penjahit_id: penjahitId }).eq('id', assignJob.id)
+    const selectedPenjahit = penjahits.find((p: UserType) => p.id === penjahitId)
+    await supabase.from('order_logs').insert({
+      order_id: assignJob.order_id,
+      action: 'penjahit_assigned',
+      notes: `Job diserahkan ke penjahit: ${selectedPenjahit?.name ?? penjahitId}`,
+      staff_id: user?.id ?? null,
+    })
+    setAssigning(false)
+    setAssignJob(null)
     load()
   }
 
@@ -118,7 +143,13 @@ export default function GudangProductionPage() {
                     </td>
                     <td>
                       <div style={{ display:'flex', gap:'0.375rem' }}>
-                        {job.status === 'waiting' && (
+                        {job.status === 'waiting' && !job.penjahit_id && (
+                          <button onClick={() => setAssignJob(job)}
+                            style={{ padding:'0.25rem 0.625rem', background:'#e0e7ff', color:'#3730a3', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.2rem' }}>
+                            <UserPlus size={11}/> Beri Penjahit
+                          </button>
+                        )}
+                        {job.status === 'waiting' && job.penjahit_id && (
                           <button onClick={() => updateJobStatus(job.id,'in_progress')}
                             style={{ padding:'0.25rem 0.625rem', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer' }}>
                             Mulai
@@ -139,6 +170,44 @@ export default function GudangProductionPage() {
           </table>
         )}
       </div>
+
+      {/* Assign Penjahit Modal */}
+      {assignJob && (
+        <div
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
+          onClick={e => { if (e.target === e.currentTarget) setAssignJob(null) }}>
+          <div style={{ background:'#fff', borderRadius:'0.875rem', padding:'2rem', width:'100%', maxWidth:420, boxShadow:'0 25px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
+              <h2 style={{ fontSize:'1.1rem', fontWeight:'700', margin:0 }}>Serahkan ke Penjahit</h2>
+              <button onClick={() => setAssignJob(null)} style={{ background:'none', border:'none', cursor:'pointer' }}><X size={20}/></button>
+            </div>
+            <p style={{ fontSize:'0.875rem', color:'#6b7280', marginBottom:'1.25rem' }}>
+              Pilih penjahit untuk job: <strong>{assignJob.order?.customer?.name ?? assignJob.order_id?.slice(0,8)}</strong>
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:'0.625rem' }}>
+              {penjahits.length === 0 ? (
+                <p style={{ color:'#9ca3af', fontSize:'0.875rem' }}>Tidak ada penjahit tersedia</p>
+              ) : (
+                penjahits.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => handleAssignPenjahit(p.id)}
+                    disabled={assigning}
+                    style={{ display:'flex', alignItems:'center', gap:'0.625rem', padding:'0.875rem', border:`2px solid ${'#e5e7eb'}`, borderRadius:'0.5rem', background:'#fff', cursor:'pointer', textAlign:'left' }}>
+                    <div style={{ width:36, height:36, borderRadius:'50%', background:'#16a34a20', color:'#16a34a', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'0.9rem', flexShrink:0 }}>
+                      {p.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight:'600', fontSize:'0.875rem', color:'#1f2937' }}>{p.name}</div>
+                      <div style={{ fontSize:'0.75rem', color:'#9ca3af' }}>Penjahit</div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
