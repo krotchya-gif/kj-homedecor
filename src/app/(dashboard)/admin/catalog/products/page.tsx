@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, Package, Star } from 'lucide-react'
-import type { Product } from '@/types'
+import type { Product, Category } from '@/types'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -17,15 +17,18 @@ export default function ProductsPage() {
   const [editProduct, setEditProduct] = useState<Product | null>(null)
 
   // Form state
+  const [categories, setCategories] = useState<Category[]>([])
   const [form, setForm] = useState({
     name: '',
     sku: '',
     kode_kain: '',
+    category_id: '',
     price: '',
     stock_toko: '',
     is_featured: false,
     is_custom: false,
   })
+  type Field = { label: string; id: string; placeholder: string; type?: string }
   const [saving, setSaving] = useState(false)
 
   const supabase = createClient()
@@ -42,6 +45,11 @@ export default function ProductsPage() {
 
   useEffect(() => {
     fetchProducts()
+    async function fetchCategories() {
+      const { data } = await supabase.from('categories').select('*').order('name')
+      setCategories((data as Category[]) ?? [])
+    }
+    fetchCategories()
   }, [])
 
   const filtered = products.filter(
@@ -52,7 +60,7 @@ export default function ProductsPage() {
 
   function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', sku: '', kode_kain: '', price: '', stock_toko: '', is_featured: false, is_custom: false })
+    setForm({ name: '', sku: '', kode_kain: '', category_id: '', price: '', stock_toko: '', is_featured: false, is_custom: false })
     setShowForm(true)
   }
 
@@ -62,6 +70,7 @@ export default function ProductsPage() {
       name: p.name,
       sku: p.sku ?? '',
       kode_kain: p.kode_kain ?? '',
+      category_id: (p as any).category_id ?? '',
       price: String(p.price),
       stock_toko: String(p.stock_toko),
       is_featured: p.is_featured,
@@ -77,6 +86,7 @@ export default function ProductsPage() {
       name: form.name,
       sku: form.sku || null,
       kode_kain: form.kode_kain || null,
+      category_id: form.category_id || null,
       price: Number(form.price),
       stock_toko: Number(form.stock_toko),
       is_featured: form.is_featured,
@@ -229,13 +239,37 @@ export default function ProductsPage() {
               {editProduct ? 'Edit Produk' : 'Tambah Produk'}
             </h2>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {[
-                { label: 'Nama Produk *', id: 'name', placeholder: 'Atlas 59-1 Smokering' },
-                { label: 'SKU', id: 'sku', placeholder: 'SKU-001' },
-                { label: 'Kode Kain', id: 'kode_kain', placeholder: 'ATL-59' },
-                { label: 'Harga Jual (Rp) *', id: 'price', placeholder: '250000', type: 'number' },
-                { label: 'Stok Toko', id: 'stock_toko', placeholder: '0', type: 'number' },
-              ].map((field) => (
+              {([{ label: 'Nama Produk *', id: 'name', placeholder: 'Atlas 59-1 Smokering' }, { label: 'SKU', id: 'sku', placeholder: 'SKU-001' }, { label: 'Kode Kain', id: 'kode_kain', placeholder: 'ATL-59' }] as Field[]).map((field) => (
+                <div key={field.id}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type ?? 'text'}
+                    required={field.label.includes('*')}
+                    placeholder={field.placeholder}
+                    value={(form as Record<string, string | boolean>)[field.id] as string}
+                    onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
+                    style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                  />
+                </div>
+              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+                  Kategori
+                </label>
+                <select
+                  value={form.category_id}
+                  onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}
+                >
+                  <option value="">— Pilih Kategori —</option>
+                  {categories.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              {([{ label: 'Harga Jual (Rp) *', id: 'price', placeholder: '250000', type: 'number' }, { label: 'Stok Toko', id: 'stock_toko', placeholder: '0', type: 'number' }] as Field[]).map((field) => (
                 <div key={field.id}>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
                     {field.label}
