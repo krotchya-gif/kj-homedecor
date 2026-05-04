@@ -89,6 +89,25 @@ export default function OrderDetailPage() {
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null,
     })
+
+    // Auto-create production job when status becomes 'production'
+    if (newStatus === 'production') {
+      const { data: orderItems } = await supabase.from('order_items').select('*, product:products(name)').eq('order_id', id)
+      const totalMeterGorden = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? 0), 0)
+      const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
+      const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+      const totalMeterKupu = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
+
+      await supabase.from('production_jobs').insert({
+        order_id: id,
+        meter_gorden: totalMeterGorden,
+        meter_vitras: totalMeterVitras,
+        meter_roman: totalMeterRoman,
+        meter_kupu_kupu: totalMeterKupu,
+        status: 'waiting',
+      })
+    }
+
     setOrder(o => o ? {...o, status:newStatus as Order['status']} : o)
     setUpdating(false)
     load()
