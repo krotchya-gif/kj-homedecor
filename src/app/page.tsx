@@ -146,7 +146,7 @@ export default async function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
             <div className="landing-section-label">Koleksi Kami</div>
             <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Temukan Gaya Favoritmu</h2>
-            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Pilihan gorden dan aksesoris premium untuk setiap ruangan</p>
+            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Pilihan gorden dan aksesoris premium untuk setiap ruangan</p>
           </div>
 
           {(() => {
@@ -185,7 +185,7 @@ export default async function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div className="landing-section-label">Rekomendasi</div>
             <h2 className="landing-section-title" style={{ margin: '0 auto 0.75rem' }}>Produk Pilihan</h2>
-            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
+            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
               Pilihan gorden, vitras, roman blind, dan aksesoris berkualitas tinggi
             </p>
           </div>
@@ -226,7 +226,7 @@ export default async function LandingPage() {
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <div className="landing-section-label">Inspirasi</div>
             <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Portofolio Kami</h2>
-            <p style={{ color: '#6b7280', fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Hasil karya dan instalasi dari tim profesional KJ Homedecor</p>
+            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Hasil karya dan instalasi dari tim profesional KJ Homedecor</p>
           </div>
           {portfolio.length === 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -241,8 +241,8 @@ export default async function LandingPage() {
                     </div>
                   </div>
                   <div style={{ padding: '1.25rem' }}>
-                    <h3 style={{ fontWeight: '700', color: '#1f2937', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>Hasil pemasangan terbaru oleh tim KJ Homedecor</p>
+                    <h3 className="landing-card-title" style={{ fontWeight: '700', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{title}</h3>
+                    <p className="landing-card-desc" style={{ fontSize: '0.85rem' }}>Hasil pemasangan terbaru oleh tim KJ Homedecor</p>
                   </div>
                 </div>
               ))}
@@ -262,8 +262,8 @@ export default async function LandingPage() {
                     </div>
                   </div>
                   <div style={{ padding: '1.25rem' }}>
-                    <h3 style={{ fontWeight: '700', color: '#1f2937', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{post.title}</h3>
-                    <p style={{ fontSize: '0.85rem', color: '#6b7280' }}>{new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <h3 className="landing-card-title" style={{ fontWeight: '700', marginBottom: '0.4rem', fontSize: '1.05rem' }}>{post.title}</h3>
+                    <p className="landing-card-desc" style={{ fontSize: '0.85rem' }}>{new Date(post.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
                   </div>
                 </div>
               ))}

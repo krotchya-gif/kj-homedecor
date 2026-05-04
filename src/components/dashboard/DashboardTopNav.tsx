@@ -1,41 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
+import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  Users,
-  Calendar,
-  ImageIcon,
-  BarChart3,
-  Warehouse,
-  Scissors,
-  DollarSign,
-  Wrench,
-  Eye,
-  Bell,
-  LogOut,
-  ChevronDown,
-  Settings,
   Menu,
   X,
-  Truck,
-  Search,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import ThemeToggle from '@/components/ui/ThemeToggle'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 
 interface NavItem {
   label: string
@@ -45,54 +16,54 @@ interface NavItem {
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
   admin: [
-    { label: 'Dashboard', href: '/admin', icon: <LayoutDashboard size={16} /> },
-    { label: 'Katalog', href: '/admin/catalog', icon: <Package size={16} /> },
-    { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={16} /> },
-    { label: 'Pelanggan', href: '/admin/customers', icon: <Users size={16} /> },
-    { label: 'Booking', href: '/admin/booking', icon: <Calendar size={16} /> },
-    { label: 'Portofolio', href: '/admin/portfolio', icon: <ImageIcon size={16} /> },
-    { label: 'Laporan', href: '/admin/reports', icon: <BarChart3 size={16} /> },
-    { label: 'Staff', href: '/admin/staff', icon: <Users size={16} /> },
-    { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={16} /> },
-    { label: 'Landing', href: '/admin/landing-settings', icon: <Settings size={16} /> },
-    { label: 'SEO', href: '/admin/seo', icon: <Search size={16} /> },
+    { label: 'Dashboard', href: '/admin', icon: <span /> },
+    { label: 'Katalog', href: '/admin/catalog', icon: <span /> },
+    { label: 'Pesanan', href: '/admin/orders', icon: <span /> },
+    { label: 'Pelanggan', href: '/admin/customers', icon: <span /> },
+    { label: 'Booking', href: '/admin/booking', icon: <span /> },
+    { label: 'Portofolio', href: '/admin/portfolio', icon: <span /> },
+    { label: 'Laporan', href: '/admin/reports', icon: <span /> },
+    { label: 'Staff', href: '/admin/staff', icon: <span /> },
+    { label: 'Pengiriman', href: '/admin/shipping', icon: <span /> },
+    { label: 'Landing', href: '/admin/landing-settings', icon: <span /> },
+    { label: 'SEO', href: '/admin/seo', icon: <span /> },
   ],
   gudang: [
-    { label: 'Dashboard',  href: '/gudang',            icon: <LayoutDashboard size={16} /> },
-    { label: 'Produksi',   href: '/gudang/production', icon: <Warehouse size={16} /> },
-    { label: 'Laundry/Steam', href: '/gudang/steam',   icon: <Package size={16} /> },
-    { label: 'Posisi Stok',href: '/gudang/stock',      icon: <Package size={16} /> },
-    { label: 'Alerts',     href: '/gudang/alerts',     icon: <Bell size={16} /> },
-    { label: 'Lembur',     href: '/gudang/lembur',     icon: <Calendar size={16} /> },
-    { label: 'QC',         href: '/gudang/qc',         icon: <Wrench size={16} /> },
+    { label: 'Dashboard', href: '/gudang', icon: <span /> },
+    { label: 'Produksi', href: '/gudang/production', icon: <span /> },
+    { label: 'Laundry/Steam', href: '/gudang/steam', icon: <span /> },
+    { label: 'Posisi Stok', href: '/gudang/stock', icon: <span /> },
+    { label: 'Alerts', href: '/gudang/alerts', icon: <span /> },
+    { label: 'Lembur', href: '/gudang/lembur', icon: <span /> },
+    { label: 'QC', href: '/gudang/qc', icon: <span /> },
   ],
   penjahit: [
-    { label: 'Dashboard',  href: '/penjahit',          icon: <LayoutDashboard size={16} /> },
-    { label: 'Job Queue',  href: '/penjahit/jobs',     icon: <Scissors size={16} /> },
-    { label: 'Rekap',      href: '/penjahit/reports',  icon: <BarChart3 size={16} /> },
-    { label: 'Riwayat',    href: '/penjahit/history',  icon: <BarChart3 size={16} /> },
+    { label: 'Dashboard', href: '/penjahit', icon: <span /> },
+    { label: 'Job Queue', href: '/penjahit/jobs', icon: <span /> },
+    { label: 'Rekap', href: '/penjahit/reports', icon: <span /> },
+    { label: 'Riwayat', href: '/penjahit/history', icon: <span /> },
   ],
   finance: [
-    { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={16} /> },
-    { label: 'BOM & Material', href: '/finance/materials', icon: <Package size={16} /> },
-    { label: 'HPP', href: '/finance/hpp', icon: <DollarSign size={16} /> },
-    { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={16} /> },
-    { label: 'Supplier', href: '/finance/suppliers', icon: <Users size={16} /> },
-    { label: 'Laporan', href: '/finance/reports', icon: <BarChart3 size={16} /> },
+    { label: 'Dashboard', href: '/finance', icon: <span /> },
+    { label: 'BOM & Material', href: '/finance/materials', icon: <span /> },
+    { label: 'HPP', href: '/finance/hpp', icon: <span /> },
+    { label: 'Pembayaran', href: '/finance/payments', icon: <span /> },
+    { label: 'Supplier', href: '/finance/suppliers', icon: <span /> },
+    { label: 'Laporan', href: '/finance/reports', icon: <span /> },
   ],
   installer: [
-    { label: 'Jadwal', href: '/installer', icon: <Calendar size={16} /> },
-    { label: 'Laporan', href: '/installer/reports', icon: <BarChart3 size={16} /> },
+    { label: 'Jadwal', href: '/installer', icon: <span /> },
+    { label: 'Laporan', href: '/installer/reports', icon: <span /> },
   ],
   owner: [
-    { label: 'Overview', href: '/owner', icon: <Eye size={16} /> },
-    { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={16} /> },
-    { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={16} /> },
-    { label: 'Stok Gudang', href: '/gudang/stock', icon: <Warehouse size={16} /> },
-    { label: 'Staff', href: '/owner/staff', icon: <Users size={16} /> },
-    { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingCart size={16} /> },
-    { label: 'Top Produk', href: '/owner/products', icon: <Package size={16} /> },
-    { label: 'Laporan', href: '/admin/reports', icon: <BarChart3 size={16} /> },
+    { label: 'Overview', href: '/owner', icon: <span /> },
+    { label: 'Pesanan', href: '/admin/orders', icon: <span /> },
+    { label: 'Pengiriman', href: '/admin/shipping', icon: <span /> },
+    { label: 'Stok Gudang', href: '/gudang/stock', icon: <span /> },
+    { label: 'Staff', href: '/owner/staff', icon: <span /> },
+    { label: 'Marketplace', href: '/owner/marketplace', icon: <span /> },
+    { label: 'Top Produk', href: '/owner/products', icon: <span /> },
+    { label: 'Laporan', href: '/admin/reports', icon: <span /> },
   ],
 }
 
@@ -105,19 +76,16 @@ const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner',
 }
 
-export default function DashboardTopNav({
-  role,
-  userName,
-}: {
+interface DashboardTopNavProps {
   role: string
   userName: string
-}) {
+  onMenuClick: () => void
+}
+
+export default function DashboardTopNav({ role, userName, onMenuClick }: DashboardTopNavProps) {
   const pathname = usePathname()
-  const router = useRouter()
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
-  const [logoutOpen, setLogoutOpen] = useState(false)
   const navItems = NAV_BY_ROLE[role] ?? []
 
   useEffect(() => {
@@ -127,13 +95,8 @@ export default function DashboardTopNav({
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  async function handleLogout() {
-    setLogoutOpen(false)
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
+  // Only render on mobile
+  if (!isMobile) return null
 
   return (
     <>
@@ -152,104 +115,22 @@ export default function DashboardTopNav({
           KJ <span>Homedecor</span>
         </a>
 
-        {/* Nav links - desktop */}
-        <div className="topnav-nav">
-          {navItems.map((item) => {
-            const isActive =
-              item.href === `/${role}`
-                ? pathname === item.href
-                : pathname.startsWith(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`topnav-link ${isActive ? 'active' : ''}`}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            )
-          })}
-        </div>
-
-        {/* Right side */}
+        {/* Right side: desktop toggle button */}
         <div className="topnav-right">
-          {/* Theme Toggle */}
-          <ThemeToggle />
-
-          {/* Notification */}
           <button
-            className="notification-btn"
-            title="Notifikasi"
+            onClick={onMenuClick}
+            className="desktop-sidebar-btn"
+            title="Buka menu"
           >
-            <Bell size={18} />
+            <Menu size={18} />
           </button>
-
-          {/* Always-visible Logout button */}
-          <button
-            className="logout-visible-btn"
-            title="Keluar"
-            onClick={() => setLogoutOpen(true)}
-          >
-            <LogOut size={16} />
-            {!isMobile && <span>Keluar</span>}
-          </button>
-          <Dialog open={logoutOpen} onOpenChange={setLogoutOpen}>
-            <DialogContent showCloseButton={false}>
-              <DialogHeader>
-                <DialogTitle>Konfirmasi Keluar</DialogTitle>
-                <DialogDescription>
-                  Apakah Anda yakin ingin keluar dari dashboard?
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setLogoutOpen(false)}>Batal</Button>
-                <Button onClick={handleLogout}>Ya, Keluar</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* User info — clickable for profile dropdown */}
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="user-menu-btn"
-            >
-              <div className="user-avatar">
-                {userName.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ textAlign: 'left' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600' }}>
-                  {userName}
-                </div>
-                <div style={{ fontSize: '0.7rem' }}>
-                  {ROLE_LABELS[role] ?? role}
-                </div>
-              </div>
-              <ChevronDown size={14} />
-            </button>
-
-            {/* Dropdown — profile only, no logout */}
-            {userMenuOpen && (
-              <div className="user-dropdown">
-                <div className="user-dropdown-header">
-                  Masuk sebagai <strong>{ROLE_LABELS[role]}</strong>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Close dropdown on outside click */}
-        {userMenuOpen && (
+        {/* Close user dropdown on outside click */}
+        {mobileMenuOpen && (
           <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              zIndex: 99,
-            }}
-            onClick={() => setUserMenuOpen(false)}
+            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
+            onClick={() => setMobileMenuOpen(false)}
           />
         )}
       </nav>
@@ -257,10 +138,7 @@ export default function DashboardTopNav({
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <>
-          <div
-            className="mobile-overlay"
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="mobile-overlay" onClick={() => setMobileMenuOpen(false)} />
           <div className="mobile-drawer">
             <div className="mobile-drawer-header">
               <div className="mobile-user-info">
@@ -297,15 +175,6 @@ export default function DashboardTopNav({
                   </Link>
                 )
               })}
-            </div>
-            <div className="mobile-drawer-footer">
-              <button
-                className="logout-btn-mobile"
-                onClick={() => setLogoutOpen(true)}
-              >
-                <LogOut size={16} />
-                Keluar
-              </button>
             </div>
           </div>
         </>

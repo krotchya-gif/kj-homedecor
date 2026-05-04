@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Calendar, Clock, MessageCircle, CheckCircle, AlertCircle, Home, MapPinned } from 'lucide-react'
 import Link from 'next/link'
+import BookingCalendar from '@/components/ui/BookingCalendar'
 
 const TIME_SLOTS = [
   '09:00', '10:00', '11:00', '12:00',
@@ -28,8 +29,32 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [occupiedDates, setOccupiedDates] = useState<Set<string>>(new Set())
+  const [occupiedSlots, setOccupiedSlots] = useState<Set<string>>(new Set())
 
   const supabase = createClient()
+
+  useEffect(() => {
+    async function fetchOccupied() {
+      const { data } = await supabase
+        .from('install_bookings')
+        .select('scheduled_date, scheduled_time')
+        .in('status', ['pending', 'scheduled'])
+
+      if (data) {
+        const dates = new Set<string>()
+        const slots = new Set<string>()
+        data.forEach(b => {
+          if (b.scheduled_date) dates.add(b.scheduled_date)
+          if (b.scheduled_date && b.scheduled_time) slots.add(`${b.scheduled_date} ${b.scheduled_time}`)
+        })
+        setOccupiedDates(dates)
+        setOccupiedSlots(slots)
+      }
+    }
+    fetchOccupied()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,7 +62,6 @@ export default function BookingPage() {
     setError('')
 
     try {
-      // Get WhatsApp number from landing settings
       let whatsappNumber = '6281234567890'
       let whatsappMessage = 'Halo KJ Homedecor'
       const { data: settings } = await supabase
@@ -51,7 +75,6 @@ export default function BookingPage() {
         whatsappMessage = settings.whatsapp_message ?? whatsappMessage
       }
 
-      // Insert booking
       const { error: insertError } = await supabase
         .from('install_bookings')
         .insert({
@@ -73,7 +96,6 @@ export default function BookingPage() {
 
       setSuccess(true)
 
-      // Open WhatsApp with pre-filled message
       const bookingRef = `BOOK-${Date.now().toString(36).toUpperCase()}`
       const serviceLabel = form.service_type === 'survey' ? 'Visit Toko' : 'Pemasangan'
       const waMessage = `${whatsappMessage}\n\n📋 Booking: ${bookingRef}\n👤 ${form.name}\n📱 ${form.phone}\n🔧 ${serviceLabel}\n📅 ${form.date || 'Belum ditentukan'}\n⏰ ${form.time || 'Belum ditentukan'}\n${form.service_type === 'survey' ? '🏪' : '📍'} ${form.service_type === 'survey' ? 'Konsultasi di Toko' : 'Alamat: ' + form.address}`
@@ -87,6 +109,16 @@ export default function BookingPage() {
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  function handleDateSelect(date: string) {
+    setSelectedDate(date)
+    setForm(prev => ({ ...prev, date, time: '' }))
+  }
+
+  function isSlotOccupied(time: string): boolean {
+    if (!selectedDate) return false
+    return occupiedSlots.has(`${selectedDate} ${time}`)
   }
 
   if (success) {
@@ -127,6 +159,22 @@ export default function BookingPage() {
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.5rem' }}>Booking Survey & Pasang</h1>
           <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Isi form di bawah untuk menjadwalkan kunjungan. Tim kami akan menghubungi Anda untuk konfirmasi.</p>
+        </div>
+
+        {/* Calendar */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Pilih Tanggal *</p>
+          <BookingCalendar
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            occupiedDates={occupiedDates}
+            occupiedSlots={occupiedSlots}
+          />
+          {selectedDate && (
+            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#cc7030' }}>
+              ✓ Tanggal dipilih: {new Date(selectedDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
         </div>
 
         {error && (
@@ -203,22 +251,8 @@ export default function BookingPage() {
             </div>
           )}
 
-          {/* Date */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }}>
-              <Calendar size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-              Tanggal Preferred *
-            </label>
-            <input
-              required
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-              min={new Date().toISOString().split('T')[0]}
-              style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none' }}
-            />
-          </div>
+          {/* Hidden date field — connected to calendar */}
+          <input type="hidden" name="date" value={form.date} />
 
           {/* Time Slot */}
           <div>
@@ -226,14 +260,44 @@ export default function BookingPage() {
               <Clock size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
               Jam Preferred *
             </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {TIME_SLOTS.map(time => (
-                <label key={time} style={{ padding: '0.5rem 0.875rem', border: `2px solid ${form.time === time ? '#cc7030' : '#e5e7eb'}`, borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', fontWeight: form.time === time ? '600' : '400', color: form.time === time ? '#cc7030' : '#6b7280', background: form.time === time ? '#fff3e8' : '#fff' }}>
-                  <input type="radio" name="time" value={time} checked={form.time === time} onChange={handleChange} style={{ display: 'none' }} />
-                  {time}
-                </label>
-              ))}
-            </div>
+            {!selectedDate ? (
+              <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic' }}>Pilih tanggal terlebih dahulu</p>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {TIME_SLOTS.map(time => {
+                  const occupied = isSlotOccupied(time)
+                  return (
+                    <label
+                      key={time}
+                      style={{
+                        padding: '0.5rem 0.875rem',
+                        border: `2px solid ${form.time === time ? '#cc7030' : occupied ? '#e5e5e5' : '#e5e7eb'}`,
+                        borderRadius: '0.5rem',
+                        cursor: occupied ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: form.time === time ? '600' : '400',
+                        color: form.time === time ? '#cc7030' : occupied ? '#d1d5db' : '#6b7280',
+                        background: form.time === time ? '#fff3e8' : occupied ? '#f9fafb' : '#fff',
+                        opacity: occupied ? 0.5 : 1,
+                        textDecoration: occupied ? 'line-through' : 'none',
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="time"
+                        value={time}
+                        checked={form.time === time}
+                        onChange={handleChange}
+                        disabled={occupied}
+                        style={{ display: 'none' }}
+                      />
+                      {time}
+                      {occupied && <span style={{ fontSize: '0.65rem', marginLeft: 4 }}> booked</span>}
+                    </label>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Notes */}

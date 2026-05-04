@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import DashboardTopNav from '@/components/dashboard/DashboardTopNav'
+import DashboardLayoutClient from './DashboardLayoutClient'
 
 export default async function DashboardLayout({
   children,
@@ -24,13 +24,8 @@ export default async function DashboardLayout({
   const name = staffData?.name ?? user.email ?? 'Staff'
 
   return (
-    <div className="dashboard-layout" style={{ flexDirection: 'column' }}>
-      <DashboardTopNav role={role} userName={name} />
-      <main className="dashboard-main">
-        <div className="dashboard-content">
-          {children}
-        </div>
-      </main>
-    </div>
+    <DashboardLayoutClient role={role} userName={name}>
+      {children}
+    </DashboardLayoutClient>
   )
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Calendar as CalendarIcon, MapPin, Phone, X, ChevronLeft, ChevronRight, User, Clock, Home, MapPinned, Check, Eye, Edit } from 'lucide-react'
+import BookingCalendar from '@/components/ui/BookingCalendar'
 
 interface InstallBooking {
   id: string
@@ -70,11 +71,33 @@ export default function AdminBookingPage() {
     installer_id: '',
   })
 
+  const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [occupiedDates, setOccupiedDates] = useState<Set<string>>(new Set())
+  const [occupiedSlots, setOccupiedSlots] = useState<Set<string>>(new Set())
+
   const supabase = createClient()
 
   useEffect(() => {
     loadData()
+    fetchOccupiedDates()
   }, [])
+
+  async function fetchOccupiedDates() {
+    const { data } = await supabase
+      .from('install_bookings')
+      .select('scheduled_date, scheduled_time')
+      .in('status', ['pending', 'scheduled'])
+    if (data) {
+      const dates = new Set<string>()
+      const slots = new Set<string>()
+      data.forEach(b => {
+        if (b.scheduled_date) dates.add(b.scheduled_date)
+        if (b.scheduled_date && b.scheduled_time) slots.add(`${b.scheduled_date} ${b.scheduled_time}`)
+      })
+      setOccupiedDates(dates)
+      setOccupiedSlots(slots)
+    }
+  }
 
   async function loadData() {
     setLoading(true)
@@ -143,13 +166,16 @@ export default function AdminBookingPage() {
     setShowAcceptModal(true)
   }
 
-  // Filter bookings by tab
+  // Filter bookings by tab + selected date
   const filteredBookings = bookings.filter(b => {
     if (activeTab === 'all') return true
     if (activeTab === 'pending') return b.status === 'pending'
     if (activeTab === 'scheduled') return b.status === 'scheduled' || b.status === 'in_progress'
     if (activeTab === 'done') return b.status === 'done'
     return true
+  }).filter(b => {
+    if (!selectedDate) return true
+    return b.scheduled_date === selectedDate
   })
 
   // Stats
@@ -178,6 +204,30 @@ export default function AdminBookingPage() {
         >
           <Plus size={16} /> Tambah Manual
         </button>
+      </div>
+
+      {/* Calendar */}
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+        <BookingCalendar
+          selectedDate={selectedDate}
+          onDateSelect={(date) => setSelectedDate(selectedDate === date ? null : date)}
+          occupiedDates={occupiedDates}
+          occupiedSlots={occupiedSlots}
+        />
+        {selectedDate && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: '#fff3e8', border: '1px solid #fed7aa', borderRadius: '0.75rem' }}>
+            <CalendarIcon size={16} style={{ color: '#cc7030' }} />
+            <span style={{ fontSize: '0.875rem', color: '#92400e' }}>
+              {new Date(selectedDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
+            <button
+              onClick={() => setSelectedDate(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#92400e', padding: '0.25rem' }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
