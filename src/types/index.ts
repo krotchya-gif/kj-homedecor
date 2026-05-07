@@ -4,7 +4,8 @@ export type Role =
   | "penjahit"
   | "finance"
   | "installer"
-  | "owner";
+  | "owner"
+  | "laundry";
 
 export type OrderSource =
   | "shopee"
@@ -20,6 +21,7 @@ export type OrderStatus =
   | "sorted"
   | "payment_ok"
   | "production"
+  | "steam"
   | "ready"
   | "packed"
   | "shipped"
@@ -276,6 +278,65 @@ export interface Return {
   created_at: string;
 }
 
+export interface SteamJob {
+  id: string;
+  order_id: string;
+  production_job_id?: string;
+  status: "pending" | "done" | "revision";
+  result?: "pass" | "fail";
+  fail_reason?: string;
+  notes?: string;
+  checked_by?: string;
+  completed_at?: string;
+  created_at: string;
+}
+
+export interface LaundryRecord {
+  id: string;
+  date: string;
+  customer_name: string;
+  kg: number;
+  meter: number;
+  description?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+export interface LaundryOrder {
+  id: string;
+  customer_name: string;
+  customer_phone?: string;
+  kg: number;
+  meter?: number;
+  description?: string;
+  status: "pending" | "in_progress" | "done";
+  assigned_to?: string;
+  received_at: string;
+  completed_at?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+export interface LaundryRate {
+  id: string;
+  name: string;
+  rate_per_kg: number;
+  is_active: boolean;
+  updated_at: string;
+}
+
+export interface LaundryPayroll {
+  id: string;
+  staff_id: string;
+  period_month: number;
+  period_year: number;
+  total_kg: number;
+  total_rate: number;
+  total_amount: number;
+  status: "pending" | "paid";
+  created_at: string;
+}
+
 export const RATE_PER_METER = {
   gorden: 5000,
   vitras: 3000,
@@ -296,6 +357,7 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   sorted: "Sudah Disortir",
   payment_ok: "Pembayaran OK",
   production: "Produksi",
+  steam: "Steam/QC",
   ready: "Siap",
   packed: "Dikemas",
   shipped: "Terkirim",

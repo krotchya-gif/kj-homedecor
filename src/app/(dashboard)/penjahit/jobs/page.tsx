@@ -47,6 +47,17 @@ export default function PenjahitJobsPage() {
       notes: rf.notes || null,
     })
     await supabase.from('production_jobs').update({ status:'done', completed_at: new Date().toISOString() }).eq('id',jobId)
+
+    // Auto-create steam_jobs entry after penjahit finishes
+    const job = jobs.find(j => j.id === jobId)
+    if (job?.order_id) {
+      await supabase.from('steam_jobs').insert({
+        order_id: job.order_id,
+        production_job_id: jobId,
+        status: 'pending',
+      })
+    }
+
     setSaving(null)
     setShowReport(null)
     load()

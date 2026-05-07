@@ -2,139 +2,425 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Waves } from 'lucide-react'
+import { Plus, Waves, CheckCircle2, X, AlertTriangle } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+
+interface SteamJob {
+  id: string
+  order_id: string
+  production_job_id: string | null
+  status: 'pending' | 'done' | 'revision'
+  result: 'pass' | 'fail' | null
+  fail_reason: string | null
+  notes: string | null
+  checked_by: string | null
+  completed_at: string | null
+  created_at: string
+  order?: { id: string; customer?: { name: string }; created_at: string }
+}
+
+interface LaundryRecord {
+  id: string
+  customer_name: string
+  kg: number
+  meter: number
+  description: string | null
+  date: string
+}
+
+const fmt = (n: number) => new Intl.NumberFormat('id-ID', {
+  style: 'currency', currency: 'IDR', maximumFractionDigits: 0
+}).format(n)
 
 export default function GudangSteamPage() {
-  const [records, setRecords] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab]         = useState<'laundry'|'steam'>('laundry')
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving]   = useState(false)
-  const [form, setForm]       = useState({ customer_name:'', kg:'', meter:'', description:'' , date: new Date().toISOString().slice(0,10)})
+  const [tab, setTab] = useState<'laundry' | 'steam'>('laundry')
   const supabase = createClient()
 
-  async function load() {
-    setLoading(true)
-    const { data } = await supabase.from('laundry_records').select('*').order('date', { ascending: false })
-    setRecords(data ?? [])
-    setLoading(false)
-  }
-  useEffect(() => { load() }, [])
+  // Laundry state
+  const [laundryRecords, setLaundryRecords] = useState<LaundryRecord[]>([])
+  const [laundryLoading, setLaundryLoading] = useState(true)
+  const [showLaundryForm, setShowLaundryForm] = useState(false)
+  const [laundrySaving, setLaundrySaving] = useState(false)
+  const [laundryForm, setLaundryForm] = useState({
+    customer_name: '',
+    kg: '',
+    meter: '',
+    description: '',
+    date: new Date().toISOString().slice(0, 10),
+  })
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    await supabase.from('laundry_records').insert({
-      date: form.date,
-      customer_name: form.customer_name,
-      kg: Number(form.kg) || 0,
-      meter: Number(form.meter) || 0,
-      description: form.description || null,
-    })
-    setSaving(false)
-    setShowForm(false)
-    setForm({ customer_name:'', kg:'', meter:'', description:'', date: new Date().toISOString().slice(0,10) })
-    load()
+  // Steam QC state
+  const [steamJobs, setSteamJobs] = useState<SteamJob[]>([])
+  const [steamLoading, setSteamLoading] = useState(true)
+  const [showFailModal, setShowFailModal] = useState<SteamJob | null>(null)
+  const [failReason, setFailReason] = useState('')
+  const [failSaving, setFailSaving] = useState(false)
+  const [showPassDialog, setShowPassDialog] = useState<SteamJob | null>(null)
+  const [passSaving, setPassSaving] = useState(false)
+
+  async function loadLaundry() {
+    setLaundryLoading(true)
+    const { data } = await supabase
+      .from('laundry_records')
+      .select('*')
+      .order('date', { ascending: false })
+    setLaundryRecords((data as LaundryRecord[]) ?? [])
+    setLaundryLoading(false)
   }
+
+  async function loadSteam() {
+    setSteamLoading(true)
+    const { data } = await supabase
+      .from('steam_jobs')
+      .select('*, order:orders(id, customer:customers(name))')
+      .order('created_at', { ascending: false })
+    setSteamJobs((data as SteamJob[]) ?? [])
+    setSteamLoading(false)
+  }
+
+  useEffect(() => {
+    loadLaundry()
+    loadSteam()
+  }, [])
+
+  async function handleLaundrySave(e: React.FormEvent) {
+    e.preventDefault()
+    setLaundrySaving(true)
+    await supabase.from('laundry_records').insert({
+      date: laundryForm.date,
+      customer_name: laundryForm.customer_name,
+      kg: Number(laundryForm.kg) || 0,
+      meter: Number(laundryForm.meter) || 0,
+      description: laundryForm.description || null,
+    })
+    setLaundrySaving(false)
+    setShowLaundryForm(false)
+    setLaundryForm({ customer_name: '', kg: '', meter: '', description: '', date: new Date().toISOString().slice(0, 10) })
+    loadLaundry()
+  }
+
+  async function handleSteamPass(job: SteamJob) {
+    setPassSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('steam_jobs').update({
+      status: 'done',
+      result: 'pass',
+      completed_at: new Date().toISOString(),
+      checked_by: user?.id ?? null,
+    }).eq('id', job.id)
+    // Log
+    await supabase.from('order_logs').insert({
+      order_id: job.order_id,
+      action: 'steam_qc_pass',
+      notes: `Steam/QC Passed oleh Gudang`,
+      staff_id: user?.id ?? null,
+    })
+    setPassSaving(false)
+    setShowPassDialog(null)
+    loadSteam()
+  }
+
+  async function handleSteamFail() {
+    if (!showFailModal || !failReason.trim()) return
+    setFailSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('steam_jobs').update({
+      status: 'revision',
+      result: 'fail',
+      fail_reason: failReason,
+      checked_by: user?.id ?? null,
+    }).eq('id', showFailModal.id)
+    // Log
+    await supabase.from('order_logs').insert({
+      order_id: showFailModal.order_id,
+      action: 'steam_qc_fail',
+      notes: `Steam/QC Gagal — dikembalikan ke Penjahit. Alasan: ${failReason}`,
+      staff_id: user?.id ?? null,
+    })
+    setFailSaving(false)
+    setShowFailModal(null)
+    setFailReason('')
+    loadSteam()
+  }
+
+  const steamPending = steamJobs.filter(j => j.status === 'pending')
+  const steamRevision = steamJobs.filter(j => j.status === 'revision')
+  const steamDone = steamJobs.filter(j => j.status === 'done')
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Barang Masuk — Laundry & Steam</h1>
-        <p className="page-subtitle">Input proses cuci, steam, dan finishing per pelanggan</p>
+        <h1 className="page-title">Laundry & Steam</h1>
+        <p className="page-subtitle">Kelola laundry dan QC Steam — setelah penjahit selesai</p>
       </div>
 
       {/* Tabs */}
-      <div style={{ display:'flex', gap:'0', borderBottom:'2px solid #e5e7eb', marginBottom:'1.5rem' }}>
-        {(['laundry','steam'] as const).map(t=>(
-          <button key={t} onClick={()=>setTab(t)}
-            style={{ padding:'0.75rem 1.5rem', background:'none', border:'none', borderBottom:`2px solid ${tab===t?'#cc7030':'transparent'}`, cursor:'pointer', fontWeight:tab===t?'700':'500', color:tab===t?'#cc7030':'#6b7280', fontSize:'0.9rem', marginBottom:'-2px', transition:'all 0.15s' }}>
-            {t === 'laundry' ? '🧺 Laundry' : '♨️ Steam'}
+      <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
+        {(['laundry', 'steam'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'none',
+              border: 'none',
+              borderBottom: `2px solid ${tab === t ? '#cc7030' : 'transparent'}`,
+              cursor: 'pointer',
+              fontWeight: tab === t ? '700' : '500',
+              color: tab === t ? '#cc7030' : '#6b7280',
+              fontSize: '0.9rem',
+              marginBottom: '-2px',
+              transition: 'all 0.15s',
+            }}>
+            {t === 'laundry' ? '🧺 Laundry' : '♨️ Steam / QC'}
           </button>
         ))}
       </div>
 
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'1rem' }}>
-        <button onClick={()=>setShowForm(true)}
-          style={{ display:'flex', alignItems:'center', gap:'0.375rem', padding:'0.625rem 1.25rem', background:'#cc7030', color:'#fff', border:'none', borderRadius:'0.5rem', fontWeight:'600', fontSize:'0.875rem', cursor:'pointer' }}>
-          <Plus size={16}/> Input {tab === 'laundry' ? 'Laundry' : 'Steam'}
-        </button>
-      </div>
-
-      <div className="data-table">
-        {loading ? (
-          <div style={{ padding:'2rem', textAlign:'center', color:'#9ca3af' }}>Memuat...</div>
-        ) : records.length === 0 ? (
-          <div style={{ padding:'3rem', textAlign:'center', color:'#9ca3af' }}>
-            <Waves size={32} style={{ opacity:0.3, margin:'0 auto 0.75rem' }}/>
-            <p>Belum ada catatan {tab}</p>
+      {/* ===== LAUNDRY TAB ===== */}
+      {tab === 'laundry' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+            <button onClick={() => setShowLaundryForm(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+              <Plus size={16} /> Input Laundry
+            </button>
           </div>
-        ) : (
-          <table>
-            <thead>
-              <tr><th>Tanggal</th><th>Nama Pelanggan</th><th>Kg</th><th>Meter</th><th>Keterangan</th></tr>
-            </thead>
-            <tbody>
-              {records.map(r => (
-                <tr key={r.id}>
-                  <td style={{ color:'#6b7280', fontSize:'0.85rem' }}>{new Date(r.date).toLocaleDateString('id-ID')}</td>
-                  <td style={{ fontWeight:'500' }}>{r.customer_name}</td>
-                  <td>{r.kg > 0 ? `${r.kg} kg` : '—'}</td>
-                  <td>{r.meter > 0 ? `${r.meter} m` : '—'}</td>
-                  <td style={{ color:'#6b7280' }}>{r.description ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
 
-      {showForm && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
-          onClick={e=>{ if (e.target===e.currentTarget) setShowForm(false) }}>
-          <div style={{ background:'#fff', borderRadius:'0.875rem', padding:'2rem', width:'100%', maxWidth:440, boxShadow:'0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize:'1.1rem', fontWeight:'700', marginBottom:'1.5rem' }}>
-              Input {tab === 'laundry' ? '🧺 Laundry' : '♨️ Steam'}
-            </h2>
-            <form onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
-              {[
-                { label:'Nama Pelanggan *', id:'customer_name', placeholder:'Nama pelanggan' },
-                { label:'Tanggal', id:'date', placeholder:'', type:'date' },
-              ].map(f=>(
-                <div key={f.id}>
-                  <label style={{ display:'block', fontSize:'0.8rem', fontWeight:'600', color:'#374151', marginBottom:'0.3rem' }}>{f.label}</label>
-                  <input required={f.label.includes('*')} type={f.type??'text'} placeholder={f.placeholder}
-                    value={(form as Record<string,string>)[f.id]} onChange={e=>setForm(prev=>({...prev,[f.id]:e.target.value}))}
-                    style={{ width:'100%', padding:'0.625rem', border:'1px solid #d1d5db', borderRadius:'0.5rem', fontSize:'0.875rem', outline:'none' }}/>
-                </div>
-              ))}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
+          <div className="data-table">
+            {laundryLoading ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+            ) : laundryRecords.length === 0 ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+                <Waves size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
+                <p>Belum ada laundry</p>
+              </div>
+            ) : (
+              <table>
+                <thead>
+                  <tr><th>Tanggal</th><th>Nama Pelanggan</th><th>Kg</th><th>Meter</th><th>Keterangan</th></tr>
+                </thead>
+                <tbody>
+                  {laundryRecords.map(r => (
+                    <tr key={r.id}>
+                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{new Date(r.date).toLocaleDateString('id-ID')}</td>
+                      <td style={{ fontWeight: '500' }}>{r.customer_name}</td>
+                      <td>{r.kg > 0 ? `${r.kg.toFixed(2)} kg` : '—'}</td>
+                      <td>{r.meter > 0 ? `${r.meter.toFixed(2)} m` : '—'}</td>
+                      <td style={{ color: '#6b7280' }}>{r.description ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ===== STEAM TAB ===== */}
+      {tab === 'steam' && (
+        <>
+          {steamLoading ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+              {/* Menunggu QC */}
+              <div>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151', marginBottom: '0.75rem' }}>
+                  ⏳ Menunggu QC ({steamPending.length})
+                </h3>
+                {steamPending.length === 0 ? (
+                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
+                    Tidak ada job yang menunggu QC
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {steamPending.map(job => (
+                      <div key={job.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                          <div>
+                            <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                              {job.order?.customer?.name ?? 'Tanpa Nama'}
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                              Order #{job.order_id?.slice(0, 8)} • {new Date(job.created_at).toLocaleDateString('id-ID')}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              onClick={() => setShowPassDialog(job)}
+                              style={{ padding: '0.5rem 1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <CheckCircle2 size={14} /> QC Pass
+                            </button>
+                            <button
+                              onClick={() => { setShowFailModal(job); setFailReason('') }}
+                              style={{ padding: '0.5rem 1rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              <AlertTriangle size={14} /> Revisi
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Dikembalikan ke Penjahit */}
+              {steamRevision.length > 0 && (
                 <div>
-                  <label style={{ display:'block', fontSize:'0.8rem', fontWeight:'600', color:'#374151', marginBottom:'0.3rem' }}>Kg</label>
-                  <input type="number" step="0.1" min="0" placeholder="0" value={form.kg} onChange={e=>setForm(f=>({...f,kg:e.target.value}))}
-                    style={{ width:'100%', padding:'0.625rem', border:'1px solid #d1d5db', borderRadius:'0.5rem', fontSize:'0.875rem', outline:'none' }}/>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#dc2626', marginBottom: '0.75rem' }}>
+                    ↩️ Dikembalikan ke Penjahit ({steamRevision.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {steamRevision.map(job => (
+                      <div key={job.id} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                        <div style={{ fontWeight: '600', color: '#991b1b', marginBottom: '0.25rem' }}>
+                          {job.order?.customer?.name ?? 'Tanpa Nama'}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#dc2626', background: '#fee2e2', borderRadius: '0.375rem', padding: '0.375rem 0.625rem', display: 'inline-block', marginBottom: '0.25rem' }}>
+                          ⚠️ {job.fail_reason}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                          Order #{job.order_id?.slice(0, 8)} • {new Date(job.created_at).toLocaleDateString('id-ID')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sudah QC Pass */}
+              {steamDone.length > 0 && (
+                <div>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#16a34a', marginBottom: '0.75rem' }}>
+                    ✅ QC Pass — Menunggu Finance ({steamDone.length})
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {steamDone.map(job => (
+                      <div key={job.id} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                        <div style={{ fontWeight: '600', color: '#166534', marginBottom: '0.25rem' }}>
+                          {job.order?.customer?.name ?? 'Tanpa Nama'}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>
+                          ✓ QC Pass — {new Date(job.completed_at ?? job.created_at).toLocaleDateString('id-ID')}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                          Order #{job.order_id?.slice(0, 8)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ===== LAUNDRY FORM MODAL ===== */}
+      {showLaundryForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={e => { if (e.target === e.currentTarget) setShowLaundryForm(false) }}>
+          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 440, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>🧺 Input Laundry</h2>
+            <form onSubmit={handleLaundrySave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Pelanggan *</label>
+                <input required type="text" placeholder="Nama pelanggan" value={laundryForm.customer_name}
+                  onChange={e => setLaundryForm(f => ({ ...f, customer_name: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Berat (kg) *</label>
+                  <input required type="number" step="0.01" min="0" placeholder="58,75" value={laundryForm.kg}
+                    onChange={e => setLaundryForm(f => ({ ...f, kg: e.target.value }))}
+                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
                 </div>
                 <div>
-                  <label style={{ display:'block', fontSize:'0.8rem', fontWeight:'600', color:'#374151', marginBottom:'0.3rem' }}>Meter</label>
-                  <input type="number" step="0.1" min="0" placeholder="0" value={form.meter} onChange={e=>setForm(f=>({...f,meter:e.target.value}))}
-                    style={{ width:'100%', padding:'0.625rem', border:'1px solid #d1d5db', borderRadius:'0.5rem', fontSize:'0.875rem', outline:'none' }}/>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Meter (m)</label>
+                  <input type="number" step="0.01" min="0" placeholder="0" value={laundryForm.meter}
+                    onChange={e => setLaundryForm(f => ({ ...f, meter: e.target.value }))}
+                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
                 </div>
               </div>
               <div>
-                <label style={{ display:'block', fontSize:'0.8rem', fontWeight:'600', color:'#374151', marginBottom:'0.3rem' }}>Keterangan</label>
-                <input type="text" placeholder="Vitras, Gorden, dll..." value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}
-                  style={{ width:'100%', padding:'0.625rem', border:'1px solid #d1d5db', borderRadius:'0.5rem', fontSize:'0.875rem', outline:'none' }}/>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Tanggal</label>
+                <input type="date" value={laundryForm.date}
+                  onChange={e => setLaundryForm(f => ({ ...f, date: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
               </div>
-              <div style={{ display:'flex', gap:'0.75rem' }}>
-                <button type="button" onClick={()=>setShowForm(false)} style={{ flex:1, padding:'0.75rem', border:'1px solid #d1d5db', borderRadius:'0.5rem', background:'#fff', cursor:'pointer', fontWeight:'600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex:1, padding:'0.75rem', background:'#cc7030', color:'#fff', border:'none', borderRadius:'0.5rem', cursor:saving?'not-allowed':'pointer', fontWeight:'600' }}>
-                  {saving ? 'Menyimpan...' : 'Simpan'}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Keterangan</label>
+                <input type="text" placeholder="Vitras, Gorden, dll..." value={laundryForm.description}
+                  onChange={e => setLaundryForm(f => ({ ...f, description: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowLaundryForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
+                <button type="submit" disabled={laundrySaving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: laundrySaving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                  {laundrySaving ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* ===== PASS CONFIRMATION DIALOG ===== */}
+      <Dialog open={!!showPassDialog} onOpenChange={() => setShowPassDialog(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Konfirmasi QC Pass</DialogTitle>
+            <DialogDescription>
+              Yakin bahwa barang untuk <strong>{showPassDialog?.order?.customer?.name}</strong> sudah lolos QC Steam dan siap dikirim ke Finance untuk approval pembayaran?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPassDialog(null)}>Batal</Button>
+            <Button onClick={() => showPassDialog && handleSteamPass(showPassDialog)} disabled={passSaving}>
+              {passSaving ? 'Menyimpan...' : '✓ Ya, QC Pass'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== FAIL / REVISION MODAL ===== */}
+      <Dialog open={!!showFailModal} onOpenChange={() => setShowFailModal(null)}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Kembalikan ke Penjahit</DialogTitle>
+            <DialogDescription>
+              Jelaskan alasan mengapa barang dikembalikan. Penjahit akan melihat alasan ini.
+            </DialogDescription>
+          </DialogHeader>
+          <div style={{ margin: '1rem 0' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Alasan Revisi *</label>
+            <textarea
+              required
+              rows={3}
+              placeholder="Contoh: Jahitan kurang rapi, ukuran tidak sesuai, dll..."
+              value={failReason}
+              onChange={e => setFailReason(e.target.value)}
+              style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFailModal(null)}>Batal</Button>
+            <Button onClick={handleSteamFail} disabled={failSaving || !failReason.trim()}
+              style={{ background: '#dc2626' }}>
+              {failSaving ? 'Menyimpan...' : '↩️ Ya, Kembalikan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

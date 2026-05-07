@@ -8,12 +8,13 @@ import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
 
-const ORDER_STATUSES = ['new','sorted','payment_ok','production','ready','done'] as const
+const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   new:        {bg:'#dbeafe',text:'#1e40af'},
   sorted:     {bg:'#e0e7ff',text:'#3730a3'},
   payment_ok: {bg:'#d1fae5',text:'#065f46'},
   production: {bg:'#fef3c7',text:'#92400e'},
+  steam:      {bg:'#fef3c7',text:'#92400e'},
   ready:      {bg:'#cffafe',text:'#155e75'},
   done:       {bg:'#f0fdf4',text:'#166534'},
 }
