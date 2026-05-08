@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer } from '@/types'
-import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
+import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
@@ -26,8 +26,6 @@ const PAYMENT_COLORS: Record<string,{bg:string,text:string}> = {
 
 type ItemType = 'gorden' | 'perabot' | 'laundry'
 
-interface StyleRate { style: string; rate_per_meter: number }
-
 const fmt = (n:number) => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)
 
 export default function OrderDetailPage() {
@@ -45,8 +43,7 @@ export default function OrderDetailPage() {
   // item type selector
   const [itemType, setItemType] = useState<ItemType>('gorden')
 
-  // style rates fetched from DB
-  const [styleRates, setStyleRates] = useState<StyleRate[]>([])
+  // laundry rate from DB
   const [laundryRate, setLaundryRate] = useState<number>(0)
 
   // item form — gorden
@@ -55,8 +52,6 @@ export default function OrderDetailPage() {
     size:'',
     meter_gorden:'0',
     meter:'0',
-    selected_styles: [] as string[],
-    smokring_color:'',
     poni_lurus:false,
     poni_gel:false,
     // perabot
@@ -91,12 +86,8 @@ export default function OrderDetailPage() {
   }
 
   async function loadRates() {
-    const [sr, lr] = await Promise.all([
-      supabase.from('style_rates').select('style,rate_per_meter'),
-      supabase.from('laundry_rates').select('rate_per_kg').eq('is_active',true).single(),
-    ])
-    setStyleRates((sr.data as StyleRate[]) ?? [])
-    setLaundryRate((lr.data as any)?.rate_per_kg ?? 0)
+    const { data: lr } = await supabase.from('laundry_rates').select('rate_per_kg').eq('is_active',true).single()
+    setLaundryRate((lr as any)?.rate_per_kg ?? 0)
   }
 
   useEffect(()=>{ load() },[id])
@@ -195,15 +186,6 @@ export default function OrderDetailPage() {
     load()
   }
 
-  function calcGordenPrice(meter: number, selectedStyles: string[]): number {
-    if (!meter || selectedStyles.length === 0) return 0
-    const maxRate = Math.max(...selectedStyles.map(s => {
-      const sr = styleRates.find(r => r.style === s)
-      return sr?.rate_per_meter ?? 0
-    }))
-    return meter * maxRate
-  }
-
   async function addItem(e:React.FormEvent) {
     e.preventDefault()
     setSavingItem(true)
@@ -233,10 +215,12 @@ export default function OrderDetailPage() {
       })
     } else {
       const prod = products.find(p=>p.id===itemForm.product_id)
-      let finalPrice = prod?.price || 0
+      let finalPrice = Number(itemForm.price) || prod?.price || 0
 
+      // Gorden: price = product.price per meter × meter needed
       if (itemType === 'gorden') {
-        finalPrice = calcGordenPrice(Number(itemForm.meter), itemForm.selected_styles)
+        const meter = Number(itemForm.meter_gorden) || 0
+        finalPrice = (prod?.price || 0) * meter
       }
 
       await supabase.from('order_items').insert({
@@ -248,8 +232,6 @@ export default function OrderDetailPage() {
         size: itemForm.size || null,
         meter_gorden: itemType === 'gorden' ? Number(itemForm.meter_gorden) : 0,
         meter: itemType === 'gorden' ? Number(itemForm.meter) || null : null,
-        style_type: itemType === 'gorden' ? itemForm.selected_styles.join(',') : null,
-        smokring_color: itemType === 'gorden' ? itemForm.smokring_color || null : null,
         poni_lurus: itemType === 'gorden' ? itemForm.poni_lurus : false,
         poni_gel: itemType === 'gorden' ? itemForm.poni_gel : false,
         variant_color: itemType === 'perabot' ? itemForm.variant_color || null : null,
@@ -286,7 +268,7 @@ export default function OrderDetailPage() {
     setItemType('gorden')
     setItemForm({
       product_id:'', qty:'1', price:'', size:'',
-      meter_gorden:'0', meter:'0', selected_styles:[], smokring_color:'',
+      meter_gorden:'0', meter:'0',
       poni_lurus:false, poni_gel:false,
       variant_color:'', dimension_p:'',dimension_l:'',dimension_t:'',weight:'',
       customer_name:'', customer_phone:'', kg:'0', meter_laundry:'0', description:'',
@@ -537,15 +519,10 @@ export default function OrderDetailPage() {
                       style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr',gap:'0.75rem'}}>
                   <div>
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
                     <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
-                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
-                  </div>
-                  <div>
-                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>
-                    <input type="number" min="1" value={itemForm.qty} onChange={e=>setItemForm(f=>({...f,qty:e.target.value}))}
                       style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
                 </div>
@@ -566,46 +543,7 @@ export default function OrderDetailPage() {
                   </div>
                 </div>
                 <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
-                  <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Model (Vitras/Roman/Kupu-Kupu)</div>
-                  <div style={{display:'flex',gap:'0.75rem',flexWrap:'wrap',marginBottom:'0.5rem'}}>
-                    {GORDEN_STYLES.map(style => {
-                      const sr = styleRates.find(r=>r.style===style)
-                      return (
-                        <label key={style} style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
-                          <input type="checkbox" checked={itemForm.selected_styles.includes(style)}
-                            onChange={e=>{
-                              const newStyles = e.target.checked ? [...itemForm.selected_styles, style] : itemForm.selected_styles.filter(s=>s!==style)
-                              setItemForm(prev=>({...prev,selected_styles:newStyles}))
-                            }}/>
-                          {style.charAt(0).toUpperCase()+style.slice(1)}
-                          {sr && <span style={{fontSize:'0.65rem',color:'#16a34a'}}>({fmt(sr.rate_per_meter)}/m)</span>}
-                        </label>
-                      )
-                    })}
-                  </div>
-                  {itemForm.selected_styles.includes('smokring') && (
-                    <div style={{marginTop:'0.5rem'}}>
-                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna Smokring</label>
-                      <select value={itemForm.smokring_color}
-                        onChange={e=>setItemForm(prev=>({...prev,smokring_color:e.target.value}))}
-                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#fff'}}>
-                        <option value="">— Pilih Warna —</option>
-                        {SMOKRING_COLORS.map(c=><option key={c} value={c}>{c}</option>)}
-                      </select>
-                    </div>
-                  )}
-                  <div style={{marginTop:'0.5rem'}}>
-                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter (m)</label>
-                    <input type="number" step="0.1" min="0" value={itemForm.meter}
-                      onChange={e=>setItemForm(prev=>({...prev,meter:e.target.value}))}
-                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                    {itemForm.meter && itemForm.selected_styles.length > 0 && (
-                      <div style={{fontSize:'0.72rem',color:'#16a34a',marginTop:'0.25rem'}}>
-                        Estimasi harga: {fmt(calcGordenPrice(Number(itemForm.meter), itemForm.selected_styles))}
-                      </div>
-                    )}
-                  </div>
-                  <div style={{marginTop:'0.5rem',display:'flex',gap:'1rem'}}>
+                  <div style={{display:'flex',gap:'1rem',flexWrap:'wrap',marginTop:'0.5rem'}}>
                     <label style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
                       <input type="checkbox" checked={itemForm.poni_lurus}
                         onChange={e=>setItemForm(prev=>({...prev,poni_lurus:e.target.checked}))}/>
@@ -617,6 +555,11 @@ export default function OrderDetailPage() {
                       Poni Gel
                     </label>
                   </div>
+                  {itemForm.meter_gorden && Number(itemForm.meter_gorden) > 0 && (
+                    <div style={{marginTop:'0.75rem',fontSize:'0.78rem',color:'#16a34a',fontWeight:'600'}}>
+                      Estimasi: {(products.find(p=>p.id===itemForm.product_id)?.price || 0) * Number(itemForm.meter_gorden)}
+                    </div>
+                  )}
                 </div>
               </>)}
 
