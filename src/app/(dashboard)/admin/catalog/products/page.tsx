@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, Package, Star } from 'lucide-react'
 import type { Product, Category } from '@/types'
+import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -27,6 +28,16 @@ export default function ProductsPage() {
     stock_toko: '',
     is_featured: false,
     is_custom: false,
+    // Style variants for gorden
+    style_variants: [] as string[],
+    smokring_colors: [] as string[],
+    // Color variants for perabot
+    color_variants: '',
+    // Shipping dimensions
+    dimension_p: '',
+    dimension_l: '',
+    dimension_t: '',
+    weight: '',
   })
   type Field = { label: string; id: string; placeholder: string; type?: string }
   const [saving, setSaving] = useState(false)
@@ -60,7 +71,12 @@ export default function ProductsPage() {
 
   function openAdd() {
     setEditProduct(null)
-    setForm({ name: '', sku: '', kode_kain: '', category_id: '', price: '', stock_toko: '', is_featured: false, is_custom: false })
+    setForm({
+      name: '', sku: '', kode_kain: '', category_id: '', price: '', stock_toko: '',
+      is_featured: false, is_custom: false,
+      style_variants: [], smokring_colors: [], color_variants: '',
+      dimension_p: '', dimension_l: '', dimension_t: '', weight: '',
+    })
     setShowForm(true)
   }
 
@@ -75,6 +91,13 @@ export default function ProductsPage() {
       stock_toko: String(p.stock_toko),
       is_featured: p.is_featured,
       is_custom: p.is_custom,
+      style_variants: p.style_variants ?? [],
+      smokring_colors: p.smokring_colors ?? [],
+      color_variants: (p.color_variants ?? []).join(', '),
+      dimension_p: p.dimension_p ? String(p.dimension_p) : '',
+      dimension_l: p.dimension_l ? String(p.dimension_l) : '',
+      dimension_t: p.dimension_t ? String(p.dimension_t) : '',
+      weight: p.weight ? String(p.weight) : '',
     })
     setShowForm(true)
   }
@@ -82,7 +105,7 @@ export default function ProductsPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: form.name,
       sku: form.sku || null,
       kode_kain: form.kode_kain || null,
@@ -91,6 +114,13 @@ export default function ProductsPage() {
       stock_toko: Number(form.stock_toko),
       is_featured: form.is_featured,
       is_custom: form.is_custom,
+      style_variants: form.style_variants,
+      smokring_colors: form.smokring_colors,
+      color_variants: form.color_variants ? form.color_variants.split(',').map(s => s.trim()).filter(Boolean) : [],
+      dimension_p: form.dimension_p ? Number(form.dimension_p) : null,
+      dimension_l: form.dimension_l ? Number(form.dimension_l) : null,
+      dimension_t: form.dimension_t ? Number(form.dimension_t) : null,
+      weight: form.weight ? Number(form.weight) : null,
     }
     if (editProduct) {
       await supabase.from('products').update(payload).eq('id', editProduct.id)
@@ -294,6 +324,120 @@ export default function ProductsPage() {
                   Custom Order
                 </label>
               </div>
+
+              {/* Style Variants for Gorden */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Model Gorden (Style Variants)
+                </label>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  {GORDEN_STYLES.map((style) => (
+                    <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={form.style_variants.includes(style)}
+                        onChange={(e) => {
+                          const newStyles = e.target.checked
+                            ? [...form.style_variants, style]
+                            : form.style_variants.filter(s => s !== style)
+                          setForm((f) => ({ ...f, style_variants: newStyles }))
+                        }}
+                      />
+                      {style.charAt(0).toUpperCase() + style.slice(1)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Smokring Colors */}
+              {form.style_variants.includes('smokring') && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                    Warna Smokring
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    {SMOKRING_COLORS.map((color) => (
+                      <label key={color} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={form.smokring_colors.includes(color)}
+                          onChange={(e) => {
+                            const newColors = e.target.checked
+                              ? [...form.smokring_colors, color]
+                              : form.smokring_colors.filter(c => c !== color)
+                            setForm((f) => ({ ...f, smokring_colors: newColors }))
+                          }}
+                        />
+                        {color}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Color Variants for Perabot */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+                  Warna Variants (Perabot) - pisahkan dengan koma
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Hitam, Silver, Merah"
+                  value={form.color_variants}
+                  onChange={(e) => setForm((f) => ({ ...f, color_variants: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                />
+              </div>
+
+              {/* Shipping Dimensions */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Dimensi & Berat (untuk ongkir)
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Panjang (cm)</label>
+                    <input
+                      type="number"
+                      placeholder="P"
+                      value={form.dimension_p}
+                      onChange={(e) => setForm((f) => ({ ...f, dimension_p: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Lebar (cm)</label>
+                    <input
+                      type="number"
+                      placeholder="L"
+                      value={form.dimension_l}
+                      onChange={(e) => setForm((f) => ({ ...f, dimension_l: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Tinggi (cm)</label>
+                    <input
+                      type="number"
+                      placeholder="T"
+                      value={form.dimension_t}
+                      onChange={(e) => setForm((f) => ({ ...f, dimension_t: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Berat (kg)</label>
+                    <input
+                      type="number"
+                      placeholder="Kg"
+                      value={form.weight}
+                      onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                      style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
                 <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>
                   Batal

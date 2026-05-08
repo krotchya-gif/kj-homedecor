@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer } from '@/types'
-import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
+import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, STYLE_RATES, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
@@ -42,8 +42,20 @@ export default function OrderDetailPage() {
   const [showItemForm, setShowItemForm] = useState(false)
   const [itemForm, setItemForm] = useState({
     product_id:'', qty:'1', price:'',
-    meter_gorden:'0', meter_vitras:'0', meter_roman:'0', meter_kupu_kupu:'0',
-    poni_lurus:false, poni_gel:false, smokering_color:'', size:'',
+    size:'',
+    // Gorden meter
+    meter_gorden:'0',
+    // New unified meter + style for vitras/roman/kupu
+    meter:'0',
+    selected_styles: [] as string[],
+    smokring_color:'',
+    // Perabot
+    variant_color:'',
+    // Dimensions
+    dimension_p:'',
+    dimension_l:'',
+    dimension_t:'',
+    weight:'',
   })
   const [savingItem, setSavingItem] = useState(false)
 
@@ -95,16 +107,16 @@ export default function OrderDetailPage() {
     if (newStatus === 'production') {
       const { data: orderItems } = await supabase.from('order_items').select('*, product:products(name)').eq('order_id', id)
       const totalMeterGorden = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? 0), 0)
-      const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
-      const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
-      const totalMeterKupu = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
+      // New unified meter field (for vitras/roman/kupu styles)
+      const totalMeterStyle = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter ?? 0), 0)
 
       await supabase.from('production_jobs').insert({
         order_id: id,
         meter_gorden: totalMeterGorden,
-        meter_vitras: totalMeterVitras,
-        meter_roman: totalMeterRoman,
-        meter_kupu_kupu: totalMeterKupu,
+        // Use meter field for other styles (vitras/roman/kupu combined)
+        meter_vitras: totalMeterStyle,
+        meter_roman: 0,
+        meter_kupu_kupu: 0,
         status: 'waiting',
       })
     }
@@ -209,19 +221,30 @@ export default function OrderDetailPage() {
     e.preventDefault()
     setSavingItem(true)
     const prod = products.find(p=>p.id===itemForm.product_id)
+
+    // Calculate price based on style
+    let finalPrice = Number(itemForm.price) || prod?.price || 0
+    if (itemForm.meter && itemForm.selected_styles.length > 0) {
+      // Price = meter × highest style rate (if multiple styles selected, use the highest rate)
+      const maxRate = Math.max(...itemForm.selected_styles.map(s => STYLE_RATES[s as keyof typeof STYLE_RATES] || 0))
+      finalPrice = Number(itemForm.meter) * maxRate
+    }
+
     await supabase.from('order_items').insert({
       order_id: id,
       product_id: itemForm.product_id || null,
       qty: Number(itemForm.qty),
-      price: Number(itemForm.price) || prod?.price || 0,
+      price: finalPrice,
       size: itemForm.size || null,
-      meter_gorden:     Number(itemForm.meter_gorden),
-      meter_vitras:     Number(itemForm.meter_vitras),
-      meter_roman:      Number(itemForm.meter_roman),
-      meter_kupu_kupu:  Number(itemForm.meter_kupu_kupu),
-      poni_lurus:  itemForm.poni_lurus,
-      poni_gel:    itemForm.poni_gel,
-      smokering_color: itemForm.smokering_color || null,
+      meter_gorden: Number(itemForm.meter_gorden),
+      meter: Number(itemForm.meter) || null,
+      style_type: itemForm.selected_styles.join(',') || null,
+      smokring_color: itemForm.smokring_color || null,
+      variant_color: itemForm.variant_color || null,
+      dimension_p: itemForm.dimension_p ? Number(itemForm.dimension_p) : null,
+      dimension_l: itemForm.dimension_l ? Number(itemForm.dimension_l) : null,
+      dimension_t: itemForm.dimension_t ? Number(itemForm.dimension_t) : null,
+      weight: itemForm.weight ? Number(itemForm.weight) : null,
     })
     // recalc total
     const newItems = await supabase.from('order_items').select('price,qty').eq('order_id',id)
@@ -229,6 +252,12 @@ export default function OrderDetailPage() {
     await supabase.from('orders').update({total_amount:total}).eq('id',id)
     setSavingItem(false)
     setShowItemForm(false)
+    // Reset form
+    setItemForm({
+      product_id:'', qty:'1', price:'', size:'',
+      meter_gorden:'0', meter:'0', selected_styles:[], smokring_color:'',
+      variant_color:'', dimension_p:'', dimension_l:'', dimension_t:'', weight:'',
+    })
     load()
   }
 
@@ -460,29 +489,98 @@ export default function OrderDetailPage() {
                 </div>
               </div>
               <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
-                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.75rem'}}>Meteran</div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.5rem'}}>
-                  {[{label:'Gorden',id:'meter_gorden'},{label:'Vitras',id:'meter_vitras'},{label:'Roman',id:'meter_roman'},{label:'Kupu²',id:'meter_kupu_kupu'}].map(f=>(
-                    <div key={f.id}>
-                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>{f.label}</label>
-                      <input type="number" step="0.1" min="0" value={(itemForm as unknown as Record<string,string>)[f.id]}
-                        onChange={e=>setItemForm(prev=>({...prev,[f.id]:e.target.value}))}
-                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                    </div>
-                  ))}
+                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.75rem'}}>Meteran Gorden</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter Gorden (m)</label>
+                    <input type="number" step="0.1" min="0" value={itemForm.meter_gorden}
+                      onChange={e=>setItemForm(prev=>({...prev,meter_gorden:e.target.value}))}
+                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat Auto (kg)</label>
+                    <input type="text" value={itemForm.meter_gorden ? (Number(itemForm.meter_gorden) * 0.4).toFixed(2) : '0'} readOnly
+                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#f3f4f6',color:'#6b7280'}}/>
+                  </div>
                 </div>
-                <div style={{display:'flex',gap:'1.5rem',marginTop:'0.75rem'}}>
-                  {[{label:'Poni Lurus',id:'poni_lurus'},{label:'Poni Gel',id:'poni_gel'}].map(f=>(
-                    <label key={f.id} style={{display:'flex',alignItems:'center',gap:'0.4rem',fontSize:'0.8rem',cursor:'pointer'}}>
-                      <input type="checkbox" checked={(itemForm as unknown as Record<string,boolean>)[f.id]}
-                        onChange={e=>setItemForm(prev=>({...prev,[f.id]:e.target.checked}))}/>
-                      {f.label}
+              </div>
+
+              {/* Style Selection for Vitras/Roman/Kupu-Kupu */}
+              <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
+                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Model (Vitras/Roman/Kupu-Kupu)</div>
+                <div style={{display:'flex',gap:'0.75rem',flexWrap:'wrap',marginBottom:'0.5rem'}}>
+                  {GORDEN_STYLES.map(style => (
+                    <label key={style} style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
+                      <input type="checkbox" checked={itemForm.selected_styles.includes(style)}
+                        onChange={e=>{
+                          const newStyles = e.target.checked
+                            ? [...itemForm.selected_styles, style]
+                            : itemForm.selected_styles.filter(s=>s!==style)
+                          setItemForm(prev=>({...prev,selected_styles:newStyles}))
+                        }}/>
+                      {style.charAt(0).toUpperCase()+style.slice(1)}
                     </label>
                   ))}
-                  <div style={{flex:1}}>
-                    <input type="text" placeholder="Smokering color" value={itemForm.smokering_color}
-                      onChange={e=>setItemForm(f=>({...f,smokering_color:e.target.value}))}
-                      style={{width:'100%',padding:'0.4rem 0.625rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                </div>
+                {itemForm.selected_styles.includes('smokring') && (
+                  <div style={{marginTop:'0.5rem'}}>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna Smokring</label>
+                    <select value={itemForm.smokring_color}
+                      onChange={e=>setItemForm(prev=>({...prev,smokring_color:e.target.value}))}
+                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#fff'}}>
+                      <option value="">— Pilih Warna —</option>
+                      {SMOKRING_COLORS.map(c=><option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div style={{marginTop:'0.5rem'}}>
+                  <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter (m)</label>
+                  <input type="number" step="0.1" min="0" value={itemForm.meter}
+                    onChange={e=>setItemForm(prev=>({...prev,meter:e.target.value}))}
+                    style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                  {itemForm.meter && itemForm.selected_styles.length > 0 && (
+                    <div style={{fontSize:'0.72rem',color:'#16a34a',marginTop:'0.25rem'}}>
+                      Estimasi harga: {fmt(Number(itemForm.meter) * Math.max(...itemForm.selected_styles.map(s=>STYLE_RATES[s as keyof typeof STYLE_RATES]||0)))} (meter × rate tertinggi)
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Perabot - Color Variants */}
+              <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
+                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Perabot (Warna & Dimensi)</div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna</label>
+                    <input type="text" placeholder="Contoh: Hitam, Silver" value={itemForm.variant_color}
+                      onChange={e=>setItemForm(prev=>({...prev,variant_color:e.target.value}))}
+                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat (kg)</label>
+                    <input type="number" step="0.1" min="0" placeholder="0" value={itemForm.weight}
+                      onChange={e=>setItemForm(prev=>({...prev,weight:e.target.value}))}
+                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.5rem',marginTop:'0.5rem'}}>
+                  <div>
+                    <label style={{fontSize:'0.65rem',color:'#6b7280'}}>P (cm)</label>
+                    <input type="number" placeholder="P" value={itemForm.dimension_p}
+                      onChange={e=>setItemForm(prev=>({...prev,dimension_p:e.target.value}))}
+                      style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.65rem',color:'#6b7280'}}>L (cm)</label>
+                    <input type="number" placeholder="L" value={itemForm.dimension_l}
+                      onChange={e=>setItemForm(prev=>({...prev,dimension_l:e.target.value}))}
+                      style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:'0.65rem',color:'#6b7280'}}>T (cm)</label>
+                    <input type="number" placeholder="T" value={itemForm.dimension_t}
+                      onChange={e=>setItemForm(prev=>({...prev,dimension_t:e.target.value}))}
+                      style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
                   </div>
                 </div>
               </div>

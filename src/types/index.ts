@@ -79,6 +79,17 @@ export interface Product {
   harga_jual?: number;
   created_at: string;
   category?: Category;
+  // Gorden style variants: smokring, kaitan, kupu-kupu, romanshade
+  style_variants?: string[];
+  // Colors for smokring specifically
+  smokring_colors?: string[];
+  // Perabot color variants (free input by admin)
+  color_variants?: string[];
+  // Shipping dimensions
+  dimension_p?: number;
+  dimension_l?: number;
+  dimension_t?: number;
+  weight?: number;
 }
 
 export interface Material {
@@ -146,12 +157,21 @@ export interface OrderItem {
   size?: string;
   custom_specs?: string;
   meter_gorden?: number;
-  meter_vitras?: number;
   meter_roman?: number;
-  meter_kupu_kupu?: number;
   poni_lurus?: boolean;
   poni_gel?: boolean;
-  smokering_color?: string;
+  // New unified meter + style for vitras/kupu-kupu
+  meter?: number;
+  style_type?: string;
+  smokring_color?: string;
+  // Perabot variants
+  variant_size?: string;
+  variant_color?: string;
+  // Shipping dimensions
+  dimension_p?: number;
+  dimension_l?: number;
+  dimension_t?: number;
+  weight?: number;
   ready: boolean;
   created_at: string;
   product?: Product;
@@ -343,6 +363,20 @@ export const RATE_PER_METER = {
   roman: 7000,
   kupu_kupu: 6000,
 } as const;
+
+// Style rates per meter for gorden models
+export const STYLE_RATES = {
+  smokring: 5000,
+  kaitan: 4000,
+  'kupu-kupu': 6000,
+  romanshade: 7000,
+} as const;
+
+// Smokring color options
+export const SMOKRING_COLORS = ['Hitam', 'Putih', 'Coklat', 'Silver', 'Gold'] as const;
+
+// Gorden style options
+export const GORDEN_STYLES = ['smokring', 'kaitan', 'kupu-kupu', 'romanshade'] as const;
 
 export const SOURCE_LABELS: Record<OrderSource, string> = {
   shopee: "Shopee",
