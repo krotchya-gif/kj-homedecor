@@ -125,8 +125,8 @@ export default function DashboardSidebar({ role, userName, open, onClose }: Dash
 
   return (
     <>
-      {/* Overlay backdrop */}
-      {open && (
+      {/* Overlay backdrop — hidden when logout dialog is open */}
+      {open && !logoutOpen && (
         <div className="sidebar-overlay" onClick={onClose} />
       )}
 
@@ -175,7 +175,7 @@ export default function DashboardSidebar({ role, userName, open, onClose }: Dash
             <ThemeToggle />
             <button
               className="sidebar-logout-btn"
-              onClick={() => setLogoutOpen(true)}
+              onClick={() => { onClose(); setLogoutOpen(true) }}
             >
               <LogOut size={16} />
               <span>Keluar</span>
