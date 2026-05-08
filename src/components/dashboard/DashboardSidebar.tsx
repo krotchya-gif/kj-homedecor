@@ -19,6 +19,7 @@ import {
   LogOut,
   X,
   Truck,
+  WashingMachine,
   Search,
   Settings,
 } from 'lucide-react'
@@ -51,6 +52,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Laporan', href: '/admin/reports', icon: <BarChart3 size={18} /> },
     { label: 'Staff', href: '/admin/staff', icon: <Users size={18} /> },
     { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={18} /> },
+    { label: 'Laundry', href: '/admin/laundry', icon: <WashingMachine size={18} /> },
     { label: 'Landing', href: '/admin/landing-settings', icon: <Settings size={18} /> },
     { label: 'SEO', href: '/admin/seo', icon: <Search size={18} /> },
   ],
