@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer } from '@/types'
-import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, STYLE_RATES, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
+import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
@@ -24,6 +24,10 @@ const PAYMENT_COLORS: Record<string,{bg:string,text:string}> = {
   paid:    {bg:'#d1fae5',text:'#065f46'},
 }
 
+type ItemType = 'gorden' | 'perabot' | 'laundry'
+
+interface StyleRate { style: string; rate_per_meter: number }
+
 const fmt = (n:number) => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)
 
 export default function OrderDetailPage() {
@@ -38,24 +42,30 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
 
-  // item form
-  const [showItemForm, setShowItemForm] = useState(false)
+  // item type selector
+  const [itemType, setItemType] = useState<ItemType>('gorden')
+
+  // style rates fetched from DB
+  const [styleRates, setStyleRates] = useState<StyleRate[]>([])
+  const [laundryRate, setLaundryRate] = useState<number>(0)
+
+  // item form — gorden
   const [itemForm, setItemForm] = useState({
     product_id:'', qty:'1', price:'',
     size:'',
-    // Gorden meter
     meter_gorden:'0',
-    // New unified meter + style for vitras/roman/kupu
     meter:'0',
     selected_styles: [] as string[],
     smokring_color:'',
-    // Perabot
+    poni_lurus:false,
+    poni_gel:false,
+    // perabot
     variant_color:'',
-    // Dimensions
-    dimension_p:'',
-    dimension_l:'',
-    dimension_t:'',
+    dimension_p:'',dimension_l:'',dimension_t:'',
     weight:'',
+    // laundry
+    customer_name:'', customer_phone:'',
+    kg:'0', meter_laundry:'0', description:'',
   })
   const [savingItem, setSavingItem] = useState(false)
 
@@ -63,7 +73,7 @@ export default function OrderDetailPage() {
   const [showCancelForm, setShowCancelForm] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [showReturnForm, setShowReturnForm] = useState(false)
-  const [returnForm, setReturnForm] = useState({ item_id: '', reason: '', condition: 'good', qty: '1', refund_amount: '' })
+  const [returnForm, setReturnForm] = useState({ item_id: '', reason: '', condition: 'good' as 'good'|'damaged', qty: '1', refund_amount: '' })
 
   async function load() {
     setLoading(true)
@@ -79,11 +89,20 @@ export default function OrderDetailPage() {
     setOrderLogs((logsRes.data ?? []) as any[])
     setLoading(false)
   }
+
+  async function loadRates() {
+    const [sr, lr] = await Promise.all([
+      supabase.from('style_rates').select('style,rate_per_meter'),
+      supabase.from('laundry_rates').select('rate_per_kg').eq('is_active',true).single(),
+    ])
+    setStyleRates((sr.data as StyleRate[]) ?? [])
+    setLaundryRate((lr.data as any)?.rate_per_kg ?? 0)
+  }
+
   useEffect(()=>{ load() },[id])
 
   async function updateStatus(newStatus: string) {
     if (!order) return
-    // Payment gate: cannot set ready/done without paid
     if ((newStatus==='ready'||newStatus==='done') && order.payment_status!=='paid') {
       alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu.')
       return
@@ -91,7 +110,6 @@ export default function OrderDetailPage() {
     setUpdating(true)
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('orders').update({status:newStatus}).eq('id',id)
-    // Log status change
     await supabase.from('order_logs').insert({
       order_id: id,
       action: newStatus === 'sorted' ? 'sorted' :
@@ -102,50 +120,31 @@ export default function OrderDetailPage() {
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null,
     })
-
-    // Auto-create production job when status becomes 'production'
     if (newStatus === 'production') {
       const { data: orderItems } = await supabase.from('order_items').select('*, product:products(name)').eq('order_id', id)
       const totalMeterGorden = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? 0), 0)
-      // New unified meter field (for vitras/roman/kupu styles)
       const totalMeterStyle = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter ?? 0), 0)
-
       await supabase.from('production_jobs').insert({
         order_id: id,
         meter_gorden: totalMeterGorden,
-        // Use meter field for other styles (vitras/roman/kupu combined)
         meter_vitras: totalMeterStyle,
         meter_roman: 0,
         meter_kupu_kupu: 0,
         status: 'waiting',
       })
     }
-
     setOrder(o => o ? {...o, status:newStatus as Order['status']} : o)
     setUpdating(false)
     load()
   }
 
-  // Cancel order (before production)
   async function handleCancel() {
-    if (!order || !cancelReason.trim()) {
-      alert('Alasan pembatalan wajib diisi.')
-      return
-    }
+    if (!order || !cancelReason.trim()) { alert('Alasan pembatalan wajib diisi.'); return }
     const { data: { user } } = await supabase.auth.getUser()
-    // Void payments
-    await supabase.from('payments').update({
-      notes: `VOIDED — Order cancelled (${cancelReason}) - ${new Date().toISOString()}`,
-    }).eq('order_id', id)
-    // Update order status
-    await supabase.from('orders').update({
-      status: 'cancelled',
-      return_reason: cancelReason,
-    }).eq('id', id)
-    // Log
+    await supabase.from('payments').update({ notes: `VOIDED — Order cancelled (${cancelReason}) - ${new Date().toISOString()}` }).eq('order_id', id)
+    await supabase.from('orders').update({ status: 'cancelled', return_reason: cancelReason }).eq('id', id)
     await supabase.from('order_logs').insert({
-      order_id: id,
-      action: 'cancelled',
+      order_id: id, action: 'cancelled',
       notes: `Order dibatalkan oleh Admin. Alasan: ${cancelReason}. Payment di-void.`,
       staff_id: user?.id ?? null,
     })
@@ -154,60 +153,39 @@ export default function OrderDetailPage() {
     load()
   }
 
-  // Process return (after done/ready)
   async function handleReturn(e: React.FormEvent) {
     e.preventDefault()
     if (!order) return
     const { data: { user } } = await supabase.auth.getUser()
     const refundAmt = Number(returnForm.refund_amount) || 0
-    // Create return record
     const { data: retData } = await supabase.from('returns').insert({
-      order_id: id,
-      order_item_id: returnForm.item_id || null,
-      reason: returnForm.reason,
-      condition: returnForm.condition,
-      qty: Number(returnForm.qty) || 1,
-      refund_amount: refundAmt,
+      order_id: id, order_item_id: returnForm.item_id || null,
+      reason: returnForm.reason, condition: returnForm.condition,
+      qty: Number(returnForm.qty) || 1, refund_amount: refundAmt,
       refund_status: refundAmt > 0 ? 'pending' : 'completed',
       created_by: user?.id ?? null,
       resolved_at: returnForm.condition === 'good' ? new Date().toISOString() : null,
     }).select().single()
-    // Update order item if specified
     if (returnForm.item_id) {
-      await supabase.from('order_items').update({
-        returned_at: new Date().toISOString(),
-        return_reason: returnForm.reason,
-      }).eq('id', returnForm.item_id)
+      await supabase.from('order_items').update({ returned_at: new Date().toISOString(), return_reason: returnForm.reason }).eq('id', returnForm.item_id)
     }
-    // Update order status
-    await supabase.from('orders').update({
-      status: 'returned',
-      return_reason: returnForm.reason,
-    }).eq('id', id)
-    // If condition = good → stock_in to inventory
+    await supabase.from('orders').update({ status: 'returned', return_reason: returnForm.reason }).eq('id', id)
     if (returnForm.condition === 'good') {
-      // Get order items for stock update
       const orderItems = await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id)
       for (const item of orderItems.data ?? []) {
         if (item.product_id) {
           await supabase.from('inventory_movements').insert({
-            material_id: null,
-            type: 'return_in',
-            qty: item.qty ?? 1,
+            material_id: null, type: 'return_in', qty: item.qty ?? 1,
             reason: `Return dari order ${id.slice(0,8)} — kondisi bagus, masuk stock toko`,
             created_by: user?.id ?? null,
           })
           const { error } = await supabase.rpc('increment_stock_toko', { product_id: item.product_id, amount: item.qty ?? 1 })
-          if (error) {
-            await supabase.from('products').update({ stock_toko: (item.product?.stock_toko ?? 0) + (item.qty ?? 1) }).eq('id', item.product_id)
-          }
+          if (error) await supabase.from('products').update({ stock_toko: (item.product?.stock_toko ?? 0) + (item.qty ?? 1) }).eq('id', item.product_id)
         }
       }
     }
-    // Log
     await supabase.from('order_logs').insert({
-      order_id: id,
-      action: 'return_initiated',
+      order_id: id, action: 'return_initiated',
       notes: `Return diproses oleh Admin. Kondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}. Alasan: ${returnForm.reason}. Refund: Rp${refundAmt.toLocaleString('id-ID')}`,
       staff_id: user?.id ?? null,
     })
@@ -217,47 +195,79 @@ export default function OrderDetailPage() {
     load()
   }
 
+  function calcGordenPrice(meter: number, selectedStyles: string[]): number {
+    if (!meter || selectedStyles.length === 0) return 0
+    const maxRate = Math.max(...selectedStyles.map(s => {
+      const sr = styleRates.find(r => r.style === s)
+      return sr?.rate_per_meter ?? 0
+    }))
+    return meter * maxRate
+  }
+
   async function addItem(e:React.FormEvent) {
     e.preventDefault()
     setSavingItem(true)
-    const prod = products.find(p=>p.id===itemForm.product_id)
 
-    // Calculate price based on style
-    let finalPrice = Number(itemForm.price) || prod?.price || 0
-    if (itemForm.meter && itemForm.selected_styles.length > 0) {
-      // Price = meter × highest style rate (if multiple styles selected, use the highest rate)
-      const maxRate = Math.max(...itemForm.selected_styles.map(s => STYLE_RATES[s as keyof typeof STYLE_RATES] || 0))
-      finalPrice = Number(itemForm.meter) * maxRate
+    if (itemType === 'laundry') {
+      // create laundry order first
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: laund } = await supabase.from('laundry_orders').insert({
+        customer_name: itemForm.customer_name,
+        customer_phone: itemForm.customer_phone || null,
+        kg: Number(itemForm.kg) || 0,
+        meter: Number(itemForm.meter_laundry) || 0,
+        description: itemForm.description || null,
+        status: 'pending',
+        created_by: user?.id ?? null,
+      }).select('id').single()
+
+      const price = Number(itemForm.kg) * laundryRate
+      await supabase.from('order_items').insert({
+        order_id: id,
+        product_id: null,
+        item_type: 'laundry',
+        linked_laundry_id: laund?.id ?? null,
+        qty: 1,
+        price,
+        meter: Number(itemForm.meter_laundry) || null,
+      })
+    } else {
+      const prod = products.find(p=>p.id===itemForm.product_id)
+      let finalPrice = Number(itemForm.price) || prod?.price || 0
+
+      if (itemType === 'gorden' && itemForm.meter && itemForm.selected_styles.length > 0) {
+        finalPrice = calcGordenPrice(Number(itemForm.meter), itemForm.selected_styles)
+      }
+
+      await supabase.from('order_items').insert({
+        order_id: id,
+        product_id: itemForm.product_id || null,
+        item_type: itemType,
+        qty: Number(itemForm.qty),
+        price: finalPrice,
+        size: itemForm.size || null,
+        meter_gorden: itemType === 'gorden' ? Number(itemForm.meter_gorden) : 0,
+        meter: itemType === 'gorden' ? Number(itemForm.meter) || null : null,
+        style_type: itemType === 'gorden' ? itemForm.selected_styles.join(',') : null,
+        smokring_color: itemType === 'gorden' ? itemForm.smokring_color || null : null,
+        poni_lurus: itemType === 'gorden' ? itemForm.poni_lurus : false,
+        poni_gel: itemType === 'gorden' ? itemForm.poni_gel : false,
+        variant_color: itemType === 'perabot' ? itemForm.variant_color || null : null,
+        dimension_p: itemType === 'perabot' ? (itemForm.dimension_p ? Number(itemForm.dimension_p) : null) : null,
+        dimension_l: itemType === 'perabot' ? (itemForm.dimension_l ? Number(itemForm.dimension_l) : null) : null,
+        dimension_t: itemType === 'perabot' ? (itemForm.dimension_t ? Number(itemForm.dimension_t) : null) : null,
+        weight: itemType === 'perabot' ? (itemForm.weight ? Number(itemForm.weight) : null) : null,
+      })
     }
 
-    await supabase.from('order_items').insert({
-      order_id: id,
-      product_id: itemForm.product_id || null,
-      qty: Number(itemForm.qty),
-      price: finalPrice,
-      size: itemForm.size || null,
-      meter_gorden: Number(itemForm.meter_gorden),
-      meter: Number(itemForm.meter) || null,
-      style_type: itemForm.selected_styles.join(',') || null,
-      smokring_color: itemForm.smokring_color || null,
-      variant_color: itemForm.variant_color || null,
-      dimension_p: itemForm.dimension_p ? Number(itemForm.dimension_p) : null,
-      dimension_l: itemForm.dimension_l ? Number(itemForm.dimension_l) : null,
-      dimension_t: itemForm.dimension_t ? Number(itemForm.dimension_t) : null,
-      weight: itemForm.weight ? Number(itemForm.weight) : null,
-    })
     // recalc total
     const newItems = await supabase.from('order_items').select('price,qty').eq('order_id',id)
     const total = (newItems.data??[]).reduce((s,i)=>s+i.price*i.qty,0)
     await supabase.from('orders').update({total_amount:total}).eq('id',id)
+
     setSavingItem(false)
     setShowItemForm(false)
-    // Reset form
-    setItemForm({
-      product_id:'', qty:'1', price:'', size:'',
-      meter_gorden:'0', meter:'0', selected_styles:[], smokring_color:'',
-      variant_color:'', dimension_p:'', dimension_l:'', dimension_t:'', weight:'',
-    })
+    resetForm()
     load()
   }
 
@@ -270,6 +280,25 @@ export default function OrderDetailPage() {
   async function toggleReady(itemId:string, current:boolean) {
     await supabase.from('order_items').update({ready:!current}).eq('id',itemId)
     setItems(prev=>prev.map(i=>i.id===itemId?{...i,ready:!current}:i))
+  }
+
+  function resetForm() {
+    setItemType('gorden')
+    setItemForm({
+      product_id:'', qty:'1', price:'', size:'',
+      meter_gorden:'0', meter:'0', selected_styles:[], smokring_color:'',
+      poni_lurus:false, poni_gel:false,
+      variant_color:'', dimension_p:'',dimension_l:'',dimension_t:'',weight:'',
+      customer_name:'', customer_phone:'', kg:'0', meter_laundry:'0', description:'',
+    })
+  }
+
+  const [showItemForm, setShowItemForm] = useState(false)
+
+  function openItemForm() {
+    setShowItemForm(true)
+    loadRates()
+    resetForm()
   }
 
   if (loading) return <div style={{padding:'3rem',textAlign:'center',color:'#9ca3af'}}>Memuat...</div>
@@ -291,7 +320,6 @@ export default function OrderDetailPage() {
           <h1 className="page-title" style={{margin:0}}>Detail Pesanan</h1>
           <p style={{fontSize:'0.78rem',fontFamily:'monospace',color:'#9ca3af',marginTop:'0.25rem'}}>{id}</p>
         </div>
-        {/* Advance status button */}
         {nextStatus && !['done','returned','cancelled'].includes(order.status) && (
           <button onClick={()=>updateStatus(nextStatus)} disabled={updating}
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:updating?'not-allowed':'pointer'}}>
@@ -299,14 +327,12 @@ export default function OrderDetailPage() {
             Lanjut: {STATUS_LABELS[nextStatus]}
           </button>
         )}
-        {/* Cancel button — before production */}
         {['new','sorted'].includes(order.status) && (
           <button onClick={()=>setShowCancelForm(true)}
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#ef4444',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer'}}>
             ❌ Batalkan
           </button>
         )}
-        {/* Return button — after production/sent */}
         {['ready','done'].includes(order.status) && (
           <button onClick={()=>setShowReturnForm(true)}
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#9333ea',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer'}}>
@@ -398,7 +424,7 @@ export default function OrderDetailPage() {
       <div style={{marginBottom:'1rem'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'0.75rem'}}>
           <h2 style={{fontSize:'1rem',fontWeight:'600',color:'#374151'}}>Item Pesanan</h2>
-          <button onClick={()=>setShowItemForm(true)}
+          <button onClick={openItemForm}
             style={{display:'flex',alignItems:'center',gap:'0.375rem',padding:'0.5rem 1rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',fontSize:'0.8rem',cursor:'pointer'}}>
             <Plus size={14}/> Tambah Item
           </button>
@@ -410,26 +436,44 @@ export default function OrderDetailPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Produk</th><th>Ukuran</th><th>Qty</th>
-                  <th>Gorden</th><th>Vitras</th><th>Roman</th><th>Kupu²</th>
-                  <th>Poni</th><th>Harga</th><th>Ready</th><th></th>
+                  <th>Tipe</th>
+                  <th>Produk</th>
+                  <th>Ukuran</th><th>Qty</th>
+                  <th>Specs</th>
+                  <th>Harga</th><th>Ready</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {items.map(item=>{
                   const prod = item.product as {name:string,sku?:string}|null
+                  const itemTypeLabel = item.item_type === 'laundry' ? '🧺 Laundry' : item.item_type === 'perabot' ? '🪑 Perabot' : '🪟 Gorden'
                   return (
                     <tr key={item.id}>
+                      <td><span style={{fontSize:'0.72rem',fontWeight:'600',padding:'0.15rem 0.5rem',borderRadius:'999px',background:'#f3f4f6',color:'#374151'}}>{itemTypeLabel}</span></td>
                       <td style={{fontWeight:'500'}}>{prod?.name??'—'}</td>
                       <td style={{color:'#6b7280',fontSize:'0.8rem'}}>{item.size??'—'}</td>
                       <td>{item.qty}</td>
-                      <td>{Number(item.meter_gorden    ?? 0).toFixed(2)}m</td>
-                      <td>{Number(item.meter_vitras    ?? 0).toFixed(2)}m</td>
-                      <td>{Number(item.meter_roman     ?? 0).toFixed(2)}m</td>
-                      <td>{Number(item.meter_kupu_kupu ?? 0).toFixed(2)}m</td>
-                      <td style={{fontSize:'0.75rem'}}>
-                        {item.poni_lurus&&<span style={{background:'#e0e7ff',color:'#3730a3',padding:'0.1rem 0.4rem',borderRadius:'999px',fontSize:'0.7rem'}}>Lurus</span>}
-                        {item.poni_gel&&<span style={{background:'#fef3c7',color:'#92400e',padding:'0.1rem 0.4rem',borderRadius:'999px',fontSize:'0.7rem',marginLeft:'0.2rem'}}>Gel</span>}
+                      <td style={{fontSize:'0.72rem',color:'#6b7280',maxWidth:180}}>
+                        {item.item_type === 'gorden' && (
+                          <>
+                            {Number(item.meter_gorden??0)>0 && <span>Gorden: {Number(item.meter_gorden).toFixed(2)}m</span>}
+                            {item.style_type && <span> • {item.style_type}</span>}
+                            {item.meter && <span> • {Number(item.meter).toFixed(2)}m</span>}
+                            {(item.poni_lurus||item.poni_gel) && <span> • {[item.poni_lurus&&'Lurus',item.poni_gel&&'Gel'].filter(Boolean).join('/')}</span>}
+                          </>
+                        )}
+                        {item.item_type === 'perabot' && (
+                          <>
+                            {item.variant_color && <span>Warna: {item.variant_color}</span>}
+                            {item.dimension_p && <span> • {item.dimension_p}×{item.dimension_l}×{item.dimension_t}cm</span>}
+                            {item.weight && <span> • {item.weight}kg</span>}
+                          </>
+                        )}
+                        {item.item_type === 'laundry' && (
+                          <>
+                            {item.meter && <span>{Number(item.meter).toFixed(2)}m</span>}
+                          </>
+                        )}
                       </td>
                       <td style={{fontWeight:'600',color:'#cc7030'}}>{fmt(item.price)}</td>
                       <td>
@@ -455,137 +499,236 @@ export default function OrderDetailPage() {
       {/* Add Item Modal */}
       {showItemForm&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}
-          onClick={e=>{if(e.target===e.currentTarget)setShowItemForm(false)}}>
+          onClick={e=>{if(e.target===e.currentTarget){setShowItemForm(false);resetForm()}}}>
           <div style={{background:'#fff',borderRadius:'0.875rem',padding:'2rem',width:'100%',maxWidth:580,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 25px 60px rgba(0,0,0,0.25)'}}>
             <h2 style={{fontSize:'1.1rem',fontWeight:'700',marginBottom:'1.5rem'}}>Tambah Item Pesanan</h2>
-            <form onSubmit={addItem} style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
-              <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'0.75rem'}}>
-                <div>
-                  <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
-                  <select value={itemForm.product_id} onChange={e=>{
-                    const p=products.find(x=>x.id===e.target.value)
-                    setItemForm(f=>({...f,product_id:e.target.value,price:String(p?.price??'')}))
-                  }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
-                    <option value="">— Pilih Produk —</option>
-                    {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>
-                  <input type="number" min="1" value={itemForm.qty} onChange={e=>setItemForm(f=>({...f,qty:e.target.value}))}
-                    style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
-                </div>
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
-                <div>
-                  <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Harga (Rp)</label>
-                  <input type="number" value={itemForm.price} onChange={e=>setItemForm(f=>({...f,price:e.target.value}))}
-                    style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
-                </div>
-                <div>
-                  <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
-                  <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
-                    style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
-                </div>
-              </div>
-              <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
-                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.75rem'}}>Meteran Gorden</div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
-                  <div>
-                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter Gorden (m)</label>
-                    <input type="number" step="0.1" min="0" value={itemForm.meter_gorden}
-                      onChange={e=>setItemForm(prev=>({...prev,meter_gorden:e.target.value}))}
-                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                  </div>
-                  <div>
-                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat Auto (kg)</label>
-                    <input type="text" value={itemForm.meter_gorden ? (Number(itemForm.meter_gorden) * 0.4).toFixed(2) : '0'} readOnly
-                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#f3f4f6',color:'#6b7280'}}/>
-                  </div>
-                </div>
-              </div>
 
-              {/* Style Selection for Vitras/Roman/Kupu-Kupu */}
-              <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
-                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Model (Vitras/Roman/Kupu-Kupu)</div>
-                <div style={{display:'flex',gap:'0.75rem',flexWrap:'wrap',marginBottom:'0.5rem'}}>
-                  {GORDEN_STYLES.map(style => (
-                    <label key={style} style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
-                      <input type="checkbox" checked={itemForm.selected_styles.includes(style)}
-                        onChange={e=>{
-                          const newStyles = e.target.checked
-                            ? [...itemForm.selected_styles, style]
-                            : itemForm.selected_styles.filter(s=>s!==style)
-                          setItemForm(prev=>({...prev,selected_styles:newStyles}))
-                        }}/>
-                      {style.charAt(0).toUpperCase()+style.slice(1)}
-                    </label>
-                  ))}
-                </div>
-                {itemForm.selected_styles.includes('smokring') && (
-                  <div style={{marginTop:'0.5rem'}}>
-                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna Smokring</label>
-                    <select value={itemForm.smokring_color}
-                      onChange={e=>setItemForm(prev=>({...prev,smokring_color:e.target.value}))}
-                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#fff'}}>
-                      <option value="">— Pilih Warna —</option>
-                      {SMOKRING_COLORS.map(c=><option key={c} value={c}>{c}</option>)}
+            {/* Step 1: Type selector */}
+            <div style={{display:'flex',gap:'0.75rem',marginBottom:'1.5rem'}}>
+              {(['gorden','perabot','laundry'] as ItemType[]).map(t=>{
+                const labels: Record<ItemType,string> = { gorden:'🪟 Gorden', perabot:'🪑 Perabot', laundry:'🧺 Laundry' }
+                return (
+                  <button key={t} onClick={()=>setItemType(t)}
+                    style={{flex:1,padding:'0.625rem',border:`2px solid ${itemType===t?'#cc7030':'#e5e7eb'}`,borderRadius:'0.5rem',background:itemType===t?'#fff7ed':'#fff',cursor:'pointer',fontWeight:'600',fontSize:'0.8rem',color:itemType===t?'#92400e':'#6b7280'}}>
+                    {labels[t]}
+                  </button>
+                )
+              })}
+            </div>
+
+            <form onSubmit={addItem} style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+
+              {/* === GORDEN FORM === */}
+              {itemType==='gorden'&&(<>
+                <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'0.75rem'}}>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
+                    <select value={itemForm.product_id} onChange={e=>{
+                      const p=products.find(x=>x.id===e.target.value)
+                      setItemForm(f=>({...f,product_id:e.target.value,price:String(p?.price??'')}))
+                    }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
+                      <option value="">— Pilih Produk —</option>
+                      {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
                     </select>
                   </div>
-                )}
-                <div style={{marginTop:'0.5rem'}}>
-                  <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter (m)</label>
-                  <input type="number" step="0.1" min="0" value={itemForm.meter}
-                    onChange={e=>setItemForm(prev=>({...prev,meter:e.target.value}))}
-                    style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                  {itemForm.meter && itemForm.selected_styles.length > 0 && (
-                    <div style={{fontSize:'0.72rem',color:'#16a34a',marginTop:'0.25rem'}}>
-                      Estimasi harga: {fmt(Number(itemForm.meter) * Math.max(...itemForm.selected_styles.map(s=>STYLE_RATES[s as keyof typeof STYLE_RATES]||0)))} (meter × rate tertinggi)
-                    </div>
-                  )}
+                  <div>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>
+                    <input type="number" min="1" value={itemForm.qty} onChange={e=>setItemForm(f=>({...f,qty:e.target.value}))}
+                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
+                  </div>
                 </div>
-              </div>
-
-              {/* Perabot - Color Variants */}
-              <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
-                <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Perabot (Warna & Dimensi)</div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
                   <div>
-                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna</label>
-                    <input type="text" placeholder="Contoh: Hitam, Silver" value={itemForm.variant_color}
-                      onChange={e=>setItemForm(prev=>({...prev,variant_color:e.target.value}))}
-                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Harga (Rp) — override manual</label>
+                    <input type="number" value={itemForm.price} onChange={e=>setItemForm(f=>({...f,price:e.target.value}))}
+                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
                   <div>
-                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat (kg)</label>
-                    <input type="number" step="0.1" min="0" placeholder="0" value={itemForm.weight}
-                      onChange={e=>setItemForm(prev=>({...prev,weight:e.target.value}))}
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
+                    <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
+                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
+                  </div>
+                </div>
+                <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
+                  <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.75rem'}}>Meteran Gorden</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter Gorden (m)</label>
+                      <input type="number" step="0.1" min="0" value={itemForm.meter_gorden}
+                        onChange={e=>setItemForm(prev=>({...prev,meter_gorden:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat Auto (kg)</label>
+                      <input type="text" value={itemForm.meter_gorden ? (Number(itemForm.meter_gorden) * 0.4).toFixed(2) : '0'} readOnly
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#f3f4f6',color:'#6b7280'}}/>
+                    </div>
+                  </div>
+                </div>
+                <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
+                  <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Model (Vitras/Roman/Kupu-Kupu)</div>
+                  <div style={{display:'flex',gap:'0.75rem',flexWrap:'wrap',marginBottom:'0.5rem'}}>
+                    {GORDEN_STYLES.map(style => {
+                      const sr = styleRates.find(r=>r.style===style)
+                      return (
+                        <label key={style} style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
+                          <input type="checkbox" checked={itemForm.selected_styles.includes(style)}
+                            onChange={e=>{
+                              const newStyles = e.target.checked ? [...itemForm.selected_styles, style] : itemForm.selected_styles.filter(s=>s!==style)
+                              setItemForm(prev=>({...prev,selected_styles:newStyles}))
+                            }}/>
+                          {style.charAt(0).toUpperCase()+style.slice(1)}
+                          {sr && <span style={{fontSize:'0.65rem',color:'#16a34a'}}>({fmt(sr.rate_per_meter)}/m)</span>}
+                        </label>
+                      )
+                    })}
+                  </div>
+                  {itemForm.selected_styles.includes('smokring') && (
+                    <div style={{marginTop:'0.5rem'}}>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna Smokring</label>
+                      <select value={itemForm.smokring_color}
+                        onChange={e=>setItemForm(prev=>({...prev,smokring_color:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none',background:'#fff'}}>
+                        <option value="">— Pilih Warna —</option>
+                        {SMOKRING_COLORS.map(c=><option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  )}
+                  <div style={{marginTop:'0.5rem'}}>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter (m)</label>
+                    <input type="number" step="0.1" min="0" value={itemForm.meter}
+                      onChange={e=>setItemForm(prev=>({...prev,meter:e.target.value}))}
+                      style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    {itemForm.meter && itemForm.selected_styles.length > 0 && (
+                      <div style={{fontSize:'0.72rem',color:'#16a34a',marginTop:'0.25rem'}}>
+                        Estimasi harga: {fmt(calcGordenPrice(Number(itemForm.meter), itemForm.selected_styles))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{marginTop:'0.5rem',display:'flex',gap:'1rem'}}>
+                    <label style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
+                      <input type="checkbox" checked={itemForm.poni_lurus}
+                        onChange={e=>setItemForm(prev=>({...prev,poni_lurus:e.target.checked}))}/>
+                      Poni Lurus
+                    </label>
+                    <label style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
+                      <input type="checkbox" checked={itemForm.poni_gel}
+                        onChange={e=>setItemForm(prev=>({...prev,poni_gel:e.target.checked}))}/>
+                      Poni Gel
+                    </label>
+                  </div>
+                </div>
+              </>)}
+
+              {/* === PERABOT FORM === */}
+              {itemType==='perabot'&&(<>
+                <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'0.75rem'}}>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
+                    <select value={itemForm.product_id} onChange={e=>{
+                      const p=products.find(x=>x.id===e.target.value)
+                      setItemForm(f=>({...f,product_id:e.target.value,price:String(p?.price??'')}))
+                    }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
+                      <option value="">— Pilih Produk —</option>
+                      {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>
+                    <input type="number" min="1" value={itemForm.qty} onChange={e=>setItemForm(f=>({...f,qty:e.target.value}))}
+                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Harga (Rp)</label>
+                    <input type="number" value={itemForm.price} onChange={e=>setItemForm(f=>({...f,price:e.target.value}))}
+                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
+                    <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
+                      style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
+                  </div>
+                </div>
+                <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
+                  <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Warna & Dimensi</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Warna</label>
+                      <input type="text" placeholder="Contoh: Hitam, Silver" value={itemForm.variant_color}
+                        onChange={e=>setItemForm(prev=>({...prev,variant_color:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat (kg)</label>
+                      <input type="number" step="0.1" min="0" placeholder="0" value={itemForm.weight}
+                        onChange={e=>setItemForm(prev=>({...prev,weight:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.5rem',marginTop:'0.5rem'}}>
+                    {(['dimension_p','P','dimension_l','L','dimension_t','T'] as const).map((field,i)=>(
+                      <div key={field}>
+                        <label style={{fontSize:'0.65rem',color:'#6b7280'}}>{['P','L','T'][i]} (cm)</label>
+                        <input type="number" placeholder={['P','L','T'][i]}
+                          value={itemForm[field as keyof typeof itemForm] as string}
+                          onChange={e=>setItemForm(prev=>({...prev,[field]:e.target.value}))}
+                          style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>)}
+
+              {/* === LAUNDRY FORM === */}
+              {itemType==='laundry'&&(<>
+                <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
+                  <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.75rem'}}>🧺 Detail Laundry</div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Nama Customer *</label>
+                      <input type="text" required placeholder="Nama customer" value={itemForm.customer_name}
+                        onChange={e=>setItemForm(f=>({...f,customer_name:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Telepon</label>
+                      <input type="text" placeholder="08xxxxxxxxxx" value={itemForm.customer_phone}
+                        onChange={e=>setItemForm(f=>({...f,customer_phone:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem',marginTop:'0.75rem'}}>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat (kg)</label>
+                      <input type="number" step="0.1" min="0" value={itemForm.kg}
+                        onChange={e=>setItemForm(f=>({...f,kg:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                    <div>
+                      <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter (m)</label>
+                      <input type="number" step="0.1" min="0" value={itemForm.meter_laundry}
+                        onChange={e=>setItemForm(f=>({...f,meter_laundry:e.target.value}))}
+                        style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
+                    </div>
+                  </div>
+                  {itemForm.kg && laundryRate > 0 && (
+                    <div style={{marginTop:'0.5rem',fontSize:'0.72rem',color:'#16a34a'}}>
+                      Estimasi harga: {fmt(Number(itemForm.kg) * laundryRate)} ({itemForm.kg}kg × {fmt(laundryRate)}/kg)
+                    </div>
+                  )}
+                  <div style={{marginTop:'0.75rem'}}>
+                    <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Keterangan</label>
+                    <input type="text" placeholder="Contoh: Gorden 15kg, Vitras 5kg, dll..." value={itemForm.description}
+                      onChange={e=>setItemForm(f=>({...f,description:e.target.value}))}
                       style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.5rem',marginTop:'0.5rem'}}>
-                  <div>
-                    <label style={{fontSize:'0.65rem',color:'#6b7280'}}>P (cm)</label>
-                    <input type="number" placeholder="P" value={itemForm.dimension_p}
-                      onChange={e=>setItemForm(prev=>({...prev,dimension_p:e.target.value}))}
-                      style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                  </div>
-                  <div>
-                    <label style={{fontSize:'0.65rem',color:'#6b7280'}}>L (cm)</label>
-                    <input type="number" placeholder="L" value={itemForm.dimension_l}
-                      onChange={e=>setItemForm(prev=>({...prev,dimension_l:e.target.value}))}
-                      style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                  </div>
-                  <div>
-                    <label style={{fontSize:'0.65rem',color:'#6b7280'}}>T (cm)</label>
-                    <input type="number" placeholder="T" value={itemForm.dimension_t}
-                      onChange={e=>setItemForm(prev=>({...prev,dimension_t:e.target.value}))}
-                      style={{width:'100%',padding:'0.4rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
-                  </div>
-                </div>
-              </div>
+              </>)}
+
               <div style={{display:'flex',gap:'0.75rem'}}>
-                <button type="button" onClick={()=>setShowItemForm(false)} style={{flex:1,padding:'0.75rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',background:'#fff',cursor:'pointer',fontWeight:'600'}}>Batal</button>
+                <button type="button" onClick={()=>{setShowItemForm(false);resetForm()}} style={{flex:1,padding:'0.75rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',background:'#fff',cursor:'pointer',fontWeight:'600'}}>Batal</button>
                 <button type="submit" disabled={savingItem} style={{flex:1,padding:'0.75rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',cursor:savingItem?'not-allowed':'pointer',fontWeight:'600'}}>
                   {savingItem?'Menyimpan...':'Tambah Item'}
                 </button>
@@ -594,7 +737,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
       )}
-      {/* Activity Log — semua aksi tercatat di sini */}
+      {/* Activity Log */}
       <div style={{ marginTop: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Riwayat Aktivitas</h2>
@@ -621,9 +764,7 @@ export default function OrderDetailPage() {
                         </span>
                       )}
                     </div>
-                    {log.notes && (
-                      <div style={{ fontSize: '0.78rem', color: '#6b7280', marginBottom: '0.25rem' }}>{log.notes}</div>
-                    )}
+                    {log.notes && <div style={{ fontSize: '0.78rem', color: '#6b7280', marginBottom: '0.25rem' }}>{log.notes}</div>}
                     <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
                       {new Date(log.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
@@ -684,7 +825,7 @@ export default function OrderDetailPage() {
                 <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Kondisi Barang *</label>
                 <div style={{display:'flex',gap:'0.75rem'}}>
                   {[['good','✅ Bagus (masuk stock)'],['damaged','❌ Rusak (dispose)']].map(([val,label])=>(
-                    <label key={val} onClick={()=>setReturnForm(f=>({...f,condition:val}))}
+                    <label key={val} onClick={()=>setReturnForm(f=>({...f,condition:val as 'good'|'damaged'}))}
                       style={{flex:1,cursor:'pointer',border:`2px solid ${returnForm.condition===val?'#9333ea':'#e5e7eb'}`,borderRadius:'0.5rem',padding:'0.75rem',background:returnForm.condition===val?'#f5f3ff':'#fff',textAlign:'center'}}>
                       <input type="radio" name="condition" value={val} checked={returnForm.condition===val} onChange={()=>{}} style={{display:'none'}}/>
                       <span style={{fontSize:'0.875rem',fontWeight:'600'}}>{label}</span>

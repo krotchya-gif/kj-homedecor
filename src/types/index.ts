@@ -152,6 +152,8 @@ export interface OrderItem {
   id: string;
   order_id: string;
   product_id: string;
+  item_type?: 'gorden' | 'perabot' | 'laundry';
+  linked_laundry_id?: string;
   qty: number;
   price: number;
   size?: string;
