@@ -233,9 +233,9 @@ export default function OrderDetailPage() {
       })
     } else {
       const prod = products.find(p=>p.id===itemForm.product_id)
-      let finalPrice = Number(itemForm.price) || prod?.price || 0
+      let finalPrice = prod?.price || 0
 
-      if (itemType === 'gorden' && itemForm.meter && itemForm.selected_styles.length > 0) {
+      if (itemType === 'gorden') {
         finalPrice = calcGordenPrice(Number(itemForm.meter), itemForm.selected_styles)
       }
 
@@ -525,7 +525,7 @@ export default function OrderDetailPage() {
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
                     <select value={itemForm.product_id} onChange={e=>{
                       const p=products.find(x=>x.id===e.target.value)
-                      setItemForm(f=>({...f,product_id:e.target.value,price:String(p?.price??'')}))
+                      setItemForm(f=>({...f,product_id:e.target.value}))
                     }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
                       <option value="">— Pilih Produk —</option>
                       {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
@@ -539,13 +539,13 @@ export default function OrderDetailPage() {
                 </div>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
                   <div>
-                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Harga (Rp) — override manual</label>
-                    <input type="number" value={itemForm.price} onChange={e=>setItemForm(f=>({...f,price:e.target.value}))}
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
+                    <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
                       style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
                   <div>
-                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
-                    <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
+                    <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>
+                    <input type="number" min="1" value={itemForm.qty} onChange={e=>setItemForm(f=>({...f,qty:e.target.value}))}
                       style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
                 </div>
@@ -627,7 +627,7 @@ export default function OrderDetailPage() {
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
                     <select value={itemForm.product_id} onChange={e=>{
                       const p=products.find(x=>x.id===e.target.value)
-                      setItemForm(f=>({...f,product_id:e.target.value,price:String(p?.price??'')}))
+                      setItemForm(f=>({...f,product_id:e.target.value}))
                     }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
                       <option value="">— Pilih Produk —</option>
                       {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
