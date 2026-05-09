@@ -123,6 +123,7 @@ export interface BOM {
 
 export interface Order {
   id: string;
+  order_number?: string; // human-readable: ORD-2026-0001
   order_id_external?: string;
   source: OrderSource;
   customer_id: string;

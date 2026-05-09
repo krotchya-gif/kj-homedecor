@@ -26,7 +26,8 @@ import {
 interface Order { id: string; status: string; payment_status: string }
 interface PurchaseRequest { id: string; qty: number; estimated_cost: number; status: string; material?: { name: string } }
 interface OrderLog { id: string; order_id: string; action: string; notes?: string; created_at: string; staff?: { name: string } }
-interface StatData { orders: Order[]; totalOrders: number; totalCustomers: number; totalProducts: number; pendingPRs: PurchaseRequest[]; recentLogs: OrderLog[] }
+interface OrderWithLogs { id: string; order_number?: string; status: string; payment_status: string; created_at: string; customer?: { name: string }; recentLogs: OrderLog[] }
+interface StatData { orders: Order[]; totalOrders: number; totalCustomers: number; totalProducts: number; pendingPRs: PurchaseRequest[]; ordersWithLogs: OrderWithLogs[] }
 
 const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   created: { icon: <PackagePlus size={14} />, color: '#3b82f6' },
@@ -61,12 +62,27 @@ export default function AdminDashboardPage() {
 
   async function loadData() {
     setLoading(true)
-    const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }, { data: recentLogs }] = await Promise.all([
+    // Fetch recent orders with their recent logs (max 10 orders, 5 logs each)
+    const { data: ordersWithLogsData } = await supabase
+      .from('orders')
+      .select(`
+        id, order_number, status, payment_status, created_at,
+        customer:customers(name),
+        order_logs!order_logs_order_id_fkey(id, action, notes, created_at, staff:users(name))
+      `)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    const formatted = (ordersWithLogsData ?? []).map((o: any) => ({
+      ...o,
+      recentLogs: (o.order_logs ?? []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5),
+    }))
+
+    const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }] = await Promise.all([
       supabase.from('orders').select('id, status, payment_status', { count: 'exact' }),
       supabase.from('customers').select('id', { count: 'exact' }),
       supabase.from('products').select('id', { count: 'exact' }),
       supabase.from('purchase_requests').select('*, material:materials(name)').eq('status', 'pending'),
-      supabase.from('order_logs').select('*, staff:users(name)').order('created_at', { ascending: false }).limit(20),
     ])
     setData({
       orders: ordersData ?? [],
@@ -74,7 +90,7 @@ export default function AdminDashboardPage() {
       totalCustomers: totalCustomers ?? 0,
       totalProducts: totalProducts ?? 0,
       pendingPRs: pendingPRs ?? [],
-      recentLogs: recentLogs ?? [],
+      ordersWithLogs: formatted,
     })
     setLoading(false)
   }
@@ -104,7 +120,7 @@ export default function AdminDashboardPage() {
     )
   }
 
-  const { orders, totalOrders, totalCustomers, totalProducts, pendingPRs, recentLogs } = data
+  const { orders, totalOrders, totalCustomers, totalProducts, pendingPRs, ordersWithLogs } = data
   const newOrders = orders.filter((o) => o.status === 'new').length
   const pendingPayment = orders.filter((o) => o.payment_status === 'pending').length
   const doneOrders = orders.filter((o) => o.status === 'done').length
@@ -248,46 +264,56 @@ export default function AdminDashboardPage() {
       {/* Activity Log — Improved */}
       <div style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Aktivitas Staff Terbaru</h2>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Update real-time dari semua proses</span>
+          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Progress Pesanan</h2>
+          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Aktivitas per pesanan</span>
         </div>
-        {recentLogs.length === 0 ? (
+        {!data?.ordersWithLogs || data.ordersWithLogs.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '0.875rem' }}>
-            Belum ada aktivitas tercatat
+            Belum ada pesanan
           </div>
         ) : (
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            {recentLogs.map((log) => {
-              const actionStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={14} />, color: '#9ca3af' }
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {data.ordersWithLogs.map((order) => {
+              const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: '#9ca3af' }
               return (
-                <div key={log.id} style={{ display: 'flex', gap: '0.875rem', padding: '0.75rem 1.25rem', borderBottom: '1px solid #f3f4f6', alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: '50%',
-                    background: actionStyle.color + '15',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, color: actionStyle.color
-                  }}>
+                <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: actionStyle.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actionStyle.color, flexShrink: 0 }}>
                     {actionStyle.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.15rem', flexWrap: 'wrap' }}>
-                      <span style={{ fontWeight: '700', fontSize: '0.82rem', color: '#374151' }}>
-                        {log.action.replace(/_/g, ' ').toUpperCase()}
-                      </span>
-                      {log.staff && (
-                        <span style={{ fontSize: '0.72rem', color: '#6b7280', background: '#f3f4f6', padding: '0.1rem 0.5rem', borderRadius: '999px' }}>
-                          {log.staff.name}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1f2937' }}>
+                          {order.order_number || `#${order.id.slice(0, 8)}`}
                         </span>
-                      )}
-                      <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
-                        {new Date(log.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{order.customer?.name ?? '—'}</span>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                        {new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
-                    {log.notes && (
-                      <div style={{ fontSize: '0.78rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {log.notes}
-                      </div>
-                    )}
+                    {/* Mini log timeline */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      {order.recentLogs.length === 0 ? (
+                        <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Belum ada aktivitas</span>
+                      ) : (
+                        order.recentLogs.slice(0, 3).map((log, i) => {
+                          const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: '#9ca3af' }
+                          return (
+                            <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: i > 0 ? '0.75rem' : 0, borderLeft: i > 0 ? '2px solid #e5e7eb' : 'none' }}>
+                              <span style={{ color: logStyle.color, display: 'flex' }}>{logStyle.icon}</span>
+                              <span style={{ fontSize: '0.72rem', color: '#6b7280', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {log.action.replace(/_/g, ' ').toUpperCase()}
+                                {log.staff && <span style={{ color: '#9ca3af' }}> — {log.staff.name}</span>}
+                              </span>
+                              <span style={{ fontSize: '0.65rem', color: '#9ca3af', flexShrink: 0 }}>
+                                {new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
                   </div>
                 </div>
               )

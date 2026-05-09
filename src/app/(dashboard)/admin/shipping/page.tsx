@@ -191,7 +191,7 @@ export default function AdminShippingPage() {
             }}>
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>#{order.id.slice(0, 8)}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>{order.order_number || `#${order.id.slice(0, 8)}`}</span>
                   <span className={STATUS_COLORS[order.status]} style={{ padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>
                     {STATUS_LABELS[order.status]}
                   </span>

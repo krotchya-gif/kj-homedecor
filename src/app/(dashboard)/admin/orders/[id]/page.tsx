@@ -352,7 +352,8 @@ export default function OrderDetailPage() {
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:'1rem',marginBottom:'1.5rem'}}>
         <div>
           <h1 className="page-title" style={{margin:0}}>Detail Pesanan</h1>
-          <p style={{fontSize:'0.78rem',fontFamily:'monospace',color:'#9ca3af',marginTop:'0.25rem'}}>{id}</p>
+          <p style={{fontSize:'0.9rem',fontFamily:'monospace',color:'#cc7030',fontWeight:'700',marginTop:'0.25rem'}}>{order.order_number || `#${id.slice(0,8)}`}</p>
+          <p style={{fontSize:'0.72rem',fontFamily:'monospace',color:'#9ca3af',marginTop:'0.1rem'}}>{id}</p>
         </div>
         {nextStatus && !['done','returned','cancelled'].includes(order.status) && (
           <button onClick={()=>updateStatus(nextStatus)} disabled={updating}

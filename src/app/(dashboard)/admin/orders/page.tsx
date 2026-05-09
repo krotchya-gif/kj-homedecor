@@ -192,7 +192,7 @@ export default function OrdersPage() {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
+                <th>No. Pesanan</th>
                 <th>Pelanggan</th>
                 <th>Sumber</th>
                 <th>Jenis</th>
@@ -205,8 +205,8 @@ export default function OrdersPage() {
             <tbody>
               {filtered.map((o) => (
                 <tr key={o.id} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>
-                    {o.id.slice(0, 8)}
+                  <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280', fontWeight: '600' }}>
+                    {o.order_number || o.id.slice(0, 8)}
                   </td>
                   <td style={{ fontWeight: '500' }}>
                     {(o.customer as { name: string } | null)?.name ?? '—'}

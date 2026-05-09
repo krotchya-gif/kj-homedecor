@@ -41,7 +41,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: null, error: { message: 'total_amount must be a non-negative number' } }, { status: 400 })
   }
 
-  const { data, error } = await supabase.from('orders').insert(body).select().single()
+  // Generate order number via RPC
+  const { data: orderNum } = await supabase.rpc('generate_order_number')
+  const orderNumber = typeof orderNum === 'string' ? orderNum : null
+
+  const orderData = { ...body, order_number: orderNumber }
+  const { data, error } = await supabase.from('orders').insert(orderData).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
