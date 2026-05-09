@@ -60,15 +60,14 @@ export default function AdminShippingPage() {
     if (!selectedOrder || !resiForm.courier || !resiForm.tracking_number) return
     setSaving(true)
 
-    const courierLabel = COURIERS.find(c => c.value === resiForm.courier)?.label ?? resiForm.courier
-
     await supabase.from('orders').update({
       status: 'shipped',
-      courier: courierLabel,
+      courier: resiForm.courier,
       tracking_number: resiForm.tracking_number,
       shipped_at: new Date().toISOString(),
     }).eq('id', selectedOrder.id)
 
+    const courierLabel = COURIERS.find(c => c.value === resiForm.courier)?.label ?? resiForm.courier
     await supabase.from('order_logs').insert({
       order_id: selectedOrder.id,
       action: 'shipped',
@@ -84,7 +83,11 @@ export default function AdminShippingPage() {
 
   function openResiModal(order: Order) {
     setSelectedOrder(order)
-    setResiForm({ courier: order.courier || '', tracking_number: order.tracking_number || '' })
+    // Handle backwards compat: if courier is stored as label, find the value
+    const courierValue = COURIERS.find(c => c.value === order.courier)?.value
+      ?? COURIERS.find(c => c.label === order.courier)?.value
+      ?? order.courier ?? ''
+    setResiForm({ courier: courierValue, tracking_number: order.tracking_number || '' })
     setShowResiModal(true)
   }
 
@@ -199,7 +202,7 @@ export default function AdminShippingPage() {
                 )}
                 {order.tracking_number && (
                   <div style={{ fontSize: '0.8rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    <Truck size={13} /> {order.courier} — <span style={{ fontFamily: 'monospace' }}>{order.tracking_number}</span>
+                    <Truck size={13} /> {COURIERS.find(c => c.value === order.courier)?.label ?? order.courier} — <span style={{ fontFamily: 'monospace' }}>{order.tracking_number}</span>
                   </div>
                 )}
               </div>

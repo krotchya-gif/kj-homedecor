@@ -66,6 +66,7 @@ export default function AdminLaundryPage() {
       status: 'pending',
       assigned_to: form.assigned_to || null,
       created_by: user?.id ?? null,
+      received_at: new Date().toISOString(),
     })
     setSaving(false)
     setShowForm(false)

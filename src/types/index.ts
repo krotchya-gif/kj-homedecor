@@ -326,6 +326,7 @@ export interface LaundryRecord {
 
 export interface LaundryOrder {
   id: string;
+  order_id?: string; // links to parent order when created from order item
   customer_name: string;
   customer_phone?: string;
   kg: number;

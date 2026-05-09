@@ -31,7 +31,27 @@ export default function LaundryJobsPage() {
     setLoading(false)
   }
 
+  // Load unassigned orders for self-assign
+  const [unassigned, setUnassigned] = useState<LaundryOrder[]>([])
+  async function loadUnassigned() {
+    const { data } = await supabase
+      .from('laundry_orders')
+      .select('*')
+      .is('assigned_to', null)
+      .eq('status', 'pending')
+      .order('received_at', { ascending: false })
+    setUnassigned((data as LaundryOrder[]) ?? [])
+  }
+
   useEffect(() => { load() }, [])
+  useEffect(() => { loadUnassigned() }, [])
+
+  async function selfAssign(id: string) {
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('laundry_orders').update({ assigned_to: user?.id ?? null }).eq('id', id)
+    await loadUnassigned()
+    load()
+  }
 
   async function startWork(id: string) {
     setSaving(id)
@@ -69,6 +89,29 @@ export default function LaundryJobsPage() {
         <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+
+          {/* Unassigned — self assign */}
+          {unassigned.length > 0 && (
+            <div>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#7c3aed', marginBottom: '0.75rem' }}>
+                📋 Ambil Pesanan ({unassigned.length})
+              </h3>
+              <div style={{ padding: '1rem', background: '#f5f3ff', border: '2px dashed #c4b5fd', borderRadius: '0.75rem' }}>
+                {unassigned.map(o => (
+                  <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #e9d5ff' }}>
+                    <div>
+                      <div style={{ fontWeight: '600', color: '#1f2937' }}>{o.customer_name}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{o.kg} kg{o.meter ? ` • ${o.meter}m` : ''}</div>
+                    </div>
+                    <button onClick={() => selfAssign(o.id)}
+                      style={{ padding: '0.5rem 1rem', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
+                      Ambil
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Pending */}
           <div>

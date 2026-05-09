@@ -8,7 +8,7 @@ import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
 
-const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','done'] as const
+const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','packed','shipped','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   new:        {bg:'#dbeafe',text:'#1e40af'},
   sorted:     {bg:'#e0e7ff',text:'#3730a3'},
@@ -16,6 +16,8 @@ const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   production: {bg:'#fef3c7',text:'#92400e'},
   steam:      {bg:'#fef3c7',text:'#92400e'},
   ready:      {bg:'#cffafe',text:'#155e75'},
+  packed:     {bg:'#ede9fe',text:'#5b21b6'},
+  shipped:    {bg:'#dbeafe',text:'#1e3a8a'},
   done:       {bg:'#f0fdf4',text:'#166534'},
 }
 const PAYMENT_COLORS: Record<string,{bg:string,text:string}> = {
@@ -69,6 +71,11 @@ export default function OrderDetailPage() {
   const [cancelReason, setCancelReason] = useState('')
   const [showReturnForm, setShowReturnForm] = useState(false)
   const [returnForm, setReturnForm] = useState({ item_id: '', reason: '', condition: 'good' as 'good'|'damaged', qty: '1', refund_amount: '' })
+
+  // Payment form
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [paymentForm, setPaymentForm] = useState({ type: 'dp' as 'dp'|'lunas', amount: '' })
+  const [savingPayment, setSavingPayment] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -194,6 +201,7 @@ export default function OrderDetailPage() {
       // create laundry order first
       const { data: { user } } = await supabase.auth.getUser()
       const { data: laund } = await supabase.from('laundry_orders').insert({
+        order_id: id,
         customer_name: itemForm.customer_name,
         customer_phone: itemForm.customer_phone || null,
         kg: Number(itemForm.kg) || 0,
@@ -201,6 +209,7 @@ export default function OrderDetailPage() {
         description: itemForm.description || null,
         status: 'pending',
         created_by: user?.id ?? null,
+        received_at: new Date().toISOString(),
       }).select('id').single()
 
       const price = Number(itemForm.kg) * laundryRate
@@ -262,6 +271,41 @@ export default function OrderDetailPage() {
   async function toggleReady(itemId:string, current:boolean) {
     await supabase.from('order_items').update({ready:!current}).eq('id',itemId)
     setItems(prev=>prev.map(i=>i.id===itemId?{...i,ready:!current}:i))
+  }
+
+  async function handleAddPayment(e: React.FormEvent) {
+    e.preventDefault()
+    if (!order || !paymentForm.amount) { alert('Jumlah pembayaran wajib diisi.'); return }
+    setSavingPayment(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    const amount = Number(paymentForm.amount)
+    await supabase.from('payments').insert({
+      order_id: id,
+      type: paymentForm.type,
+      amount,
+      verified_by: user?.id ?? null,
+      verified_at: new Date().toISOString(),
+    })
+    // Update order dp/lunas
+    const newDp = paymentForm.type === 'dp' ? order.dp_amount + amount : order.dp_amount
+    const newLunas = paymentForm.type === 'lunas' ? order.lunas_amount + amount :
+                     paymentForm.type === 'dp' ? Math.max(0, order.total_amount - newDp) : order.lunas_amount
+    const newPaid = newDp + newLunas >= order.total_amount ? 'paid' : newDp > 0 ? 'partial' : 'pending'
+    await supabase.from('orders').update({
+      dp_amount: newDp,
+      lunas_amount: newLunas,
+      payment_status: newPaid,
+    }).eq('id', id)
+    await supabase.from('order_logs').insert({
+      order_id: id, action: 'payment_added',
+      notes: `Pembayaran ${paymentForm.type === 'dp' ? 'DP' : 'Lunas'} Rp${amount.toLocaleString('id-ID')} oleh Admin.`,
+      staff_id: user?.id ?? null,
+    })
+    alert('Pembayaran berhasil dicatat.')
+    setShowPaymentForm(false)
+    setPaymentForm({ type: 'dp', amount: '' })
+    setSavingPayment(false)
+    load()
   }
 
   function resetForm() {
@@ -398,6 +442,16 @@ export default function OrderDetailPage() {
                 {PAYMENT_STATUS_LABELS[order.payment_status]}
               </span>
             </div>
+            {order.return_reason && (
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',background:'#fef2f2',padding:'0.5rem',borderRadius:'0.5rem',gap:'0.5rem'}}>
+                <span style={{color:'#9ca3af',flexShrink:0}}>{order.status === 'cancelled' ? 'Alasan Batal:' : 'Alasan Return:'}</span>
+                <span style={{color:'#991b1b',fontSize:'0.8rem',fontWeight:'600'}}>{order.return_reason}</span>
+              </div>
+            )}
+            <button onClick={()=>setShowPaymentForm(true)} type="button"
+              style={{marginTop:'0.25rem',padding:'0.375rem 0.75rem',background:'#16a34a',color:'#fff',border:'none',borderRadius:'0.375rem',fontSize:'0.72rem',fontWeight:'600',cursor:'pointer'}}>
+              + Tambah Pembayaran
+            </button>
           </div>
         </div>
       </div>
@@ -792,6 +846,44 @@ export default function OrderDetailPage() {
               <div style={{display:'flex',gap:'0.75rem',marginTop:'0.5rem'}}>
                 <button type='button' onClick={()=>setShowReturnForm(false)} style={{flex:1,padding:'0.75rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',background:'#fff',cursor:'pointer',fontWeight:'600'}}>Batal</button>
                 <button type='submit' style={{flex:1,padding:'0.75rem',background:'#9333ea',color:'#fff',border:'none',borderRadius:'0.5rem',cursor:'pointer',fontWeight:'600'}}>Simpan Return</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {showPaymentForm && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}
+          onClick={e=>{if(e.target===e.currentTarget)setShowPaymentForm(false)}}>
+          <div style={{background:'#fff',borderRadius:'0.875rem',padding:'2rem',width:'100%',maxWidth:400,boxShadow:'0 25px 60px rgba(0,0,0,0.25)'}}>
+            <h2 style={{fontSize:'1.1rem',fontWeight:'700',marginBottom:'1rem'}}>+ Tambah Pembayaran</h2>
+            <form onSubmit={handleAddPayment} style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+              <div>
+                <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Tipe Pembayaran</label>
+                <div style={{display:'flex',gap:'0.75rem'}}>
+                  {([['dp','💰 DP'],['lunas','✅ Lunas']] as const).map(([val,label])=>(
+                    <label key={val} onClick={()=>setPaymentForm(f=>({...f,type:val}))}
+                      style={{flex:1,cursor:'pointer',border:`2px solid ${paymentForm.type===val?'#16a34a':'#e5e7eb'}`,borderRadius:'0.5rem',padding:'0.75rem',background:paymentForm.type===val?'#f0fdf4':'#fff',textAlign:'center'}}>
+                      <input type="radio" name="paymentType" value={val} checked={paymentForm.type===val} onChange={()=>{}} style={{display:'none'}}/>
+                      <span style={{fontSize:'0.875rem',fontWeight:'600'}}>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Jumlah (Rp)</label>
+                <input type="number" min="1" value={paymentForm.amount} onChange={e=>setPaymentForm(f=>({...f,amount:e.target.value}))}
+                  style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
+                <div style={{marginTop:'0.5rem',fontSize:'0.72rem',color:'#6b7280'}}>
+                  Sisa: {fmt(order.total_amount - order.dp_amount - order.lunas_amount)}
+                </div>
+              </div>
+              <div style={{display:'flex',gap:'0.75rem'}}>
+                <button type='button' onClick={()=>setShowPaymentForm(false)} style={{flex:1,padding:'0.75rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',background:'#fff',cursor:'pointer',fontWeight:'600'}}>Batal</button>
+                <button type='submit' disabled={savingPayment} style={{flex:1,padding:'0.75rem',background:'#16a34a',color:'#fff',border:'none',borderRadius:'0.5rem',cursor:savingPayment?'not-allowed':'pointer',fontWeight:'600'}}>
+                  {savingPayment?'Menyimpan...':'Simpan'}
+                </button>
               </div>
             </form>
           </div>
