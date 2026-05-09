@@ -51,20 +51,23 @@ export default function AdminShippingPage() {
   }
 
   async function handleMarkPacked(orderId: string) {
-    await supabase.from('orders').update({ status: 'packed', packed_at: new Date().toISOString() }).eq('id', orderId)
-    await supabase.from('order_logs').insert({ order_id: orderId, action: 'packed', notes: 'Marked as packed from shipping page' })
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('orders').update({ status: 'packed', packed_at: new Date().toISOString(), packed_by: user?.id ?? null }).eq('id', orderId)
+    await supabase.from('order_logs').insert({ order_id: orderId, action: 'packed', notes: 'Marked as packed from shipping page', staff_id: user?.id ?? null })
     loadOrders()
   }
 
   async function handleSaveResi() {
     if (!selectedOrder || !resiForm.courier || !resiForm.tracking_number) return
     setSaving(true)
+    const { data: { user } } = await supabase.auth.getUser()
 
     await supabase.from('orders').update({
       status: 'shipped',
       courier: resiForm.courier,
       tracking_number: resiForm.tracking_number,
       shipped_at: new Date().toISOString(),
+      shipped_by: user?.id ?? null,
     }).eq('id', selectedOrder.id)
 
     const courierLabel = COURIERS.find(c => c.value === resiForm.courier)?.label ?? resiForm.courier
@@ -72,6 +75,7 @@ export default function AdminShippingPage() {
       order_id: selectedOrder.id,
       action: 'shipped',
       notes: `Shipped via ${courierLabel}, Resi: ${resiForm.tracking_number}`,
+      staff_id: user?.id ?? null,
     })
 
     setSaving(false)

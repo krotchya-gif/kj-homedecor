@@ -10,6 +10,17 @@ import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+const COURIERS = [
+  { value: 'jne', label: 'JNE' },
+  { value: 'jnt', label: 'J&T Express' },
+  { value: 'sicepat', label: 'SiCepat' },
+  { value: 'anteraja', label: 'AnterAja' },
+  { value: 'ninja', label: 'Ninja Express' },
+  { value: 'pos', label: 'POS Indonesia' },
+  { value: 'wahana', label: 'Wahana' },
+  { value: '_internal', label: 'Antar Sendiri' },
+]
+
 const STATUS_COLORS: Record<string, string> = {
   new: 'badge-new',
   sorted: 'badge-sorted',
@@ -70,15 +81,28 @@ export default function OrdersPage() {
     e.preventDefault()
     setSaving(true)
 
-    // Create customer if new
+    // Create or find existing customer
     let customerId: string | null = null
-    if (form.customer_name) {
-      const { data: cust } = await supabase
+    if (form.customer_name.trim()) {
+      const nameTrimmed = form.customer_name.trim()
+      // Look up existing customer by phone (if provided) or name
+      const phoneFilter = form.customer_phone ? { phone: form.customer_phone } : { name: nameTrimmed }
+      const { data: existingCust } = await supabase
         .from('customers')
-        .insert({ name: form.customer_name, phone: form.customer_phone })
         .select('id')
-        .single()
-      customerId = cust?.id ?? null
+        .eq(phoneFilter.phone ? 'phone' : 'name', phoneFilter.phone ?? phoneFilter.name)
+        .maybeSingle()
+
+      if (existingCust) {
+        customerId = existingCust.id
+      } else {
+        const { data: cust } = await supabase
+          .from('customers')
+          .insert({ name: nameTrimmed, phone: form.customer_phone?.trim() || null })
+          .select('id')
+          .single()
+        customerId = cust?.id ?? null
+      }
     }
 
     const dpAmt = Number(form.dp_amount) || 0
@@ -102,8 +126,8 @@ export default function OrdersPage() {
     if (newOrder && marketplaceSources.includes(form.source) && dpAmt >= totalAmt && totalAmt > 0) {
       await supabase.from('payments').insert({
         order_id: newOrder.id,
-        type: 'lunas',
-        amount: totalAmt,
+        type: dpAmt === totalAmt ? 'lunas' : 'dp',
+        amount: dpAmt === totalAmt ? totalAmt : dpAmt,
         date: new Date().toISOString(),
         verified_by: 'marketplace-auto',
         verified_at: new Date().toISOString(),
@@ -213,7 +237,9 @@ export default function OrdersPage() {
                   <td>
                     {o.tracking_number ? (
                       <div style={{ fontSize: '0.75rem' }}>
-                        <div style={{ fontWeight: '600', color: '#374151' }}>{o.courier}</div>
+                        <div style={{ fontWeight: '600', color: '#374151' }}>
+                          {COURIERS.find(c => c.value === o.courier)?.label ?? COURIERS.find(c => c.label === o.courier)?.label ?? o.courier ?? '—'}
+                        </div>
                         <div style={{ color: '#6b7280', fontFamily: 'monospace' }}>{o.tracking_number}</div>
                       </div>
                     ) : (
@@ -282,11 +308,11 @@ export default function OrdersPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Total (Rp)</label>
-                      <input type="number" placeholder="0" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                      <input type="number" min="0" placeholder="0" value={form.total_amount} onChange={(e) => setForm(f => ({ ...f, total_amount: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>DP (Rp)</label>
-                      <input type="number" placeholder="0" value={form.dp_amount} onChange={(e) => setForm(f => ({ ...f, dp_amount: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                      <input type="number" min="0" placeholder="0" value={form.dp_amount} onChange={(e) => setForm(f => ({ ...f, dp_amount: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
                     </div>
                   </div>
                   <div>

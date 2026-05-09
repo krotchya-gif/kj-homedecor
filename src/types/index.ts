@@ -236,6 +236,7 @@ export interface Payment {
   date: string;
   verified_by?: string;
   verified_at?: string;
+  notes?: string;
 }
 
 export interface LowStockAlert {

@@ -18,6 +18,8 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { data, error } = await supabase
     .from('orders')
@@ -56,6 +58,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { error } = await supabase.from('orders').delete().eq('id', id)
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })

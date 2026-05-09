@@ -101,7 +101,7 @@ export default function OrderDetailPage() {
 
   async function updateStatus(newStatus: string) {
     if (!order) return
-    if ((newStatus==='ready'||newStatus==='done') && order.payment_status!=='paid') {
+    if (['ready','packed','done'].includes(newStatus) && order.payment_status !== 'paid') {
       alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu.')
       return
     }
@@ -140,7 +140,7 @@ export default function OrderDetailPage() {
     if (!order || !cancelReason.trim()) { alert('Alasan pembatalan wajib diisi.'); return }
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('payments').update({ notes: `VOIDED — Order cancelled (${cancelReason}) - ${new Date().toISOString()}` }).eq('order_id', id)
-    await supabase.from('orders').update({ status: 'cancelled', return_reason: cancelReason }).eq('id', id)
+    await supabase.from('orders').update({ status: 'cancelled', return_reason: cancelReason, dp_amount: 0, lunas_amount: 0, payment_status: 'pending' }).eq('id', id)
     await supabase.from('order_logs').insert({
       order_id: id, action: 'cancelled',
       notes: `Order dibatalkan oleh Admin. Alasan: ${cancelReason}. Payment di-void.`,
@@ -196,6 +196,14 @@ export default function OrderDetailPage() {
   async function addItem(e:React.FormEvent) {
     e.preventDefault()
     setSavingItem(true)
+
+    // Validate qty for non-laundry items
+    const qty = Number(itemForm.qty)
+    if (itemType !== 'laundry' && (!itemForm.product_id || qty < 1)) {
+      alert('Pilih produk dan qty minimal 1.')
+      setSavingItem(false)
+      return
+    }
 
     if (itemType === 'laundry') {
       // create laundry order first

@@ -84,11 +84,19 @@ export default function AdminLaundryPage() {
   async function handleUpdateRate(e: React.FormEvent) {
     e.preventDefault()
     setRateSaving(true)
+    const rateValue = Number(rateForm.rate_per_kg) || 0
     if (rate) {
       await supabase.from('laundry_rates').update({
-        rate_per_kg: Number(rateForm.rate_per_kg) || 0,
+        rate_per_kg: rateValue,
         updated_at: new Date().toISOString(),
       }).eq('id', rate.id)
+    } else {
+      await supabase.from('laundry_rates').insert({
+        name: 'Default Rate',
+        rate_per_kg: rateValue,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      })
     }
     setRateSaving(false)
     setShowRateModal(false)
