@@ -18,4 +18,3 @@ $$ LANGUAGE SQL;
 
 -- Create index for faster lookup
 CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
-CREATE INDEX IF NOT EXISTS idx_orders_order_number_year ON orders(WHERE order_number IS NOT NULL);
