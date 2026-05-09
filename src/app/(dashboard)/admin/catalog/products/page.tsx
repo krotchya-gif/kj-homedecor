@@ -134,7 +134,11 @@ export default function ProductsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus produk ini?')) return
-    await supabase.from('products').delete().eq('id', id)
+    const { error } = await supabase.from('products').delete().eq('id', id)
+    if (error) {
+      alert('Gagal hapus: ' + error.message)
+      return
+    }
     fetchProducts()
   }
 
@@ -278,7 +282,7 @@ export default function ProductsPage() {
                     type={field.type ?? 'text'}
                     required={field.label.includes('*')}
                     placeholder={field.placeholder}
-                    value={(form as Record<string, string | boolean>)[field.id] as string}
+                    value={(form as unknown as Record<string, string | string[] | boolean>)[field.id] as string}
                     onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
                     style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
                   />
@@ -308,7 +312,7 @@ export default function ProductsPage() {
                     type={field.type ?? 'text'}
                     required={field.label.includes('*')}
                     placeholder={field.placeholder}
-                    value={(form as Record<string, string | boolean>)[field.id] as string}
+                    value={(form as unknown as Record<string, string | string[] | boolean>)[field.id] as string}
                     onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
                     style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
                   />
