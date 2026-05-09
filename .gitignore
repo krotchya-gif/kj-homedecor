@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Documentation (local only, not committed)
 doc/
+
+# Claude AI context and memory (local only)
+.claude/
