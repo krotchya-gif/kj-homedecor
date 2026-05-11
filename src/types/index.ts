@@ -90,6 +90,8 @@ export interface Product {
   dimension_l?: number;
   dimension_t?: number;
   weight?: number;
+  // Visibility: true = shown on landing page catalog, false = internal/admin only
+  is_catalog_visible?: boolean;
 }
 
 export interface Material {

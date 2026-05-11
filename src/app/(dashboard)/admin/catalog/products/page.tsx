@@ -28,6 +28,7 @@ export default function ProductsPage() {
     stock_toko: '',
     is_featured: false,
     is_custom: false,
+    is_catalog_visible: true,
     // Style variants for gorden
     style_variants: [] as string[],
     smokring_colors: [] as string[],
@@ -73,7 +74,7 @@ export default function ProductsPage() {
     setEditProduct(null)
     setForm({
       name: '', sku: '', kode_kain: '', category_id: '', price: '', stock_toko: '',
-      is_featured: false, is_custom: false,
+      is_featured: false, is_custom: false, is_catalog_visible: true,
       style_variants: [], smokring_colors: [], color_variants: '',
       dimension_p: '', dimension_l: '', dimension_t: '', weight: '',
     })
@@ -91,6 +92,7 @@ export default function ProductsPage() {
       stock_toko: String(p.stock_toko),
       is_featured: p.is_featured,
       is_custom: p.is_custom,
+      is_catalog_visible: p.is_catalog_visible !== false, // default true
       style_variants: p.style_variants ?? [],
       smokring_colors: p.smokring_colors ?? [],
       color_variants: (p.color_variants ?? []).join(', '),
@@ -114,6 +116,7 @@ export default function ProductsPage() {
       stock_toko: Number(form.stock_toko),
       is_featured: form.is_featured,
       is_custom: form.is_custom,
+      is_catalog_visible: form.is_catalog_visible,
       style_variants: form.style_variants,
       smokring_colors: form.smokring_colors,
       color_variants: form.color_variants ? form.color_variants.split(',').map(s => s.trim()).filter(Boolean) : [],
@@ -229,6 +232,11 @@ export default function ProductsPage() {
                         Custom
                       </span>
                     )}
+                    {p.is_catalog_visible === false && (
+                      <span style={{ background: '#f3f4f6', color: '#6b7280', padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', marginLeft: '0.25rem' }}>
+                        Internal
+                      </span>
+                    )}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -326,6 +334,10 @@ export default function ProductsPage() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={form.is_custom} onChange={(e) => setForm((f) => ({ ...f, is_custom: e.target.checked }))} />
                   Custom Order
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={form.is_catalog_visible} onChange={(e) => setForm((f) => ({ ...f, is_catalog_visible: e.target.checked }))} />
+                  Tampil di Katalog
                 </label>
               </div>
 

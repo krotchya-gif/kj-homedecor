@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Package, Tag, ImageIcon, Plus, DollarSign } from 'lucide-react'
+import { Package, Tag, ImageIcon, Plus } from 'lucide-react'
 
 const CATALOG_MODULES = [
   {
@@ -16,14 +16,7 @@ const CATALOG_MODULES = [
     icon: <Tag size={22} />,
     color: 'blue',
   },
-  {
-    title: 'Style Rates',
-    desc: 'Atur harga per meter per model gorden',
-    href: '/admin/catalog/style-rates',
-    icon: <DollarSign size={22} />,
-    color: 'yellow',
-  },
-  {
+    {
     title: 'Banner & Hero',
     desc: 'Upload dan atur banner landing page',
     href: '/admin/catalog/banners',
