@@ -22,6 +22,11 @@ import {
   WashingMachine,
   Search,
   Settings,
+  Book,
+  CreditCard,
+  ArrowLeftRight,
+  LandPlot,
+  FileText,
 } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -73,8 +78,13 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   ],
   finance: [
     { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={18} /> },
+    { label: 'AKUN', href: '/finance/accounts', icon: <Book size={18} /> },
+    { label: 'HUTANG', href: '/finance/hutang', icon: <CreditCard size={18} /> },
+    { label: 'PIUTANG', href: '/finance/piutang', icon: <ArrowLeftRight size={18} /> },
+    { label: 'KAS & BANK', href: '/finance/cash', icon: <LandPlot size={18} /> },
+    { label: 'ASET', href: '/finance/assets', icon: <LandPlot size={18} /> },
+    { label: 'JURNAL', href: '/finance/journal', icon: <FileText size={18} /> },
     { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
-    { label: 'Laporan', href: '/finance/reports', icon: <BarChart3 size={18} /> },
     { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> },
   ],
   installer: [
