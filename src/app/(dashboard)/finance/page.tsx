@@ -1,12 +1,10 @@
 import Link from 'next/link'
-import { Package, DollarSign, Users, BarChart3, Calculator } from 'lucide-react'
+import { DollarSign, BarChart3, WashingMachine } from 'lucide-react'
 
 const MODULES = [
-  { title: 'BOM & Material', desc: 'Bill of materials dan database bahan', href: '/finance/materials', icon: <Package size={20} />, color: 'blue' },
-  { title: 'HPP Calculator', desc: 'Hitung HPP dari BOM + markup', href: '/finance/hpp', icon: <Calculator size={20} />, color: 'orange' },
   { title: 'Pembayaran', desc: 'Tracking DP/Lunas dan approval gate', href: '/finance/payments', icon: <DollarSign size={20} />, color: 'green' },
-  { title: 'Supplier', desc: 'Database supplier dan PO', href: '/finance/suppliers', icon: <Users size={20} />, color: 'purple' },
   { title: 'Laporan', desc: 'Laporan keuangan dan pengupahan', href: '/finance/reports', icon: <BarChart3 size={20} />, color: 'teal' },
+  { title: 'Laundry Gaji', desc: 'Gaji staff laundry per periode', href: '/finance/laundry-payroll', icon: <WashingMachine size={20} />, color: 'blue' },
 ]
 
 export default function FinanceDashboard() {
@@ -14,7 +12,7 @@ export default function FinanceDashboard() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Dashboard Finance</h1>
-        <p className="page-subtitle">Kelola BOM, HPP, pembayaran, dan laporan keuangan</p>
+        <p className="page-subtitle">Kelola pembayaran, laporan keuangan dan payroll laundry</p>
       </div>
       <div className="module-grid">
         {MODULES.map((m) => (

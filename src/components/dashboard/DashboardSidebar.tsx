@@ -73,11 +73,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   ],
   finance: [
     { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={18} /> },
-    { label: 'BOM & Material', href: '/finance/materials', icon: <Package size={18} /> },
-    { label: 'HPP', href: '/finance/hpp', icon: <DollarSign size={18} /> },
     { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
-    { label: 'Supplier', href: '/finance/suppliers', icon: <Users size={18} /> },
     { label: 'Laporan', href: '/finance/reports', icon: <BarChart3 size={18} /> },
+    { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> },
   ],
   installer: [
     { label: 'Jadwal', href: '/installer', icon: <Calendar size={18} /> },
@@ -87,6 +85,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Overview', href: '/owner', icon: <Eye size={18} /> },
     { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={18} /> },
     { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={18} /> },
+    { label: 'Material', href: '/owner/materials', icon: <Package size={18} /> },
+    { label: 'HPP', href: '/owner/hpp', icon: <DollarSign size={18} /> },
+    { label: 'Supplier', href: '/owner/suppliers', icon: <Users size={18} /> },
     { label: 'Stok Gudang', href: '/gudang/stock', icon: <Warehouse size={18} /> },
     { label: 'Staff', href: '/owner/staff', icon: <Users size={18} /> },
     { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingCart size={18} /> },
