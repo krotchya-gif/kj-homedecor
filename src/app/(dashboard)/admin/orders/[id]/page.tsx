@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
 import Link from 'next/link'
-import type { Order, OrderItem, Product, Customer } from '@/types'
+import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','packed','shipped','done'] as const
@@ -77,19 +77,48 @@ export default function OrderDetailPage() {
   const [paymentForm, setPaymentForm] = useState({ type: 'dp' as 'dp'|'lunas', amount: '' })
   const [savingPayment, setSavingPayment] = useState(false)
 
+  // Preparation checklist
+  const [checklist, setChecklist] = useState<PreparationChecklistItem[]>([])
+  const DEFAULT_CHECKLIST: PreparationChecklistItem[] = [
+    { key: 'besi', label: 'Besi', done: false, notes: '' },
+    { key: 'endcup_rollet', label: 'Endcup Rolet', done: false, notes: '' },
+    { key: 'tutup_vitrase', label: 'Tutup Vitrase', done: false, notes: '' },
+    { key: 'braket', label: 'Braket', done: false, notes: '' },
+    { key: 'hook', label: 'Hook', done: false, notes: '' },
+    { key: 'roda', label: 'Roda', done: false, notes: '' },
+  ]
+
   async function load() {
     setLoading(true)
-    const [orderRes, itemsRes, prodsRes, logsRes] = await Promise.all([
+    const [orderRes, itemsRes, prodsRes, logsRes, checklistRes] = await Promise.all([
       supabase.from('orders').select('*, customer:customers(name,phone,address)').eq('id',id).single(),
       supabase.from('order_items').select('*, product:products(name,sku)').eq('order_id',id),
       supabase.from('products').select('id,name,sku,price').order('name'),
       supabase.from('order_logs').select('*, staff:users(name)').eq('order_id',id).order('created_at', { ascending: true }),
+      supabase.from('order_preparation_checklists').select('items').eq('order_id',id).single(),
     ])
     setOrder(orderRes.data as Order)
     setItems((itemsRes.data as OrderItem[]) ?? [])
     setProducts((prodsRes.data as Product[]) ?? [])
     setOrderLogs((logsRes.data ?? []) as any[])
+    // Init checklist if not exists
+    if (checklistRes.data) {
+      setChecklist(checklistRes.data.items as PreparationChecklistItem[])
+    } else {
+      await supabase.from('order_preparation_checklists').insert({ order_id: id, items: DEFAULT_CHECKLIST })
+      setChecklist(DEFAULT_CHECKLIST)
+    }
     setLoading(false)
+  }
+
+  async function updateChecklistItem(key: string, field: 'done' | 'notes', value: boolean | string) {
+    const updated = checklist.map(item =>
+      item.key === key ? { ...item, [field]: value } : item
+    )
+    setChecklist(updated)
+    await supabase.from('order_preparation_checklists')
+      .update({ items: updated, updated_at: new Date().toISOString() })
+      .eq('order_id', id)
   }
 
   async function loadRates() {
@@ -538,6 +567,39 @@ export default function OrderDetailPage() {
               </tbody>
             </table>
           )}
+        </div>
+      </div>
+
+      {/* Persiapan & Kelengkapan */}
+      <div style={{ marginTop: '1.5rem', background: '#fff', borderRadius: '0.875rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>📦</span>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151' }}>Persiapan & Kelengkapan</h2>
+          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#9ca3af' }}>
+            {checklist.filter(i => i.done).length}/{checklist.length} siap
+          </span>
+        </div>
+        <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          {checklist.map((item) => (
+            <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0', borderBottom: '1px solid #f9fafb' }}>
+              <input
+                type="checkbox"
+                checked={item.done}
+                onChange={(e) => updateChecklistItem(item.key, 'done', e.target.checked)}
+                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#cc7030' }}
+              />
+              <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: item.done ? '400' : '500', color: item.done ? '#9ca3af' : '#374151', textDecoration: item.done ? 'line-through' : 'none' }}>
+                {item.label}
+              </span>
+              <input
+                type="text"
+                placeholder="Catatan..."
+                value={item.notes}
+                onChange={(e) => updateChecklistItem(item.key, 'notes', e.target.value)}
+                style={{ flex: 2, padding: '0.375rem 0.625rem', border: '1px solid #e5e7eb', borderRadius: '0.375rem', fontSize: '0.8rem', outline: 'none' }}
+              />
+            </div>
+          ))}
         </div>
       </div>
 

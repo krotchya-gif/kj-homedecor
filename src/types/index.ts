@@ -94,6 +94,13 @@ export interface Product {
   is_catalog_visible?: boolean;
 }
 
+export interface PreparationChecklistItem {
+  key: string;
+  label: string;
+  done: boolean;
+  notes: string;
+}
+
 export interface Material {
   id: string;
   name: string;
