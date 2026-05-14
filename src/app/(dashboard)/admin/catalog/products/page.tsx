@@ -16,6 +16,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [activeTab, setActiveTab] = useState<'gorden' | 'perabot' | 'all'>('all')
 
   // Form state
   const [categories, setCategories] = useState<Category[]>([])
@@ -29,6 +30,7 @@ export default function ProductsPage() {
     is_featured: false,
     is_custom: false,
     is_catalog_visible: true,
+    product_type: 'perabot' as 'gorden' | 'perabot',
     // Style variants for gorden
     style_variants: [] as string[],
     smokring_colors: [] as string[],
@@ -66,8 +68,9 @@ export default function ProductsPage() {
 
   const filtered = products.filter(
     (p) =>
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku ?? '').toLowerCase().includes(search.toLowerCase())
+      (activeTab === 'all' || (p as any).product_type === activeTab) &&
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.sku ?? '').toLowerCase().includes(search.toLowerCase()))
   )
 
   function openAdd() {
@@ -75,6 +78,7 @@ export default function ProductsPage() {
     setForm({
       name: '', sku: '', kode_kain: '', category_id: '', price: '', stock_toko: '',
       is_featured: false, is_custom: false, is_catalog_visible: true,
+      product_type: activeTab === 'all' ? 'perabot' : activeTab,
       style_variants: [], smokring_colors: [], color_variants: '',
       dimension_p: '', dimension_l: '', dimension_t: '', weight: '',
     })
@@ -92,7 +96,8 @@ export default function ProductsPage() {
       stock_toko: String(p.stock_toko),
       is_featured: p.is_featured,
       is_custom: p.is_custom,
-      is_catalog_visible: p.is_catalog_visible !== false, // default true
+      is_catalog_visible: p.is_catalog_visible !== false,
+      product_type: ((p as any).product_type as 'gorden' | 'perabot') || 'perabot',
       style_variants: p.style_variants ?? [],
       smokring_colors: p.smokring_colors ?? [],
       color_variants: (p.color_variants ?? []).join(', '),
@@ -117,9 +122,10 @@ export default function ProductsPage() {
       is_featured: form.is_featured,
       is_custom: form.is_custom,
       is_catalog_visible: form.is_catalog_visible,
-      style_variants: form.style_variants,
-      smokring_colors: form.smokring_colors,
-      color_variants: form.color_variants ? form.color_variants.split(',').map(s => s.trim()).filter(Boolean) : [],
+      product_type: form.product_type,
+      style_variants: form.product_type === 'gorden' ? form.style_variants : [],
+      smokring_colors: form.product_type === 'gorden' ? form.smokring_colors : [],
+      color_variants: form.product_type === 'perabot' ? (form.color_variants ? form.color_variants.split(',').map(s => s.trim()).filter(Boolean) : []) : [],
       dimension_p: form.dimension_p ? Number(form.dimension_p) : null,
       dimension_l: form.dimension_l ? Number(form.dimension_l) : null,
       dimension_t: form.dimension_t ? Number(form.dimension_t) : null,
@@ -150,6 +156,55 @@ export default function ProductsPage() {
       <div className="page-header">
         <h1 className="page-title">Produk</h1>
         <p className="page-subtitle">Kelola katalog produk KJ Homedecor</p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '2px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+        <button
+          onClick={() => setActiveTab('gorden')}
+          style={{
+            padding: '0.5rem 1.25rem',
+            border: 'none',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            background: activeTab === 'gorden' ? '#cc7030' : '#f3f4f6',
+            color: activeTab === 'gorden' ? '#fff' : '#6b7280',
+          }}
+        >
+          Gorden
+        </button>
+        <button
+          onClick={() => setActiveTab('perabot')}
+          style={{
+            padding: '0.5rem 1.25rem',
+            border: 'none',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            background: activeTab === 'perabot' ? '#cc7030' : '#f3f4f6',
+            color: activeTab === 'perabot' ? '#fff' : '#6b7280',
+          }}
+        >
+          Perabot
+        </button>
+        <button
+          onClick={() => setActiveTab('all')}
+          style={{
+            padding: '0.5rem 1.25rem',
+            border: 'none',
+            borderRadius: '0.5rem 0.5rem 0 0',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer',
+            background: activeTab === 'all' ? '#cc7030' : '#f3f4f6',
+            color: activeTab === 'all' ? '#fff' : '#6b7280',
+          }}
+        >
+          Semua
+        </button>
       </div>
 
       {/* Toolbar */}
@@ -326,7 +381,15 @@ export default function ProductsPage() {
                   />
                 </div>
               ))}
-              <div style={{ display: 'flex', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  <input type="radio" name="product_type" checked={form.product_type === 'gorden'} onChange={() => setForm((f) => ({ ...f, product_type: 'gorden' }))} />
+                  Tipe Gorden
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                  <input type="radio" name="product_type" checked={form.product_type === 'perabot'} onChange={() => setForm((f) => ({ ...f, product_type: 'perabot' }))} />
+                  Tipe Perabot
+                </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={form.is_featured} onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))} />
                   Produk Unggulan
@@ -342,31 +405,33 @@ export default function ProductsPage() {
               </div>
 
               {/* Style Variants for Gorden */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
-                  Model Gorden (Style Variants)
-                </label>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                  {GORDEN_STYLES.map((style) => (
-                    <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={form.style_variants.includes(style)}
-                        onChange={(e) => {
-                          const newStyles = e.target.checked
-                            ? [...form.style_variants, style]
-                            : form.style_variants.filter(s => s !== style)
-                          setForm((f) => ({ ...f, style_variants: newStyles }))
-                        }}
-                      />
-                      {style.charAt(0).toUpperCase() + style.slice(1)}
-                    </label>
-                  ))}
+              {form.product_type === 'gorden' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                    Model Gorden (Style Variants)
+                  </label>
+                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                    {GORDEN_STYLES.map((style) => (
+                      <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={form.style_variants.includes(style)}
+                          onChange={(e) => {
+                            const newStyles = e.target.checked
+                              ? [...form.style_variants, style]
+                              : form.style_variants.filter(s => s !== style)
+                            setForm((f) => ({ ...f, style_variants: newStyles }))
+                          }}
+                        />
+                        {style.charAt(0).toUpperCase() + style.slice(1)}
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Smokring Colors */}
-              {form.style_variants.includes('smokring') && (
+              {form.product_type === 'gorden' && form.style_variants.includes('smokring') && (
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
                     Warna Smokring
@@ -392,18 +457,20 @@ export default function ProductsPage() {
               )}
 
               {/* Color Variants for Perabot */}
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
-                  Warna Variants (Perabot) - pisahkan dengan koma
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Hitam, Silver, Merah"
-                  value={form.color_variants}
-                  onChange={(e) => setForm((f) => ({ ...f, color_variants: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
-                />
-              </div>
+              {form.product_type === 'perabot' && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+                    Warna Variants (Perabot) - pisahkan dengan koma
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Hitam, Silver, Merah"
+                    value={form.color_variants}
+                    onChange={(e) => setForm((f) => ({ ...f, color_variants: e.target.value }))}
+                    style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                  />
+                </div>
+              )}
 
               {/* Shipping Dimensions */}
               <div>
