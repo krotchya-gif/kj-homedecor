@@ -32,6 +32,8 @@ export default function BookingPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [occupiedDates, setOccupiedDates] = useState<Set<string>>(new Set())
   const [occupiedSlots, setOccupiedSlots] = useState<Set<string>>(new Set())
+  const [whatsappNumber, setWhatsappNumber] = useState('6281234567890')
+  const [whatsappMessage, setWhatsappMessage] = useState('Halo KJ Homedecor')
 
   const supabase = createClient()
 
@@ -53,7 +55,19 @@ export default function BookingPage() {
         setOccupiedSlots(slots)
       }
     }
+    async function fetchSettings() {
+      const { data } = await supabase
+        .from('landing_settings')
+        .select('whatsapp_number, whatsapp_message')
+        .eq('id', 'hero')
+        .single()
+      if (data) {
+        if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number)
+        if (data.whatsapp_message) setWhatsappMessage(data.whatsapp_message)
+      }
+    }
     fetchOccupied()
+    fetchSettings()
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -62,19 +76,6 @@ export default function BookingPage() {
     setError('')
 
     try {
-      let whatsappNumber = '6281234567890'
-      let whatsappMessage = 'Halo KJ Homedecor'
-      const { data: settings } = await supabase
-        .from('landing_settings')
-        .select('whatsapp_number, whatsapp_message')
-        .eq('id', 'hero')
-        .single()
-
-      if (settings) {
-        whatsappNumber = settings.whatsapp_number ?? whatsappNumber
-        whatsappMessage = settings.whatsapp_message ?? whatsappMessage
-      }
-
       const { error: insertError } = await supabase
         .from('install_bookings')
         .insert({
@@ -133,10 +134,10 @@ export default function BookingPage() {
             Terima kasih sudah booking. WhatsApp akan terbuka untuk konfirmasi. Tim kami akan menghubungi Anda untuk konfirmasi jadwal.
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/" style={{ padding: '0.75rem 1.5rem', background: '#cc7030', color: '#fff', borderRadius: '0.5rem', fontWeight: '600', textDecoration: 'none' }}>
+            <Link href="/" style={{ padding: '0.75rem 1.5rem', background: 'var(--brand-500)', color: '#fff', borderRadius: '0.5rem', fontWeight: '600', textDecoration: 'none' }}>
               Kembali ke Beranda
             </Link>
-            <a href={`https://wa.me/6281234567890`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.75rem 1.5rem', background: '#f3f4f6', color: '#374151', borderRadius: '0.5rem', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+            <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.75rem 1.5rem', background: '#f3f4f6', color: '#374151', borderRadius: '0.5rem', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <MessageCircle size={16} /> Chat WhatsApp
             </a>
           </div>
@@ -171,7 +172,7 @@ export default function BookingPage() {
             occupiedSlots={occupiedSlots}
           />
           {selectedDate && (
-            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#cc7030' }}>
+            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--brand-500)' }}>
               ✓ Tanggal dipilih: {new Date(selectedDate + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           )}
@@ -218,10 +219,10 @@ export default function BookingPage() {
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }}>Jenis Layanan *</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {SERVICE_TYPES.map(s => (
-                <label key={s.value} style={{ display: 'flex', gap: '0.75rem', padding: '1rem', border: `2px solid ${form.service_type === s.value ? '#cc7030' : '#e5e7eb'}`, borderRadius: '0.75rem', cursor: 'pointer', background: form.service_type === s.value ? '#fff3e8' : '#fff', transition: 'all 0.15s' }}>
-                  <input type="radio" name="service_type" value={s.value} checked={form.service_type === s.value} onChange={handleChange} style={{ accentColor: '#cc7030', marginTop: 3 }} />
+                <label key={s.value} style={{ display: 'flex', gap: '0.75rem', padding: '1rem', border: `2px solid ${form.service_type === s.value ? 'var(--brand-500)' : '#e5e7eb'}`, borderRadius: '0.75rem', cursor: 'pointer', background: form.service_type === s.value ? '#fff3e8' : '#fff', transition: 'all 0.15s' }}>
+                  <input type="radio" name="service_type" value={s.value} checked={form.service_type === s.value} onChange={handleChange} style={{ accentColor: 'var(--brand-500)', marginTop: 3 }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: form.service_type === s.value ? '#cc7030' : '#6b7280' }}>{s.icon}</span>
+                    <span style={{ color: form.service_type === s.value ? 'var(--brand-500)' : '#6b7280' }}>{s.icon}</span>
                     <div>
                       <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{s.label}</div>
                       <div style={{ color: '#9ca3af', fontSize: '0.8rem' }}>{s.desc}</div>
@@ -271,12 +272,12 @@ export default function BookingPage() {
                       key={time}
                       style={{
                         padding: '0.5rem 0.875rem',
-                        border: `2px solid ${form.time === time ? '#cc7030' : occupied ? '#e5e5e5' : '#e5e7eb'}`,
+                        border: `2px solid ${form.time === time ? 'var(--brand-500)' : occupied ? '#e5e5e5' : '#e5e7eb'}`,
                         borderRadius: '0.5rem',
                         cursor: occupied ? 'not-allowed' : 'pointer',
                         fontSize: '0.85rem',
                         fontWeight: form.time === time ? '600' : '400',
-                        color: form.time === time ? '#cc7030' : occupied ? '#d1d5db' : '#6b7280',
+                        color: form.time === time ? 'var(--brand-500)' : occupied ? '#d1d5db' : '#6b7280',
                         background: form.time === time ? '#fff3e8' : occupied ? '#f9fafb' : '#fff',
                         opacity: occupied ? 0.5 : 1,
                         textDecoration: occupied ? 'line-through' : 'none',
@@ -319,7 +320,7 @@ export default function BookingPage() {
             disabled={loading || !form.name || !form.phone || !form.date || !form.time || !form.service_type || (form.service_type === 'pasang' && !form.address)}
             style={{
               padding: '1rem',
-              background: (!form.name || !form.phone || !form.date || !form.time || !form.service_type || (form.service_type === 'pasang' && !form.address)) ? '#d1d5db' : '#cc7030',
+              background: (!form.name || !form.phone || !form.date || !form.time || !form.service_type || (form.service_type === 'pasang' && !form.address)) ? '#d1d5db' : 'var(--brand-500)',
               color: '#fff',
               border: 'none',
               borderRadius: '0.5rem',
@@ -347,7 +348,7 @@ export default function BookingPage() {
         <div style={{ marginTop: '2rem', padding: '1.25rem', background: '#f9fafb', borderRadius: '0.75rem', textAlign: 'center' }}>
           <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>lebih suka chat langsung?</p>
           <a
-            href="https://wa.me/6281234567890?text=Halo%20KJ%20Homedecor,%20saya%20ingin%20booking"
+            href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya ingin booking')}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', background: '#25D366', color: '#fff', borderRadius: '0.5rem', fontWeight: '600', textDecoration: 'none', fontSize: '0.9rem' }}

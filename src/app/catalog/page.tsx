@@ -20,6 +20,7 @@ export default function CatalogPage() {
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string>('')
   const [whatsappNumber, setWhatsappNumber] = useState('6281234567890')
+  const [whatsappMessage, setWhatsappMessage] = useState('Halo KJ Homedecor')
 
   const supabase = createClient()
 
@@ -29,11 +30,12 @@ export default function CatalogPage() {
       const [productsRes, categoriesRes, settingsRes] = await Promise.all([
         supabase.from('products').select('*').eq('is_catalog_visible', true).order('name'),
         supabase.from('categories').select('*').order('name'),
-        supabase.from('landing_settings').select('whatsapp_number').eq('id', 'hero').single(),
+        supabase.from('landing_settings').select('whatsapp_number, whatsapp_message').eq('id', 'hero').single(),
       ])
       setProducts(productsRes.data ?? [])
       setCategories(categoriesRes.data ?? [])
       if (settingsRes.data?.whatsapp_number) setWhatsappNumber(settingsRes.data.whatsapp_number)
+      if (settingsRes.data?.whatsapp_message) setWhatsappMessage(settingsRes.data.whatsapp_message)
       setLoading(false)
     }
     load()
@@ -113,20 +115,20 @@ export default function CatalogPage() {
                     )}
                   </div>
                   <div style={{ padding: '1rem' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#cc7030', marginBottom: '0.3rem' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--brand-500)', marginBottom: '0.3rem' }}>
                       {categories.find(c => c.id === product.category_id)?.name ?? 'Lainnya'}
                     </div>
                     <div style={{ fontSize: '0.95rem', fontWeight: '600', color: '#1f2937', marginBottom: '0.5rem', lineHeight: 1.3 }}>
                       {product.name}
                     </div>
-                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: '#cc7030' }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--brand-500)' }}>
                       {formatRp(product.price ?? 0)}
                     </div>
                   </div>
                 </Link>
                 <div style={{ padding: '0 1rem 1rem' }}>
                   <a
-                    href={`https://wa.me/${whatsappNumber}?text=Halo%20KJ%20Homedecor,%20saya%20tertarik%20dengan%20${encodeURIComponent(product.name)}%20(Rp%20${formatRp(product.price ?? 0).replace(/[^0-9]/g, '')})`}
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya tertarik dengan ' + product.name + ' (Rp ' + formatRp(product.price ?? 0).replace(/[^0-9]/g, '') + ')')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', padding: '0.625rem', background: '#25D366', color: '#fff', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: '600', textDecoration: 'none' }}

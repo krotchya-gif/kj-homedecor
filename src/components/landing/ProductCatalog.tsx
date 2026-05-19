@@ -9,8 +9,6 @@ import type { Product, Category } from '@/types'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
-const WA_NUMBER = '6281234567890'
-
 interface ProductCatalogProps {
   maxProducts?: number
   showViewAll?: boolean
@@ -22,11 +20,22 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [whatsappNumber, setWhatsappNumber] = useState('6281234567890')
   const supabase = createClient()
 
   useEffect(() => {
     loadData()
+    fetchSettings()
   }, [])
+
+  async function fetchSettings() {
+    const { data } = await supabase
+      .from('landing_settings')
+      .select('whatsapp_number')
+      .eq('id', 'hero')
+      .single()
+    if (data?.whatsapp_number) setWhatsappNumber(data.whatsapp_number)
+  }
 
   async function loadData() {
     setLoading(true)
@@ -49,7 +58,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
 
   function getWhatsAppLink(product: Product) {
     const msg = `Halo KJ Homedecor, saya tertarik dengan produk "${product.name}" (${formatRp(product.price)}). Mohon info lebih lanjut.`
-    return `https://wa.me/${WA_NUMBER.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+    return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`
   }
 
   return (
@@ -67,7 +76,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               value={search}
               onChange={e => setSearch(e.target.value)}
               style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', transition: 'border-color 0.15s' }}
-              onFocus={e => e.target.style.borderColor = '#cc7030'}
+              onFocus={e => e.target.style.borderColor = 'var(--brand-500)'}
               onBlur={e => e.target.style.borderColor = '#e5e7eb'}
             />
           </div>
@@ -77,7 +86,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
             value={selectedCategory}
             onChange={e => setSelectedCategory(e.target.value)}
             style={{ padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff', cursor: 'pointer', color: '#374151', transition: 'border-color 0.15s' }}
-            onFocus={e => e.target.style.borderColor = '#cc7030'}
+            onFocus={e => e.target.style.borderColor = 'var(--brand-500)'}
             onBlur={e => e.target.style.borderColor = '#e5e7eb'}
           >
             <option value="">Semua Kategori</option>
@@ -108,7 +117,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
       {/* Product Grid */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af', background: '#fff', borderRadius: '1rem', border: '1px solid #e5e7eb' }}>
-          <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#cc7030', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+          <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
           <p>Memuat produk...</p>
         </div>
       ) : displayProducts.length === 0 ? (
@@ -134,7 +143,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                     <Package size={40} style={{ color: '#cc703033' }} />
                   )}
                   {/* Category badge overlay */}
-                  <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: 'rgba(255,255,255,0.95)', padding: '0.25rem 0.625rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '600', color: '#cc7030' }}>
+                  <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: 'rgba(255,255,255,0.95)', padding: '0.25rem 0.625rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '600', color: 'var(--brand-500)' }}>
                     {p.category?.name ?? 'Produk'}
                   </div>
                 </div>
@@ -147,7 +156,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                     {p.name}
                   </div>
                 </Link>
-                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#cc7030', marginBottom: '1rem' }}>
+                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1rem' }}>
                   {formatRp(p.price)}
                   <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6b7280', marginLeft: '0.25rem' }}>/unit</span>
                 </div>
@@ -183,19 +192,19 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
                 padding: '1rem 2.5rem',
-                background: 'transparent', color: '#cc7030',
+                background: 'transparent', color: 'var(--brand-500)',
                 borderRadius: '0.625rem', textDecoration: 'none',
                 fontSize: '1rem', fontWeight: '600',
                 border: '2px solid #cc7030',
                 transition: 'all 0.2s',
               }}
               onMouseEnter={e => {
-                (e.currentTarget as HTMLAnchorElement).style.background = '#cc7030'
+                (e.currentTarget as HTMLAnchorElement).style.background = 'var(--brand-500)'
                 ;(e.currentTarget as HTMLAnchorElement).style.color = '#fff'
               }}
               onMouseLeave={e => {
                 (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
-                ;(e.currentTarget as HTMLAnchorElement).style.color = '#cc7030'
+                ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--brand-500)'
               }}
             >
               <Search size={18} /> Lihat Semua Katalog ({filtered.length} produk)

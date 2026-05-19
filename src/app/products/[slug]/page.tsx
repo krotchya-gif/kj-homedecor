@@ -24,13 +24,21 @@ export default async function ProductDetailPage({ params }: PageProps) {
     .limit(1)
     .single()
 
+  const { data: settings } = await supabase
+    .from('landing_settings')
+    .select('whatsapp_number, whatsapp_message')
+    .eq('id', 'hero')
+    .single()
+
   if (!product) return notFound()
 
   const p = product as Product
   const images = (p.images as string[]) ?? []
 
-  const whatsAppMsg = `Halo KJ Homedecor, saya tertarik dengan produk "${p.name}" (${formatRp(p.price)}). Mohon info lebih lanjut.`
-  const whatsAppUrl = `https://wa.me/6281234567890?text=${encodeURIComponent(whatsAppMsg)}`
+  const whatsappNumber = settings?.whatsapp_number ?? '6281234567890'
+  const whatsappMessage = settings?.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden'
+  const whatsAppMsg = `${whatsappMessage}, saya tertarik dengan produk "${p.name}" (${formatRp(p.price)}). Mohon info lebih lanjut.`
+  const whatsAppUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsAppMsg)}`
 
   return (
     <div style={{ background: '#fafafa', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
@@ -88,7 +96,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            <div style={{ fontSize: '2rem', fontWeight: '800', color: '#cc7030', marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1.5rem' }}>
               {formatRp(p.price)}
             </div>
 
@@ -119,10 +127,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <MessageCircle size={18} /> Pesan via WhatsApp
               </a>
               <a
-                href="https://wa.me/6281234567890?text=Halo%20KJ%20Homedecor,%20saya%20ingin%20booking%20survey%20ukur"
+                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya ingin booking survey ukur')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.875rem 1.5rem', background: '#fff', color: '#cc7030', border: '2px solid #cc7030', borderRadius: '0.5rem', fontWeight: '700', textDecoration: 'none', fontSize: '0.95rem', minWidth: 200 }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.875rem 1.5rem', background: '#fff', color: 'var(--brand-500)', border: '2px solid var(--brand-500)', borderRadius: '0.5rem', fontWeight: '700', textDecoration: 'none', fontSize: '0.95rem', minWidth: 200 }}
               >
                 📅 Booking Survey Gratis
               </a>
@@ -137,7 +145,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 { icon: <Phone size={15} />, text: 'Konsultasi gratis via WhatsApp' },
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.85rem', color: '#374151' }}>
-                  <span style={{ color: '#cc7030' }}>{item.icon}</span>
+                  <span style={{ color: 'var(--brand-500)' }}>{item.icon}</span>
                   {item.text}
                 </div>
               ))}
