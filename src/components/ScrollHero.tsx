@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import HeroParticles from './HeroParticles'
+import HeroParticles from './landing/HeroParticles'
 import { ChevronRight, MessageCircle } from 'lucide-react'
 
 interface ScrollHeroProps {

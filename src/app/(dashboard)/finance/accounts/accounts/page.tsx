@@ -22,6 +22,7 @@ interface Account {
   name: string
   type: typeof ACCOUNT_TYPES[number]
   balance: number
+  computed_balance?: number
   is_cash_account: boolean
   category_id?: string
   description?: string

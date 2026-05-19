@@ -1,5 +1,4 @@
 import { createClient } from '@/utils/supabase/client'
-import { createClient as createServerClient } from '@/utils/supabase/server'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -21,58 +20,10 @@ export interface CreateJournalOptions {
 }
 
 /**
- * Create a journal entry via API route.
- * Returns the created entry on success, throws on failure.
- *
- * In browser context: uses fetch to /api/journal (client-side safe).
- * In server context: calls Supabase directly (avoids double-fetch).
+ * Create a journal entry via /api/journal.
+ * Works in both server and browser contexts.
  */
 export async function createJournalEntry(options: CreateJournalOptions) {
-  // Use direct Supabase call in server context (async createClient)
-  // Fall back to fetch in browser context
-  const isServer = typeof window === 'undefined'
-
-  if (isServer) {
-    const supabase = await createServerClient()
-    const { lines, description, reference_type, reference_id, entry_date, is_auto = false } = options
-
-    const totalDebit = lines.reduce((s, l) => s + (l.debit ?? 0), 0)
-    const totalCredit = lines.reduce((s, l) => s + (l.credit ?? 0), 0)
-
-    const { data: entry, error: entryError } = await supabase
-      .from('journal_entries')
-      .insert({
-        entry_date: entry_date ?? new Date().toISOString().split('T')[0],
-        description,
-        reference_type: reference_type ?? null,
-        reference_id: reference_id ?? null,
-        total_debit: totalDebit,
-        total_credit: totalCredit,
-        is_auto,
-      })
-      .select()
-      .single()
-
-    if (entryError) throw new Error(entryError.message)
-
-    const linesToInsert = lines.map(l => ({
-      entry_id: entry.id,
-      account_id: l.account_id,
-      debit: l.debit ?? 0,
-      credit: l.credit ?? 0,
-      description: l.description ?? null,
-    }))
-
-    const { error: linesError } = await supabase.from('journal_lines').insert(linesToInsert)
-    if (linesError) {
-      await supabase.from('journal_entries').delete().eq('id', entry.id)
-      throw new Error(linesError.message)
-    }
-
-    return entry
-  }
-
-  // Browser context: use API route
   const res = await fetch('/api/journal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -113,7 +64,6 @@ export async function createSimpleJournal(options: {
 }) {
   const { transaction_type, reference_type, reference_id, description, amount, entry_date } = options
 
-  // Try to get mapping
   const mapping = await getAccountMapping(transaction_type)
   const debitAccountId = mapping?.debit_account_id ?? options.debit_account_id
   const creditAccountId = mapping?.credit_account_id ?? options.credit_account_id

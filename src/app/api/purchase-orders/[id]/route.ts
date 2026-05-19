@@ -23,7 +23,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { data: { user } } = await supabase.auth.getUser()
 
   // Get current PO data (before update)
-  const { data: currentPO } = await supabase.from('purchase_orders').select('status, pr_id').eq('id', id).single()
+  const { data: currentPO } = await supabase.from('purchase_orders').select('status, pr_id, actual_cost').eq('id', id).single()
 
   // Handle status transitions
   const updates: any = { ...body }
@@ -37,10 +37,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       if (pr?.material_id) {
         const materialQty = Number(pr.qty)
         // Increment stock_gudang
-        await supabase.rpc('increment_stock_gudang', { material_id: pr.material_id, amount: materialQty }).catch(async () => {
+        try {
+          await supabase.rpc('increment_stock_gudang', { material_id: pr.material_id, amount: materialQty })
+        } catch {
           const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', pr.material_id).single()
           if (mat) await supabase.from('materials').update({ stock_gudang: (mat.stock_gudang ?? 0) + materialQty }).eq('id', pr.material_id)
-        })
+        }
         // Record inventory movement
         await supabase.from('inventory_movements').insert({
           material_id: pr.material_id,

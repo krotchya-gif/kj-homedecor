@@ -60,10 +60,12 @@ export default function GudangProductionPage() {
         for (const bom of bomItems ?? []) {
           const consumptionQty = Number(bom.qty_per_unit) * Number(item.qty)
           // Decrement stock_gudang
-          await supabase.rpc('decrement_stock_gudang', {
-            material_id: bom.material_id,
-            amount: consumptionQty,
-          }).catch(async () => {
+          try {
+            await supabase.rpc('decrement_stock_gudang', {
+              material_id: bom.material_id,
+              amount: consumptionQty,
+            })
+          } catch {
             // Fallback: manual update
             const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', bom.material_id).single()
             if (mat) {
@@ -71,7 +73,7 @@ export default function GudangProductionPage() {
                 stock_gudang: (mat.stock_gudang ?? 0) - consumptionQty,
               }).eq('id', bom.material_id)
             }
-          })
+          }
           // Record inventory movement
           await supabase.from('inventory_movements').insert({
             material_id: bom.material_id,

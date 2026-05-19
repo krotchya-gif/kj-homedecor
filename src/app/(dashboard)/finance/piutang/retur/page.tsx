@@ -65,8 +65,8 @@ export default function ReturPage() {
             <tbody>
               {retur.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: '500' }}>{r.customer?.name ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{r.invoice_number ?? '—'}</td>
+                  <td style={{ fontWeight: '500' }}>{r.piutang?.customer?.name ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{r.piutang?.invoice_number ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>{formatRp(r.return_amount ?? 0)}</td>
                   <td>
                     <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', background: '#fef3c7', color: '#92400e' }}>

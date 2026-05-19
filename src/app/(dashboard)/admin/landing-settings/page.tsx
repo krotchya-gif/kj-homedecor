@@ -161,7 +161,7 @@ export default function AdminLandingSettingsPage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: var(--brand-500) }} />
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--brand-500)' }} />
       </div>
     )
   }
