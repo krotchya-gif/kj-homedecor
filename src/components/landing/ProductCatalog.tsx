@@ -128,7 +128,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
         </div>
       ) : (
         <>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.5rem' }}>
           {displayProducts.map(p => (
             <div key={p.id} style={{ background: '#fff', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }}
             onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)' }}
@@ -140,7 +140,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   {(p.images as string[])?.length > 0 ? (
                     <img src={(p.images as string[])[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }} />
                   ) : (
-                    <Package size={40} style={{ color: '#cc703033' }} />
+                    <Package size={40} style={{ color: '#DDC0B433' }} />
                   )}
                   {/* Category badge overlay */}
                   <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: 'rgba(255,255,255,0.95)', padding: '0.25rem 0.625rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '600', color: 'var(--brand-500)' }}>
@@ -195,7 +195,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                 background: 'transparent', color: 'var(--brand-500)',
                 borderRadius: '0.625rem', textDecoration: 'none',
                 fontSize: '1rem', fontWeight: '600',
-                border: '2px solid #cc7030',
+                border: '2px solid var(--brand-500)',
                 transition: 'all 0.2s',
               }}
               onMouseEnter={e => {

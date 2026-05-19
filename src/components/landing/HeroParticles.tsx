@@ -23,7 +23,7 @@ export default function HeroParticles() {
 
     let animId: number
     const particles: Particle[] = []
-    const colors = ['#f4a857', '#ffd6a5', '#cc7030', '#ffffff', '#fbbf24']
+    const colors = ['#f4a857', '#ffd6a5', '#DDC0B4', '#ffffff', '#fbbf24']
 
     const resize = () => {
       canvas.width = canvas.offsetWidth
@@ -46,6 +46,10 @@ export default function HeroParticles() {
     }
 
     const draw = () => {
+      if (document.visibilityState === 'hidden') {
+        animId = requestAnimationFrame(draw)
+        return
+      }
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       for (const p of particles) {
         ctx.beginPath()

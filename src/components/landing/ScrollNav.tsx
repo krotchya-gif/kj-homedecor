@@ -211,6 +211,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             key={l.href}
             href={l.href}
             onClick={() => setMenuOpen(false)}
+            className="nav-drawer"
             style={{
               padding: '0.875rem 1rem',
               borderRadius: '0.75rem',
@@ -263,6 +264,11 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
         @media (max-width: 768px) {
           .nav-desktop-links { display: none !important; }
           .nav-hamburger { display: flex !important; }
+        }
+        .nav-desktop-links a:focus-visible,
+        .nav-drawer a:focus-visible {
+          outline: 2px solid var(--brand-500);
+          outline-offset: 2px;
         }
       `}</style>
     </>

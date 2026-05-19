@@ -67,6 +67,7 @@ export default function CatalogPage() {
               <input
                 type="text"
                 placeholder="Cari produk..."
+                aria-label="Cari produk"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 style={{ width: '100%', padding: '0.625rem 0.75rem 0.625rem 2.5rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
@@ -103,7 +104,7 @@ export default function CatalogPage() {
             <p>Produk tidak ditemukan</p>
           </div>
         ) : (
-          <div className="product-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+          <div className="product-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}>
             {filtered.map(product => (
               <div key={product.id} className="product-card" style={{ background: '#fff', borderRadius: '0.875rem', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', transition: 'all 0.25s', cursor: 'pointer' }}>
                 <Link href={`/products/${product.id}`} style={{ textDecoration: 'none', display: 'block' }}>

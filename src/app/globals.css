@@ -1256,6 +1256,21 @@ body {
   100% { background-position: -200% center; }
 }
 
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 20px rgba(221,192,132,0.3); }
+  50% { box-shadow: 0 0 40px rgba(221,192,132,0.6); }
+}
+
+@keyframes bounceDown {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 @keyframes floatY {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-10px); }

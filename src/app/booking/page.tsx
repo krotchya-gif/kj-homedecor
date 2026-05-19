@@ -162,6 +162,31 @@ export default function BookingPage() {
           <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Isi form di bawah untuk menjadwalkan kunjungan. Tim kami akan menghubungi Anda untuk konfirmasi.</p>
         </div>
 
+        {/* Step Indicator */}
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', justifyContent: 'center' }}>
+          {[
+            { n: 1, label: 'Layanan' },
+            { n: 2, label: 'Tanggal' },
+            { n: 3, label: 'Waktu' },
+            { n: 4, label: 'Data' },
+          ].map(step => (
+            <div key={step.n} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1) ? 'var(--brand-500)' : '#e5e7eb',
+                color: step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1) ? '#fff' : '#9ca3af',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.72rem', fontWeight: 700,
+              }}>
+                {step.n}
+              </div>
+              <span style={{ fontSize: '0.72rem', color: step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1) ? 'var(--brand-500)' : '#9ca3af', fontWeight: step.n === 1 ? 600 : 400 }}>
+                {step.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
         {/* Calendar */}
         <div style={{ marginBottom: '1.5rem' }}>
           <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Pilih Tanggal *</p>
@@ -196,6 +221,7 @@ export default function BookingPage() {
               value={form.name}
               onChange={handleChange}
               placeholder="Masukkan nama lengkap"
+              aria-label="Nama lengkap"
               style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none' }}
             />
           </div>
@@ -210,6 +236,7 @@ export default function BookingPage() {
               value={form.phone}
               onChange={handleChange}
               placeholder="08xxxxxxxxxx"
+              aria-label="Nomor WhatsApp"
               style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none' }}
             />
           </div>
@@ -247,6 +274,7 @@ export default function BookingPage() {
                 onChange={handleChange}
                 placeholder="Jl. Example No.1, RT/RW, Kota, Provinsi"
                 rows={3}
+                aria-label="Alamat pemasangan"
                 style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
               />
             </div>
@@ -259,7 +287,7 @@ export default function BookingPage() {
           <div>
             <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }}>
               <Clock size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-              Jam Preferred *
+              Jam yang Dipilih *
             </label>
             {!selectedDate ? (
               <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic' }}>Pilih tanggal terlebih dahulu</p>
@@ -270,6 +298,8 @@ export default function BookingPage() {
                   return (
                     <label
                       key={time}
+                      tabIndex={occupied ? -1 : 0}
+                      onFocus={() => !occupied && setForm(prev => ({ ...prev, time }))}
                       style={{
                         padding: '0.5rem 0.875rem',
                         border: `2px solid ${form.time === time ? 'var(--brand-500)' : occupied ? '#e5e5e5' : '#e5e7eb'}`,
@@ -281,6 +311,13 @@ export default function BookingPage() {
                         background: form.time === time ? '#fff3e8' : occupied ? '#f9fafb' : '#fff',
                         opacity: occupied ? 0.5 : 1,
                         textDecoration: occupied ? 'line-through' : 'none',
+                        outline: 'none',
+                        transition: 'all 0.15s',
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          if (!occupied) setForm(prev => ({ ...prev, time }))
+                        }
                       }}
                     >
                       <input
@@ -293,7 +330,7 @@ export default function BookingPage() {
                         style={{ display: 'none' }}
                       />
                       {time}
-                      {occupied && <span style={{ fontSize: '0.65rem', marginLeft: 4 }}> booked</span>}
+                      {occupied && <span style={{ fontSize: '0.65rem', marginLeft: 4 }}> terbooking</span>}
                     </label>
                   )
                 })}
@@ -310,6 +347,7 @@ export default function BookingPage() {
               onChange={handleChange}
               placeholder="Contoh: Ada 3 jendela ukuran 120x250, perlu informasi tentang gorden blackout..."
               rows={3}
+              aria-label="Catatan"
               style={{ width: '100%', padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.9rem', outline: 'none', resize: 'vertical' }}
             />
           </div>
@@ -346,7 +384,7 @@ export default function BookingPage() {
 
         {/* Alternative contact */}
         <div style={{ marginTop: '2rem', padding: '1.25rem', background: '#f9fafb', borderRadius: '0.75rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>lebih suka chat langsung?</p>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>Lebih suka chat langsung?</p>
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya ingin booking')}`}
             target="_blank"

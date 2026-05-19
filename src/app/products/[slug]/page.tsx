@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
-import { ArrowLeft, MessageCircle, Star, Shield, Truck, Phone, MapPin } from 'lucide-react'
-import type { Product, Category } from '@/types'
+import { ArrowLeft, MessageCircle, Star, Shield, Truck, Phone } from 'lucide-react'
+import type { Product } from '@/types'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -15,8 +15,6 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const { slug } = await params
   const supabase = await createClient()
 
-  // Fetch product by slug (using id since slug field may not exist)
-  // Try to find by name slugified or by id directly
   const { data: product } = await supabase
     .from('products')
     .select('*, category:categories(*)')
@@ -45,7 +43,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
       {/* Navbar */}
       <nav style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#374151', textDecoration: 'none', fontSize: '0.875rem' }}>
-          <ArrowLeft size={16} /> Kembali
+          <ArrowLeft size={16} />
+          Kembali
         </Link>
         <span style={{ color: '#d1d5db' }}>|</span>
         <Link href="/#products" style={{ fontSize: '0.8rem', color: '#9ca3af', textDecoration: 'none' }}>Produk</Link>
@@ -157,12 +156,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <strong>Kode Kain:</strong> {p.kode_kain}
               </div>
             )}
-            {p.harga_jual && p.hpp_calculated && (
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                <strong>HPP:</strong> {formatRp(p.hpp_calculated)} | <strong>Margin:</strong> {Math.round(((p.harga_jual - p.hpp_calculated) / p.hpp_calculated) * 100)}%
-              </div>
-            )}
           </div>
+
         </div>
 
         {/* Related products placeholder */}

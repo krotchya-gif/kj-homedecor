@@ -50,15 +50,13 @@ export default function ScrollHero({
       if (!container) return
 
       const rect = container.getBoundingClientRect()
-      const scrollStart = window.innerHeight
-      const scrollEnd = -rect.height + window.innerHeight
-      const scrollRange = scrollStart - scrollEnd
-
-      const rawProgress = (scrollStart - rect.top) / (scrollStart - scrollEnd)
-      const progress = Math.max(0, Math.min(1, rawProgress))
+      const totalScrollable = rect.height - window.innerHeight
+      const scrollProgress = totalScrollable > 0
+        ? Math.max(0, Math.min(1, window.scrollY / totalScrollable))
+        : 0
 
       if (video.duration && isFinite(video.duration)) {
-        targetTimeRef.current = progress * video.duration
+        targetTimeRef.current = scrollProgress * video.duration
       }
     }
 
@@ -97,6 +95,7 @@ export default function ScrollHero({
           muted
           playsInline
           preload="auto"
+          aria-hidden="true"
           style={{
             position: 'absolute',
             inset: 0,
@@ -281,7 +280,7 @@ export default function ScrollHero({
             gap: '0.4rem',
             animation: 'fadeUp 0.7s 0.9s ease both',
           }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', animation: 'bounceDown 1.8s ease-in-out infinite', animationDelay: '1.2s' }}>
               <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
               <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
               <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
