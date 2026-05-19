@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import HeroParticles from './landing/HeroParticles'
 import { ChevronRight, MessageCircle } from 'lucide-react'
 
@@ -24,123 +24,24 @@ export default function ScrollHero({
   whatsappMessage = 'Halo KJ Homedecor, saya ingin konsultasi gorden',
 }: ScrollHeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const scrollProgressRef = useRef(0)
-  const isReleasedRef = useRef(false)
-  const rafRef = useRef<number | null>(null)
-  const currentTimeRef = useRef(0)
-  const targetTimeRef = useRef(0)
   const [videoError, setVideoError] = useState(false)
-
-  // Lock body scroll while hero is active
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
-
-  // Fade-in animation
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-    video.style.opacity = '0'
-    video.style.transition = 'opacity 0.3s ease-out'
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        video.style.opacity = '1'
-      })
-    })
-  }, [])
-
-  // Lerp helper
-  const lerp = (start: number, end: number, factor: number): number =>
-    start + (end - start) * factor
-
-  // Wheel handler — drives video scrub
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (isReleasedRef.current) return
-      e.preventDefault()
-
-      const scrollRange = window.innerHeight * 3 // 300vh
-      scrollProgressRef.current += (e.deltaY || e.deltaX || 1) / scrollRange
-      scrollProgressRef.current = Math.max(0, Math.min(1, scrollProgressRef.current))
-
-      const video = videoRef.current
-      if (video && video.duration && isFinite(video.duration)) {
-        targetTimeRef.current = scrollProgressRef.current * video.duration
-      }
-
-      // Release when fully scrolled
-      if (scrollProgressRef.current >= 0.99) {
-        releaseHero()
-      }
-    }
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (isReleasedRef.current) return
-      e.preventDefault()
-    }
-
-    window.addEventListener('wheel', handleWheel, { passive: false })
-    window.addEventListener('touchmove', handleTouchStart, { passive: false })
-    return () => {
-      window.removeEventListener('wheel', handleWheel)
-      window.removeEventListener('touchmove', handleTouchStart)
-    }
-  }, [])
-
-  // RAF loop — applies smooth lerp to video currentTime
-  useEffect(() => {
-    const animate = () => {
-      const video = videoRef.current
-      if (video) {
-        currentTimeRef.current = lerp(currentTimeRef.current, targetTimeRef.current, 0.1)
-        video.currentTime = currentTimeRef.current
-      }
-      rafRef.current = requestAnimationFrame(animate)
-    }
-    rafRef.current = requestAnimationFrame(animate)
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-    }
-  }, [])
-
-  function releaseHero() {
-    if (isReleasedRef.current) return
-    isReleasedRef.current = true
-    document.body.style.overflow = ''
-    // Fade out the hero
-    if (videoRef.current) {
-      videoRef.current.style.transition = 'opacity 0.5s ease-out'
-      videoRef.current.style.opacity = '0'
-    }
-  }
-
-  function handleVideoEnded() {
-    releaseHero()
-  }
-
   const videoSrc = videoUrl || '/kj.mp4'
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        height: '100vh',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Video */}
+    <section style={{
+      position: 'relative',
+      height: '100vh',
+      minHeight: 600,
+      overflow: 'hidden',
+    }}>
+      {/* Video Background */}
       <video
         ref={videoRef}
         src={videoSrc}
+        autoPlay
         muted
+        loop
         playsInline
-        preload="auto"
-        onEnded={handleVideoEnded}
         onError={() => setVideoError(true)}
         aria-hidden="true"
         style={{
@@ -150,14 +51,11 @@ export default function ScrollHero({
           height: '100%',
           objectFit: 'cover',
           zIndex: 0,
-          ...(videoError && !videoSrc.includes('kj.mp4') && {
-            background: 'linear-gradient(160deg, #2d1005 0%, #4a1f0a 50%, #7a3210 100%)',
-          }),
         }}
       />
 
-      {/* Fallback gradient if video hasn't loaded yet */}
-      {!videoUrl && (
+      {/* Fallback background when video fails or no video */}
+      {(videoError || !videoUrl) && (
         <div style={{
           position: 'absolute',
           inset: 0,
@@ -229,10 +127,7 @@ export default function ScrollHero({
           textShadow: '0 2px 40px rgba(0,0,0,0.3)',
         }}>
           {title?.split('\n').map((line, i, arr) => (
-            <span key={i}>
-              {line}
-              {i < arr.length - 1 && <br />}
-            </span>
+            <span key={i}>{line}{i < arr.length - 1 && <br />}</span>
           )) ?? (
             <>
               Percantik Ruanganmu dengan{' '}
@@ -241,9 +136,7 @@ export default function ScrollHero({
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-              }}>
-                Premium
-              </span>
+              }}>Premium</span>
             </>
           )}
         </h1>
@@ -280,7 +173,6 @@ export default function ScrollHero({
             padding: '1rem 2.25rem',
             borderRadius: '3rem',
             textDecoration: 'none',
-            transition: 'all 0.3s ease',
             boxShadow: '0 8px 28px rgba(221,192,132,0.4)',
           }}>
             {ctaText ?? 'Lihat Katalog'} <ChevronRight size={18} />
@@ -296,14 +188,14 @@ export default function ScrollHero({
             padding: '1rem 2.25rem',
             borderRadius: '3rem',
             border: '1px solid rgba(255,255,255,0.3)',
-            textDecoration: 'none',
             backdropFilter: 'blur(8px)',
+            textDecoration: 'none',
           }}>
             <MessageCircle size={18} /> Konsultasi Gratis
           </a>
         </div>
 
-        {/* Stats row */}
+        {/* Stats */}
         <div style={{
           display: 'flex',
           gap: '2.5rem',
@@ -334,10 +226,6 @@ export default function ScrollHero({
           bottom: '2.5rem',
           left: '50%',
           transform: 'translateX(-50%)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.4rem',
           animation: 'fadeUp 0.7s 0.9s ease both',
         }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', animation: 'bounceDown 1.8s ease-in-out infinite', animationDelay: '1.2s' }}>
@@ -347,6 +235,6 @@ export default function ScrollHero({
           </div>
         </div>
       </div>
-    </div>
+    </section>
   )
 }
