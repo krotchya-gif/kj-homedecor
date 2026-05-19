@@ -150,13 +150,15 @@ export default function OrderDetailPage() {
     if (newStatus === 'production') {
       const { data: orderItems } = await supabase.from('order_items').select('*, product:products(name)').eq('order_id', id)
       const totalMeterGorden = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? 0), 0)
-      const totalMeterStyle = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter ?? 0), 0)
+      const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
+      const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+      const totalMeterKupuKupu = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
       await supabase.from('production_jobs').insert({
         order_id: id,
         meter_gorden: totalMeterGorden,
-        meter_vitras: totalMeterStyle,
-        meter_roman: 0,
-        meter_kupu_kupu: 0,
+        meter_vitras: totalMeterVitras,
+        meter_roman: totalMeterRoman,
+        meter_kupu_kupu: totalMeterKupuKupu,
         status: 'waiting',
       })
     }
@@ -198,11 +200,14 @@ export default function OrderDetailPage() {
     }
     await supabase.from('orders').update({ status: 'returned', return_reason: returnForm.reason }).eq('id', id)
     if (returnForm.condition === 'good') {
-      const orderItems = await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id)
-      for (const item of orderItems.data ?? []) {
+      // Fetch items - only the specific item if item_id selected, otherwise all items
+      const { data: itemsToReturn } = returnForm.item_id
+        ? await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id).eq('id', returnForm.item_id)
+        : await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id)
+      for (const item of itemsToReturn ?? []) {
         if (item.product_id) {
           await supabase.from('inventory_movements').insert({
-            material_id: null, type: 'return_in', qty: item.qty ?? 1,
+            product_id: item.product_id, type: 'return_in', qty: item.qty ?? 1,
             reason: `Return dari order ${id.slice(0,8)} — kondisi bagus, masuk stock toko`,
             created_by: user?.id ?? null,
           })

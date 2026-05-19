@@ -10,22 +10,22 @@ describe('Accounting Helpers', () => {
       const result = formatRp(1000000)
       expect(result).toContain('1')
       expect(result).toContain('000')
-      expect(result).toContain('IDR')
+      expect(result).toContain('Rp')
     })
 
     it('formats zero as IDR currency', () => {
       const result = formatRp(0)
-      expect(result).toContain('IDR')
+      expect(result).toContain('Rp')
     })
 
     it('formats negative numbers as IDR currency', () => {
       const result = formatRp(-500000)
-      expect(result).toContain('IDR')
+      expect(result).toContain('Rp')
     })
 
     it('handles large numbers', () => {
       const result = formatRp(999999999)
-      expect(result).toContain('IDR')
+      expect(result).toContain('Rp')
     })
   })
 })

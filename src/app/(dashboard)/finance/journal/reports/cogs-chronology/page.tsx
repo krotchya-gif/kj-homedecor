@@ -17,7 +17,7 @@ export default function COGSChronologyPage() {
     setLoading(true)
     const { data } = await supabase
       .from('orders')
-      .select('order_number, created_at, total_amount, hpp_calculated:products(harga_jual)')
+      .select('order_number, created_at, total_amount, hpp_calculated:products(hpp_calculated)')
       .order('created_at', { ascending: false })
       .limit(100)
     setOrders(data ?? [])

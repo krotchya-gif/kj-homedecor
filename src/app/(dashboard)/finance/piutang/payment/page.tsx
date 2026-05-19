@@ -58,7 +58,7 @@ export default function PaymentPage() {
                   <td style={{ color: '#6b7280' }}>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#16a34a', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{p.payment_type ?? 'dp'}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{p.type ?? 'dp'}</td>
                   <td style={{ color: '#6b7280' }}>{p.staff?.name ?? '—'}</td>
                 </tr>
               ))}

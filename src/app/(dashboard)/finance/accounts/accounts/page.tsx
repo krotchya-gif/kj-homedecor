@@ -43,8 +43,24 @@ export default function AccountsListPage() {
 
   async function fetchAccounts() {
     setLoading(true)
-    const { data } = await supabase.from('accounts').select('*').order('code')
-    setAccounts((data as Account[]) ?? [])
+    const { data: accountsData } = await supabase.from('accounts').select('*').order('code')
+
+    // Compute balance from journal_lines for each account
+    const accountsWithBalance = await Promise.all((accountsData ?? []).map(async (acc: Account) => {
+      const { data: lines } = await supabase
+        .from('journal_lines')
+        .select('debit, credit')
+        .eq('account_id', acc.id)
+      const totalDebit = (lines ?? []).reduce((s: number, l: any) => s + Number(l.debit ?? 0), 0)
+      const totalCredit = (lines ?? []).reduce((s: number, l: any) => s + Number(l.credit ?? 0), 0)
+      // For asset/expense: balance = debit - credit
+      // For liability/equity/revenue: balance = credit - debit
+      const isDebitNormal = ['asset', 'expense'].includes(acc.type)
+      const computedBalance = isDebitNormal ? totalDebit - totalCredit : totalCredit - totalDebit
+      return { ...acc, computed_balance: computedBalance + Number(acc.balance ?? 0) }
+    }))
+
+    setAccounts(accountsWithBalance as (Account & { computed_balance: number })[])
     setLoading(false)
   }
 
@@ -145,7 +161,7 @@ export default function AccountsListPage() {
                         {a.type}
                       </span>
                     </td>
-                    <td style={{ fontWeight: '600', color: '#cc7030', textAlign: 'right' }}>{formatRp(a.balance ?? 0)}</td>
+                    <td style={{ fontWeight: '600', color: '#cc7030', textAlign: 'right' }}>{formatRp(a.computed_balance ?? a.balance ?? 0)}</td>
                     <td>{a.is_cash_account ? '✓' : '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>

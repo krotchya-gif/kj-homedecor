@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, DollarSign, Search, Lock } from 'lucide-react'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -78,9 +79,23 @@ export default function FinancePaymentsPage() {
     await supabase.from('payments').insert({
       order_id: selected.id, type: payForm.type, amount,
       date: payForm.date,
-      verified_by: currentUser?.id ?? 'system',
+      verified_by: currentUser?.id ?? null,
       verified_at: now,
     })
+
+    // Auto-create journal entry for payment
+    try {
+      await createSimpleJournal({
+        transaction_type: 'payment_received',
+        reference_type: 'order',
+        reference_id: selected.id,
+        description: `${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} dari order ${selected.order_number ?? selected.id.slice(0,8)} — ${selected.customer?.name ?? ''}`,
+        amount,
+        entry_date: payForm.date,
+      })
+    } catch (e) {
+      console.warn('Failed to create journal entry:', e)
+    }
     await supabase.from('order_logs').insert({
       order_id: selected.id, action: 'payment_input',
       notes: `Input ${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} Rp${amount.toLocaleString('id-ID')} oleh ${currentUser?.name ?? 'Finance'}`,
@@ -156,7 +171,7 @@ export default function FinancePaymentsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('payments').insert({
       order_id: returnRecord.order_id, type: 'refund', amount: returnRecord.refund_amount,
-      date: new Date().toISOString(), verified_by: user?.id ?? 'unknown', verified_at: new Date().toISOString(),
+      date: new Date().toISOString(), verified_by: user?.id ?? null, verified_at: new Date().toISOString(),
       notes: `Refund untuk return: ${returnRecord.reason}`,
     })
     await supabase.from('returns').update({ refund_status: 'completed' }).eq('id', returnRecord.id)

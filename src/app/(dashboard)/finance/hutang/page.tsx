@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Pencil, Trash2, CreditCard } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -33,11 +33,14 @@ export default function HutangPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [showPayment, setShowPayment] = useState(false)
   const [editItem, setEditItem] = useState<Hutang | null>(null)
+  const [paymentItem, setPaymentItem] = useState<Hutang | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     supplier_id: '', invoice_number: '', invoice_date: '', amount: '', notes: '',
   })
+  const [payForm, setPayForm] = useState({ amount: '', notes: '' })
 
   const supabase = createClient()
 
@@ -104,6 +107,30 @@ export default function HutangPage() {
     fetchData()
   }
 
+  function openPayment(h: Hutang) {
+    setPaymentItem(h)
+    const sisa = (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)
+    setPayForm({ amount: String(sisa), notes: '' })
+    setShowPayment(true)
+  }
+
+  async function handlePayment(e: React.FormEvent) {
+    e.preventDefault()
+    if (!paymentItem) return
+    setSaving(true)
+    const payAmount = Number(payForm.amount) || 0
+    const newPaidAmount = (paymentItem.paid_amount ?? 0) + payAmount
+    const sisa = (paymentItem.amount ?? 0) - newPaidAmount - (paymentItem.return_amount ?? 0)
+    const newStatus = sisa <= 0 ? 'paid' : 'partial'
+    await supabase.from('hutang').update({
+      paid_amount: newPaidAmount,
+      status: newStatus,
+    }).eq('id', paymentItem.id)
+    setSaving(false)
+    setShowPayment(false)
+    fetchData()
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -163,6 +190,7 @@ export default function HutangPage() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={() => openPayment(h)} style={{ background: '#16a34a', border: 'none', cursor: 'pointer', color: '#fff', padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600' }}>Bayar</button>
                         <button onClick={() => openEdit(h)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}><Pencil size={15} /></button>
                         <button onClick={() => handleDelete(h.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.25rem' }}><Trash2 size={15} /></button>
                       </div>
@@ -215,6 +243,42 @@ export default function HutangPage() {
                 <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
                 <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
                   {saving ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showPayment && paymentItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
+          onClick={(e) => { if (e.target === e.currentTarget) setShowPayment(false) }}>
+          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 420, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Bayar Tagihan</h2>
+              <button onClick={() => setShowPayment(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+            </div>
+            <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem' }}>
+              <div style={{ color: '#6b7280', marginBottom: '0.25rem' }}>Supplier</div>
+              <div style={{ fontWeight: '600' }}>{paymentItem.supplier?.name ?? '—'}</div>
+              <div style={{ color: '#6b7280', marginTop: '0.5rem', marginBottom: '0.25rem' }}>Sisa Tagihan</div>
+              <div style={{ fontWeight: '700', color: '#cc7030', fontSize: '1.1rem' }}>{formatRp((paymentItem.amount ?? 0) - (paymentItem.paid_amount ?? 0) - (paymentItem.return_amount ?? 0))}</div>
+            </div>
+            <form onSubmit={handlePayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Jumlah Bayar (Rp) *</label>
+                <input type="number" required placeholder="0" value={payForm.amount} onChange={(e) => setPayForm(f => ({ ...f, amount: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Catatan</label>
+                <input type="text" value={payForm.notes} onChange={(e) => setPayForm(f => ({ ...f, notes: e.target.value }))} placeholder="Ketik nominal saja atau keterangan tambahan"
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button type="button" onClick={() => setShowPayment(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
+                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                  {saving ? 'Menyimpan...' : 'Bayar'}
                 </button>
               </div>
             </form>

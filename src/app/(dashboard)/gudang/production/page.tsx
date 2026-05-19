@@ -39,6 +39,51 @@ export default function GudangProductionPage() {
 
   async function updateJobStatus(jobId: string, status: string) {
     const { data: { user } } = await supabase.auth.getUser()
+    const job = jobs.find(j => j.id === jobId)
+
+    // BOM consumption when production is done
+    if (status === 'done' && job?.order_id) {
+      // Get order items with their products and BOM
+      const { data: orderItems } = await supabase
+        .from('order_items')
+        .select('product_id, qty')
+        .eq('order_id', job.order_id)
+
+      for (const item of orderItems ?? []) {
+        if (!item.product_id) continue
+        // Get BOM for this product
+        const { data: bomItems } = await supabase
+          .from('bom')
+          .select('material_id, qty_per_unit')
+          .eq('product_id', item.product_id)
+
+        for (const bom of bomItems ?? []) {
+          const consumptionQty = Number(bom.qty_per_unit) * Number(item.qty)
+          // Decrement stock_gudang
+          await supabase.rpc('decrement_stock_gudang', {
+            material_id: bom.material_id,
+            amount: consumptionQty,
+          }).catch(async () => {
+            // Fallback: manual update
+            const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', bom.material_id).single()
+            if (mat) {
+              await supabase.from('materials').update({
+                stock_gudang: (mat.stock_gudang ?? 0) - consumptionQty,
+              }).eq('id', bom.material_id)
+            }
+          })
+          // Record inventory movement
+          await supabase.from('inventory_movements').insert({
+            material_id: bom.material_id,
+            type: 'out',
+            qty: consumptionQty,
+            reason: `BOM consumption — production job ${jobId.slice(0,8)} order ${job.order_id.slice(0,8)}`,
+            created_by: user?.id ?? null,
+          })
+        }
+      }
+    }
+
     await supabase.from('production_jobs').update({
       status,
       ...(status === 'in_progress' ? { started_at: new Date().toISOString() } : {}),
@@ -46,7 +91,7 @@ export default function GudangProductionPage() {
     }).eq('id', jobId)
 
     await supabase.from('order_logs').insert({
-      order_id: jobs.find(j => j.id === jobId)?.order_id,
+      order_id: job?.order_id,
       action: status === 'in_progress' ? 'production_started' : 'production_done',
       notes: status === 'in_progress'
         ? `Produksi dimulai oleh Gudang`

@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -48,5 +49,21 @@ export async function POST(request: Request) {
   const orderData = { ...body, order_number: orderNumber }
   const { data, error } = await supabase.from('orders').insert(orderData).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+
+  // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
+  if (data && body.total_amount > 0) {
+    try {
+      await createSimpleJournal({
+        transaction_type: 'order_created',
+        reference_type: 'order',
+        reference_id: data.id,
+        description: `Order baru ${orderNumber ?? data.id.slice(0,8)} — ${body.customer_name ?? ''}`,
+        amount: Number(body.total_amount),
+      })
+    } catch (e) {
+      console.warn('Failed to create journal entry for order:', e)
+    }
+  }
+
   return NextResponse.json({ data, error: null })
 }

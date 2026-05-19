@@ -43,11 +43,13 @@ export default function LaundryPayrollPage() {
   async function generatePayroll() {
     const ratePerKg = rate?.rate_per_kg ?? 0
     for (const s of staff) {
-      const staffOrders = orders.filter(o =>
-        o.assigned_to === s.id &&
-        new Date(o.completed_at ?? o.created_at).getMonth() + 1 === selectedMonth &&
-        new Date(o.completed_at ?? o.created_at).getFullYear() === selectedYear
-      )
+      const staffOrders = orders.filter(o => {
+        if (o.assigned_to !== s.id) return false
+        const d = new Date(o.completed_at ?? o.created_at)
+        const startDate = new Date(selectedYear, selectedMonth - 1, 1)
+        const endDate = new Date(selectedYear, selectedMonth, 1)
+        return d >= startDate && d < endDate
+      })
       const totalKg = staffOrders.reduce((sum, o) => sum + Number(o.kg), 0)
       const totalAmount = totalKg * ratePerKg
       if (totalKg === 0) continue

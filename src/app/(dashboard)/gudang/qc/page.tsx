@@ -91,12 +91,14 @@ export default function GudangQCPage() {
 
     // If good → stock in, if damaged → dispose
     if (isGood) {
-      // Stock return into inventory
-      const orderItems = await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', selectedReturn.order_id)
-      for (const item of orderItems.data ?? []) {
+      // Stock return into inventory - only the specific item from returns table
+      const { data: itemsToReturn } = selectedReturn.order_item_id
+        ? await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', selectedReturn.order_id).eq('id', selectedReturn.order_item_id)
+        : await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', selectedReturn.order_id)
+      for (const item of itemsToReturn ?? []) {
         if (item.product_id) {
           await supabase.from('inventory_movements').insert({
-            material_id: null,
+            product_id: item.product_id,
             type: 'return_in',
             qty: item.qty ?? 1,
             reason: `Return confirmed GOOD oleh Gudang — order ${selectedReturn.order_id.slice(0,8)}`,
@@ -116,13 +118,27 @@ export default function GudangQCPage() {
         staff_id: user?.id ?? null,
       })
     } else {
-      await supabase.from('inventory_movements').insert({
-        material_id: null,
-        type: 'dispose',
-        qty: selectedReturn.qty ?? 1,
-        reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
-        created_by: user?.id ?? null,
-      })
+      // For damaged dispose, we need to know which product - use order_item_id from returns
+      const { data: returnItem } = await supabase.from('returns').select('order_item_id, qty').eq('id', selectedReturn.id).single()
+      if (returnItem?.order_item_id) {
+        const { data: item } = await supabase.from('order_items').select('product_id, qty').eq('id', returnItem.order_item_id).single()
+        if (item?.product_id) {
+          await supabase.from('inventory_movements').insert({
+            product_id: item.product_id,
+            type: 'dispose',
+            qty: item.qty ?? 1,
+            reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
+            created_by: user?.id ?? null,
+          })
+        }
+      } else {
+        await supabase.from('inventory_movements').insert({
+          type: 'dispose',
+          qty: selectedReturn.qty ?? 1,
+          reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
+          created_by: user?.id ?? null,
+        })
+      }
       await supabase.from('order_logs').insert({
         order_id: selectedReturn.order_id,
         action: 'return_disposed',
