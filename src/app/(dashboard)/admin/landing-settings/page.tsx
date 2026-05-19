@@ -62,6 +62,7 @@ export default function AdminLandingSettingsPage() {
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
   const [heroImageUploading, setHeroImageUploading] = useState(false)
+  const [heroVideoUploading, setHeroVideoUploading] = useState(false)
 
   const supabase = createClient()
 
@@ -147,6 +148,20 @@ export default function AdminLandingSettingsPage() {
       alert('Gagal upload gambar hero')
     } finally {
       setHeroImageUploading(false)
+    }
+  }
+
+  async function handleHeroVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setHeroVideoUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'videos', { compress: false })
+      setForm(f => ({ ...f, hero_video_url: result.url }))
+    } catch (err) {
+      alert('Gagal upload video hero')
+    } finally {
+      setHeroVideoUploading(false)
     }
   }
 
@@ -276,15 +291,30 @@ export default function AdminLandingSettingsPage() {
               </div>
               {/* Hero Video URL */}
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Hero Video URL</label>
-                <input
-                  type="text"
-                  value={form.hero_video_url}
-                  onChange={e => setForm(f => ({ ...f, hero_video_url: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
-                  placeholder="/kj.mp4 atau URL video eksternal"
-                />
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>Video akan di-scrub saat scroll (efek Apple). Kosongkan untuk fallback /kj.mp4</p>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Hero Video</label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="text"
+                      value={form.hero_video_url}
+                      onChange={e => setForm(f => ({ ...f, hero_video_url: e.target.value }))}
+                      style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                      placeholder="/uploads/videos/xxx.mp4"
+                    />
+                    <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>Video akan di-scrub saat scroll. Maks 100MB. Kosongkan untuk fallback /kj.mp4</p>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: heroVideoUploading ? '#e5e7eb' : '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: 600, cursor: heroVideoUploading ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm"
+                      onChange={handleHeroVideoUpload}
+                      disabled={heroVideoUploading}
+                      style={{ display: 'none' }}
+                    />
+                    {heroVideoUploading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} />}
+                    {heroVideoUploading ? 'Upload...' : 'Upload'}
+                  </label>
+                </div>
                 {form.hero_video_url && (
                   <div style={{ marginTop: '0.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                     <video src={form.hero_video_url} controls style={{ width: '100%', height: 100, objectFit: 'cover' }} />

@@ -9,7 +9,7 @@ export interface UploadResult {
 
 export async function uploadToLocal(
   file: File,
-  folder: 'products' | 'banners' | 'portfolio' | 'evidence' | 'documents',
+  folder: 'products' | 'banners' | 'portfolio' | 'evidence' | 'documents' | 'videos',
   options?: { compress?: boolean; maxSizeMB?: number }
 ): Promise<UploadResult> {
   const { compress = true, maxSizeMB = 1 } = options || {}

@@ -8,6 +8,7 @@ const ALLOWED_TYPES = {
   portfolio: ['image/jpeg', 'image/png', 'image/webp'],
   evidence: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
   documents: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+  videos: ['video/mp4', 'video/webm'],
 }
 
 const MAX_SIZES = {
@@ -16,6 +17,7 @@ const MAX_SIZES = {
   portfolio: 2 * 1024 * 1024,     // 2MB
   evidence: 2 * 1024 * 1024,      // 2MB
   documents: 5 * 1024 * 1024,    // 5MB
+  videos: 100 * 1024 * 1024,     // 100MB
 }
 
 export async function POST(request: NextRequest) {

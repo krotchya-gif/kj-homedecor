@@ -6,13 +6,13 @@
   --brand-50: #fdf8f3;
   --brand-100: #f8ecdf;
   --brand-200: #f0d4b8;
-  --brand-300: #E8D4A8;
-  --brand-400: #DDC084;
-  --brand-500: #DDC084;
-  --brand-600: #C9A86C;
-  --brand-700: #A8864A;
-  --brand-800: #7A5F35;
-  --brand-900: #5C4526;
+  --brand-300: #E8D4C8;
+  --brand-400: #DDC0B4;
+  --brand-500: #DDC0B4;
+  --brand-600: #C9A98C;
+  --brand-700: #A88664;
+  --brand-800: #7A5F48;
+  --brand-900: #5C4530;
 
   /* Neutral */
   --neutral-50: #fafafa;
@@ -448,7 +448,7 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #DDC084;
+  background: #DDC0B4;
   color: #fff;
   display: flex;
   align-items: center;
@@ -1024,7 +1024,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #DDC084 0%, #C9A86C 100%);
+  background: linear-gradient(135deg, #DDC0B4 0%, #C9A98C 100%);
   color: #fff;
   font-size: 1rem;
   font-weight: 700;

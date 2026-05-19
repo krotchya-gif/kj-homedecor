@@ -214,7 +214,7 @@ export default function ScrollHero({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.5rem',
-              background: 'linear-gradient(135deg, #DDC084 0%, #C9A86C 100%)',
+              background: 'linear-gradient(135deg, #DDC0B4 0%, #C9A98C 100%)',
               color: '#fff',
               fontSize: '1rem',
               fontWeight: 700,
@@ -261,7 +261,7 @@ export default function ScrollHero({
               { n: 100, suf: '%', label: 'Garansi Kualitas' },
             ].map((s) => (
               <div key={s.label}>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', fontWeight: 700, color: '#DDC084' }}>
+                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', fontWeight: 700, color: '#DDC0B4' }}>
                   {s.n}{s.suf}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.25rem' }}>{s.label}</div>

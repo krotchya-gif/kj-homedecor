@@ -19,7 +19,7 @@ import ScrollHero from '@/components/ScrollHero'
 import AnimatedCounter from '@/components/landing/AnimatedCounter'
 
 const CATEGORY_COLORS = [
-  '#DDC084', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626',
+  '#DDC0B4', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626',
 ]
 
 const TRUST_ICON_MAP: Record<string, React.ReactNode> = {
@@ -208,7 +208,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ===== CTA Banner ===== */}
-      <section style={{ background: 'linear-gradient(135deg,#C9A86C 0%,#DDC084 40%,#E8D4A8 100%)', padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ background: 'linear-gradient(135deg,#C9A98C 0%,#DDC0B4 40%,#E8D4C8 100%)', padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* Animated blobs */}
         <div style={{ position: 'absolute', top: '-30%', right: '-15%', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', animation: 'blobMove 10s ease-in-out infinite', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-40%', left: '-10%', width: 450, height: 450, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', animation: 'blobMove 14s ease-in-out infinite reverse', pointerEvents: 'none' }} />
