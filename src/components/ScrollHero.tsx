@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import HeroParticles from './landing/HeroParticles'
 import { ChevronRight, MessageCircle } from 'lucide-react'
 
@@ -24,267 +24,326 @@ export default function ScrollHero({
   whatsappMessage = 'Halo KJ Homedecor, saya ingin konsultasi gorden',
 }: ScrollHeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const scrollProgressRef = useRef(0)
+  const isReleasedRef = useRef(false)
+  const rafRef = useRef<number | null>(null)
   const currentTimeRef = useRef(0)
   const targetTimeRef = useRef(0)
-  const rafRef = useRef<number | null>(null)
+  const [videoError, setVideoError] = useState(false)
 
+  // Lock body scroll while hero is active
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  // Fade-in animation
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-
-    // Fade-in: start at opacity 0, animate to 1 over 200ms
     video.style.opacity = '0'
-    video.style.transition = 'opacity 0.2s ease-out'
+    video.style.transition = 'opacity 0.3s ease-out'
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         video.style.opacity = '1'
       })
     })
+  }, [])
 
-    const lerp = (start: number, end: number, factor: number): number =>
-      start + (end - start) * factor
+  // Lerp helper
+  const lerp = (start: number, end: number, factor: number): number =>
+    start + (end - start) * factor
 
-    const onScroll = () => {
-      const container = containerRef.current
-      if (!container) return
+  // Wheel handler — drives video scrub
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      if (isReleasedRef.current) return
+      e.preventDefault()
 
-      const rect = container.getBoundingClientRect()
-      const totalScrollable = rect.height - window.innerHeight
-      const scrollProgress = totalScrollable > 0
-        ? Math.max(0, Math.min(1, window.scrollY / totalScrollable))
-        : 0
+      const scrollRange = window.innerHeight * 3 // 300vh
+      scrollProgressRef.current += (e.deltaY || e.deltaX || 1) / scrollRange
+      scrollProgressRef.current = Math.max(0, Math.min(1, scrollProgressRef.current))
 
-      if (video.duration && isFinite(video.duration)) {
-        targetTimeRef.current = scrollProgress * video.duration
+      const video = videoRef.current
+      if (video && video.duration && isFinite(video.duration)) {
+        targetTimeRef.current = scrollProgressRef.current * video.duration
+      }
+
+      // Release when fully scrolled
+      if (scrollProgressRef.current >= 0.99) {
+        releaseHero()
       }
     }
 
+    const handleTouchStart = (e: TouchEvent) => {
+      if (isReleasedRef.current) return
+      e.preventDefault()
+    }
+
+    window.addEventListener('wheel', handleWheel, { passive: false })
+    window.addEventListener('touchmove', handleTouchStart, { passive: false })
+    return () => {
+      window.removeEventListener('wheel', handleWheel)
+      window.removeEventListener('touchmove', handleTouchStart)
+    }
+  }, [])
+
+  // RAF loop — applies smooth lerp to video currentTime
+  useEffect(() => {
     const animate = () => {
       const video = videoRef.current
       if (video) {
-        currentTimeRef.current = lerp(currentTimeRef.current, targetTimeRef.current, 0.15)
+        currentTimeRef.current = lerp(currentTimeRef.current, targetTimeRef.current, 0.1)
         video.currentTime = currentTimeRef.current
       }
       rafRef.current = requestAnimationFrame(animate)
     }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
     rafRef.current = requestAnimationFrame(animate)
-
     return () => {
-      window.removeEventListener('scroll', onScroll)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
   }, [])
 
+  function releaseHero() {
+    if (isReleasedRef.current) return
+    isReleasedRef.current = true
+    document.body.style.overflow = ''
+    // Fade out the hero
+    if (videoRef.current) {
+      videoRef.current.style.transition = 'opacity 0.5s ease-out'
+      videoRef.current.style.opacity = '0'
+    }
+  }
+
+  function handleVideoEnded() {
+    releaseHero()
+  }
+
   const videoSrc = videoUrl || '/kj.mp4'
 
   return (
-    <div ref={containerRef} style={{ height: '300vh', position: 'relative' }}>
-      <div style={{
-        position: 'sticky',
-        top: 0,
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
         height: '100vh',
         overflow: 'hidden',
-      }}>
-        {/* Video */}
-        <video
-          ref={videoRef}
-          src={videoSrc}
-          muted
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: 0,
-          }}
-        />
+      }}
+    >
+      {/* Video */}
+      <video
+        ref={videoRef}
+        src={videoSrc}
+        muted
+        playsInline
+        preload="auto"
+        onEnded={handleVideoEnded}
+        onError={() => setVideoError(true)}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          zIndex: 0,
+          ...(videoError && !videoSrc.includes('kj.mp4') && {
+            background: 'linear-gradient(160deg, #2d1005 0%, #4a1f0a 50%, #7a3210 100%)',
+          }),
+        }}
+      />
 
-        {/* Gradient Overlay */}
+      {/* Fallback gradient if video hasn't loaded yet */}
+      {!videoUrl && (
         <div style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(160deg, rgba(15,5,0,0.75) 0%, rgba(45,16,5,0.6) 50%, rgba(90,35,14,0.65) 100%)',
-          zIndex: 1,
+          background: 'linear-gradient(160deg, #2d1005 0%, #4a1f0a 50%, #7a3210 100%)',
+          zIndex: 0,
         }} />
+      )}
 
-        {/* Particles */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
-          <HeroParticles />
+      {/* Gradient Overlay */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(160deg, rgba(15,5,0,0.75) 0%, rgba(45,16,5,0.6) 50%, rgba(90,35,14,0.65) 100%)',
+        zIndex: 1,
+      }} />
+
+      {/* Particles */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 2 }}>
+        <HeroParticles />
+      </div>
+
+      {/* Hero Content */}
+      <div style={{
+        position: 'relative',
+        zIndex: 3,
+        textAlign: 'center',
+        color: '#fff',
+        maxWidth: 860,
+        margin: '0 auto',
+        padding: '5rem 1rem 6rem',
+        paddingTop: 'calc(68px + 5rem)',
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        {/* Badge */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          background: 'rgba(221,192,132,0.15)',
+          border: '1px solid rgba(221,192,132,0.35)',
+          color: '#EDD4B8',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          padding: '0.5rem 1.25rem',
+          borderRadius: 999,
+          marginBottom: '2rem',
+          backdropFilter: 'blur(12px)',
+          animation: 'fadeUp 0.6s 0.1s ease both',
+        }}>
+          Home Decor Premium Indonesia
         </div>
 
-        {/* Hero Content */}
-        <div style={{
-          position: 'relative',
-          zIndex: 3,
-          textAlign: 'center',
+        {/* Title */}
+        <h1 style={{
+          fontFamily: 'Playfair Display, Georgia, serif',
+          fontSize: 'clamp(2rem, 7vw, 4rem)',
+          fontWeight: 700,
+          lineHeight: 1.15,
+          marginBottom: '1rem',
           color: '#fff',
-          maxWidth: 860,
-          margin: '0 auto',
-          padding: '5rem 1rem 6rem',
-          paddingTop: 'calc(68px + 5rem)',
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
+          animation: 'fadeUp 0.7s 0.2s ease both',
+          textShadow: '0 2px 40px rgba(0,0,0,0.3)',
         }}>
-          {/* Badge */}
-          <div style={{
+          {title?.split('\n').map((line, i, arr) => (
+            <span key={i}>
+              {line}
+              {i < arr.length - 1 && <br />}
+            </span>
+          )) ?? (
+            <>
+              Percantik Ruanganmu dengan{' '}
+              <span style={{
+                background: 'linear-gradient(135deg, #f4a857 0%, #ffd6a5 40%, #f4a857 80%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                Premium
+              </span>
+            </>
+          )}
+        </h1>
+
+        {/* Subtitle */}
+        <p style={{
+          fontSize: '1.1rem',
+          color: 'rgba(255,255,255,0.75)',
+          maxWidth: 520,
+          margin: 'auto',
+          lineHeight: 1.8,
+          animation: 'fadeUp 0.7s 0.35s ease both',
+        }}>
+          {subtitle ?? 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'}
+        </p>
+
+        {/* CTA */}
+        <div style={{
+          display: 'flex',
+          gap: '1rem',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          animation: 'fadeUp 0.7s 0.5s ease both',
+          marginTop: '2.5rem',
+        }}>
+          <a href={ctaLink} style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            background: 'rgba(221,192,132,0.15)',
-            border: '1px solid rgba(221,192,132,0.35)',
-            color: '#EDD4B8',
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            padding: '0.5rem 1.25rem',
-            borderRadius: 999,
-            marginBottom: '2rem',
-            backdropFilter: 'blur(12px)',
-            animation: 'fadeUp 0.6s 0.1s ease both',
-          }}>
-            Home Decor Premium Indonesia
-          </div>
-
-          {/* Title */}
-          <h1 style={{
-            fontFamily: 'Playfair Display, Georgia, serif',
-            fontSize: 'clamp(2rem, 7vw, 4rem)',
-            fontWeight: 700,
-            lineHeight: 1.15,
-            marginBottom: '1rem',
+            background: 'linear-gradient(135deg, #DDC0B4 0%, #C9A98C 100%)',
             color: '#fff',
-            animation: 'fadeUp 0.7s 0.2s ease both',
-            textShadow: '0 2px 40px rgba(0,0,0,0.3)',
+            fontSize: '1rem',
+            fontWeight: 700,
+            padding: '1rem 2.25rem',
+            borderRadius: '3rem',
+            textDecoration: 'none',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 8px 28px rgba(221,192,132,0.4)',
           }}>
-            {title?.split('\n').map((line, i, arr) => (
-              <span key={i}>
-                {line}
-                {i < arr.length - 1 && <br />}
-              </span>
-            )) ?? (
-              <>
-                Percantik Ruanganmu dengan{' '}
-                <span style={{
-                  background: 'linear-gradient(135deg, #f4a857 0%, #ffd6a5 40%, #f4a857 80%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}>
-                  Premium
-                </span>
-              </>
-            )}
-          </h1>
-
-          {/* Subtitle */}
-          <p style={{
-            fontSize: '1.1rem',
-            color: 'rgba(255,255,255,0.75)',
-            maxWidth: 520,
-            margin: 'auto',
-            lineHeight: 1.8,
-            animation: 'fadeUp 0.7s 0.35s ease both',
-          }}>
-            {subtitle ?? 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'}
-          </p>
-
-          {/* CTA */}
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            animation: 'fadeUp 0.7s 0.5s ease both',
-            marginTop: '2.5rem',
-          }}>
-            <a href={ctaLink} style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              background: 'linear-gradient(135deg, #DDC0B4 0%, #C9A98C 100%)',
-              color: '#fff',
-              fontSize: '1rem',
-              fontWeight: 700,
-              padding: '1rem 2.25rem',
-              borderRadius: '3rem',
-              textDecoration: 'none',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 8px 28px rgba(221,192,132,0.4)',
-            }}>
-              {ctaText ?? 'Lihat Katalog'} <ChevronRight size={18} />
-            </a>
-            <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noopener noreferrer" style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              background: 'rgba(255,255,255,0.08)',
-              color: '#fff',
-              fontSize: '1rem',
-              fontWeight: 600,
-              padding: '1rem 2.25rem',
-              borderRadius: '3rem',
-              border: '1px solid rgba(255,255,255,0.3)',
-              textDecoration: 'none',
-              backdropFilter: 'blur(8px)',
-            }}>
-              <MessageCircle size={18} /> Konsultasi Gratis
-            </a>
-          </div>
-
-          {/* Stats row */}
-          <div style={{
-            display: 'flex',
-            gap: '2.5rem',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            marginTop: '3.5rem',
-            paddingTop: '3rem',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
-            animation: 'fadeUp 0.7s 0.7s ease both',
-          }}>
-            {[
-              { n: 500, suf: '+', label: 'Pelanggan Puas' },
-              { n: 8, suf: '+', label: 'Tahun Pengalaman' },
-              { n: 100, suf: '%', label: 'Garansi Kualitas' },
-            ].map((s) => (
-              <div key={s.label}>
-                <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', fontWeight: 700, color: '#DDC0B4' }}>
-                  {s.n}{s.suf}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.25rem' }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Scroll indicator */}
-          <div style={{
-            position: 'absolute',
-            bottom: '2.5rem',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            flexDirection: 'column',
+            {ctaText ?? 'Lihat Katalog'} <ChevronRight size={18} />
+          </a>
+          <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noopener noreferrer" style={{
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            animation: 'fadeUp 0.7s 0.9s ease both',
+            gap: '0.5rem',
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            fontSize: '1rem',
+            fontWeight: 600,
+            padding: '1rem 2.25rem',
+            borderRadius: '3rem',
+            border: '1px solid rgba(255,255,255,0.3)',
+            textDecoration: 'none',
+            backdropFilter: 'blur(8px)',
           }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', animation: 'bounceDown 1.8s ease-in-out infinite', animationDelay: '1.2s' }}>
-              <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
-              <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
-              <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
+            <MessageCircle size={18} /> Konsultasi Gratis
+          </a>
+        </div>
+
+        {/* Stats row */}
+        <div style={{
+          display: 'flex',
+          gap: '2.5rem',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          marginTop: '3.5rem',
+          paddingTop: '3rem',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          animation: 'fadeUp 0.7s 0.7s ease both',
+        }}>
+          {[
+            { n: 500, suf: '+', label: 'Pelanggan Puas' },
+            { n: 8, suf: '+', label: 'Tahun Pengalaman' },
+            { n: 100, suf: '%', label: 'Garansi Kualitas' },
+          ].map((s) => (
+            <div key={s.label}>
+              <div style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', fontWeight: 700, color: '#DDC0B4' }}>
+                {s.n}{s.suf}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.25rem' }}>{s.label}</div>
             </div>
+          ))}
+        </div>
+
+        {/* Scroll indicator */}
+        <div style={{
+          position: 'absolute',
+          bottom: '2.5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0.4rem',
+          animation: 'fadeUp 0.7s 0.9s ease both',
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', animation: 'bounceDown 1.8s ease-in-out infinite', animationDelay: '1.2s' }}>
+            <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
+            <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
+            <div style={{ width: 2, height: 8, borderRadius: 2, background: 'rgba(255,255,255,0.4)' }} />
           </div>
         </div>
       </div>
