@@ -3,7 +3,6 @@ import {
   Phone,
   MessageCircle,
   MapPin,
-  ChevronRight,
   Sparkles,
   Shield,
   Truck,
@@ -13,14 +12,14 @@ import {
   Calendar,
   ShoppingBag,
 } from 'lucide-react'
-import type { Category, Banner, PortfolioPost } from '@/types'
+import type { Category, PortfolioPost } from '@/types'
 import ProductCatalog from '@/components/landing/ProductCatalog'
 import ScrollNav from '@/components/landing/ScrollNav'
-import HeroParticles from '@/components/landing/HeroParticles'
+import ScrollHero from '@/components/ScrollHero'
 import AnimatedCounter from '@/components/landing/AnimatedCounter'
 
 const CATEGORY_COLORS = [
-  '#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626',
+  '#DDC084', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626',
 ]
 
 const TRUST_ICON_MAP: Record<string, React.ReactNode> = {
@@ -34,16 +33,14 @@ const TRUST_ICON_MAP: Record<string, React.ReactNode> = {
 export default async function LandingPage() {
   const supabase = await createClient()
 
-  const [categoriesRes, portfolioRes, bannersRes, settingsRes] = await Promise.all([
+  const [categoriesRes, portfolioRes, settingsRes] = await Promise.all([
     supabase.from('categories').select('*').is('parent_id', null).limit(6),
     supabase.from('portfolio_posts').select('*').order('created_at', { ascending: false }).limit(3),
-    supabase.from('banners').select('*').eq('is_active', true).order('sequence'),
     supabase.from('landing_settings').select('*').eq('id', 'hero').single(),
   ])
 
   const categories = (categoriesRes.data ?? []) as Category[]
   const portfolio = (portfolioRes.data ?? []) as PortfolioPost[]
-  const banners = (bannersRes.data ?? []) as Banner[]
   const settings = settingsRes.data as any
 
   const heroTitle = settings?.hero_title ?? 'Percantik Ruanganmu dengan Gorden Premium'
@@ -52,14 +49,6 @@ export default async function LandingPage() {
   const heroCtaLink = settings?.hero_cta_link ?? '#products'
   const whatsappNumber = settings?.whatsapp_number ?? '6281234567890'
   const whatsappMessage = settings?.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden'
-  const trustBadges = settings?.trust_badges ?? [
-    { icon: 'Star', label: '500+ Pelanggan Puas' },
-    { icon: 'Shield', label: 'Garansi Kualitas' },
-    { icon: 'Truck', label: 'Pasang Se-Jabodetabek' },
-  ]
-
-  // Hero image: landing_settings hero_image_url overrides banners[0]
-  const heroImageUrl = settings?.hero_image_url || (banners.length > 0 ? banners[0].image_url : null)
 
   // Social media & contact
   const instagram = settings?.instagram ?? ''
@@ -71,74 +60,20 @@ export default async function LandingPage() {
   const phone = settings?.phone ?? '+62 812-3456-7890'
 
   return (
-    <div style={{ background: '#fff', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ background: '#FAF5EE', fontFamily: 'Inter, sans-serif' }}>
       {/* ===== NAVBAR ===== */}
       <ScrollNav whatsappNumber={whatsappNumber} whatsappMessage={whatsappMessage} />
 
       {/* ===== HERO ===== */}
-      <section className="landing-hero">
-        {/* Particles layer */}
-        <HeroParticles />
-
-        {/* Background: hero_image_url from settings, or banners[0], or animated blobs */}
-        {heroImageUrl ? (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-            <img src={heroImageUrl} alt="Hero" style={{ width: '100%', height: '100%', objectFit: 'cover', animation: 'fadeIn 0.5s ease-out' }} />
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(15,5,0,0.82) 0%, rgba(45,16,5,0.7) 50%, rgba(90,35,14,0.75) 100%)' }} />
-          </div>
-        ) : (
-          <>
-            <div style={{ position: 'absolute', top: '-20%', right: '-10%', width: 700, height: 700, borderRadius: '50%', background: 'radial-gradient(circle, rgba(204,112,48,0.18) 0%, transparent 65%)', animation: 'blobMove 12s ease-in-out infinite', zIndex: 0 }} />
-            <div style={{ position: 'absolute', bottom: '-25%', left: '-12%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(244,168,87,0.12) 0%, transparent 65%)', animation: 'blobMove 15s ease-in-out infinite reverse', zIndex: 0 }} />
-            <div style={{ position: 'absolute', top: '30%', left: '20%', width: 300, height: 300, borderRadius: '50%', background: 'radial-gradient(circle, rgba(150,67,26,0.1) 0%, transparent 70%)', animation: 'blobMove 10s ease-in-out infinite 3s', zIndex: 0 }} />
-          </>
-        )}
-
-        <div className="landing-hero-content" style={{ position: 'relative', zIndex: 2 }}>
-          {/* Badge */}
-          <div className="landing-hero-badge">✨ Home Decor Premium Indonesia</div>
-
-          {/* Title */}
-          <h1 className="landing-hero-title">
-            {heroTitle.split('\n').map((line: string, i: number, arr: string[]) => (
-              <span key={i}>
-                {i === arr.length - 1
-                  ? <>{line} <span className="title-highlight">Premium</span></>
-                  : line}
-                {i < arr.length - 1 && <br />}
-              </span>
-            ))}
-          </h1>
-
-          {/* Subtitle */}
-          <p className="landing-hero-subtitle" style={{ whiteSpace: 'pre-line' }}>{heroSubtitle}</p>
-
-          {/* CTA */}
-          <div className="landing-hero-cta">
-            <a href={heroCtaLink} className="btn-hero-primary">{heroCtaText} <ChevronRight size={18} /></a>
-            <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noopener noreferrer" className="btn-hero-outline">
-              <MessageCircle size={18} /> Konsultasi Gratis
-            </a>
-          </div>
-
-          {/* Stats row */}
-          <div className="stats-row">
-            {[{n:500,suf:'+',label:'Pelanggan Puas'},{n:8,suf:'+',label:'Tahun Pengalaman'},{n:100,suf:'%',label:'Garansi Kualitas'}].map((s) => (
-              <div key={s.label} className="stat-item">
-                <div className="stat-number"><AnimatedCounter target={s.n} suffix={s.suf} /></div>
-                <div className="stat-label">{s.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Scroll indicator */}
-          <div className="scroll-indicator">
-            <div className="scroll-dot" />
-            <div className="scroll-dot" />
-            <div className="scroll-dot" />
-          </div>
-        </div>
-      </section>
+      <ScrollHero
+        videoUrl={settings?.hero_video_url}
+        title={heroTitle}
+        subtitle={heroSubtitle}
+        ctaText={heroCtaText}
+        ctaLink={heroCtaLink}
+        whatsappNumber={whatsappNumber}
+        whatsappMessage={whatsappMessage}
+      />
 
       {/* ===== CATEGORIES ===== */}
       <section id="categories" style={{ padding: '5rem 0', background: '#fafafa' }}>
@@ -255,7 +190,7 @@ export default async function LandingPage() {
                     <div style={{ height: 240, background: 'linear-gradient(135deg, #f5e6d3, #e8c898)', overflow: 'hidden' }}>
                       {(post.images as string[])?.[0]
                         ? <img src={(post.images as string[])[0]} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={44} style={{ color: '#cc7030', opacity: 0.5 }} /></div>}
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={44} style={{ color: 'var(--brand-500)', opacity: 0.5 }} /></div>}
                     </div>
                     <div className="portfolio-card-overlay">
                       <span style={{ color: '#fff', fontWeight: '700', fontSize: '0.95rem' }}>{post.title}</span>
@@ -273,7 +208,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ===== CTA Banner ===== */}
-      <section style={{ background: 'linear-gradient(135deg,#b85a22 0%,#cc7030 40%,#e8893a 100%)', padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ background: 'linear-gradient(135deg,#C9A86C 0%,#DDC084 40%,#E8D4A8 100%)', padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* Animated blobs */}
         <div style={{ position: 'absolute', top: '-30%', right: '-15%', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', animation: 'blobMove 10s ease-in-out infinite', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-40%', left: '-10%', width: 450, height: 450, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', animation: 'blobMove 14s ease-in-out infinite reverse', pointerEvents: 'none' }} />

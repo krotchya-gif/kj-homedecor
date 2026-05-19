@@ -6,13 +6,13 @@
   --brand-50: #fdf8f3;
   --brand-100: #f8ecdf;
   --brand-200: #f0d4b8;
-  --brand-300: #e5b385;
-  --brand-400: #d88d52;
-  --brand-500: #cc7030;
-  --brand-600: #b85a22;
-  --brand-700: #96431a;
-  --brand-800: #78361a;
-  --brand-900: #622e18;
+  --brand-300: #E8D4A8;
+  --brand-400: #DDC084;
+  --brand-500: #DDC084;
+  --brand-600: #C9A86C;
+  --brand-700: #A8864A;
+  --brand-800: #7A5F35;
+  --brand-900: #5C4526;
 
   /* Neutral */
   --neutral-50: #fafafa;
@@ -448,7 +448,7 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #cc7030;
+  background: #DDC084;
   color: #fff;
   display: flex;
   align-items: center;
@@ -1024,7 +1024,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #cc7030 0%, #b85a22 100%);
+  background: linear-gradient(135deg, #DDC084 0%, #C9A86C 100%);
   color: #fff;
   font-size: 1rem;
   font-weight: 700;
@@ -1361,7 +1361,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   background: #fff;
-  color: #b85a22;
+  color: var(--brand-600);
   font-size: 1rem;
   font-weight: 700;
   padding: 1rem 2rem;
@@ -2190,7 +2190,7 @@ body {
   align-items: center;
   gap: 0.5rem;
   background: #fff;
-  color: #cc7030;
+  color: var(--brand-500);
   padding: 1rem 2rem;
   border-radius: 0.625rem;
   font-weight: 700;

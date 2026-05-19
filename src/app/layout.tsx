@@ -4,7 +4,7 @@ import { ThemeProvider } from "next-themes";
 import SeoScripts from "@/components/SeoScripts";
 
 export const viewport: Viewport = {
-  themeColor: "#cc7030",
+  themeColor: "#DDC084",
 }
 
 export const metadata: Metadata = {

@@ -17,6 +17,7 @@ interface LandingSettings {
   hero_cta_text: string
   hero_cta_link: string
   hero_image_url: string
+  hero_video_url?: string
   whatsapp_number: string
   whatsapp_message: string
   trust_badges: TrustBadge[]
@@ -48,6 +49,7 @@ export default function AdminLandingSettingsPage() {
     hero_cta_text: '',
     hero_cta_link: '',
     hero_image_url: '',
+    hero_video_url: '',
     whatsapp_number: '',
     whatsapp_message: '',
     instagram: '',
@@ -81,6 +83,7 @@ export default function AdminLandingSettingsPage() {
         hero_cta_text: data.hero_cta_text ?? '',
         hero_cta_link: data.hero_cta_link ?? '',
         hero_image_url: (data as any).hero_image_url ?? '',
+        hero_video_url: (data as any).hero_video_url ?? '',
         whatsapp_number: data.whatsapp_number ?? '',
         whatsapp_message: data.whatsapp_message ?? '',
         instagram: (data as any).instagram ?? '',
@@ -106,6 +109,7 @@ export default function AdminLandingSettingsPage() {
         hero_cta_text: form.hero_cta_text,
         hero_cta_link: form.hero_cta_link,
         hero_image_url: form.hero_image_url,
+        hero_video_url: form.hero_video_url,
         whatsapp_number: form.whatsapp_number,
         whatsapp_message: form.whatsapp_message,
         trust_badges: trustBadges,
@@ -157,7 +161,7 @@ export default function AdminLandingSettingsPage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
-        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
+        <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: var(--brand-500) }} />
       </div>
     )
   }
@@ -267,6 +271,23 @@ export default function AdminLandingSettingsPage() {
                 {form.hero_image_url && (
                   <div style={{ marginTop: '0.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
                     <img src={form.hero_image_url} alt="Hero preview" style={{ width: '100%', height: 120, objectFit: 'cover' }} />
+                  </div>
+                )}
+              </div>
+              {/* Hero Video URL */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Hero Video URL</label>
+                <input
+                  type="text"
+                  value={form.hero_video_url}
+                  onChange={e => setForm(f => ({ ...f, hero_video_url: e.target.value }))}
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                  placeholder="/kj.mp4 atau URL video eksternal"
+                />
+                <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>Video akan di-scrub saat scroll (efek Apple). Kosongkan untuk fallback /kj.mp4</p>
+                {form.hero_video_url && (
+                  <div style={{ marginTop: '0.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                    <video src={form.hero_video_url} controls style={{ width: '100%', height: 100, objectFit: 'cover' }} />
                   </div>
                 )}
               </div>

@@ -45,7 +45,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
   const linkHoverBg = scrolled
     ? isDark ? 'rgba(249,115,22,0.1)' : '#fdf3e8'
     : 'rgba(255,255,255,0.12)'
-  const linkHoverColor = isDark ? '#f97316' : '#b85a22'
+  const linkHoverColor = isDark ? '#DDC084' : '#C9A86C'
 
   return (
     <>
@@ -130,12 +130,12 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               textDecoration: 'none',
               transition: 'all 0.25s',
               background: scrolled
-                ? 'linear-gradient(135deg,#cc7030,#b85a22)'
+                ? 'linear-gradient(135deg,#DDC084,#C9A86C)'
                 : 'rgba(255,255,255,0.15)',
               color: '#fff',
               border: scrolled ? 'none' : '1px solid rgba(255,255,255,0.35)',
               backdropFilter: scrolled ? 'none' : 'blur(8px)',
-              boxShadow: scrolled ? '0 4px 14px rgba(204,112,48,0.35)' : 'none',
+              boxShadow: scrolled ? '0 4px 14px rgba(221,192,132,0.35)' : 'none',
             }}
             onMouseEnter={(e) => {
               const t = e.currentTarget
@@ -224,7 +224,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             onMouseEnter={(e) => {
               const t = e.currentTarget
               t.style.background = isDark ? 'rgba(249,115,22,0.1)' : '#fdf3e8'
-              t.style.color = isDark ? '#f97316' : '#b85a22'
+              t.style.color = isDark ? '#DDC084' : '#C9A86C'
             }}
             onMouseLeave={(e) => {
               const t = e.currentTarget
@@ -247,7 +247,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               gap: '0.5rem',
               padding: '0.875rem',
               borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg,#cc7030,#b85a22)',
+              background: 'linear-gradient(135deg,#DDC084,#C9A86C)',
               color: '#fff',
               fontSize: '0.95rem',
               fontWeight: 600,
