@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import HeroParticles from './landing/HeroParticles'
 import { ChevronRight, MessageCircle } from 'lucide-react'
 
@@ -26,6 +26,23 @@ export default function ScrollHero({
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoError, setVideoError] = useState(false)
   const videoSrc = videoUrl || '/kj.mp4'
+
+  // Pause video when tab is hidden to save battery/data
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        video.pause()
+      } else {
+        video.play().catch(() => {})
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
 
   return (
     <section style={{
