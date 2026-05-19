@@ -94,6 +94,31 @@ Located in `supabase/migrations/` — apply in order:
 | 006 | `006_booking_schema_fix.sql` | Booking/install scheduling schema |
 | 007 | `007_add_shipping_packing.sql` | Packed/shipped status, tracking_number, courier |
 | 008 | `008_seo_settings.sql` | SEO fields: pixel_id, ga4_id, meta tags, og_image |
+| 028 | `028_increment_stock_toko_function.sql` | Inventory movement tracking function |
+| 029 | `029_fix_inventory_movements.sql` | Inventory movement corrections |
+| 030 | `030_update_order_logs_constraint.sql` | Order logs constraint update |
+
+## Design System (Color Palette)
+
+**Light Mode:**
+| Usage | Color |
+|---|---|
+| Button utama | `#EDA4A3` |
+| Hover button | `#D4796E` |
+| Navbar / Footer | `#2B2321` |
+| Background section | `#F9EFED` |
+| Heading teks | `#2B2321` |
+| Subtext / caption | `#6B4A42` |
+
+**Dark Mode:** Warm dark palette with `#1A1412` base, headings in warm cream `#E8D8D0`.
+
+## Landing Page
+
+- **Hero:** Auto-play background video (`autoPlay muted loop playsInline`), falls back to branded gradient if video unavailable or fails to load
+- **Scroll behavior:** Normal page scroll — video plays as background element, no scroll-locking
+- **Particles:** Animated floating particles with brand colors
+- **Sections:** Categories, Products (max 8 with "View All"), Why Us, Portfolio, CTA Banner, Footer
+- **Theme:** Fully responsive with dark mode support
 
 ## Order Status Pipeline
 
