@@ -83,7 +83,7 @@ export default function ScrollHero({
   const videoSrc = videoUrl || '/kj.mp4'
 
   return (
-    <div ref={containerRef} style={{ height: '200vh', position: 'relative' }}>
+    <div ref={containerRef} style={{ height: '300vh', position: 'relative' }}>
       <div style={{
         position: 'sticky',
         top: 0,
