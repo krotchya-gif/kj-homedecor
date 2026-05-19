@@ -2,29 +2,29 @@
 @import "tailwindcss";
 
 :root {
-  /* Brand Colors */
-  --brand-50: #fdf8f3;
-  --brand-100: #f8ecdf;
-  --brand-200: #f0d4b8;
-  --brand-300: #E8D4C8;
-  --brand-400: #DDC0B4;
-  --brand-500: #DDC0B4;
-  --brand-600: #C9A98C;
-  --brand-700: #A88664;
-  --brand-800: #7A5F48;
-  --brand-900: #5C4530;
+  /* Brand Colors — user's palette */
+  --brand-50: #F2C4C2;
+  --brand-100: #F9EFED;
+  --brand-200: #F2C4C2;
+  --brand-300: #F2C4C2;
+  --brand-400: #EDA4A3;
+  --brand-500: #EDA4A3;  /* button utama */
+  --brand-600: #D4796E;  /* hover button */
+  --brand-700: #B56B5F;
+  --brand-800: #8A5A52;
+  --brand-900: #6B4A42;
 
-  /* Neutral */
-  --neutral-50: #fafafa;
-  --neutral-100: #f5f5f5;
-  --neutral-200: #e5e5e5;
-  --neutral-300: #d4d4d4;
-  --neutral-400: #a3a3a3;
-  --neutral-500: #737373;
-  --neutral-600: #525252;
-  --neutral-700: #404040;
-  --neutral-800: #262626;
-  --neutral-900: #171717;
+  /* Neutral — user's heading/navbar color #2B2321 */
+  --neutral-50:  #F9EFED;  /* background section */
+  --neutral-100: #F2EBE8;
+  --neutral-200: #E8D8D4;
+  --neutral-300: #D4C0B8;
+  --neutral-400: #A89088;
+  --neutral-500: #8A6A60;
+  --neutral-600: #6B4A42;  /* subtext / caption */
+  --neutral-700: #4A3A36;
+  --neutral-800: #2B2321;  /* heading teks */
+  --neutral-900: #1A1412;
 
   /* Semantic */
   --success: #22c55e;
@@ -43,34 +43,40 @@
 html, body {
   max-width: 100vw;
   overflow-x: hidden;
+  background-color: var(--neutral-50);
+  color: var(--neutral-800);
 }
 
 /* ========== DARK MODE ========== */
 .dark {
-  /* Neutral dark — warm near-black */
-  --neutral-50: #0a0a0a;
-  --neutral-100: #141414;
-  --neutral-200: #1f1f1f;
-  --neutral-300: #2a2a2a;
-  --neutral-400: #525252;
-  --neutral-500: #737373;
-  --neutral-600: #a3a3a3;
-  --neutral-700: #d4d4d4;
-  --neutral-800: #f5f5f5;
-  --neutral-900: #fafafa;
+  /* Neutral dark — warm palette */
+  --neutral-50: #1A1412;
+  --neutral-100: #221B18;
+  --neutral-200: #2E2522;
+  --neutral-300: #3A302C;
+  --neutral-400: #6B4A42;   /* user's subtext — readable on dark bg */
+  --neutral-500: #8A6A60;
+  --neutral-600: #A89088;
+  --neutral-700: #C8B8B0;
+  --neutral-800: #E8D8D0;
+  --neutral-900: #F5F0EC;
+
+  /* Brand warm in dark */
+  --brand-500: #EDA4A3;
+  --brand-600: #C87870;
 
   /* Dark backgrounds */
-  background-color: #0a0a0a;
+  background-color: #0E0B0A;
   color: var(--neutral-900);
 }
 
 .dark body {
-  background-color: #0a0a0a;
+  background-color: #0E0B0A;
   color: var(--neutral-900);
 }
 
 .dark .topnav {
-  background: var(--neutral-50);
+  background: #2B2321 !important;  /* user's navbar color */
   border-color: var(--neutral-200);
 }
 
@@ -79,16 +85,16 @@ html, body {
 }
 
 .dark .topnav-link {
-  color: var(--neutral-600);
+  color: var(--neutral-400);
 }
 
 .dark .topnav-link:hover {
-  background: rgba(249, 115, 22, 0.12);
+  background: rgba(237,164,163,0.12);
   color: var(--brand-500);
 }
 
 .dark .topnav-link.active {
-  background: rgba(249, 115, 22, 0.18);
+  background: rgba(237,164,163,0.18);
   color: var(--brand-500);
 }
 
@@ -1532,7 +1538,7 @@ body {
   color: var(--neutral-500);
 }
 .dark .landing-muted {
-  color: var(--neutral-500);
+  color: var(--neutral-400);   /* user's subtext #6B4A42 — readable on dark */
 }
 
 .landing-card-title {
@@ -1546,7 +1552,7 @@ body {
   color: var(--neutral-500);
 }
 .dark .landing-card-desc {
-  color: var(--neutral-500);
+  color: var(--neutral-400);  /* user's subtext #6B4A42 */
 }
 
 /* ========== BOOKING CALENDAR ========== */
@@ -2299,11 +2305,11 @@ body {
 }
 
 .dark .landing-section-title {
-  color: var(--neutral-900);
+  color: var(--neutral-200);   /* warm cream — readable on dark bg */
 }
 
 .dark .landing-section-subtitle {
-  color: var(--neutral-500);
+  color: var(--neutral-400);  /* user's subtext #6B4A42 */
 }
 
 .dark .category-grid > div {
