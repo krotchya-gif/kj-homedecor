@@ -135,7 +135,7 @@ export default async function LandingPage() {
           <h2 className="landing-section-title" style={{ color: '#fff', textAlign: 'center', margin: '0 auto 1rem' }}>
             Dipercaya <AnimatedCounter target={500} suffix="+" /> Pelanggan
           </h2>
-          <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: '1rem', maxWidth: 480, margin: '0 auto 3rem' }}>
+          <p className="why-us-subtitle">
             Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
@@ -147,8 +147,8 @@ export default async function LandingPage() {
             ].map((f) => (
               <div key={f.title} className="why-us-card">
                 <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${f.color}22`, border: `2px solid ${f.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: f.color, animation: 'pulseGlow 3s ease-in-out infinite' }}>{f.icon}</div>
-                <div style={{ color: '#fff', fontWeight: '700', fontSize: '1.1rem', marginBottom: '0.625rem' }}>{f.title}</div>
-                <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem', lineHeight: 1.7 }}>{f.desc}</div>
+                <div className="why-us-card-title">{f.title}</div>
+                <div className="why-us-card-desc">{f.desc}</div>
               </div>
             ))}
           </div>

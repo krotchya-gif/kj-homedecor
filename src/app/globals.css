@@ -1555,6 +1555,56 @@ body {
   color: var(--neutral-400);  /* user's subtext #6B4A42 */
 }
 
+/* ========== HERO TEXT ========== */
+.hero-subtitle {
+  color: rgba(255,255,255,0.85);
+  font-size: 1.1rem;
+  line-height: 1.8;
+  max-width: 520px;
+  margin: auto;
+}
+
+/* ========== TRUST BADGES ========== */
+.trust-badge-label {
+  color: rgba(255,255,255,0.8);
+  font-size: 0.85rem;
+}
+.dark .trust-badge-label {
+  color: rgba(255,255,255,0.85);
+}
+.trust-badge-icon {
+  color: var(--brand-400);
+}
+.dark .trust-badge-icon {
+  color: var(--brand-400);
+}
+
+/* ========== WHY US SECTION ========== */
+.why-us-subtitle {
+  color: rgba(255,255,255,0.6);
+  font-size: 1rem;
+  max-width: 480px;
+  line-height: 1.7;
+  margin: 0 auto 3rem;
+}
+.dark .why-us-subtitle {
+  color: rgba(255,255,255,0.7);
+}
+.why-us-card-title {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.625rem;
+}
+.why-us-card-desc {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.dark .why-us-card-desc {
+  color: rgba(255,255,255,0.6);
+}
+
 /* ========== BOOKING CALENDAR ========== */
 .booking-calendar {
   background: var(--neutral-50);

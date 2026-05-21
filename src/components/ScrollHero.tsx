@@ -159,14 +159,7 @@ export default function ScrollHero({
         </h1>
 
         {/* Subtitle */}
-        <p style={{
-          fontSize: '1.1rem',
-          color: 'rgba(255,255,255,0.75)',
-          maxWidth: 520,
-          margin: 'auto',
-          lineHeight: 1.8,
-          animation: 'fadeUp 0.7s 0.35s ease both',
-        }}>
+        <p className="hero-subtitle" style={{ animation: 'fadeUp 0.7s 0.35s ease both' }}>
           {subtitle ?? 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'}
         </p>
 
