@@ -79,9 +79,9 @@ export default async function LandingPage() {
       <section id="categories" style={{ padding: '5rem 0', background: '#fafafa' }}>
         <div className="landing-section" style={{ padding: '0 1.5rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-            <div className="landing-section-label">Koleksi Kami</div>
-            <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Temukan Gaya Favoritmu</h2>
-            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Pilihan gorden dan aksesoris premium untuk setiap ruangan</p>
+            <div className="landing-section-label">{settings?.categories_label ?? 'Koleksi Kami'}</div>
+            <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>{settings?.categories_title ?? 'Temukan Gaya Favoritmu'}</h2>
+            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>{settings?.categories_subtitle ?? 'Pilihan gorden dan aksesoris premium untuk setiap ruangan'}</p>
           </div>
 
           {(() => {
@@ -131,19 +131,19 @@ export default async function LandingPage() {
       {/* ===== WHY US ===== */}
       <section style={{ padding: '6rem 0', background: 'linear-gradient(160deg, #0f0500 0%, #2d1005 40%, #4a1f0a 100%)' }}>
         <div className="landing-section" style={{ padding: '0 1.5rem', textAlign: 'center' }}>
-          <div className="landing-section-label" style={{ color: '#f4a857' }}>Keunggulan Kami</div>
+          <div className="landing-section-label" style={{ color: '#f4a857' }}>{settings?.whyus_label ?? 'Keunggulan Kami'}</div>
           <h2 className="landing-section-title" style={{ color: '#fff', textAlign: 'center', margin: '0 auto 1rem' }}>
-            Dipercaya <AnimatedCounter target={500} suffix="+" /> Pelanggan
+            {settings?.whyus_title ?? 'Dipercaya'} <AnimatedCounter target={500} suffix="+" /> Pelanggan
           </h2>
           <p className="why-us-subtitle">
-            Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan
+            {settings?.whyus_subtitle ?? 'Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan'}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '1.25rem' }}>
             {[
-              { icon: <Sparkles size={34} />, title: 'Kualitas Premium', desc: 'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman', color: '#f4a857' },
-              { icon: <Star size={34} />, title: 'Ratusan Pelanggan', desc: 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek', color: '#fbbf24' },
-              { icon: <Truck size={34} />, title: 'Pasang Profesional', desc: 'Tim installer bersertifikat siap membantu langsung ke rumah Anda', color: '#34d399' },
-              { icon: <Shield size={34} />, title: 'Garansi Resmi', desc: 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan', color: '#60a5fa' },
+              { icon: <Sparkles size={34} />, title: settings?.whyus_card1_title ?? 'Kualitas Premium', desc: settings?.whyus_card1_desc ?? 'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman', color: '#f4a857' },
+              { icon: <Star size={34} />, title: settings?.whyus_card2_title ?? 'Ratusan Pelanggan', desc: settings?.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek', color: '#fbbf24' },
+              { icon: <Truck size={34} />, title: settings?.whyus_card3_title ?? 'Pasang Profesional', desc: settings?.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda', color: '#34d399' },
+              { icon: <Shield size={34} />, title: settings?.whyus_card4_title ?? 'Garansi Resmi', desc: settings?.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan', color: '#60a5fa' },
             ].map((f) => (
               <div key={f.title} className="why-us-card">
                 <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${f.color}22`, border: `2px solid ${f.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: f.color, animation: 'pulseGlow 3s ease-in-out infinite' }}>{f.icon}</div>
@@ -159,9 +159,9 @@ export default async function LandingPage() {
       <section id="portfolio" style={{ padding: '6rem 0', background: '#fafafa' }}>
         <div className="landing-section" style={{ padding: '0 1.5rem' }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-            <div className="landing-section-label">Inspirasi</div>
-            <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>Portofolio Kami</h2>
-            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>Hasil karya dan instalasi dari tim profesional KJ Homedecor</p>
+            <div className="landing-section-label">{settings?.portfolio_label ?? 'Inspirasi'}</div>
+            <h2 className="landing-section-title" style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}>{settings?.portfolio_title ?? 'Portofolio Kami'}</h2>
+            <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>{settings?.portfolio_subtitle ?? 'Hasil karya dan instalasi dari tim profesional KJ Homedecor'}</p>
           </div>
           {portfolio.length === 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -218,13 +218,13 @@ export default async function LandingPage() {
 
         <div style={{ maxWidth: 640, margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.18)', borderRadius: '999px', padding: '0.5rem 1.25rem', marginBottom: '1.75rem', backdropFilter: 'blur(8px)' }}>
-            <span style={{ color: '#fff', fontSize: '0.82rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase' }}>✨ Konsultasi Gratis</span>
+            <span style={{ color: '#fff', fontSize: '0.82rem', fontWeight: '700', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{settings?.cta_badge ?? '✨ Konsultasi Gratis'}</span>
           </div>
           <h2 style={{ fontFamily: 'Playfair Display, Georgia, serif', fontSize: 'clamp(2.2rem, 5vw, 3.5rem)', color: '#fff', fontWeight: '700', marginBottom: '1.25rem', lineHeight: 1.15, textShadow: '0 2px 20px rgba(0,0,0,0.15)' }}>
-            Siap Mempercantik<br />Ruanganmu?
+            {settings?.cta_title ?? 'Siap Mempercantik'} <br />Ruanganmu?
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.88)', marginBottom: '2.5rem', fontSize: '1.05rem', lineHeight: 1.8, maxWidth: 500, margin: '0 auto 2.5rem' }}>
-            Hubungi kami sekarang untuk konsultasi gratis. Tim kami siap membantu pilihkan gorden, vitras, atau roman blind terbaik sesuai kebutuhan dan budget Anda.
+            {settings?.cta_subtitle ?? 'Hubungi kami sekarang untuk konsultasi gratis. Tim kami siap membantu pilihkan gorden, vitras, atau roman blind terbaik sesuai kebutuhan dan budget Anda.'}
           </p>
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <a href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`} target="_blank" rel="noopener noreferrer" className="cta-btn-primary">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Save, Plus, Trash2, Eye, MessageCircle, Loader2, Star, Shield, Truck, Clock, CheckCircle, Phone, MapPin, ShoppingBag, Upload, ImageIcon } from 'lucide-react'
+import { Save, Plus, Trash2, Eye, MessageCircle, Loader2, Star, Shield, Truck, Clock, CheckCircle, Phone, MapPin, ShoppingBag, Upload, ImageIcon, LayoutGrid, Award, Megaphone } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
 
 interface TrustBadge {
@@ -28,6 +28,30 @@ interface LandingSettings {
   tokopedia?: string
   address?: string
   phone?: string
+  // Categories section
+  categories_label?: string
+  categories_title?: string
+  categories_subtitle?: string
+  // Why Us section
+  whyus_label?: string
+  whyus_title?: string
+  whyus_subtitle?: string
+  whyus_card1_title?: string
+  whyus_card1_desc?: string
+  whyus_card2_title?: string
+  whyus_card2_desc?: string
+  whyus_card3_title?: string
+  whyus_card3_desc?: string
+  whyus_card4_title?: string
+  whyus_card4_desc?: string
+  // Portfolio section
+  portfolio_label?: string
+  portfolio_title?: string
+  portfolio_subtitle?: string
+  // CTA Banner
+  cta_badge?: string
+  cta_title?: string
+  cta_subtitle?: string
 }
 
 const ICON_OPTIONS = [
@@ -59,6 +83,30 @@ export default function AdminLandingSettingsPage() {
     tokopedia: '',
     address: '',
     phone: '',
+    // Categories
+    categories_label: '',
+    categories_title: '',
+    categories_subtitle: '',
+    // Why Us
+    whyus_label: '',
+    whyus_title: '',
+    whyus_subtitle: '',
+    whyus_card1_title: '',
+    whyus_card1_desc: '',
+    whyus_card2_title: '',
+    whyus_card2_desc: '',
+    whyus_card3_title: '',
+    whyus_card3_desc: '',
+    whyus_card4_title: '',
+    whyus_card4_desc: '',
+    // Portfolio
+    portfolio_label: '',
+    portfolio_title: '',
+    portfolio_subtitle: '',
+    // CTA
+    cta_badge: '',
+    cta_title: '',
+    cta_subtitle: '',
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
   const [heroImageUploading, setHeroImageUploading] = useState(false)
@@ -94,6 +142,26 @@ export default function AdminLandingSettingsPage() {
         tokopedia: (data as any).tokopedia ?? '',
         address: (data as any).address ?? '',
         phone: (data as any).phone ?? '',
+        categories_label: (data as any).categories_label ?? '',
+        categories_title: (data as any).categories_title ?? '',
+        categories_subtitle: (data as any).categories_subtitle ?? '',
+        whyus_label: (data as any).whyus_label ?? '',
+        whyus_title: (data as any).whyus_title ?? '',
+        whyus_subtitle: (data as any).whyus_subtitle ?? '',
+        whyus_card1_title: (data as any).whyus_card1_title ?? '',
+        whyus_card1_desc: (data as any).whyus_card1_desc ?? '',
+        whyus_card2_title: (data as any).whyus_card2_title ?? '',
+        whyus_card2_desc: (data as any).whyus_card2_desc ?? '',
+        whyus_card3_title: (data as any).whyus_card3_title ?? '',
+        whyus_card3_desc: (data as any).whyus_card3_desc ?? '',
+        whyus_card4_title: (data as any).whyus_card4_title ?? '',
+        whyus_card4_desc: (data as any).whyus_card4_desc ?? '',
+        portfolio_label: (data as any).portfolio_label ?? '',
+        portfolio_title: (data as any).portfolio_title ?? '',
+        portfolio_subtitle: (data as any).portfolio_subtitle ?? '',
+        cta_badge: (data as any).cta_badge ?? '',
+        cta_title: (data as any).cta_title ?? '',
+        cta_subtitle: (data as any).cta_subtitle ?? '',
       })
       setTrustBadges(data.trust_badges ?? [])
     }
@@ -121,6 +189,26 @@ export default function AdminLandingSettingsPage() {
         tokopedia: form.tokopedia,
         address: form.address,
         phone: form.phone,
+        categories_label: form.categories_label,
+        categories_title: form.categories_title,
+        categories_subtitle: form.categories_subtitle,
+        whyus_label: form.whyus_label,
+        whyus_title: form.whyus_title,
+        whyus_subtitle: form.whyus_subtitle,
+        whyus_card1_title: form.whyus_card1_title,
+        whyus_card1_desc: form.whyus_card1_desc,
+        whyus_card2_title: form.whyus_card2_title,
+        whyus_card2_desc: form.whyus_card2_desc,
+        whyus_card3_title: form.whyus_card3_title,
+        whyus_card3_desc: form.whyus_card3_desc,
+        whyus_card4_title: form.whyus_card4_title,
+        whyus_card4_desc: form.whyus_card4_desc,
+        portfolio_label: form.portfolio_label,
+        portfolio_title: form.portfolio_title,
+        portfolio_subtitle: form.portfolio_subtitle,
+        cta_badge: form.cta_badge,
+        cta_title: form.cta_title,
+        cta_subtitle: form.cta_subtitle,
         updated_at: new Date().toISOString(),
       })
       .eq('id', 'hero')
@@ -477,6 +565,116 @@ export default function AdminLandingSettingsPage() {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Categories Section */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                <LayoutGrid size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
+                Categories Section
+              </h2>
+            </div>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Label</label>
+                <input type="text" value={form.categories_label ?? ''} onChange={e => setForm(f => ({ ...f, categories_label: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Koleksi Kami" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Title</label>
+                <input type="text" value={form.categories_title ?? ''} onChange={e => setForm(f => ({ ...f, categories_title: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Temukan Gaya Favoritmu" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Subtitle</label>
+                <input type="text" value={form.categories_subtitle ?? ''} onChange={e => setForm(f => ({ ...f, categories_subtitle: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Pilihan gorden..." />
+              </div>
+            </div>
+          </div>
+
+          {/* Why Us Section */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                <Award size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
+                Why Us Section
+              </h2>
+            </div>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Label</label>
+                <input type="text" value={form.whyus_label ?? ''} onChange={e => setForm(f => ({ ...f, whyus_label: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Keunggulan Kami" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Title</label>
+                <input type="text" value={form.whyus_title ?? ''} onChange={e => setForm(f => ({ ...f, whyus_title: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Dipercaya oleh Ratusan Pelanggan" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Subtitle</label>
+                <input type="text" value={form.whyus_subtitle ?? ''} onChange={e => setForm(f => ({ ...f, whyus_subtitle: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Dengan pengalaman..." />
+              </div>
+              {[
+                { num: 1, title: form.whyus_card1_title ?? '', desc: form.whyus_card1_desc ?? '' },
+                { num: 2, title: form.whyus_card2_title ?? '', desc: form.whyus_card2_desc ?? '' },
+                { num: 3, title: form.whyus_card3_title ?? '', desc: form.whyus_card3_desc ?? '' },
+                { num: 4, title: form.whyus_card4_title ?? '', desc: form.whyus_card4_desc ?? '' },
+              ].map(card => (
+                <div key={card.num} style={{ borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem' }}>
+                  <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', marginBottom: '0.5rem' }}>Card {card.num}</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    <input type="text" value={card.title} onChange={e => setForm(f => ({ ...f, [`whyus_card${card.num}_title`]: e.target.value }))} style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8rem', outline: 'none' }} placeholder={`Card ${card.num} Title`} />
+                    <input type="text" value={card.desc} onChange={e => setForm(f => ({ ...f, [`whyus_card${card.num}_desc`]: e.target.value }))} style={{ padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8rem', outline: 'none' }} placeholder={`Card ${card.num} Description`} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Portfolio Section */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                <ImageIcon size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
+                Portfolio Section
+              </h2>
+            </div>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Label</label>
+                <input type="text" value={form.portfolio_label ?? ''} onChange={e => setForm(f => ({ ...f, portfolio_label: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Inspirasi" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Title</label>
+                <input type="text" value={form.portfolio_title ?? ''} onChange={e => setForm(f => ({ ...f, portfolio_title: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Portofolio Kami" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Subtitle</label>
+                <input type="text" value={form.portfolio_subtitle ?? ''} onChange={e => setForm(f => ({ ...f, portfolio_subtitle: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Hasil karya..." />
+              </div>
+            </div>
+          </div>
+
+          {/* CTA Banner Section */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                <Megaphone size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
+                CTA Banner Section
+              </h2>
+            </div>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Badge</label>
+                <input type="text" value={form.cta_badge ?? ''} onChange={e => setForm(f => ({ ...f, cta_badge: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: ✨ Konsultasi Gratis" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Title</label>
+                <input type="text" value={form.cta_title ?? ''} onChange={e => setForm(f => ({ ...f, cta_title: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Siap Mempercantik Ruanganmu?" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Subtitle</label>
+                <input type="text" value={form.cta_subtitle ?? ''} onChange={e => setForm(f => ({ ...f, cta_subtitle: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} placeholder="cth: Hubungi kami..." />
               </div>
             </div>
           </div>
