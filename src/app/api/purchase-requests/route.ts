@@ -3,10 +3,13 @@ import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
 
-  let query = supabase.from('purchase_requests').select('*, material:materials(name, cost_per_unit, unit)').order('created_at', { ascending: false })
+  let query = supabase.from('purchase_requests').select('*, material:materials(name, cost_per_unit)').order('created_at', { ascending: false })
   if (status) query = query.eq('status', status)
 
   const { data, error } = await query

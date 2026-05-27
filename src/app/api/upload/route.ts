@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/utils/supabase/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { z } from 'zod'
@@ -36,17 +37,21 @@ const MAX_SIZES = {
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+
     const formData = await request.formData()
     const file = formData.get('file') as File | null
     const folderRaw = formData.get('folder') as string | null
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      return NextResponse.json({ data: null, error: { message: 'No file provided' } }, { status: 400 })
     }
 
     const parsed = FolderSchema.safeParse(folderRaw)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid folder' }, { status: 400 })
+      return NextResponse.json({ data: null, error: { message: 'Invalid folder' } }, { status: 400 })
     }
 
     const folder = parsed.data
@@ -56,14 +61,14 @@ export async function POST(request: NextRequest) {
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` },
+        { data: null, error: { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` } },
         { status: 400 }
       )
     }
 
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: `File too large. Max: ${maxSize / 1024 / 1024}MB` },
+        { data: null, error: { message: `File too large. Max: ${maxSize / 1024 / 1024}MB` } },
         { status: 400 }
       )
     }
@@ -96,6 +101,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error('Upload error:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    return NextResponse.json({ data: null, error: { message: 'Upload failed' } }, { status: 500 })
   }
 }
