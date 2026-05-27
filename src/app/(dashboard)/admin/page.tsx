@@ -71,6 +71,24 @@ export default function AdminDashboardPage() {
 
   useEffect(() => { loadData() }, [])
 
+  // Realtime subscription for order updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('admin-orders-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_logs' }, () => {
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_progress_photos' }, () => {
+        loadData()
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [])
+
   useEffect(() => {
     async function loadTrend() {
       const thirtyDaysAgo = new Date()
