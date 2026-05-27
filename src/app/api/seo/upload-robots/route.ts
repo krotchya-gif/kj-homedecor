@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
     const filePath = path.join(publicDir, 'robots.txt');
     await writeFile(filePath, buffer);
 
-    return NextResponse.json({ success: true, path: '/robots.txt' });
+    return NextResponse.json({ data: { path: '/robots.txt' }, error: null });
   } catch (err) {
     console.error('robots upload error:', err);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    return NextResponse.json({ data: null, error: { message: 'Upload failed' } }, { status: 500 });
   }
 }
 

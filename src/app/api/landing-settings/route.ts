@@ -11,10 +11,10 @@ export async function GET() {
       .eq('id', 'hero')
       .single()
 
-    return NextResponse.json(data ?? {})
+    return NextResponse.json({ data: data ?? null, error: null })
   } catch (err) {
     console.error('Error fetching landing settings:', err)
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 })
+    return NextResponse.json({ data: null, error: { message: 'Failed to fetch' } }, { status: 500 })
   }
 }
 
@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
     }
 
     // Check admin role
@@ -37,7 +37,7 @@ export async function PUT(request: Request) {
       .single()
 
     if (staffData?.role !== 'admin' && staffData?.role !== 'owner') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
     }
 
     const { hero_title, hero_subtitle, hero_cta_text, hero_cta_link, whatsapp_number, whatsapp_message, trust_badges, hero_image_url } = body
@@ -60,12 +60,12 @@ export async function PUT(request: Request) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({ data, error: null })
   } catch (err) {
     console.error('Error updating landing settings:', err)
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 })
+    return NextResponse.json({ data: null, error: { message: 'Internal error' } }, { status: 500 })
   }
 }

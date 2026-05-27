@@ -28,7 +28,7 @@ interface CreateJournalOptions {
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body: CreateJournalOptions = await request.json()
 
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const { lines, description, reference_type, reference_id, entry_date, is_auto = false } = body
 
     if (!lines || lines.length === 0) {
-      return NextResponse.json({ error: 'Journal lines required' }, { status: 400 })
+      return NextResponse.json({ data: null, error: { message: 'Journal lines required' } }, { status: 400 })
     }
 
     // Validate balanced entries
@@ -44,7 +44,8 @@ export async function POST(request: Request) {
     const totalCredit = lines.reduce((s, l) => s + (l.credit ?? 0), 0)
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       return NextResponse.json({
-        error: `Journal not balanced — debit ${totalDebit}, credit ${totalCredit}`,
+        data: null,
+        error: { message: `Journal not balanced — debit ${totalDebit}, credit ${totalCredit}` },
       }, { status: 400 })
     }
 
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
       .single()
 
     if (entryError) {
-      return NextResponse.json({ error: entryError.message }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: entryError.message } }, { status: 500 })
     }
 
     // Create journal lines
@@ -80,13 +81,13 @@ export async function POST(request: Request) {
     if (linesError) {
       // Rollback: delete entry
       await supabase.from('journal_entries').delete().eq('id', entry.id)
-      return NextResponse.json({ error: linesError.message }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: linesError.message } }, { status: 500 })
     }
 
     return NextResponse.json({ data: entry, error: null }, { status: 201 })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err ?? 'Unknown error')
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ data: null, error: { message } }, { status: 500 })
   }
 }
 
@@ -96,7 +97,7 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const limit = Number(searchParams.get('limit') ?? 50)
@@ -107,5 +108,5 @@ export async function GET(request: Request) {
     .order('entry_date', { ascending: false })
     .limit(limit)
 
-  return NextResponse.json({ data: data ?? [], error })
+  return NextResponse.json({ data: data ?? [], error: null })
 }

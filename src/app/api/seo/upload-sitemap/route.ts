@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
     const filePath = path.join(publicDir, 'sitemap.xml');
     await writeFile(filePath, buffer);
 
-    return NextResponse.json({ success: true, path: '/sitemap.xml' });
+    return NextResponse.json({ data: { path: '/sitemap.xml' }, error: null });
   } catch (err) {
     console.error('sitemap upload error:', err);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    return NextResponse.json({ data: null, error: { message: 'Upload failed' } }, { status: 500 });
   }
 }
 
