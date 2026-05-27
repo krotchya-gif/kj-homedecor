@@ -6,7 +6,7 @@ import { BarChart3, Download, TrendingUp, ShoppingCart, Users, Package, FileDown
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/Skeleton'
+import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 interface Order {

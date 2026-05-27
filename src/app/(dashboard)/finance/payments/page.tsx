@@ -6,7 +6,7 @@ import { CheckCircle2, DollarSign, Search, Lock, ChevronLeft, ChevronRight } fro
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { useToast } from '@/components/ui/Toast'
-import { TableSkeleton } from '@/components/ui/Skeleton'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 const fmt = (n: number) =>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Customer } from '@/types'
-import { TableSkeleton } from '@/components/ui/Skeleton'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 const PAGE_SIZE = 20

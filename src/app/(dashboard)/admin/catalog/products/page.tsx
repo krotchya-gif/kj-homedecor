@@ -7,7 +7,7 @@ import { Plus, Search, Pencil, Trash2, Package, Star, ChevronLeft, ChevronRight 
 import type { Product, Category } from '@/types'
 import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { useToast } from '@/components/ui/Toast'
-import { TableSkeleton } from '@/components/ui/Skeleton'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 const formatRp = (n: number) =>

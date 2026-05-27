@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Package, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
-import { TableSkeleton } from '@/components/ui/Skeleton'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
 const PAGE_SIZE = 20
