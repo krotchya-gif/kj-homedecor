@@ -21,9 +21,20 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [attempts, setAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+
+  const isLocked = lockedUntil !== null && Date.now() < lockedUntil
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+
+    if (isLocked) {
+      const remaining = Math.ceil((lockedUntil - Date.now()) / 1000)
+      setError(`Terlalu banyak percobaan. Coba lagi dalam ${remaining} detik.`)
+      return
+    }
+
     setLoading(true)
     setError('')
 
@@ -36,11 +47,22 @@ export default function LoginPage() {
       })
 
       if (authError) {
-        setError('Email atau password salah. Silakan coba lagi.')
+        const newAttempts = attempts + 1
+        setAttempts(newAttempts)
+        if (newAttempts >= 5) {
+          const lockout = Date.now() + 5 * 60 * 1000 // 5 minutes
+          setLockedUntil(lockout)
+          setError('Terlalu banyak percobaan login. Kunci selama 5 menit.')
+          setAttempts(0)
+        } else {
+          setError(`Email atau password salah. Sisa percobaan: ${5 - newAttempts}`)
+        }
         return
       }
 
       if (data.user) {
+        setAttempts(0)
+        setLockedUntil(null)
         const { data: staffData } = await supabase
           .from('users')
           .select('role')
@@ -197,17 +219,17 @@ export default function LoginPage() {
           {/* Submit */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isLocked}
             style={{
               width: '100%',
               padding: '0.875rem',
-              background: loading ? '#e5e7eb' : '#cc7030',
-              color: loading ? '#9ca3af' : '#fff',
+              background: loading ? '#e5e7eb' : isLocked ? '#e5e7eb' : '#cc7030',
+              color: loading ? '#9ca3af' : isLocked ? '#9ca3af' : '#fff',
               border: 'none',
               borderRadius: '0.5rem',
               fontSize: '0.95rem',
               fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: loading ? 'not-allowed' : isLocked ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
