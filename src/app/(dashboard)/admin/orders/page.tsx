@@ -7,6 +7,7 @@ import { Plus, Search, ShoppingCart, ExternalLink, ChevronLeft, ChevronRight } f
 import type { Order } from '@/types'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const PAGE_SIZE = 20
 const formatRp = (n: number) =>
@@ -199,10 +200,7 @@ export default function OrdersPage() {
         {loading ? (
           <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={8} /></div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
-            <ShoppingCart size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-            <p>Belum ada pesanan</p>
-          </div>
+          <EmptyState icon="📦" title="Belum ada pesanan" description="Pesanan baru akan muncul di sini setelah dibuat." />
         ) : (
           <table>
             <thead>

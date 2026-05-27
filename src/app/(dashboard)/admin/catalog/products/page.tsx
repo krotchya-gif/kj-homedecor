@@ -8,6 +8,7 @@ import type { Product, Category } from '@/types'
 import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -276,10 +277,7 @@ export default function ProductsPage() {
         {loading ? (
           <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={7} /></div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
-            <Package size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-            <p>Belum ada produk</p>
-          </div>
+          <EmptyState icon="📦" title="Belum ada produk" description="Tambah produk baru dengan tombol di atas." />
         ) : (
           <table>
             <thead>

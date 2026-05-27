@@ -7,6 +7,7 @@ import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface Order {
   id: string
@@ -277,7 +278,7 @@ export default function AdminReportsPage() {
             {loading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
             ) : Object.keys(sourceRevenue).length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+              <EmptyState icon="📊" title="Tidak ada data" description="Tidak ada data untuk periode yang dipilih." />
             ) : (
               <table>
                 <thead>
@@ -312,7 +313,7 @@ export default function AdminReportsPage() {
             {loading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
             ) : topProducts.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+              <EmptyState icon="📊" title="Tidak ada data" description="Tidak ada data untuk periode yang dipilih." />
             ) : (
               <table>
                 <thead>

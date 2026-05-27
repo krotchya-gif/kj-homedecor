@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Customer } from '@/types'
 import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const PAGE_SIZE = 20
 
@@ -79,10 +80,7 @@ export default function CustomersPage() {
         {loading ? (
           <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={5} /></div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
-            <Users size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-            <p>Belum ada pelanggan</p>
-          </div>
+          <EmptyState icon="👥" title="Belum ada pelanggan" description="Tambah pelanggan baru dengan tombol di atas." />
         ) : (
           <table>
             <thead>

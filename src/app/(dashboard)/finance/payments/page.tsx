@@ -7,6 +7,7 @@ import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { useToast } from '@/components/ui/Toast'
 import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -311,10 +312,7 @@ export default function FinancePaymentsPage() {
             {loading ? (
               <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={8} /></div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding:'3rem', textAlign:'center', color:'#9ca3af' }}>
-                <DollarSign size={32} style={{ opacity:0.3, margin:'0 auto 0.75rem' }} />
-                <p>Tidak ada data pembayaran</p>
-              </div>
+              <EmptyState icon="💰" title="Tidak ada data pembayaran" description="Tidak ada pembayaran yang cocok dengan filter saat ini." />
             ) : (
               <table>
                 <thead>

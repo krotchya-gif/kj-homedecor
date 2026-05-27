@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { UserPlus, Key, Loader2, AlertTriangle, Search, Users, Pencil, Trash2, X, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
 import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const PAGE_SIZE = 20
 
@@ -180,11 +181,7 @@ export default function StaffPage() {
             {loading ? (
               <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={6} /></div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
-                <Users size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-                <p style={{ fontWeight: '600', color: '#6b7280' }}>Belum ada staff</p>
-                <p style={{ fontSize: '0.8rem' }}>Buat staff baru dengan form di sebelah kanan</p>
-              </div>
+              <EmptyState icon="👤" title="Belum ada staff" description="Buat staff baru dengan form di sebelah kanan." />
             ) : (
               <table>
                 <thead>
