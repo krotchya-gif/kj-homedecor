@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     // Verify HMAC SHA256 signature (Xendit sends signature in header)
     const xenditSignature = request.headers.get('x-xendit-signature')
-    const callbackKey = process.env.NEXT_PUBLIC_XENDIT_CALLBACK_KEY
+    const callbackKey = process.env.XENDIT_CALLBACK_KEY
 
     if (!xenditSignature || !callbackKey) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
           }).eq('id', order.id)
 
           // Record payment
-          await supabase.from('payments').insert({
+          const { error: insertError } = await supabase.from('payments').insert({
             order_id: order.id,
             type: paymentType,
             amount,
@@ -71,6 +71,12 @@ export async function POST(request: Request) {
             verified_by: 'system-xendit',
             verified_at: new Date().toISOString(),
           })
+
+          if (insertError) {
+            console.error('Failed to insert payment record:', insertError)
+            // Payment was not recorded - Xendit will retry
+            return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
+          }
         }
       }
 

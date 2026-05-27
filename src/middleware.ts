@@ -54,6 +54,43 @@ export async function middleware(request: NextRequest) {
     );
   }
 
+  // Role-based access control for dashboard routes
+  if (user && isDashboardRoute) {
+    const { data: staffData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const userRole = staffData?.role ?? "admin";
+
+    // Map dashboard paths to allowed roles
+    const ROLE_DASHBOARD_MAP: Record<string, string[]> = {
+      "/admin": ["admin", "owner"],
+      "/finance": ["finance", "owner"],
+      "/gudang": ["gudang", "owner"],
+      "/penjahit": ["penjahit", "owner"],
+      "/installer": ["installer", "owner"],
+      "/owner": ["owner"],
+    };
+
+    const allowedRoles = ROLE_DASHBOARD_MAP[pathname];
+    if (allowedRoles && !allowedRoles.includes(userRole)) {
+      // Redirect to user's own dashboard
+      const dashboards: Record<string, string> = {
+        admin: "/admin",
+        gudang: "/gudang",
+        penjahit: "/penjahit",
+        finance: "/finance",
+        installer: "/installer",
+        owner: "/owner",
+      };
+      return NextResponse.redirect(
+        new URL(dashboards[userRole] ?? "/login", request.url)
+      );
+    }
+  }
+
   return supabaseResponse;
 }
 

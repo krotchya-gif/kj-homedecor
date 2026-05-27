@@ -206,7 +206,7 @@ export default function FinancePaymentsPage() {
           { label: 'Belum Bayar',  val: orders.filter(o=>o.payment_status==='pending').length,  color:'#ef4444' },
           { label: 'Bayar DP',     val: orders.filter(o=>o.payment_status==='partial').length,  color:'#f59e0b' },
           { label: 'Lunas',        val: orders.filter(o=>o.payment_status==='paid').length,     color:'#22c55e' },
-          { label: 'Total Piutang',val: fmt(orders.filter(o=>o.payment_status!=='paid').reduce((s,o)=>s+(o.total_amount-o.dp_amount-o.lunas_amount),0)), color:'#cc7030' },
+          { label: 'Total Piutang',val: fmt(Math.max(0, orders.filter(o=>o.payment_status!=='paid').reduce((s,o)=>s+(o.total_amount-o.dp_amount-o.lunas_amount),0))), color:'#cc7030' },
         ].map(s=>(
           <div className="stat-card" key={s.label}>
             <div className="stat-card-label">{s.label}</div>
@@ -384,7 +384,7 @@ export default function FinancePaymentsPage() {
                 <tbody>
                   {qcOrders.map(qc => {
                     const o = qc.order
-                    const sisa = (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0)
+                    const sisa = (o?.total_amount ?? 0) - (o?.dp_amount ?? 0) - (o?.lunas_amount ?? 0)
                     return (
                       <tr key={qc.id}>
                         <td style={{ fontWeight:'500' }}>{o?.customer?.name ?? '—'}</td>

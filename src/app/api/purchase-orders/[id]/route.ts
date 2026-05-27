@@ -36,21 +36,32 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       const { data: pr } = await supabase.from('purchase_requests').select('material_id, qty').eq('id', currentPO.pr_id).single()
       if (pr?.material_id) {
         const materialQty = Number(pr.qty)
+        if (isNaN(materialQty) || materialQty <= 0) {
+          return NextResponse.json({ data: null, error: { message: 'Invalid material quantity' } }, { status: 400 })
+        }
         // Increment stock_gudang
         try {
-          await supabase.rpc('increment_stock_gudang', { material_id: pr.material_id, amount: materialQty })
-        } catch {
+          const { error: rpcError } = await supabase.rpc('increment_stock_gudang', { material_id: pr.material_id, amount: materialQty })
+          if (rpcError) throw rpcError
+        } catch (rpcErr: any) {
+          console.warn('RPC increment_stock_gudang failed, falling back to direct update:', rpcErr?.message)
           const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', pr.material_id).single()
-          if (mat) await supabase.from('materials').update({ stock_gudang: (mat.stock_gudang ?? 0) + materialQty }).eq('id', pr.material_id)
+          if (!mat) {
+            return NextResponse.json({ data: null, error: { message: 'Material not found' } }, { status: 404 })
+          }
+          await supabase.from('materials').update({ stock_gudang: (mat.stock_gudang ?? 0) + materialQty }).eq('id', pr.material_id)
         }
         // Record inventory movement
-        await supabase.from('inventory_movements').insert({
+        const { error: movError } = await supabase.from('inventory_movements').insert({
           material_id: pr.material_id,
           type: 'in',
           qty: materialQty,
           reason: `PO received — PO ${id.slice(0,8)}`,
           created_by: user?.id ?? null,
         })
+        if (movError) {
+          console.warn('Failed to record inventory movement:', movError)
+        }
 
         // Auto-create journal entry for PO received (inventory masuk)
         try {
@@ -74,16 +85,21 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Auto-create journal entry for PO payment (hutang lunas)
     if (currentPO?.actual_cost) {
-      try {
-        await createSimpleJournal({
-          transaction_type: 'expense_paid',
-          reference_type: 'purchase_order',
-          reference_id: id,
-          description: `PO payment — pelunasan tagihan supplier`,
-          amount: Number(currentPO.actual_cost),
-        })
-      } catch (e) {
-        console.warn('Failed to create journal entry for PO payment:', e)
+      const actualCostNum = Number(currentPO.actual_cost)
+      if (isNaN(actualCostNum) || actualCostNum <= 0) {
+        console.warn('Invalid actual_cost for journal entry:', currentPO.actual_cost)
+      } else {
+        try {
+          await createSimpleJournal({
+            transaction_type: 'expense_paid',
+            reference_type: 'purchase_order',
+            reference_id: id,
+            description: `PO payment — pelunasan tagihan supplier`,
+            amount: actualCostNum,
+          })
+        } catch (e) {
+          console.warn('Failed to create journal entry for PO payment:', e)
+        }
       }
     }
   }

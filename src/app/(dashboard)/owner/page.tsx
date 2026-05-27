@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { TrendingUp, Users, ShoppingCart, Package, Download, Loader2, ChevronDown } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 
 const COLORS = ['#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488']
@@ -203,7 +203,7 @@ export default function OwnerDashboard() {
                   <BarChart data={barData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replace('.', '')} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
                     <Tooltip formatter={(v) => formatRp(v as number)} />
                     <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -227,6 +227,27 @@ export default function OwnerDashboard() {
                 </ResponsiveContainer>
               )}
             </div>
+          </div>
+
+          {/* 12-Month Revenue Trend */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <TrendingUp size={16} color="#16a34a" />
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren Omzet 12 Bulan</h3>
+            </div>
+            {trendData.length === 0 ? (
+              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
+                  <Tooltip formatter={(v) => formatRp(v as number)} />
+                  <Line type="monotone" dataKey="revenue" stroke="#cc7030" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           {/* Top Products + Pipeline */}

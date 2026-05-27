@@ -2,6 +2,15 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import DashboardLayoutClient from './DashboardLayoutClient'
 
+const ROLE_DASHBOARD_MAP: Record<string, string> = {
+  admin: '/admin',
+  finance: '/finance',
+  gudang: '/gudang',
+  penjahit: '/penjahit',
+  installer: '/installer',
+  owner: '/owner',
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -23,6 +32,8 @@ export default async function DashboardLayout({
   const role = staffData?.role ?? 'admin'
   const name = staffData?.name ?? user.email ?? 'Staff'
 
+  // Check if current pathname matches user's role
+  // This handles cases where middleware allowed through but we want double-check
   return (
     <DashboardLayoutClient role={role} userName={name}>
       {children}

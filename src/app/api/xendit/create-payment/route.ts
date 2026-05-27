@@ -55,14 +55,23 @@ export async function POST(request: Request) {
 
     const xenditData = await xenditResponse.json()
 
+    // Determine payment type based on amount vs total
+    const isFullPayment = amount >= (order.total_amount ?? 0)
+    const paymentType = isFullPayment ? 'lunas' : 'dp'
+
     // Store payment reference
-    await supabase.from('payments').insert({
+    const { error: insertError } = await supabase.from('payments').insert({
       order_id,
-      type: 'dp', // initial payment
+      type: paymentType,
       amount,
       date: new Date().toISOString(),
       notes: `Xendit ${payment_type} - Invoice ${xenditData.id}`,
     })
+
+    if (insertError) {
+      console.error('Failed to record payment:', insertError)
+      return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
+    }
 
     return NextResponse.json({
       success: true,
