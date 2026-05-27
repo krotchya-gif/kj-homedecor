@@ -1,5 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const CreatePurchaseRequestSchema = z.object({
+  material_id: z.string().uuid(),
+  qty: z.number().min(1),
+  notes: z.string().optional(),
+  urgency: z.enum(['normal', 'urgent']).optional(),
+})
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -19,13 +27,15 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const body = await request.json()
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
-  body.created_by = user.id
-  const { data, error } = await supabase.from('purchase_requests').insert(body).select().single()
+  const body = await request.json()
+  const parsed = CreatePurchaseRequestSchema.safeParse(body)
+  if (!parsed.success) return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
+
+  const dataWithCreator = { ...parsed.data, created_by: user.id }
+  const { data, error } = await supabase.from('purchase_requests').insert(dataWithCreator).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
