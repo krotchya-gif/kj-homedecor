@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Package, AlertTriangle } from 'lucide-react'
+import { Plus, Search, Package, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Material } from '@/types'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+import { EmptyState } from '@/components/ui/EmptyState'
+
+const PAGE_SIZE = 20
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -14,6 +18,8 @@ export default function MaterialsPage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const [form, setForm] = useState({
     name: '', unit: 'meter', cost_per_unit: '', stock_gudang: '', stock_toko: '', min_stock_level: '',
   })
@@ -22,12 +28,20 @@ export default function MaterialsPage() {
 
   async function fetchMaterials() {
     setLoading(true)
-    const { data } = await supabase.from('materials').select('*, supplier:suppliers(name)').order('name')
-    setMaterials((data as Material[]) ?? [])
+    const from = (currentPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const [dataResult, countResult] = await Promise.all([
+      supabase.from('materials').select('*, supplier:suppliers(name)', { count: 'exact' }).order('name').range(from, to),
+      supabase.from('materials').select('id', { count: 'exact', head: true }),
+    ])
+
+    setMaterials((dataResult.data as Material[]) ?? [])
+    setTotalCount(countResult.count ?? 0)
     setLoading(false)
   }
 
-  useEffect(() => { fetchMaterials() }, [])
+  useEffect(() => { fetchMaterials() }, [currentPage])
 
   const filtered = materials.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -67,12 +81,9 @@ export default function MaterialsPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={6} /></div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
-            <Package size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-            <p>Belum ada material</p>
-          </div>
+          <EmptyState icon="📦" title="Belum ada material" description="Tambah material baru dengan tombol di atas." />
         ) : (
           <table>
             <thead>
@@ -113,6 +124,30 @@ export default function MaterialsPage() {
           </table>
         )}
       </div>
+
+      {!loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+            Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} material
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+            >
+              <ChevronLeft size={14} /> Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+            >
+              Selanjutnya <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
