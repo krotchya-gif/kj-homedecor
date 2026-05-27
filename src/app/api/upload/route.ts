@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { z } from 'zod'
+
+const FolderSchema = z.enum([
+  'products', 'banners', 'portfolio', 'evidence', 'documents',
+  'videos', 'order_progress', 'returns', 'qc', 'install',
+])
 
 const ALLOWED_TYPES = {
   products: ['image/jpeg', 'image/png', 'image/webp'],
@@ -32,17 +38,19 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File | null
-    const folder = formData.get('folder') as string | null
+    const folderRaw = formData.get('folder') as string | null
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
-    if (!folder || !ALLOWED_TYPES[folder as keyof typeof ALLOWED_TYPES]) {
+    const parsed = FolderSchema.safeParse(folderRaw)
+    if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid folder' }, { status: 400 })
     }
 
-    const folderKey = folder as keyof typeof ALLOWED_TYPES
+    const folder = parsed.data
+    const folderKey = folder
     const allowedTypes = ALLOWED_TYPES[folderKey]
     const maxSize = MAX_SIZES[folderKey]
 
@@ -90,10 +98,4 @@ export async function POST(request: NextRequest) {
     console.error('Upload error:', error)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
 }

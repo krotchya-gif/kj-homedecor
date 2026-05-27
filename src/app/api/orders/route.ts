@@ -1,6 +1,19 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { z } from 'zod'
+
+const OrderSourceSchema = z.enum(['shopee', 'tokopedia', 'tiktok', 'offline', 'landing_page'])
+const OrderClassificationSchema = z.enum(['kirim', 'pasang'])
+
+const CreateOrderSchema = z.object({
+  source: OrderSourceSchema.optional(),
+  classification: OrderClassificationSchema.optional(),
+  total_amount: z.number().min(0).optional(),
+  dp_amount: z.number().min(0).optional(),
+  customer_id: z.string().uuid().optional(),
+  notes: z.string().optional(),
+})
 
 export async function GET(request: Request) {
   const supabase = await createClient()
@@ -27,43 +40,36 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body = await request.json()
+  const parsed = CreateOrderSchema.safeParse(body)
 
-  // Validate required fields
-  const validSources = ['shopee', 'tokopedia', 'tiktok', 'offline', 'landing_page']
-  const validClassifications = ['kirim', 'pasang']
+  if (!parsed.success) {
+    return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
+  }
 
-  if (body.source && !validSources.includes(body.source)) {
-    return NextResponse.json({ data: null, error: { message: 'Invalid source' } }, { status: 400 })
-  }
-  if (body.classification && !validClassifications.includes(body.classification)) {
-    return NextResponse.json({ data: null, error: { message: 'Invalid classification' } }, { status: 400 })
-  }
-  if (body.total_amount !== undefined && (typeof body.total_amount !== 'number' || body.total_amount < 0)) {
-    return NextResponse.json({ data: null, error: { message: 'total_amount must be a non-negative number' } }, { status: 400 })
-  }
+  const data = parsed.data
 
   // Generate order number via RPC
   const { data: orderNum } = await supabase.rpc('generate_order_number')
   const orderNumber = typeof orderNum === 'string' ? orderNum : null
 
-  const orderData = { ...body, order_number: orderNumber }
-  const { data, error } = await supabase.from('orders').insert(orderData).select().single()
+  const orderData = { ...data, order_number: orderNumber }
+  const { data: order, error } = await supabase.from('orders').insert(orderData).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
-  if (data && body.total_amount > 0) {
+  if (order && data.total_amount && data.total_amount > 0) {
     try {
       await createSimpleJournal({
         transaction_type: 'order_created',
         reference_type: 'order',
-        reference_id: data.id,
-        description: `Order baru ${orderNumber ?? data.id.slice(0,8)} — ${body.customer_name ?? ''}`,
-        amount: Number(body.total_amount),
+        reference_id: order.id,
+        description: `Order baru ${orderNumber ?? order.id.slice(0,8)} — ${data.customer_id ?? ''}`,
+        amount: data.total_amount,
       })
     } catch (e) {
       console.warn('Failed to create journal entry for order:', e)
     }
   }
 
-  return NextResponse.json({ data, error: null })
+  return NextResponse.json({ data: order, error: null })
 }

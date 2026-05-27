@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { z } from 'zod'
+
+const CreateStaffSchema = z.object({
+  name: z.string().min(2, 'Nama minimal 2 karakter').max(100),
+  email: z.string().email('Email tidak valid'),
+  password: z.string().min(6, 'Password minimal 6 karakter').max(100),
+  role: z.enum(['admin', 'gudang', 'penjahit', 'finance', 'installer', 'owner'], {
+    message: 'Role tidak valid',
+  }),
+})
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, role } = await request.json()
+    const body = await request.json()
+    const parsed = CreateStaffSchema.safeParse(body)
 
-    if (!name || !email || !password || !role) {
-      return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
     }
 
-    const validRoles = ['admin', 'gudang', 'penjahit', 'finance', 'installer', 'owner']
-    if (!validRoles.includes(role)) {
-      return NextResponse.json({ error: 'Role tidak valid' }, { status: 400 })
-    }
+    const { name, email, password, role } = parsed.data
 
     // Use service role to create user
     const cookieStore = await cookies()
