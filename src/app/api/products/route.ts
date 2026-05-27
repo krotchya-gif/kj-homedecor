@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await query
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
-  return NextResponse.json({ data, null })
+  return NextResponse.json({ data, error: null })
 }
 
 export async function POST(request: Request) {
