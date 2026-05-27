@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { BarChart3, Download, TrendingUp, ShoppingCart, Users, Package } from 'lucide-react'
+import { BarChart3, Download, TrendingUp, ShoppingCart, Users, Package, FileDown } from 'lucide-react'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/Skeleton'
 
 interface Order {
   id: string
@@ -120,6 +123,73 @@ export default function AdminReportsPage() {
     URL.revokeObjectURL(url)
   }
 
+  function exportPDF() {
+    const doc = new jsPDF()
+    const periodLabel = month === 0 ? `Tahun ${year}` : `${MONTHS[month - 1]} ${year}`
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('KJ Homedecor — Laporan Penjualan', 14, 20)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor('#6b7280')
+    doc.text(`Periode: ${periodLabel} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
+    doc.setTextColor('#000')
+
+    // Summary stats
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Ringkasan', 14, 40)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Total Pesanan : ${totalOrders}`, 14, 48)
+    doc.text(`Total Omzet   : ${formatRp(totalRevenue)}`, 14, 54)
+    doc.text(`Rata-rata Order: ${formatRp(avgOrderValue)}`, 14, 60)
+
+    // Pipeline table
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Pipeline Pesanan', 14, 72)
+    autoTable(doc, {
+      startY: 76,
+      head: [['Status', 'Jumlah']],
+      body: STATUS_ORDER.map(s => [STATUS_LABELS[s as keyof typeof STATUS_LABELS] ?? s, String(pipelineCounts[s])]),
+      theme: 'striped',
+      headStyles: { fillColor: '#cc7030' },
+    })
+
+    // Marketplace breakdown
+    const marketStartY = (doc as any).lastAutoTable.finalY + 10
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Per Marketplace', 14, marketStartY)
+    autoTable(doc, {
+      startY: marketStartY + 4,
+      head: [['Marketplace', 'Order', 'Omzet']],
+      body: Object.entries(sourceRevenue).sort(([, a], [, b]) => b - a).map(([src, rev]) => [
+        SOURCE_LABELS[src as keyof typeof SOURCE_LABELS] ?? src,
+        String(sourceOrders[src] ?? 0),
+        formatRp(rev),
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: '#cc7030' },
+    })
+
+    // Top products
+    const prodStartY = ((doc as any).lastAutoTable.finalY ?? 0) + 10
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Produk Terlaris', 14, prodStartY)
+    autoTable(doc, {
+      startY: prodStartY + 4,
+      head: [['#', 'Produk', 'Qty', 'Revenue']],
+      body: topProducts.map((p, i) => [String(i + 1), p.name, String(p.count), formatRp(p.revenue)]),
+      theme: 'striped',
+      headStyles: { fillColor: '#cc7030' },
+    })
+
+    doc.save(`kj-laporan-${year}-${month}.pdf`)
+  }
+
   return (
     <div>
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
@@ -132,6 +202,12 @@ export default function AdminReportsPage() {
           style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}
         >
           <Download size={16} /> Export CSV
+        </button>
+        <button
+          onClick={exportPDF}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}
+        >
+          <FileDown size={16} /> Export PDF
         </button>
       </div>
 
@@ -147,23 +223,27 @@ export default function AdminReportsPage() {
       </div>
 
       {/* Stat Cards */}
-      <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
-        <div className="stat-card">
-          <div className="stat-card-label">Total Pesanan</div>
-          <div className="stat-card-value">{totalOrders}</div>
-          <div className="stat-card-sub">{month === 0 ? year : MONTHS[month - 1] + ' ' + year}</div>
+      {loading ? (
+        <StatCardSkeleton />
+      ) : (
+        <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
+          <div className="stat-card">
+            <div className="stat-card-label">Total Pesanan</div>
+            <div className="stat-card-value">{totalOrders}</div>
+            <div className="stat-card-sub">{month === 0 ? year : MONTHS[month - 1] + ' ' + year}</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-label">Total Omzet</div>
+            <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
+            <div className="stat-card-sub">Pendapatan kotor</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-card-label">Rata-rata Order</div>
+            <div className="stat-card-value" style={{ color: '#7c3aed' }}>{formatRp(avgOrderValue)}</div>
+            <div className="stat-card-sub">Per pesanan</div>
+          </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Total Omzet</div>
-          <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
-          <div className="stat-card-sub">Pendapatan kotor</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-card-label">Rata-rata Order</div>
-          <div className="stat-card-value" style={{ color: '#7c3aed' }}>{formatRp(avgOrderValue)}</div>
-          <div className="stat-card-sub">Per pesanan</div>
-        </div>
-      </div>
+      )}
 
       {/* Pipeline Funnel */}
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>

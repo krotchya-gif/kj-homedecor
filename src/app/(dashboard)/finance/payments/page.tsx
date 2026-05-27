@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { CheckCircle2, DollarSign, Search, Lock } from 'lucide-react'
+import { CheckCircle2, DollarSign, Search, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { useToast } from '@/components/ui/Toast'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
+const PAGE_SIZE = 20
 
 const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef2f2', text: '#991b1b' },
@@ -28,7 +32,10 @@ export default function FinancePaymentsPage() {
   const [refundList, setRefundList] = useState<any[]>([])
   const [processingRefund, setProcessingRefund] = useState<string | null>(null)
   const [qcOrders, setQcOrders] = useState<any[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
   const supabase = createClient()
+  const { toast } = useToast()
 
   async function load() {
     setLoading(true)
@@ -38,19 +45,27 @@ export default function FinancePaymentsPage() {
       setCurrentUser(userData)
     }
 
+    const from = (currentPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
     const [ordersData, returnsData, qcData] = await Promise.all([
-      supabase.from('orders').select('id, total_amount, dp_amount, lunas_amount, payment_status, status, created_at, customer:customers(name, phone)').order('created_at', { ascending: false }),
+      supabase
+        .from('orders')
+        .select('id, total_amount, dp_amount, lunas_amount, payment_status, status, created_at, customer:customers(name, phone)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to),
       supabase.from('returns').select('*, order:orders(id, customer:customers(name))').order('created_at', { ascending: false }),
       supabase.from('steam_jobs').select('*, order:orders(id, total_amount, dp_amount, lunas_amount, payment_status, status, customer:customers(name, phone))').eq('result', 'pass').eq('status', 'done'),
     ])
 
     setOrders(ordersData.data ?? [])
+    setTotalCount(ordersData.count ?? 0)
     setRefundList(returnsData.data ?? [])
     const qcApproved = (qcData.data ?? []).filter((sq: any) => sq.order?.payment_status !== 'paid')
     setQcOrders(qcApproved)
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [currentPage])
 
   async function getVerifiedPayment(orderId: string): Promise<any | null> {
     const { data } = await supabase
@@ -116,16 +131,16 @@ export default function FinancePaymentsPage() {
   async function handleApprove(order: any) {
     const paidSum = order.dp_amount + order.lunas_amount
     if (paidSum < order.total_amount) {
-      alert(`❌ Gagal Approve\n\nSisa pembayaran: ${fmt(order.total_amount - paidSum)}\n\nOrder belum lunas!`)
+      toast('error', `Gagal Approve — Sisa pembayaran ${fmt(order.total_amount - paidSum)}, order belum lunas!`)
       return
     }
     const verifiedPayment = await getVerifiedPayment(order.id)
     if (!verifiedPayment) {
-      alert('❌ Gagal Approve\n\nBelum ada pembayaran yang diverifikasi.\n\nLakukan input pembayaran terlebih dahulu.')
+      toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
       return
     }
     if (order.status !== 'sorted') {
-      alert(`❌ Status order belum bisa diapprove.\n\nOrder saat ini: "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}"\n\nApprove hanya untuk order dengan status "Sudah Disortir".`)
+      toast('error', `Status order belum bisa diapprove. Order saat ini: "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}"`)
       return
     }
     await supabase.from('orders').update({ status: 'payment_ok' }).eq('id', order.id).eq('status', 'sorted')
@@ -134,7 +149,7 @@ export default function FinancePaymentsPage() {
       notes: `Payment gate approved oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}`,
       staff_id: currentUser?.id,
     })
-    alert(`✅ Order berhasil diapprove!\n\nStatus berubah menjadi: "Pembayaran OK"\n\nOrder siap masuk ke produksi.`)
+    toast('success', 'Order berhasil diapprove! Status berubah menjadi "Pembayaran OK".')
     load()
   }
 
@@ -142,16 +157,16 @@ export default function FinancePaymentsPage() {
     if (!confirm(`Konfirmasi Approve Order\n\nPelanggan: ${order.customer?.name ?? '-'}\nTotal: ${fmt(order.total_amount)} — Lunas\n\nStatus akan berubah menjadi "Siap Kirim" dan order siap dikemas/dikirim.`)) return
     const paidSum = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
     if (paidSum < (order.total_amount ?? 0)) {
-      alert(`❌ Gagal Approve\n\nSisa pembayaran: ${fmt((order.total_amount ?? 0) - paidSum)}\n\nOrder belum lunas!`)
+      toast('error', `Gagal Approve — Sisa pembayaran ${fmt((order.total_amount ?? 0) - paidSum)}, order belum lunas!`)
       return
     }
     const verifiedPayment = await getVerifiedPayment(order.id)
     if (!verifiedPayment) {
-      alert('❌ Gagal Approve\n\nBelum ada pembayaran yang diverifikasi.\n\nLakukan input pembayaran terlebih dahulu.')
+      toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
       return
     }
     if (order.status !== 'steam') {
-      alert(`❌ Status order belum bisa diapprove.\n\nOrder saat ini: "${(STATUS_LABELS as Record<string,string>)[order.status]}"\n\nApprove QC hanya untuk order dengan status "Steam/QC".`)
+      toast('error', `Status order belum bisa diapprove. Order saat ini: "${(STATUS_LABELS as Record<string,string>)[order.status]}"`)
       return
     }
     await supabase.from('orders').update({ status: 'ready' }).eq('id', order.id).eq('status', 'steam')
@@ -160,12 +175,12 @@ export default function FinancePaymentsPage() {
       notes: `QC Approved — Finance approve oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}`,
       staff_id: currentUser?.id,
     })
-    alert(`✅ Order berhasil diapprove!\n\nStatus berubah menjadi: "Siap Kirim"\n\nOrder siap dikemas dan dikirim.`)
+    toast('success', 'Order berhasil diapprove! Status berubah menjadi "Siap Kirim". Order siap dikemas dan dikirim.')
     load()
   }
 
   async function handleRefund(returnRecord: any) {
-    if (returnRecord.refund_amount <= 0) { alert('Tidak ada jumlah refund untuk diproses.'); return }
+    if (returnRecord.refund_amount <= 0) { toast('warning', 'Tidak ada jumlah refund untuk diproses.'); return }
     if (!confirm(`Proses refund Rp${fmt(returnRecord.refund_amount)} untuk order ${returnRecord.order_id.slice(0,8)}?\n\nIni akan mencatat pengurangan pembayaran.`)) return
     setProcessingRefund(returnRecord.id)
     const { data: { user } } = await supabase.auth.getUser()
@@ -181,7 +196,7 @@ export default function FinancePaymentsPage() {
       staff_id: user?.id ?? null,
     })
     setProcessingRefund(null)
-    alert(`✅ Refund Rp${fmt(returnRecord.refund_amount)} berhasil diproses!`)
+    toast('success', `Refund ${fmt(returnRecord.refund_amount)} berhasil diproses!`)
     load()
   }
 
@@ -294,7 +309,7 @@ export default function FinancePaymentsPage() {
 
           <div className="data-table">
             {loading ? (
-              <div style={{ padding:'3rem', textAlign:'center', color:'#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={8} /></div>
             ) : filtered.length === 0 ? (
               <div style={{ padding:'3rem', textAlign:'center', color:'#9ca3af' }}>
                 <DollarSign size={32} style={{ opacity:0.3, margin:'0 auto 0.75rem' }} />
@@ -360,6 +375,31 @@ export default function FinancePaymentsPage() {
               </table>
             )}
           </div>
+
+          {/* Pagination */}
+          {!loading && filtered.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} order
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+                >
+                  <ChevronLeft size={14} /> Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+                >
+                  Selanjutnya <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 

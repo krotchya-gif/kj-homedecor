@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { BarChart3, Download, Package, ArrowDownLeft, ArrowUpRight, Loader2 } from 'lucide-react'
+import { BarChart3, Download, Package, ArrowDownLeft, ArrowUpRight, Loader2, FileDown } from 'lucide-react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 interface InventoryMovement {
   id: string
@@ -46,6 +48,48 @@ export default function GudangReportsPage() {
   }
 
   const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
+  function exportPDF() {
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('KJ Homedecor — Laporan Gudang', 14, 20)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor('#6b7280')
+    doc.text(`Periode: ${MONTHS[period.month - 1]} ${period.year} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
+    doc.setTextColor('#000')
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Ringkasan', 14, 40)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Barang Masuk  : ${totalIn.toLocaleString()} unit`, 14, 48)
+    doc.text(`Barang Keluar : ${totalOut.toLocaleString()} unit`, 14, 54)
+    doc.text(`Transfer      : ${totalTransfer.toLocaleString()} unit`, 14, 60)
+    doc.text(`Total Movement: ${movements.length} transaksi`, 14, 66)
+
+    autoTable(doc, {
+      startY: 74,
+      head: [['Tanggal', 'Material', 'Tipe', 'Qty', 'Dari', 'Ke', 'Alasan', 'Staff']],
+      body: movements.map(m => [
+        new Date(m.created_at).toLocaleDateString('id-ID'),
+        m.material?.name ?? '—',
+        typeLabels[m.type] ?? m.type,
+        String(m.qty),
+        m.from_location ?? '—',
+        m.to_location ?? '—',
+        m.reason ?? '—',
+        m.staff?.name ?? '—',
+      ]),
+      theme: 'striped',
+      headStyles: { fillColor: '#cc7030' },
+      columnStyles: { 4: { cellWidth: 30 }, 5: { cellWidth: 30 } },
+    })
+
+    doc.save(`kj-gudang-${period.year}-${String(period.month).padStart(2, '0')}.pdf`)
+  }
 
   function exportCSV() {
     const headers = ['Tanggal', 'Material', 'Tipe', 'Qty', 'Lokasi Dari', 'Lokasi Ke', 'Alasan', 'Staff']
@@ -97,6 +141,12 @@ export default function GudangReportsPage() {
           style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}
         >
           <Download size={16} /> Export CSV
+        </button>
+        <button
+          onClick={exportPDF}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}
+        >
+          <FileDown size={16} /> Export PDF
         </button>
       </div>
 

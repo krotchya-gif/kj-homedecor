@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { BarChart3, TrendingUp, DollarSign, Scissors } from 'lucide-react'
+import { BarChart3, TrendingUp, DollarSign, Scissors, FileDown } from 'lucide-react'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const fmt  = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
@@ -70,13 +72,74 @@ export default function FinanceReportsPage() {
 
   const totalLemburJam = periodLembur.reduce((s, l) => s + (l.jam ?? 0), 0)
 
+  function exportPDF() {
+    const doc = new jsPDF()
+    doc.setFontSize(16)
+    doc.setFont('helvetica', 'bold')
+    doc.text('KJ Homedecor — Laporan Keuangan', 14, 20)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor('#6b7280')
+    doc.text(`Periode: ${MONTHS[month]} ${year} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
+    doc.setTextColor('#000')
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Ringkasan', 14, 40)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Total Omzet      : ${fmt(totalRevenue)}`, 14, 48)
+    doc.text(`Total DP Masuk   : ${fmt(totalDp)}`, 14, 54)
+    doc.text(`Total Pelunasan  : ${fmt(totalLunas)}`, 14, 60)
+    doc.text(`Jumlah Pesanan   : ${periodOrders.length}`, 14, 66)
+
+    const penjahitData = Object.entries(byPenjahit).map(([id, p]) => ({
+      name: p.name,
+      gorden: p.gorden.toFixed(2),
+      vitras: p.vitras.toFixed(2),
+      roman: p.roman.toFixed(2),
+      kupu_kupu: p.kupu_kupu.toFixed(2),
+      poni_lurus: String(p.poni_lurus),
+      poni_gel: String(p.poni_gel),
+      upah: fmt(calcUpah(p)),
+    }))
+    const totalUpah = Object.values(byPenjahit).reduce((s, p) => s + calcUpah(p), 0)
+
+    const startY = 78
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Rekap Pengupahan Penjahit', 14, startY)
+    autoTable(doc, {
+      startY: startY + 4,
+      head: [['Nama', 'Gorden (m)', 'Vitras (m)', 'Roman (m)', 'Kupu² (m)', 'P.Lurus', 'P.Gel', 'Est. Upah']],
+      body: [...penjahitData, { name: 'TOTAL', gorden: '', vitras: '', roman: '', kupu_kupu: '', poni_lurus: '', poni_gel: '', upah: fmt(totalUpah) }],
+      theme: 'striped',
+      headStyles: { fillColor: '#cc7030' },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.row.index === penjahitData.length) {
+          data.cell.styles.fontStyle = 'bold'
+        }
+      },
+    })
+
+    doc.save(`kj-keuangan-${year}-${String(month + 1).padStart(2, '0')}.pdf`)
+  }
+
   if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Laporan Keuangan</h1>
-        <p className="page-subtitle">Laporan penjualan, platform breakdown & rekap pengupahan penjahit</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 className="page-title">Laporan Keuangan</h1>
+          <p className="page-subtitle">Laporan penjualan, platform breakdown & rekap pengupahan penjahit</p>
+        </div>
+        <button
+          onClick={exportPDF}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}
+        >
+          <FileDown size={16} /> Export PDF
+        </button>
       </div>
 
       {/* Period picker */}

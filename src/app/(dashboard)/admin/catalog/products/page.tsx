@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Pencil, Trash2, Package, Star } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Package, Star, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Product, Category } from '@/types'
 import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
+import { useToast } from '@/components/ui/Toast'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
+const PAGE_SIZE = 20
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -17,6 +21,8 @@ export default function ProductsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
   const [activeTab, setActiveTab] = useState<'gorden' | 'perabot' | 'all'>('all')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   // Form state
   const [categories, setCategories] = useState<Category[]>([])
@@ -41,19 +47,33 @@ export default function ProductsPage() {
     dimension_l: '',
     dimension_t: '',
     weight: '',
+    // Images
+    images: [] as string[],
   })
   type Field = { label: string; id: string; placeholder: string; type?: string }
   const [saving, setSaving] = useState(false)
 
   const supabase = createClient()
+  const { toast } = useToast()
 
   async function fetchProducts() {
     setLoading(true)
-    const { data } = await supabase
-      .from('products')
-      .select('*, category:categories(name)')
-      .order('created_at', { ascending: false })
-    setProducts((data as Product[]) ?? [])
+    const from = (currentPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const [dataResult, countResult] = await Promise.all([
+      supabase
+        .from('products')
+        .select('*, category:categories(name)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to),
+      supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true }),
+    ])
+
+    setProducts((dataResult.data as Product[]) ?? [])
+    setTotalCount(countResult.count ?? 0)
     setLoading(false)
   }
 
@@ -64,7 +84,7 @@ export default function ProductsPage() {
       setCategories((data as Category[]) ?? [])
     }
     fetchCategories()
-  }, [])
+  }, [currentPage])
 
   const filtered = products.filter(
     (p) =>
@@ -81,6 +101,7 @@ export default function ProductsPage() {
       product_type: activeTab === 'all' ? 'perabot' : activeTab,
       style_variants: [], smokring_colors: [], color_variants: '',
       dimension_p: '', dimension_l: '', dimension_t: '', weight: '',
+      images: [],
     })
     setShowForm(true)
   }
@@ -105,6 +126,7 @@ export default function ProductsPage() {
       dimension_l: p.dimension_l ? String(p.dimension_l) : '',
       dimension_t: p.dimension_t ? String(p.dimension_t) : '',
       weight: p.weight ? String(p.weight) : '',
+      images: p.images ?? [],
     })
     setShowForm(true)
   }
@@ -130,6 +152,7 @@ export default function ProductsPage() {
       dimension_l: form.dimension_l ? Number(form.dimension_l) : null,
       dimension_t: form.dimension_t ? Number(form.dimension_t) : null,
       weight: form.weight ? Number(form.weight) : null,
+      images: form.images,
     }
     if (editProduct) {
       await supabase.from('products').update(payload).eq('id', editProduct.id)
@@ -138,6 +161,7 @@ export default function ProductsPage() {
     }
     setSaving(false)
     setShowForm(false)
+    toast('success', editProduct ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan')
     fetchProducts()
   }
 
@@ -145,9 +169,10 @@ export default function ProductsPage() {
     if (!confirm('Hapus produk ini?')) return
     const { error } = await supabase.from('products').delete().eq('id', id)
     if (error) {
-      alert('Gagal hapus: ' + error.message)
+      toast('error', 'Gagal hapus: ' + error.message)
       return
     }
+    toast('success', 'Produk berhasil dihapus')
     fetchProducts()
   }
 
@@ -249,7 +274,7 @@ export default function ProductsPage() {
       {/* Table */}
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={7} /></div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
             <Package size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
@@ -270,8 +295,17 @@ export default function ProductsPage() {
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.id}>
-                  <td style={{ fontWeight: '500' }}>{p.name}</td>
+                <tr key={p.id} onClick={() => openEdit(p)} style={{ cursor: 'pointer' }}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {p.images && p.images.length > 0 ? (
+                        <img src={p.images[0]} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: '0.375rem', border: '1px solid #e5e7eb' }} />
+                      ) : (
+                        <div style={{ width: 36, height: 36, background: '#f3f4f6', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.7rem' }}>📷</div>
+                      )}
+                      <span style={{ fontWeight: '500' }}>{p.name}</span>
+                    </div>
+                  </td>
                   <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku ?? '—'}</td>
                   <td style={{ color: '#6b7280' }}>{p.kode_kain ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
@@ -317,6 +351,31 @@ export default function ProductsPage() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+            Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} produk
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+            >
+              <ChevronLeft size={14} /> Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+            >
+              Selanjutnya <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal Form */}
       {showForm && (
@@ -519,6 +578,52 @@ export default function ProductsPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Foto Produk
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  {form.images.map((img, i) => (
+                    <div key={i} style={{ position: 'relative', width: 72, height: 72, borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
+                        style={{ position: 'absolute', top: 2, right: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, cursor: 'pointer', fontSize: '0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >✕</button>
+                    </div>
+                  ))}
+                  <label style={{ width: 72, height: 72, border: '2px dashed #d1d5db', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#9ca3af', fontSize: '0.7rem', textAlign: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '1.2rem' }}>+</div>
+                      <div>Tambah</div>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        const fd = new FormData()
+                        fd.append('file', file)
+                        fd.append('folder', 'products')
+                        const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                        const json = await res.json()
+                        if (json.success) {
+                          setForm(f => ({ ...f, images: [...f.images, json.url] }))
+                        } else {
+                          toast('error', 'Gagal upload gambar')
+                        }
+                        e.target.value = ''
+                      }}
+                    />
+                  </label>
+                </div>
+                <p style={{ fontSize: '0.7rem', color: '#9ca3af' }}>PNG, JPG, WebP — maks 5MB per foto</p>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>

@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, ShoppingCart, ExternalLink } from 'lucide-react'
+import { Plus, Search, ShoppingCart, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Order } from '@/types'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
+import { TableSkeleton } from '@/components/ui/Skeleton'
 
+const PAGE_SIZE = 20
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
@@ -39,6 +41,8 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   const [form, setForm] = useState({
     source: 'offline',
@@ -54,15 +58,26 @@ export default function OrdersPage() {
 
   async function fetchOrders() {
     setLoading(true)
-    const { data } = await supabase
-      .from('orders')
-      .select('*, customer:customers(name, phone)')
-      .order('created_at', { ascending: false })
-    setOrders((data as Order[]) ?? [])
+    const from = (currentPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const [ordersResult, countResult] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('*, customer:customers(name, phone)', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(from, to),
+      supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true }),
+    ])
+
+    setOrders((ordersResult.data as Order[]) ?? [])
+    setTotalCount(countResult.count ?? 0)
     setLoading(false)
   }
 
-  useEffect(() => { fetchOrders() }, [])
+  useEffect(() => { fetchOrders() }, [currentPage])
 
   const filtered = orders.filter((o) => {
     const matchSearch =
@@ -182,7 +197,7 @@ export default function OrdersPage() {
       {/* Table */}
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={8} /></div>
         ) : filtered.length === 0 ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
             <ShoppingCart size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
@@ -257,6 +272,31 @@ export default function OrdersPage() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+            Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} pesanan
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+            >
+              <ChevronLeft size={14} /> Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+            >
+              Selanjutnya <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Create Order Modal */}
       {showForm && (

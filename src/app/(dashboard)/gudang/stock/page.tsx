@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Package, AlertTriangle } from 'lucide-react'
+import { Package, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+
+const PAGE_SIZE = 20
 
 export default function GudangStockPage() {
   const [materials, setMaterials] = useState<any[]>([])
@@ -10,19 +13,32 @@ export default function GudangStockPage() {
   const [loading, setLoading]     = useState(true)
   const [tab, setTab]             = useState<'materials'|'products'>('materials')
   const [search, setSearch]       = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [totalCountProd, setTotalCountProd] = useState(0)
   const supabase = createClient()
 
   async function load() {
     setLoading(true)
-    const [mRes, pRes] = await Promise.all([
-      supabase.from('materials').select('*, supplier:suppliers(name)').order('name'),
-      supabase.from('products').select('*, category:categories(name)').order('name'),
+    const from = (currentPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const tabKey = tab === 'materials' ? 'materials' : 'products'
+    const countKey = tabKey === 'materials' ? totalCount : totalCountProd
+
+    const [mRes, pRes, mCountRes, pCountRes] = await Promise.all([
+      supabase.from('materials').select('*, supplier:suppliers(name)', { count: 'exact' }).order('name').range(from, to),
+      supabase.from('products').select('*, category:categories(name)', { count: 'exact' }).order('name').range(from, to),
+      supabase.from('materials').select('id', { count: 'exact', head: true }),
+      supabase.from('products').select('id', { count: 'exact', head: true }),
     ])
     setMaterials(mRes.data ?? [])
+    setTotalCount(mCountRes.count ?? 0)
     setProducts(pRes.data ?? [])
+    setTotalCountProd(pCountRes.count ?? 0)
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [currentPage, tab])
 
   const filteredMat  = materials.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
   const filteredProd = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
@@ -48,7 +64,7 @@ export default function GudangStockPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding:'2rem', textAlign:'center', color:'#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={6} /></div>
         ) : tab === 'materials' ? (
           <table>
             <thead><tr><th>Nama Material</th><th>Satuan</th><th>Stok Gudang</th><th>Stok Toko</th><th>Min. Stok</th><th>Status</th></tr></thead>
@@ -87,6 +103,31 @@ export default function GudangStockPage() {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && (filteredMat.length > 0 || filteredProd.length > 0) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+            Halaman {currentPage} dari {Math.max(1, Math.ceil((tab === 'materials' ? totalCount : totalCountProd) / PAGE_SIZE))} — {tab === 'materials' ? totalCount : totalCountProd} {tab === 'materials' ? 'material' : 'produk'}
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+            >
+              <ChevronLeft size={14} /> Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage(p => p + 1)}
+              disabled={currentPage >= Math.ceil((tab === 'materials' ? totalCount : totalCountProd) / PAGE_SIZE)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil((tab === 'materials' ? totalCount : totalCountProd) / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil((tab === 'materials' ? totalCount : totalCountProd) / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+            >
+              Selanjutnya <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

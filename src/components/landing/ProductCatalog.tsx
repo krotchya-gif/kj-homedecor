@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 import { Search, MessageCircle, Package, X } from 'lucide-react'
 import type { Product, Category } from '@/types'
@@ -138,7 +139,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               <Link href={`/products/${p.id}`} style={{ display: 'block' }}>
                 <div style={{ aspectRatio: '4/3', background: 'linear-gradient(135deg, #fdf8f3 0%, #f5e6d3 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
                   {(p.images as string[])?.length > 0 ? (
-                    <img src={(p.images as string[])[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }} />
+                    <Image src={(p.images as string[])[0]} alt={p.name} fill style={{ objectFit: 'cover', transition: 'transform 0.3s' }} sizes="(max-width: 640px) 50vw, 25vw" />
                   ) : (
                     <Package size={40} style={{ color: '#DDC0B433' }} />
                   )}

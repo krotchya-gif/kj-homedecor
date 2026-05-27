@@ -2,7 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { UserPlus, Key, Loader2, AlertTriangle, Search, Users, Pencil, Trash2, X, CheckCircle } from 'lucide-react'
+import { UserPlus, Key, Loader2, AlertTriangle, Search, Users, Pencil, Trash2, X, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { TableSkeleton } from '@/components/ui/Skeleton'
+
+const PAGE_SIZE = 20
 
 const ROLES = [
   { value: 'admin', label: 'Admin', desc: 'Catalog, pesanan, pelanggan', color: '#dc2626' },
@@ -46,6 +49,8 @@ export default function StaffPage() {
   const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: '', role: '', status: '' })
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'gudang' })
 
@@ -55,10 +60,18 @@ export default function StaffPage() {
 
   async function fetchStaff() {
     setLoading(true)
-    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false })
-    setStaff((data as StaffUser[]) ?? [])
+    const from = (currentPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    const [dataResult, countResult] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, to),
+      supabase.from('users').select('id', { count: 'exact', head: true }),
+    ])
+    setStaff((dataResult.data as StaffUser[]) ?? [])
+    setTotalCount(countResult.count ?? 0)
     setLoading(false)
   }
+  useEffect(() => { fetchStaff() }, [currentPage])
 
   const filtered = staff.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -165,10 +178,7 @@ export default function StaffPage() {
           {/* Table */}
           <div className="data-table overflow-x-auto">
             {loading ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
-                <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 0.5rem' }} />
-                <p>Memuat...</p>
-              </div>
+              <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={6} /></div>
             ) : filtered.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
                 <Users size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
@@ -268,6 +278,31 @@ export default function StaffPage() {
               </table>
             )}
           </div>
+
+          {/* Pagination */}
+          {!loading && filtered.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} staff
+              </span>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+                >
+                  <ChevronLeft size={14} /> Sebelumnya
+                </button>
+                <button
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+                >
+                  Selanjutnya <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* RIGHT — Create Form */}

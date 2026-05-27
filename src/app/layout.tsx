@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import SeoScripts from "@/components/SeoScripts";
+import Providers from "@/components/Providers";
 
 export const viewport: Viewport = {
   themeColor: "#DDC0B4",
@@ -40,8 +41,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <SeoScripts />
-          {children}
+          <Providers>
+            <SeoScripts />
+            {children}
+          </Providers>
         </ThemeProvider>
       </body>
     </html>
