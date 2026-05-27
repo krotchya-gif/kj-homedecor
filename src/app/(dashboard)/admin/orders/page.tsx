@@ -99,14 +99,14 @@ export default function OrdersPage() {
 
     // Create or find existing customer
     let customerId: string | null = null
+    let customerWasCreated = false
     if (form.customer_name.trim()) {
       const nameTrimmed = form.customer_name.trim()
       // Look up existing customer by phone (if provided) or name
-      const phoneFilter = form.customer_phone ? { phone: form.customer_phone } : { name: nameTrimmed }
       const { data: existingCust } = await supabase
         .from('customers')
         .select('id')
-        .eq(phoneFilter.phone ? 'phone' : 'name', phoneFilter.phone ?? phoneFilter.name)
+        .eq(form.customer_phone ? 'phone' : 'name', form.customer_phone ?? nameTrimmed)
         .maybeSingle()
 
       if (existingCust) {
@@ -118,6 +118,7 @@ export default function OrdersPage() {
           .select('id')
           .single()
         customerId = cust?.id ?? null
+        customerWasCreated = !!customerId
       }
     }
 
@@ -126,7 +127,7 @@ export default function OrdersPage() {
     const paymentStatus = dpAmt >= totalAmt && totalAmt > 0 ? 'paid' : dpAmt > 0 ? 'partial' : 'pending'
 
     // Insert order
-    const { data: newOrder } = await supabase.from('orders').insert({
+    const { data: newOrder, error: orderError } = await supabase.from('orders').insert({
       source: form.source,
       classification: form.classification,
       customer_id: customerId,
@@ -137,6 +138,16 @@ export default function OrdersPage() {
       notes: form.notes || null,
     }).select('id').single()
 
+    if (orderError || !newOrder) {
+      // Rollback: delete orphaned customer if it was just created
+      if (customerId && customerWasCreated) {
+        await supabase.from('customers').delete().eq('id', customerId)
+      }
+      setSaving(false)
+      alert(orderError?.message ?? 'Gagal membuat pesanan')
+      return
+    }
+
     // Auto-create verified payment for marketplace orders that are fully paid
     const marketplaceSources = ['shopee', 'tokopedia', 'tiktok']
     if (newOrder && marketplaceSources.includes(form.source) && dpAmt >= totalAmt && totalAmt > 0) {
@@ -145,8 +156,6 @@ export default function OrdersPage() {
         type: dpAmt === totalAmt ? 'lunas' : 'dp',
         amount: dpAmt === totalAmt ? totalAmt : dpAmt,
         date: new Date().toISOString(),
-        verified_by: 'marketplace-auto',
-        verified_at: new Date().toISOString(),
         notes: `Auto-verified: Order dari ${form.source}`,
       })
     }

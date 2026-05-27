@@ -69,10 +69,9 @@ export default function AdminDashboardPage() {
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const supabase = createClient()
 
-  useEffect(() => { loadData() }, [])
-
-  // Realtime subscription for order updates
   useEffect(() => {
+    loadData()
+
     const channel = supabase
       .channel('admin-orders-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
