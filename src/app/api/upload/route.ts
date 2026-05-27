@@ -9,6 +9,10 @@ const ALLOWED_TYPES = {
   evidence: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
   documents: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
   videos: ['video/mp4', 'video/webm'],
+  order_progress: ['image/jpeg', 'image/png', 'image/webp'],
+  returns: ['image/jpeg', 'image/png', 'image/webp'],
+  qc: ['image/jpeg', 'image/png', 'image/webp'],
+  install: ['image/jpeg', 'image/png', 'image/webp'],
 }
 
 const MAX_SIZES = {
@@ -18,6 +22,10 @@ const MAX_SIZES = {
   evidence: 2 * 1024 * 1024,      // 2MB
   documents: 5 * 1024 * 1024,    // 5MB
   videos: 100 * 1024 * 1024,     // 100MB
+  order_progress: 2 * 1024 * 1024,  // 2MB
+  returns: 2 * 1024 * 1024,        // 2MB
+  qc: 2 * 1024 * 1024,            // 2MB
+  install: 2 * 1024 * 1024,       // 2MB
 }
 
 export async function POST(request: NextRequest) {

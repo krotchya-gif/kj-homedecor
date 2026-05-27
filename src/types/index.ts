@@ -419,3 +419,13 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   partial: "DP",
   paid: "Lunas",
 };
+
+export interface OrderProgressPhoto {
+  id: string;
+  order_id: string;
+  stage: string;
+  photo_url: string;
+  notes?: string;
+  uploaded_by?: string;
+  created_at: string;
+}

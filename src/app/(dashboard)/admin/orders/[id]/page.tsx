@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2 } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
+import { uploadToLocal } from '@/lib/upload'
+import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','packed','shipped','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
@@ -66,7 +68,17 @@ export default function OrderDetailPage() {
   })
   const [savingItem, setSavingItem] = useState(false)
 
-  // Cancel & Return form
+  // Progress photos
+  const [orderPhotos, setOrderPhotos] = useState<any[]>([])
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  // Photo upload modal for status change
+  const [showPhotoModal, setShowPhotoModal] = useState(false)
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+  const [progressPhotos, setProgressPhotos] = useState<string[]>([])
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [showCancelForm, setShowCancelForm] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [showReturnForm, setShowReturnForm] = useState(false)
@@ -90,17 +102,19 @@ export default function OrderDetailPage() {
 
   async function load() {
     setLoading(true)
-    const [orderRes, itemsRes, prodsRes, logsRes, checklistRes] = await Promise.all([
+    const [orderRes, itemsRes, prodsRes, logsRes, checklistRes, photosRes] = await Promise.all([
       supabase.from('orders').select('*, customer:customers(name,phone,address)').eq('id',id).single(),
       supabase.from('order_items').select('*, product:products(name,sku)').eq('order_id',id),
       supabase.from('products').select('id,name,sku,price').order('name'),
       supabase.from('order_logs').select('*, staff:users(name)').eq('order_id',id).order('created_at', { ascending: true }),
       supabase.from('order_preparation_checklists').select('items').eq('order_id',id).single(),
+      supabase.from('order_progress_photos').select('*').eq('order_id', id).order('created_at', { ascending: true }),
     ])
     setOrder(orderRes.data as Order)
     setItems((itemsRes.data as OrderItem[]) ?? [])
     setProducts((prodsRes.data as Product[]) ?? [])
     setOrderLogs((logsRes.data ?? []) as any[])
+    setOrderPhotos((photosRes.data ?? []) as any[])
     // Init checklist if not exists
     if (checklistRes.data) {
       setChecklist(checklistRes.data.items as PreparationChecklistItem[])
@@ -128,7 +142,22 @@ export default function OrderDetailPage() {
 
   useEffect(()=>{ load() },[id])
 
-  async function updateStatus(newStatus: string) {
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingPhoto(true)
+    try {
+      const result = await uploadToLocal(file, 'order_progress', { compress: true, maxSizeMB: 1 })
+      setProgressPhotos(prev => [...prev, result.url])
+    } catch (err) {
+      console.error('Upload failed:', err)
+      alert('Gagal upload foto')
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  async function updateStatus(newStatus: string, photoUrls: string[] = []) {
     if (!order) return
     if (['ready','packed','done'].includes(newStatus) && order.payment_status !== 'paid') {
       alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu.')
@@ -147,6 +176,15 @@ export default function OrderDetailPage() {
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null,
     })
+    // Save progress photos
+    for (const url of photoUrls) {
+      await supabase.from('order_progress_photos').insert({
+        order_id: id,
+        stage: newStatus,
+        photo_url: url,
+        uploaded_by: user?.id ?? null,
+      })
+    }
     if (newStatus === 'production') {
       const { data: orderItems } = await supabase.from('order_items').select('*, product:products(name)').eq('order_id', id)
       const totalMeterGorden = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? 0), 0)
@@ -164,6 +202,9 @@ export default function OrderDetailPage() {
     }
     setOrder(o => o ? {...o, status:newStatus as Order['status']} : o)
     setUpdating(false)
+    setShowPhotoModal(false)
+    setProgressPhotos([])
+    setPendingStatus(null)
     load()
   }
 
@@ -187,24 +228,19 @@ export default function OrderDetailPage() {
     if (!order) return
     const { data: { user } } = await supabase.auth.getUser()
     const refundAmt = Number(returnForm.refund_amount) || 0
-    const { data: retData } = await supabase.from('returns').insert({
-      order_id: id, order_item_id: returnForm.item_id || null,
-      reason: returnForm.reason, condition: returnForm.condition,
-      qty: Number(returnForm.qty) || 1, refund_amount: refundAmt,
-      refund_status: refundAmt > 0 ? 'pending' : 'completed',
-      created_by: user?.id ?? null,
-      resolved_at: returnForm.condition === 'good' ? new Date().toISOString() : null,
-    }).select().single()
-    if (returnForm.item_id) {
-      await supabase.from('order_items').update({ returned_at: new Date().toISOString(), return_reason: returnForm.reason }).eq('id', returnForm.item_id)
-    }
-    await supabase.from('orders').update({ status: 'returned', return_reason: returnForm.reason }).eq('id', id)
+
+    // Validate items BEFORE writing any records
     if (returnForm.condition === 'good') {
-      // Fetch items - only the specific item if item_id selected, otherwise all items
       const { data: itemsToReturn } = returnForm.item_id
         ? await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id).eq('id', returnForm.item_id)
         : await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id)
-      for (const item of itemsToReturn ?? []) {
+      const items = itemsToReturn ?? []
+      if (items.length === 0) {
+        alert('Tidak ada item untuk diproses return.')
+        return
+      }
+      // Process stock updates first
+      for (const item of items) {
         if (item.product_id) {
           await supabase.from('inventory_movements').insert({
             product_id: item.product_id, type: 'return_in', qty: item.qty ?? 1,
@@ -216,11 +252,32 @@ export default function OrderDetailPage() {
         }
       }
     }
+
+    // Insert return record (after stock updates validated)
+    const { data: retData } = await supabase.from('returns').insert({
+      order_id: id, order_item_id: returnForm.item_id || null,
+      reason: returnForm.reason, condition: returnForm.condition,
+      qty: Number(returnForm.qty) || 1, refund_amount: refundAmt,
+      refund_status: refundAmt > 0 ? 'pending' : 'completed',
+      created_by: user?.id ?? null,
+      resolved_at: returnForm.condition === 'good' ? new Date().toISOString() : null,
+    }).select().single()
+
+    // Update order item if specific item selected
+    if (returnForm.item_id) {
+      await supabase.from('order_items').update({ returned_at: new Date().toISOString(), return_reason: returnForm.reason }).eq('id', returnForm.item_id)
+    }
+
+    // Update order status to returned
+    await supabase.from('orders').update({ status: 'returned', return_reason: returnForm.reason }).eq('id', id)
+
+    // Log the action
     await supabase.from('order_logs').insert({
       order_id: id, action: 'return_initiated',
       notes: `Return diproses oleh Admin. Kondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}. Alasan: ${returnForm.reason}. Refund: Rp${refundAmt.toLocaleString('id-ID')}`,
       staff_id: user?.id ?? null,
     })
+
     alert(`Return berhasil dicatat.\nKondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}\nRefund: Rp${refundAmt.toLocaleString('id-ID')}`)
     setShowReturnForm(false)
     setReturnForm({ item_id: '', reason: '', condition: 'good', qty: '1', refund_amount: '' })
@@ -390,7 +447,7 @@ export default function OrderDetailPage() {
           <p style={{fontSize:'0.72rem',fontFamily:'monospace',color:'#9ca3af',marginTop:'0.1rem'}}>{id}</p>
         </div>
         {nextStatus && !['done','returned','cancelled'].includes(order.status) && (
-          <button onClick={()=>updateStatus(nextStatus)} disabled={updating}
+          <button onClick={()=>{setPendingStatus(nextStatus);setShowPhotoModal(true)}} disabled={updating}
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:updating?'not-allowed':'pointer'}}>
             {updating ? <Loader2 size={15} style={{animation:'spin 1s linear infinite'}}/> : <ChevronRight size={15}/>}
             Lanjut: {STATUS_LABELS[nextStatus]}
@@ -849,6 +906,46 @@ export default function OrderDetailPage() {
         )}
       </div>
 
+      {/* Photo Upload Modal for Status Change */}
+      {showPhotoModal && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}
+          onClick={e=>{if(e.target===e.currentTarget){setShowPhotoModal(false);setProgressPhotos([]);setPendingStatus(null)}}}>
+          <div style={{background:'#fff',borderRadius:'0.875rem',padding:'1.5rem',width:'100%',maxWidth:480,boxShadow:'0 25px 60px rgba(0,0,0,0.25)',maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
+              <h2 style={{fontSize:'1rem',fontWeight:'700'}}>📷 Foto Progress — {pendingStatus ? STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS] : ''}</h2>
+              <button onClick={()=>{setShowPhotoModal(false);setProgressPhotos([]);setPendingStatus(null)}} style={{background:'none',border:'none',cursor:'pointer',padding:'0.25rem'}}>
+                <XIcon size={18}/>
+              </button>
+            </div>
+            <p style={{fontSize:'0.8rem',color:'#6b7280',marginBottom:'1rem'}}>Upload foto progress untuk stage ini. Foto akan terlihat di dashboard Progress Pesanan.</p>
+            <div style={{border:'2px dashed #d1d5db',borderRadius:'0.5rem',padding:'1.5rem',textAlign:'center',marginBottom:'1rem',cursor:uploadingPhoto?'not-allowed':'pointer',opacity:uploadingPhoto?0.6:1}}>
+              <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={uploadingPhoto} id="progress-photo-input" style={{display:'none'}}/>
+              <label htmlFor="progress-photo-input" style={{cursor:uploadingPhoto?'not-allowed':'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.5rem'}}>
+                {uploadingPhoto ? <Loader2 size={24} style={{animation:'spin 1s linear infinite'}}/> : <Upload size={24} style={{color:'#9ca3af'}}/>}
+                <span style={{fontSize:'0.875rem',color:'#6b7280'}}>{uploadingPhoto?'Mengupload...':'Klik untuk upload foto'}</span>
+              </label>
+            </div>
+            {progressPhotos.length > 0 && (
+              <div style={{display:'flex',flexWrap:'wrap',gap:'0.5rem',marginBottom:'1rem'}}>
+                {progressPhotos.map((url,i)=>(
+                  <div key={i} style={{position:'relative',width:72,height:72}}>
+                    <img src={url} style={{width:72,height:72,objectFit:'cover',borderRadius:'0.375rem',border:'1px solid #e5e7eb'}}/>
+                    <button onClick={()=>setProgressPhotos(p=>p.filter((_,j)=>j!==i))} style={{position:'absolute',top:-6,right:-6,background:'#ef4444',border:'none',borderRadius:'50%',width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#fff',fontSize:10}}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{display:'flex',gap:'0.75rem'}}>
+              <button onClick={()=>{setShowPhotoModal(false);setProgressPhotos([]);setPendingStatus(null)}} style={{flex:1,padding:'0.75rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',background:'#fff',cursor:'pointer',fontWeight:'600'}}>Batal</button>
+              <button onClick={()=>pendingStatus && updateStatus(pendingStatus, progressPhotos)} disabled={updating} style={{flex:1,padding:'0.75rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',cursor:updating?'not-allowed':'pointer',fontWeight:'600',opacity:updating?0.6:1}}>
+                {updating ? <Loader2 size={14} style={{animation:'spin 1s linear infinite',display:'inline',marginRight:4}}/> : null}
+                Lanjut & Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cancel Order Modal */}
       {showCancelForm && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}
@@ -967,6 +1064,15 @@ export default function OrderDetailPage() {
       )}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {lightboxOpen && (
+        <Lightbox
+          photos={lightboxPhotos}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          onNext={() => setLightboxIndex(i => i < lightboxPhotos.length - 1 ? i + 1 : i)}
+          onPrev={() => setLightboxIndex(i => i > 0 ? i - 1 : i)}
+        />
+      )}
     </div>
   )
 }

@@ -21,12 +21,19 @@ import {
   FileEdit,
   RotateCcw,
   Ban,
+  BarChart3,
+  ImageIcon,
+  Camera,
 } from 'lucide-react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { SOURCE_LABELS } from '@/types'
+import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 
-interface Order { id: string; status: string; payment_status: string }
+interface Order { id: string; status: string; payment_status: string; source?: string; total_amount?: number; created_at: string }
 interface PurchaseRequest { id: string; qty: number; estimated_cost: number; status: string; material?: { name: string } }
 interface OrderLog { id: string; order_id: string; action: string; notes?: string; created_at: string; staff?: { name: string } }
-interface OrderWithLogs { id: string; order_number?: string; status: string; payment_status: string; created_at: string; customer?: { name: string }; recentLogs: OrderLog[] }
+interface OrderProgressPhoto { id: string; order_id: string; stage: string; photo_url: string; notes?: string; created_at: string }
+interface OrderWithLogs { id: string; order_number?: string; status: string; payment_status: string; created_at: string; customer?: { name: string }; recentLogs: OrderLog[]; progressPhotos?: OrderProgressPhoto[] }
 interface StatData { orders: Order[]; totalOrders: number; totalCustomers: number; totalProducts: number; pendingPRs: PurchaseRequest[]; ordersWithLogs: OrderWithLogs[] }
 
 const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -56,9 +63,39 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
+  const [trendData, setTrendData] = useState<{ date: string; count: number }[]>([])
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([])
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   const supabase = createClient()
 
   useEffect(() => { loadData() }, [])
+
+  useEffect(() => {
+    async function loadTrend() {
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const { data: trendOrders } = await supabase
+        .from('orders')
+        .select('created_at')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+
+      const dailyCount: Record<string, number> = {}
+      const today = new Date()
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(today)
+        d.setDate(d.getDate() - i)
+        const key = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+        dailyCount[key] = 0
+      }
+      ;(trendOrders ?? []).forEach((o: any) => {
+        const key = new Date(o.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+        if (dailyCount[key] !== undefined) dailyCount[key]++
+      })
+      setTrendData(Object.entries(dailyCount).map(([date, count]) => ({ date, count })))
+    }
+    loadTrend()
+  }, [])
 
   async function loadData() {
     setLoading(true)
@@ -68,7 +105,8 @@ export default function AdminDashboardPage() {
       .select(`
         id, order_number, status, payment_status, created_at,
         customer:customers(name),
-        order_logs!order_logs_order_id_fkey(id, action, notes, created_at, staff:users(name))
+        order_logs!order_logs_order_id_fkey(id, action, notes, created_at, staff:users(name)),
+        order_progress_photos(id, stage, photo_url, notes, created_at)
       `)
       .order('created_at', { ascending: false })
       .limit(10)
@@ -76,6 +114,7 @@ export default function AdminDashboardPage() {
     const formatted = (ordersWithLogsData ?? []).map((o: any) => ({
       ...o,
       recentLogs: (o.order_logs ?? []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5),
+      progressPhotos: o.order_progress_photos ?? [],
     }))
 
     const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }] = await Promise.all([
@@ -85,7 +124,7 @@ export default function AdminDashboardPage() {
       supabase.from('purchase_requests').select('*, material:materials(name)').eq('status', 'pending'),
     ])
     setData({
-      orders: ordersData ?? [],
+      orders: (ordersData ?? []) as Order[],
       totalOrders: totalOrders ?? 0,
       totalCustomers: totalCustomers ?? 0,
       totalProducts: totalProducts ?? 0,
@@ -124,6 +163,30 @@ export default function AdminDashboardPage() {
   const newOrders = orders.filter((o) => o.status === 'new').length
   const pendingPayment = orders.filter((o) => o.payment_status === 'pending').length
   const doneOrders = orders.filter((o) => o.status === 'done').length
+
+  // Chart data: Order count by status
+  const statusCounts: Record<string, number> = {}
+  orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1 })
+  const STATUS_LABELS: Record<string, string> = {
+    new: 'Baru', sorted: 'Sorted', payment_ok: 'Payment OK', production: 'Produksi',
+    steam: 'Steam/QC', ready: 'Siap', packed: 'Packed', shipped: 'Dikirim', done: 'Selesai',
+    cancelled: 'Cancelled', returned: 'Returned',
+  }
+  const statusChartData = Object.entries(statusCounts).map(([k, v]) => ({
+    name: STATUS_LABELS[k] ?? k,
+    count: v,
+  }))
+
+  // Chart data: Revenue by source
+  const revenueBySource: Record<string, number> = {}
+  orders.forEach((o) => {
+    const src = o.source ?? 'offline'
+    revenueBySource[src] = (revenueBySource[src] ?? 0) + (o.total_amount ?? 0)
+  })
+  const revenueChartData = Object.entries(revenueBySource).map(([k, v]) => ({
+    name: SOURCE_LABELS[k as keyof typeof SOURCE_LABELS] ?? k,
+    revenue: v,
+  })).sort((a, b) => b.revenue - a.revenue)
 
   return (
     <div>
@@ -205,6 +268,76 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Charts Section */}
+      {!loading && data && (
+        <>
+          {/* Order by Status Bar Chart */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <BarChart3 size={16} color="#cc7030" />
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Pesanan per Status</h3>
+              </div>
+              {data.orders.length === 0 ? (
+                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={statusChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#cc7030" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+
+            {/* Revenue by Source Bar Chart */}
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <TrendingUp size={16} color="#2563eb" />
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Sumber</h3>
+              </div>
+              {data.orders.length === 0 ? (
+                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={revenueChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
+                    <Tooltip formatter={(v) => formatRp(v as number)} />
+                    <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          {/* 30-Day Order Trend */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <TrendingUp size={16} color="#16a34a" />
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren 30 Hari</h3>
+            </div>
+            {trendData.length === 0 ? (
+              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </>
+      )}
+
       {/* Two Column Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: pendingPRs.length > 0 ? '1fr' : '1fr', gap: '1.5rem' }}>
         {/* PR Approval Section */}
@@ -261,47 +394,93 @@ export default function AdminDashboardPage() {
         )}
       </div>
 
-      {/* Activity Log — Improved */}
+      {/* Progress Pesanan — Improved Card UI */}
       <div style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Progress Pesanan</h2>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Aktivitas per pesanan</span>
+          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
         </div>
         {!data?.ordersWithLogs || data.ordersWithLogs.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '0.875rem' }}>
             Belum ada pesanan
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
             {data.ordersWithLogs.map((order) => {
               const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: '#9ca3af' }
+              const STATUS_COLORS: Record<string, string> = {
+                new: '#3b82f6', sorted: '#8b5cf6', payment_ok: '#f59e0b', production: '#06b6d4',
+                steam: '#0d9488', ready: '#14b8a6', packed: '#f97316', shipped: '#0d9488',
+                done: '#22c55e', returned: '#f59e0b', cancelled: '#dc2626',
+              }
+              const PAYMENT_COLORS: Record<string, string> = {
+                pending: '#ef4444', partial: '#f59e0b', paid: '#22c55e',
+              }
+              const statusColor = STATUS_COLORS[order.status] ?? '#9ca3af'
+              const payColor = PAYMENT_COLORS[order.payment_status] ?? '#9ca3af'
+              const photos = order.progressPhotos?.map(p => p.photo_url) ?? []
+              const stages = ['new', 'sorted', 'payment_ok', 'production', 'steam', 'ready', 'packed', 'shipped', 'done']
+              const currentStageIdx = stages.indexOf(order.status)
+              const date = new Date(order.created_at)
+              const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+              const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+
               return (
-                <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: actionStyle.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: actionStyle.color, flexShrink: 0 }}>
-                    {actionStyle.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1f2937' }}>
-                          {order.order_number || `#${order.id.slice(0, 8)}`}
-                        </span>
-                        <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>{order.customer?.name ?? '—'}</span>
+                <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                  {/* Card Header */}
+                  <div style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: statusColor + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusColor, flexShrink: 0 }}>
+                        {actionStyle.icon}
                       </div>
-                      <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
-                        {new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1f2937', lineHeight: 1.2 }}>
+                          {order.order_number || `#${order.id.slice(0, 8)}`}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                          {order.customer?.name ?? '—'} · {dateStr}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
+                      <span style={{ fontSize: '0.65rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: statusColor + '15', color: statusColor, textTransform: 'capitalize' }}>
+                        {order.status.replace(/_/g, ' ')}
+                      </span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: payColor + '15', color: payColor }}>
+                        {order.payment_status === 'partial' ? 'DP' : order.payment_status.toUpperCase()}
                       </span>
                     </div>
-                    {/* Mini log timeline */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      {order.recentLogs.length === 0 ? (
-                        <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Belum ada aktivitas</span>
-                      ) : (
-                        order.recentLogs.slice(0, 3).map((log, i) => {
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {stages.map((stage, i) => {
+                        const filled = currentStageIdx >= i
+                        const active = currentStageIdx === i
+                        return (
+                          <div key={stage} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem' }}>
+                            <div style={{ width: '100%', height: 3, borderRadius: 2, background: filled ? statusColor : '#e5e7eb' }} />
+                            {active && (
+                              <span style={{ fontSize: '0.5rem', color: statusColor, fontWeight: 600, marginTop: 2 }}>●</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Activity Timeline */}
+                  <div style={{ padding: '0.5rem 1rem', minHeight: 80 }}>
+                    {order.recentLogs.length === 0 ? (
+                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', padding: '0.5rem 0' }}>Belum ada aktivitas</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        {order.recentLogs.slice(0, 3).map((log, i) => {
                           const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: '#9ca3af' }
                           return (
                             <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: i > 0 ? '0.75rem' : 0, borderLeft: i > 0 ? '2px solid #e5e7eb' : 'none' }}>
-                              <span style={{ color: logStyle.color, display: 'flex' }}>{logStyle.icon}</span>
+                              <span style={{ color: logStyle.color, display: 'flex', flexShrink: 0 }}>{logStyle.icon}</span>
                               <span style={{ fontSize: '0.72rem', color: '#6b7280', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {log.action.replace(/_/g, ' ').toUpperCase()}
                                 {log.staff && <span style={{ color: '#9ca3af' }}> — {log.staff.name}</span>}
@@ -311,9 +490,31 @@ export default function AdminDashboardPage() {
                               </span>
                             </div>
                           )
-                        })
-                      )}
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Photo thumbnails */}
+                  {photos.length > 0 && (
+                    <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid #f3f4f6' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
+                        <Camera size={10} style={{ color: '#9ca3af' }} />
+                        <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{photos.length} foto</span>
+                      </div>
+                      <LightboxGallery
+                        photos={photos}
+                        onPhotoClick={(i) => { setLightboxPhotos(photos); setLightboxIndex(i); setLightboxOpen(true) }}
+                        columns={4}
+                      />
                     </div>
+                  )}
+
+                  {/* Card Footer */}
+                  <div style={{ padding: '0.5rem 1rem', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                    <a href={`/admin/orders/${order.id}`} style={{ fontSize: '0.72rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}>
+                      Lihat Detail →
+                    </a>
                   </div>
                 </div>
               )
@@ -321,6 +522,17 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Lightbox */}
+      {lightboxOpen && (
+        <Lightbox
+          photos={lightboxPhotos}
+          currentIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+          onNext={() => setLightboxIndex(i => i < lightboxPhotos.length - 1 ? i + 1 : i)}
+          onPrev={() => setLightboxIndex(i => i > 0 ? i - 1 : i)}
+        />
+      )}
     </div>
   )
 }
