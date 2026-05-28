@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { BarChart3, Download, TrendingUp, ShoppingCart, Users, Package, FileDown } from 'lucide-react'
+import { BarChart3, Download, TrendingUp, TrendingDown, Minus, ShoppingCart, Users, Package, FileDown } from 'lucide-react'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
@@ -40,6 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function AdminReportsPage() {
   const [orders, setOrders] = useState<Order[]>([])
+  const [prevOrders, setPrevOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [year, setYear] = useState(new Date().getFullYear())
   const [month, setMonth] = useState(new Date().getMonth() + 1)
@@ -68,6 +69,20 @@ export default function AdminReportsPage() {
     }
 
     setOrders(filtered)
+
+    // Previous period data for MoM
+    let prevFiltered: Order[] = []
+    if (month !== 0) {
+      const prevMonth = month === 1 ? 12 : month - 1
+      const prevYear = month === 1 ? year - 1 : year
+      prevFiltered = (data as Order[])?.filter(o => {
+        const d = new Date(o.created_at)
+        return d.getFullYear() === prevYear && d.getMonth() + 1 === prevMonth
+      }) ?? []
+    } else {
+      prevFiltered = (data as Order[])?.filter(o => new Date(o.created_at).getFullYear() === year - 1) ?? []
+    }
+    setPrevOrders(prevFiltered)
     setLoading(false)
   }
 
@@ -75,6 +90,23 @@ export default function AdminReportsPage() {
   const totalOrders = orders.length
   const totalRevenue = orders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+  // MoM stats
+  const prevRevenue = prevOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
+  const prevOrderCount = prevOrders.length
+  const prevAvgValue = prevOrderCount > 0 ? prevRevenue / prevOrderCount : 0
+
+  const revChange = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : null
+  const ordersChange = prevOrderCount > 0 ? ((totalOrders - prevOrderCount) / prevOrderCount) * 100 : null
+  const avgChange = prevAvgValue > 0 ? ((avgOrderValue - prevAvgValue) / prevAvgValue) * 100 : null
+
+  const momLabel = month === 0 ? `vs ${year - 1}` : `vs ${MONTHS[month === 1 ? 11 : month - 2]}`
+
+  function TrendIcon({ change }: { change: number | null }) {
+    if (change === null) return <Minus size={12} style={{ color: '#9ca3af' }} />
+    if (change >= 0) return <TrendingUp size={12} style={{ color: '#059669' }} />
+    return <TrendingDown size={12} style={{ color: '#dc2626' }} />
+  }
 
   // Pipeline counts
   const pipelineCounts: Record<string, number> = {}
@@ -223,24 +255,48 @@ export default function AdminReportsPage() {
         </select>
       </div>
 
-      {/* Stat Cards */}
+      {/* Stat Cards with MoM */}
       {loading ? (
         <StatCardSkeleton />
       ) : (
         <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
           <div className="stat-card">
             <div className="stat-card-label">Total Pesanan</div>
-            <div className="stat-card-value">{totalOrders}</div>
-            <div className="stat-card-sub">{month === 0 ? year : MONTHS[month - 1] + ' ' + year}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <div className="stat-card-value">{totalOrders}</div>
+              {ordersChange !== null && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.72rem', fontWeight: '600', padding: '0.15rem 0.4rem', borderRadius: '999px', background: ordersChange >= 0 ? '#d1fae5' : '#fee2e2', color: ordersChange >= 0 ? '#065f46' : '#991b1b' }}>
+                  <TrendIcon change={ordersChange} />
+                  {Math.abs(ordersChange).toFixed(1)}%
+                </span>
+              )}
+            </div>
+            <div className="stat-card-sub">{momLabel}</div>
           </div>
           <div className="stat-card">
             <div className="stat-card-label">Total Omzet</div>
-            <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
+              {revChange !== null && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.72rem', fontWeight: '600', padding: '0.15rem 0.4rem', borderRadius: '999px', background: revChange >= 0 ? '#d1fae5' : '#fee2e2', color: revChange >= 0 ? '#065f46' : '#991b1b' }}>
+                  <TrendIcon change={revChange} />
+                  {Math.abs(revChange).toFixed(1)}%
+                </span>
+              )}
+            </div>
             <div className="stat-card-sub">Pendapatan kotor</div>
           </div>
           <div className="stat-card">
             <div className="stat-card-label">Rata-rata Order</div>
-            <div className="stat-card-value" style={{ color: '#7c3aed' }}>{formatRp(avgOrderValue)}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+              <div className="stat-card-value" style={{ color: '#7c3aed' }}>{formatRp(avgOrderValue)}</div>
+              {avgChange !== null && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.15rem', fontSize: '0.72rem', fontWeight: '600', padding: '0.15rem 0.4rem', borderRadius: '999px', background: avgChange >= 0 ? '#d1fae5' : '#fee2e2', color: avgChange >= 0 ? '#065f46' : '#991b1b' }}>
+                  <TrendIcon change={avgChange} />
+                  {Math.abs(avgChange).toFixed(1)}%
+                </span>
+              )}
+            </div>
             <div className="stat-card-sub">Per pesanan</div>
           </div>
         </div>

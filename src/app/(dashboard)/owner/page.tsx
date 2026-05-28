@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { TrendingUp, Users, ShoppingCart, Package, Download, Loader2, ChevronDown } from 'lucide-react'
+import { TrendingUp, Users, ShoppingCart, Package, Download, Loader2, ChevronDown, Clock, Activity, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 
@@ -22,6 +22,9 @@ interface Order {
 
 export default function OwnerDashboard() {
   const [orders, setOrders] = useState<Order[]>([])
+  const [realtimeOrders, setRealtimeOrders] = useState<Order[]>([])
+  const [installBookings, setInstallBookings] = useState<any[]>([])
+  const [materialAlerts, setMaterialAlerts] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<{ month: number; year: number }>({ month: new Date().getMonth() + 1, year: new Date().getFullYear() })
   const [showMonthPicker, setShowMonthPicker] = useState(false)
@@ -31,10 +34,11 @@ export default function OwnerDashboard() {
 
   async function loadOrders() {
     setLoading(true)
-    const { data } = await supabase
-      .from('orders')
-      .select('*, order_items(qty, price, product:products(name))')
-      .order('created_at', { ascending: false })
+    const [{ data }, { data: installData }] = await Promise.all([
+      supabase.from('orders').select('*, order_items(qty, price, product:products(name))').order('created_at', { ascending: false }),
+      supabase.from('install_bookings').select('id, status, scheduled_date, order:orders(customer:customers(name))').gte('scheduled_date', new Date().toISOString().split('T')[0]).in('status', ['scheduled', 'in_progress']),
+    ])
+
     let filtered = (data as Order[]) ?? []
 
     // Filter by selected month/year
@@ -44,12 +48,26 @@ export default function OwnerDashboard() {
     })
 
     setOrders(filtered)
+    setInstallBookings(installData ?? [])
+
+    // Today's new orders for real-time count
+    const today = new Date()
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const todayOrders = (data as Order[])?.filter(o => new Date(o.created_at) >= todayStart) ?? []
+    setRealtimeOrders(todayOrders)
+
     setLoading(false)
   }
 
   // Stats
   const totalRevenue = orders.filter(o => o.payment_status === 'paid').reduce((s, o) => s + (o.total_amount ?? 0), 0)
   const totalOrders = orders.length
+
+  // Real-time stats
+  const todayNewOrders = realtimeOrders.length
+  const todayRevenue = realtimeOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
+  const activeInstalls = installBookings.filter(b => b.status === 'in_progress').length
+  const scheduledInstalls = installBookings.filter(b => b.status === 'scheduled').length
 
   // Revenue by platform (bar chart)
   const platformRevenue: Record<string, number> = {}
@@ -178,6 +196,28 @@ export default function OwnerDashboard() {
         <>
           {/* Stats */}
           <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
+            <div className="stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <Activity size={14} color="#16a34a" />
+                <div className="stat-card-label" style={{ marginBottom: 0 }}>Real-time Hari Ini</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                <div className="stat-card-value">{todayNewOrders}</div>
+                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>pesanan baru</span>
+              </div>
+              <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>{formatRp(todayRevenue)} omzet</div>
+            </div>
+            <div className="stat-card" style={{ borderLeft: '4px solid #2563eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                <Clock size={14} color="#2563eb" />
+                <div className="stat-card-label" style={{ marginBottom: 0 }}>Instalasi Aktif</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                <div className="stat-card-value">{activeInstalls}</div>
+                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>sedang pasang</span>
+              </div>
+              <div className="stat-card-sub">{scheduledInstalls} terjadwal</div>
+            </div>
             <div className="stat-card">
               <div className="stat-card-label">Omzet Bulan Ini</div>
               <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
