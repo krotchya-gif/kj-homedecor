@@ -4,187 +4,184 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 
 ## Tech Stack
 
-- **Frontend:** Next.js 16 (App Router), React, TypeScript, Tailwind-compatible CSS
-- **Backend:** Supabase (PostgreSQL, Auth, Storage, Realtime)
-- **Payments:** Xendit API
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
+- **Backend:** Supabase (PostgreSQL, Auth, Realtime)
+- **Payments:** Xendit API (VA/QRIS)
+- **PDF:** jsPDF + jspdf-autotable (Invoice & Packing List)
+- **Charts:** Recharts (Owner, Admin, Finance dashboards)
+- **Image Compression:** browser-image-compression
 - **Deployment:** Vercel-ready
+
+---
+
+## Features
+
+### Admin (`/admin`)
+- Order management dengan filter by status + create order (Kirim/Pasang)
+- Order detail dengan visual pipeline, photo upload per status, BOM auto-suggest
+- Invoice PDF + Packing List PDF generation
+- Pipeline ETA (Estimasi Selesai per order)
+- Catalog management (products, categories, banners)
+- Customer database with WhatsApp integration
+- Booking calendar (admin + public `/booking`)
+- Portfolio/inspiration blog posts
+- Sales reports dengan MoM growth indicators
+- Shipping workflow (resi + courier)
+- SEO management + Landing page settings
+- Staff account creation
+
+### Owner (`/owner`)
+- Real-time dashboard: today's new orders + active installations
+- 12-month revenue trend chart
+- Marketplace breakdown (bar + pie charts)
+- Top products by revenue
+- HPP Calculator (BOM-based)
+- Material price history tracking
+- Staff, suppliers, products overview
+
+### Finance (`/finance`)
+- BOM & Material cost management
+- HPP Calculator with auto/manual modes
+- Payment tracking (DP → Lunas) with approval gate
+- Supplier management + PO from approved PRs
+- Piutang (accounts receivable) management
+- Accounts, Journal, Cash, Assets
+- Reports: revenue, penjahit wages, overtime
+
+### Gudang (`/gudang`)
+- Production job queue
+- Laundry/Steam (same page, tabs)
+- Stock position (Material + Produk tabs)
+- Low stock alerts with 1-click PR creation
+- QC (Pass/Fail/Revision with photo evidence)
+- Lembur (overtime) logging
+
+### Penjahit (`/penjahit`)
+- Job queue with meter tracking
+- Monthly performance reports
+- Work history
+
+### Installer (`/installer`)
+- Schedule with status (Terjadwal/Dikerjakan/Selesai)
+- Installation checklist with photo evidence
+- Revision flow: "Laporkan Masalah" at location
+- Reports per period
+
+### Public Pages
+- `/` — Landing page with hero, categories, products, portfolio
+- `/catalog` — Full product catalog with search
+- `/products/[slug]` — Product detail
+- `/booking` — Public booking form (date + time slot picker)
+- `/login` — Staff login
+
+---
 
 ## Project Structure
 
 ```
 src/
 ├── app/
-│   ├── (auth)/login/          # Staff login
-│   ├── (dashboard)/
-│   │   ├── admin/             # Admin dashboard
-│   │   │   ├── page.tsx       # Dashboard overview + PR approvals
-│   │   │   ├── orders/        # Order management (list + detail)
-│   │   │   ├── catalog/       # Products, categories, banners
-│   │   │   ├── customers/     # Customer database
-│   │   │   ├── booking/       # Installation scheduling (calendar)
-│   │   │   ├── portfolio/     # Blog/portfolio posts
-│   │   │   ├── reports/       # Sales reports & pipeline funnel
-│   │   │   ├── staff/         # Staff account management
-│   │   │   ├── shipping/      # Packing & resi tracking
-│   │   │   ├── landing-settings/ # Hero, WhatsApp, trust badges, social
-│   │   │   └── seo/           # Meta Pixel, GA4, sitemap, robots.txt
-│   │   ├── finance/           # Finance dashboard
-│   │   │   ├── materials/     # BOM & material management
-│   │   │   ├── hpp/          # HPP calculator
-│   │   │   ├── payments/     # Payment tracking
-│   │   │   ├── suppliers/    # Supplier & PO management
-│   │   │   └── reports/      # Financial reports
-│   │   ├── gudang/           # Warehouse dashboard
-│   │   │   ├── production/   # Production job queue
-│   │   │   ├── steam/       # Laundry/steam process
-│   │   │   ├── stock/       # Stock positions
-│   │   │   ├── alerts/      # Low stock alerts → PR creation
-│   │   │   ├── qc/          # Quality control
-│   │   │   └── lembur/      # Overtime logging
-│   │   ├── penjahit/        # Tailor dashboard
-│   │   │   ├── jobs/        # Job queue
-│   │   │   ├── reports/     # Performance reports
-│   │   │   └── history/     # Work history
-│   │   ├── installer/        # Installation team dashboard
-│   │   │   ├── schedule/    # Installation schedule
-│   │   │   ├── checklist/  # Installation checklist + photo evidence
-│   │   │   └── reports/    # Installation history
-│   │   └── owner/           # Owner overview (all divisi)
-│   │       ├── staff/       # Staff management
-│   │       ├── products/    # Top products
-│   │       └── marketplace/ # Marketplace overview
-│   ├── booking/             # Public booking form
-│   ├── catalog/            # Public product catalog
-│   ├── products/[slug]/    # Public product detail
-│   └── api/                # API routes
-│       ├── orders/          # Order CRUD
-│       ├── customers/       # Customer CRUD
-│       ├── products/        # Product CRUD
-│       ├── materials/       # Material CRUD
-│       ├── suppliers/        # Supplier CRUD
-│       ├── install-bookings/ # Booking CRUD
-│       ├── purchase-requests/ # PR CRUD + approval
-│       ├── purchase-orders/  # PO CRUD
-│       ├── landing-settings/  # Landing page settings
-│       ├── seo/upload-sitemap/ # sitemap.xml upload
-│       ├── seo/upload-robots/  # robots.txt upload
-│       ├── upload/           # File upload (evidence, banners)
-│       ├── xendit/          # Payment creation + webhook
-│       └── admin/create-staff/ # Staff account creation
+│   ├── page.tsx                    # Landing page (public)
+│   ├── (auth)/login/              # Staff login
+│   ├── (auth)/register/           # Staff registration (admin only)
+│   ├── (dashboard)/               # Protected dashboard group
+│   │   ├── admin/                 # Admin: orders, catalog, customers, booking, reports, shipping, staff, landing-settings, seo
+│   │   ├── finance/               # Finance: BOM, HPP, payments, suppliers, piutang, accounts, journal, reports
+│   │   ├── gudang/                # Gudang: production, steam, stock, alerts, qc, lembur
+│   │   ├── penjahit/              # Penjahit: jobs, reports, history
+│   │   ├── installer/             # Installer: schedule, checklist, reports
+│   │   └── owner/                 # Owner: overview, Hpp, marketplace, materials, products, staff, suppliers, price-history
+│   ├── booking/                   # Public booking page
+│   ├── catalog/                   # Public catalog
+│   ├── products/[slug]/          # Public product detail
+│   └── api/                       # API Routes
+│       ├── upload/               # Local file upload
+│       ├── orders/               # Order CRUD
+│       ├── customers/           # Customer CRUD
+│       ├── products/            # Product CRUD
+│       ├── materials/           # Material CRUD
+│       ├── suppliers/           # Supplier CRUD
+│       ├── install-bookings/    # Booking CRUD
+│       ├── purchase-requests/   # PR CRUD + approval
+│       ├── purchase-orders/     # PO CRUD
+│       ├── journal/             # Journal entries
+│       ├── landing-settings/    # Landing page config
+│       ├── webhooks/xendit/     # Xendit payment webhook
+│       └── admin/create-staff/  # Staff account creation
 ├── components/
-│   ├── dashboard/           # DashboardTopNav, layout components
-│   ├── ui/                 # ThemeToggle, badges, buttons
-│   └── SeoScripts.tsx      # Dynamic Pixel + GA4 injection
-├── types/index.ts          # TypeScript interfaces
-├── utils/supabase/         # Client, server, middleware clients
-└── app/globals.css        # Global styles + CSS variables
+│   ├── ui/                       # Shadcn/ui + custom (ThemeToggle, BookingCalendar, skeletons, EmptyState)
+│   ├── dashboard/                # DashboardTopNav, DashboardSidebar, layout components
+│   └── landing/                  # Landing page components
+├── lib/
+│   ├── invoice.ts                # generateInvoicePDF + generatePackingListPDF
+│   └── upload.ts                 # uploadToLocal helper
+├── utils/supabase/
+│   ├── client.ts                 # Browser client
+│   ├── server.ts                 # Server client (SSR)
+│   └── middleware.ts             # Auth middleware
+├── types/index.ts                # TypeScript interfaces
+└── app/globals.css               # Global styles + CSS variables
 ```
+
+---
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — apply in order:
+Located in `supabase/migrations/` — apply in order. Key migrations:
 
-| # | File | Description |
-|---|------|-------------|
-| 001 | `001_initial_schema.sql` | Core tables: users, orders, customers, products, materials, suppliers, BOM, production_jobs, payments, order_logs |
-| 002 | `002_order_logs_tracking.sql` | Order status pipeline, order_logs action constraints |
-| 003 | `003_return_refund_flow.sql` | Return/refund flow |
-| 004 | `004_landing_settings.sql` | Landing page settings table (hero, WhatsApp, trust badges) |
-| 005 | `005_add_social_media_to_landing_settings.sql` | Social media links |
-| 006 | `006_booking_schema_fix.sql` | Booking/install scheduling schema |
-| 007 | `007_add_shipping_packing.sql` | Packed/shipped status, tracking_number, courier |
-| 008 | `008_seo_settings.sql` | SEO fields: pixel_id, ga4_id, meta tags, og_image |
-| 028 | `028_increment_stock_toko_function.sql` | Inventory movement tracking function |
-| 029 | `029_fix_inventory_movements.sql` | Inventory movement corrections |
-| 030 | `030_update_order_logs_constraint.sql` | Order logs constraint update |
+| File | Description |
+|------|-------------|
+| `001_initial_schema.sql` | Core tables: users, orders, customers, products, materials, suppliers, BOM, production_jobs, payments, order_logs, banners, portfolio_posts |
+| `015_order_number.sql` | order_number column + generate_order_number() function |
+| `032_order_progress_photos.sql` | order_progress_photos table for pipeline photo tracking |
+| `033_material_price_history.sql` | material_price_history table for price tracking |
+| `034_install_bookings_revision.sql` | revision_reason + revision_photos on install_bookings |
+| `035_orders_estimated_completion.sql` | estimated_completion column on orders |
 
-## Design System (Color Palette)
+---
+
+## Design System
+
+**Brand Color:** `#cc7030` (warm brown/orange)
 
 **Light Mode:**
 | Usage | Color |
 |---|---|
-| Button utama | `#EDA4A3` |
-| Hover button | `#D4796E` |
-| Navbar / Footer | `#2B2321` |
-| Background section | `#F9EFED` |
-| Heading teks | `#2B2321` |
-| Subtext / caption | `#6B4A42` |
+| Primary button | `#cc7030` |
+| Background | `#fafafa` |
+| Card/Surface | `#ffffff` |
+| Text heading | `#1f2937` |
+| Text muted | `#6b7280` |
 
-**Dark Mode:** Warm dark palette with `#1A1412` base, headings in warm cream `#E8D8D0`.
+**Dark Mode:** Warm dark palette in `globals.css` (`.dark` class on `<html>`)
 
-## Landing Page
+---
 
-- **Hero:** Auto-play background video (`autoPlay muted loop playsInline`), falls back to branded gradient if video unavailable or fails to load
-- **Scroll behavior:** Normal page scroll — video plays as background element, no scroll-locking
-- **Particles:** Animated floating particles with brand colors
-- **Sections:** Categories, Products (max 8 with "View All"), Why Us, Portfolio, CTA Banner, Footer
-- **Theme:** Fully responsive with dark mode support
+## Key Files
 
-## Order Status Pipeline
+| File | Purpose |
+|------|---------|
+| `src/lib/invoice.ts` | Invoice & Packing List PDF generation |
+| `src/lib/upload.ts` | Local upload helper (`uploadToLocal`) |
+| `src/components/ErrorBoundary.tsx` | React ErrorBoundary for graceful error handling |
+| `src/components/ui/ThemeToggle.tsx` | Dark mode toggle |
+| `src/components/ui/BookingCalendar.tsx` | Public booking calendar |
+| `src/components/ui/skeleton.tsx` | Loading skeletons (TableSkeleton, StatCardSkeleton) |
+| `src/components/ui/EmptyState.tsx` | Empty state component |
+| `src/components/dashboard/DashboardSidebar.tsx` | Sidebar navigation |
 
-```
-new → sorted → payment_ok → production → ready → packed → shipped → done
-                                                        ↘ returned
-                                                        ↘ cancelled
-```
-
-## User Roles
-
-- **admin** — Full access (orders, catalog, customers, booking, portfolio, reports, staff, shipping, landing, SEO)
-- **finance** — BOM, HPP, payments, suppliers, financial reports
-- **gudang** — Production, steam, stock, alerts, QC, overtime
-- **penjahit** — Job queue, reports, history
-- **installer** — Schedule, checklist, reports
-- **owner** — Overview of all divisi (single account access)
-
-## Key Features
-
-### Admin
-- Order management dengan filter by status (new → done)
-- Marketplace sources: Offline, Shopee, Tokopedia, TikTok, Landing Page
-- Klasifikasi: Kirim vs Pasang
-- Shipping workflow: Mark Packed → Input Resi (courier + tracking number)
-- Booking installation scheduling dengan kalender
-- Catalog management (products, categories, banners)
-- Portfolio/inspiration blog posts
-- Sales reports dengan pipeline funnel
-- SEO management (Meta Pixel, GA4, sitemap.xml, robots.txt)
-- Landing page settings (hero, WhatsApp, trust badges, social media)
-
-### Finance
-- BOM & material cost calculation
-- HPP (Harga Pokok Penjualan) calculator
-- Payment tracking (DP → Lunas)
-- Supplier management + PO creation from approved PRs
-
-### Gudang
-- Production job queue
-- Steam/laundry process tracking
-- Stock position monitoring
-- Low stock alerts → auto PR creation
-
-### Penjahit
-- Job queue dari admin orders
-- Rekap meter lari per order
-
-### Installer
-- Schedule view dari booking
-- Installation checklist dengan foto evidence
-
-### Owner
-- Overview semua divisi
-- Marketplace performance
-- Top produk
-- Staff overview
+---
 
 ## Environment Variables
 
 ```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-XENDIT_API_KEY=
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...    # Server-side only, never expose
+XENDIT_API_KEY=                     # Xendit payment integration
 ```
+
+---
 
 ## Getting Started
 
@@ -195,16 +192,30 @@ npm run dev
 
 Apply migrations to Supabase before running:
 ```bash
-# Apply via Supabase CLI or dashboard
 supabase db push
 ```
 
-## Public Pages
+---
 
-| Route | Description |
-|-------|-------------|
-| `/` | Landing page with hero, products, testimonials |
-| `/catalog` | Full product catalog with search/filter |
-| `/products/[slug]` | Product detail page |
-| `/booking` | Public installation booking form |
-| `/login` | Staff login |
+## Implementation Status
+
+**Phase 1-4 Complete** ✅
+
+All planned features implemented:
+- Order pipeline with photo tracking
+- BOM + HPP calculator
+- Payment gate (DP/Lunas approval)
+- Installer revision flow
+- Invoice/Packing List PDF
+- MoM growth reports
+- Real-time owner dashboard
+- Material price history
+- Public booking calendar
+- Dark mode, PWA, ErrorBoundary
+
+**Marketplace Sync:** Ditunda (requires partnership with platform)
+
+---
+
+*Last updated: 2026-05-28*
+*Dev server: `npm run dev` → http://localhost:3000*
