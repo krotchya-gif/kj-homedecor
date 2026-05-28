@@ -9,6 +9,8 @@ import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } fr
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
+import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
+import { FileText, Package } from 'lucide-react'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','packed','shipped','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
@@ -472,6 +474,18 @@ export default function OrderDetailPage() {
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#9333ea',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer'}}>
             📦 Return
           </button>
+        )}
+        {order.status !== 'cancelled' && (
+          <div style={{display:'flex',gap:'0.5rem'}}>
+            <button onClick={() => generateInvoicePDF({ order: order as any, orderNumber: order.order_number || id.slice(0,8) })}
+              style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1rem',background:'#fff',color:'#374151',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer',fontSize:'0.8rem'}}>
+              <FileText size={14}/> Invoice
+            </button>
+            <button onClick={() => generatePackingListPDF({ order: order as any, orderNumber: order.order_number || id.slice(0,8) })}
+              style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1rem',background:'#fff',color:'#374151',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer',fontSize:'0.8rem'}}>
+              <Package size={14}/> Packing List
+            </button>
+          </div>
         )}
       </div>
 
