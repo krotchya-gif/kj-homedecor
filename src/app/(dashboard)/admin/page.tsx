@@ -24,6 +24,9 @@ import {
   BarChart3,
   ImageIcon,
   Camera,
+  Activity,
+  Wrench,
+  AlertCircle,
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
@@ -35,6 +38,7 @@ interface OrderLog { id: string; order_id: string; action: string; notes?: strin
 interface OrderProgressPhoto { id: string; order_id: string; stage: string; photo_url: string; notes?: string; created_at: string }
 interface OrderWithLogs { id: string; order_number?: string; status: string; payment_status: string; created_at: string; customer?: { name: string }; recentLogs: OrderLog[]; progressPhotos?: OrderProgressPhoto[] }
 interface StatData { orders: Order[]; totalOrders: number; totalCustomers: number; totalProducts: number; pendingPRs: PurchaseRequest[]; ordersWithLogs: OrderWithLogs[] }
+interface InstallBooking { id: string; status: string; scheduled_date: string; scheduled_time: string; type: string; order?: { customer?: { name: string; phone: string; address: string } | null } }
 
 const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   created: { icon: <PackagePlus size={14} />, color: '#3b82f6' },
@@ -60,6 +64,7 @@ const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currenc
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<StatData | null>(null)
+  const [installBookings, setInstallBookings] = useState<InstallBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
@@ -81,6 +86,9 @@ export default function AdminDashboardPage() {
         loadData()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_progress_photos' }, () => {
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'install_bookings' }, () => {
         loadData()
       })
       .subscribe()
@@ -134,12 +142,15 @@ export default function AdminDashboardPage() {
       progressPhotos: o.order_progress_photos ?? [],
     }))
 
-    const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }] = await Promise.all([
+    const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }, { data: installsData }] = await Promise.all([
       supabase.from('orders').select('id, status, payment_status', { count: 'exact' }),
       supabase.from('customers').select('id', { count: 'exact' }),
       supabase.from('products').select('id', { count: 'exact' }),
       supabase.from('purchase_requests').select('*, material:materials(name)').eq('status', 'pending'),
+      supabase.from('install_bookings').select('id, status, scheduled_date, scheduled_time, type, order:orders(customer:customers(name, phone, address))').gte('scheduled_date', new Date().toISOString().split('T')[0]).in('status', ['scheduled', 'in_progress', 'revision']),
     ])
+
+    setInstallBookings((installsData as any) ?? [])
     setData({
       orders: (ordersData ?? []) as Order[],
       totalOrders: totalOrders ?? 0,
@@ -180,6 +191,19 @@ export default function AdminDashboardPage() {
   const newOrders = orders.filter((o) => o.status === 'new').length
   const pendingPayment = orders.filter((o) => o.payment_status === 'pending').length
   const doneOrders = orders.filter((o) => o.status === 'done').length
+  const inProduction = orders.filter((o) => o.status === 'production' || o.status === 'steam').length
+
+  // Real-time: today's orders
+  const today = new Date()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const todayOrders = orders.filter((o) => new Date(o.created_at) >= todayStart)
+  const todayOrderCount = todayOrders.length
+  const todayRevenue = todayOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
+
+  // Install stats
+  const scheduledInstalls = installBookings.filter(b => b.status === 'scheduled').length
+  const activeInstalls = installBookings.filter(b => b.status === 'in_progress').length
+  const revisionInstalls = installBookings.filter(b => b.status === 'revision').length
 
   // Chart data: Order count by status
   const statusCounts: Record<string, number> = {}
@@ -214,6 +238,73 @@ export default function AdminDashboardPage() {
 
       {/* Stat Cards — Improved */}
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
+        {/* Real-time Hari Ini */}
+        <div className="stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div className="stat-card-label">Real-time Hari Ini</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
+                <div className="stat-card-value" style={{ color: '#16a34a' }}>{todayOrderCount}</div>
+                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>pesanan baru</span>
+              </div>
+              <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>{formatRp(todayRevenue)} omzet</div>
+            </div>
+            <div style={{ background: '#d1fae5', borderRadius: '0.5rem', padding: '0.5rem' }}>
+              <Activity size={20} style={{ color: '#16a34a' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Produksi Aktif */}
+        <div className="stat-card" style={{ borderLeft: '4px solid #06b6d4' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div className="stat-card-label">Produksi Aktif</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
+                <div className="stat-card-value" style={{ color: '#06b6d4' }}>{inProduction}</div>
+                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang diproduksi</span>
+              </div>
+              <div className="stat-card-sub">Gudang sedang kerjakan</div>
+            </div>
+            <div style={{ background: '#cffafe', borderRadius: '0.5rem', padding: '0.5rem' }}>
+              <Wrench size={20} style={{ color: '#06b6d4' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Instalasi Aktif */}
+        <div className="stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div className="stat-card-label">Instalasi Aktif</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
+                <div className="stat-card-value" style={{ color: '#8b5cf6' }}>{activeInstalls}</div>
+                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang pasang</span>
+              </div>
+              <div className="stat-card-sub">{scheduledInstalls} terjadwal · {revisionInstalls} revisi</div>
+            </div>
+            <div style={{ background: '#f5f3ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
+              <Calendar size={20} style={{ color: '#8b5cf6' }} />
+            </div>
+          </div>
+        </div>
+
+        {/* PR Pending */}
+        {pendingPRs.length > 0 && (
+          <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div className="stat-card-label">PR Pending</div>
+                <div className="stat-card-value" style={{ color: '#f59e0b' }}>{pendingPRs.length}</div>
+                <div className="stat-card-sub">Perlu approve</div>
+              </div>
+              <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
+                <AlertCircle size={20} style={{ color: '#f59e0b' }} />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Total Orders */}
         <div className="stat-card" style={{ borderLeft: '4px solid #3b82f6' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -257,29 +348,15 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Total Customers */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
+        <div className="stat-card" style={{ borderLeft: '4px solid #ec4899' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Total Pelanggan</div>
-              <div className="stat-card-value" style={{ color: '#8b5cf6' }}>{totalCustomers}</div>
+              <div className="stat-card-value" style={{ color: '#ec4899' }}>{totalCustomers}</div>
               <div className="stat-card-sub">Terdaftar</div>
             </div>
-            <div style={{ background: '#f5f3ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Users size={20} style={{ color: '#8b5cf6' }} />
-            </div>
-          </div>
-        </div>
-
-        {/* Total Products */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #cc7030' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Produk</div>
-              <div className="stat-card-value" style={{ color: '#cc7030' }}>{totalProducts}</div>
-              <div className="stat-card-sub">Di katalog</div>
-            </div>
-            <div style={{ background: '#fff7ed', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Package size={20} style={{ color: '#cc7030' }} />
+            <div style={{ background: '#fdf2f8', borderRadius: '0.5rem', padding: '0.5rem' }}>
+              <Users size={20} style={{ color: '#ec4899' }} />
             </div>
           </div>
         </div>
