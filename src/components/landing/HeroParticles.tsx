@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface Particle {
   x: number
@@ -14,8 +14,24 @@ interface Particle {
 
 export default function HeroParticles() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
+    // Lazy-init: only start particle system when hero scrolls into view
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setIsVisible(true) },
+      { threshold: 0.01 }
+    )
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!isVisible) return
+
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
@@ -32,7 +48,6 @@ export default function HeroParticles() {
     resize()
     window.addEventListener('resize', resize)
 
-    // init particles
     for (let i = 0; i < 55; i++) {
       particles.push({
         x: Math.random() * canvas.width,
@@ -61,7 +76,6 @@ export default function HeroParticles() {
         p.x += p.vx
         p.y += p.vy
 
-        // drift slightly
         p.vx += (Math.random() - 0.5) * 0.015
         p.vx = Math.max(-0.5, Math.min(0.5, p.vx))
 
@@ -81,7 +95,24 @@ export default function HeroParticles() {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', resize)
     }
-  }, [])
+  }, [isVisible])
+
+  // Don't render canvas at all until visible (saves memory/CPU)
+  if (!isVisible) {
+    return (
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 1,
+        }}
+      />
+    )
+  }
 
   return (
     <canvas
