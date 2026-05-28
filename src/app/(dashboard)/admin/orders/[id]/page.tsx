@@ -44,6 +44,10 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
 
+  // BOM data for material suggestion
+  const [boms, setBoms] = useState<any[]>([])
+  const [materials, setMaterials] = useState<any[]>([])
+
   // item type selector
   const [itemType, setItemType] = useState<ItemType>('gorden')
 
@@ -102,19 +106,23 @@ export default function OrderDetailPage() {
 
   async function load() {
     setLoading(true)
-    const [orderRes, itemsRes, prodsRes, logsRes, checklistRes, photosRes] = await Promise.all([
+    const [orderRes, itemsRes, prodsRes, logsRes, checklistRes, photosRes, bomsRes, matsRes] = await Promise.all([
       supabase.from('orders').select('*, customer:customers(name,phone,address)').eq('id',id).single(),
       supabase.from('order_items').select('*, product:products(name,sku)').eq('order_id',id),
       supabase.from('products').select('id,name,sku,price').order('name'),
       supabase.from('order_logs').select('*, staff:users(name)').eq('order_id',id).order('created_at', { ascending: true }),
       supabase.from('order_preparation_checklists').select('items').eq('order_id',id).single(),
       supabase.from('order_progress_photos').select('*').eq('order_id', id).order('created_at', { ascending: true }),
+      supabase.from('bom').select('*, material:materials(name,unit,cost_per_unit,stock_gudang,min_stock_level)'),
+      supabase.from('materials').select('id,name,unit,stock_gudang,min_stock_level').order('name'),
     ])
     setOrder(orderRes.data as Order)
     setItems((itemsRes.data as OrderItem[]) ?? [])
     setProducts((prodsRes.data as Product[]) ?? [])
     setOrderLogs((logsRes.data ?? []) as any[])
     setOrderPhotos((photosRes.data ?? []) as any[])
+    setBoms((bomsRes.data ?? []) as any[])
+    setMaterials((matsRes.data ?? []) as any[])
     // Init checklist if not exists
     if (checklistRes.data) {
       setChecklist(checklistRes.data.items as PreparationChecklistItem[])
@@ -706,12 +714,37 @@ export default function OrderDetailPage() {
                       style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr',gap:'0.75rem'}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
                   <div>
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Ukuran (cm)</label>
                     <input type="text" placeholder="120 x 250" value={itemForm.size} onChange={e=>setItemForm(f=>({...f,size:e.target.value}))}
                       style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none'}}/>
                   </div>
+                  {itemForm.product_id && (() => {
+                    const prodBom = boms.filter(b => b.product_id === itemForm.product_id)
+                    if (prodBom.length === 0) return null
+                    return (
+                      <div>
+                        <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>📋 Material Dibutuhkan</label>
+                        <div style={{display:'flex',flexDirection:'column',gap:'0.25rem',maxHeight:120,overflowY:'auto',padding:'0.5rem',background:'#fef3c7',borderRadius:'0.5rem',fontSize:'0.75rem'}}>
+                          {prodBom.map(b => {
+                            const mat = b.material
+                            const isLow = (mat?.stock_gudang ?? 0) < b.qty_per_unit
+                            return (
+                              <div key={b.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.2rem 0'}}>
+                                <span style={{color: isLow?'#dc2626':'#374151',fontWeight: isLow?'700':'400'}}>
+                                  {mat?.name ?? '—'} × {b.qty_per_unit} {mat?.unit}
+                                </span>
+                                <span style={{color: isLow?'#dc2626':'#059669',fontWeight:'600'}}>
+                                  {isLow ? '⚠️ Stok kurang' : '✅ Cukup'}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
                 <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
                   <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.75rem'}}>Meteran Gorden</div>
