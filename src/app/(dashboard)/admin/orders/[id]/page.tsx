@@ -3,14 +3,13 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon, FileText, Package, Clock, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
-import { FileText, Package } from 'lucide-react'
 
 const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','packed','shipped','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
@@ -519,6 +518,31 @@ export default function OrderDetailPage() {
             )
           })}
         </div>
+      </div>
+
+      {/* Estimasi Selesai */}
+      <div style={{background:'#fff',border:'1px solid #e5e7eb',borderRadius:'0.75rem',padding:'1rem 1.25rem',marginBottom:'1.25rem',display:'flex',alignItems:'center',gap:'0.75rem'}}>
+        <Clock size={18} style={{ color: '#cc7030', flexShrink: 0 }} />
+        <div style={{flex:1}}>
+          <div style={{fontSize:'0.78rem',color:'#9ca3af',marginBottom:'0.2rem'}}>ESTIMASI SELESAI</div>
+          {order.status === 'done' ? (
+            <div style={{fontWeight:'700',color:'#16a34a'}}>✅ Sudah Selesai</div>
+          ) : (
+            <div style={{display:'flex',alignItems:'center',gap:'0.75rem',flexWrap:'wrap'}}>
+              <span style={{fontWeight:'700',color:'#374151'}}>Tahap {statusIdx+1}/{ORDER_STATUSES.length}</span>
+              <span style={{fontSize:'0.8rem',color:'#6b7280'}}>—</span>
+              <span style={{fontSize:'0.8rem',color:'#6b7280'}}>
+                Pipeline: {ORDER_STATUSES.slice(statusIdx+1).map(s=>STATUS_LABELS[s]).join(' → ')}
+              </span>
+            </div>
+          )}
+        </div>
+        {order.status !== 'done' && (
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:'0.72rem',color:'#9ca3af'}}>Status Saat Ini</div>
+            <div style={{fontWeight:'700',color:'#cc7030'}}>{STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}</div>
+          </div>
+        )}
       </div>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem',marginBottom:'1.25rem'}}>
