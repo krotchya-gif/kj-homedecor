@@ -44,10 +44,16 @@ All Phase 4 owner tools and advanced reporting features implemented as of 2026-0
 - Green/red badges: TrendingUp (positive) / TrendingDown (negative)
 - Previous period auto-calculated (prior month or prior year)
 
-### Owner Real-time Dashboard (Phase 4D)
-- "Real-time Hari Ini" card: today's new order count + omzet
-- "Instalasi Aktif" card: in-progress + scheduled install counts
-- Both load in parallel with main orders query (no extra render delay)
+### Owner & Admin Real-time Dashboard (Phase 4D)
+- Admin dashboard (`/admin`) has 8 real-time stat cards:
+  - "Real-time Hari Ini" — new order count + omzet (green)
+  - "Produksi Aktif" — in-production + steam count (cyan)
+  - "Instalasi Aktif" — in-progress + scheduled + revision counts (purple)
+  - "PR Pending" — alert when purchase requests need approval (orange)
+  - Total Orders, Menunggu Bayar, Selesai, Total Pelanggan
+- Owner dashboard (`/owner`) has 4 stat cards: Real-time Hari Ini, Instalasi Aktif, Omzet Bulan Ini, Pesanan
+- Install bookings tracked via realtime subscription on `install_bookings` table
+- Both dashboards show live operational snapshot without page refresh
 
 ### Installer Revision Flow (Phase 4C)
 - "Laporkan Masalah" button visible when booking status = `in_progress`

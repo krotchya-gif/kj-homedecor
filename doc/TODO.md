@@ -401,6 +401,7 @@
 - [x] "Real-time Hari Ini" card: new order count + omzet (hijau)
 - [x] "Instalasi Aktif" card: in-progress + scheduled install counts (biru)
 - [x] Widget-based dengan data yang load parallel (Promise.all)
+- [x] **Admin** `/admin` — 8 stat cards real-time (termasuk produksi aktif, revisi instalasi, PR pending)
 
 ---
 

@@ -105,11 +105,15 @@ Kalkulator Harga Pokok Produksi. **Ini satu-satunya fitur owner yang bisa mengub
 Admin mengelola operasional sehari-hari: pesanan, katalog, dan pelanggan.
 
 #### Home (`/admin`)
-Dashboard dengan:
-- **Stat cards** — pesanan hari ini, total omzet, customer baru
+Dashboard dengan 8 stat cards real-time:
+- **Real-time Hari Ini** — pesanan baru + omzet (green)
+- **Produksi Aktif** — sedang diproduksi + steam (cyan)
+- **Instalasi Aktif** — sedang pasang, terjadwal, revisi (purple)
+- **PR Pending** — purchase request perlu approve (orange)
+- **Total Pesanan**, **Menunggu Bayar**, **Selesai**, **Total Pelanggan**
 - **Chart** — pesanan per status, omzet per platform, tren 30 hari
 - **Progress pesanan** — kartu pesanan dengan progress bar dan foto
-- **Live updates** — data refresh otomatis saat ada perubahan pesanan
+- **Live updates** — data refresh otomatis saat ada perubahan
 
 #### Katalog (`/admin/catalog`)
 
