@@ -789,7 +789,7 @@ export default function OrderDetailPage() {
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem'}}>
                     <div>
                       <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter Gorden (m)</label>
-                      <input type="number" step="0.1" min="0" value={itemForm.meter_gorden}
+                      <input type="number" step="0.01" min="0" value={itemForm.meter_gorden}
                         onChange={e=>setItemForm(prev=>({...prev,meter_gorden:e.target.value}))}
                         style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
                     </div>
@@ -863,7 +863,7 @@ export default function OrderDetailPage() {
                     </div>
                     <div>
                       <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat (kg)</label>
-                      <input type="number" step="0.1" min="0" placeholder="0" value={itemForm.weight}
+                      <input type="number" step="0.01" min="0" placeholder="0" value={itemForm.weight}
                         onChange={e=>setItemForm(prev=>({...prev,weight:e.target.value}))}
                         style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
                     </div>
@@ -903,13 +903,13 @@ export default function OrderDetailPage() {
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.75rem',marginTop:'0.75rem'}}>
                     <div>
                       <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Berat (kg)</label>
-                      <input type="number" step="0.1" min="0" value={itemForm.kg}
+                      <input type="number" step="0.01" min="0" value={itemForm.kg}
                         onChange={e=>setItemForm(f=>({...f,kg:e.target.value}))}
                         style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
                     </div>
                     <div>
                       <label style={{display:'block',fontSize:'0.72rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.25rem'}}>Meter (m)</label>
-                      <input type="number" step="0.1" min="0" value={itemForm.meter_laundry}
+                      <input type="number" step="0.01" min="0" value={itemForm.meter_laundry}
                         onChange={e=>setItemForm(f=>({...f,meter_laundry:e.target.value}))}
                         style={{width:'100%',padding:'0.5rem',border:'1px solid #d1d5db',borderRadius:'0.375rem',fontSize:'0.8rem',outline:'none'}}/>
                     </div>
