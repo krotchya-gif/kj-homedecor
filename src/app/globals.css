@@ -2020,6 +2020,26 @@ body {
     min-width: 600px;
   }
 
+  /* Charts - stack on mobile */
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  .chart-card {
+    padding: 1rem !important;
+  }
+
+  .chart-card h3 {
+    font-size: 0.85rem !important;
+  }
+
+  /* Pipeline/Two-column grid - stack on mobile */
+  .pipeline-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
   /* Hide desktop nav links */
   .topnav-nav {
     display: none;

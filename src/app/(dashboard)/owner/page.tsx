@@ -231,10 +231,10 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div className="chart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
 
             {/* Revenue by Platform Bar Chart */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+            <div className="chart-card" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>Omzet per Platform</h3>
               {barData.length === 0 ? (
                 <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
@@ -252,7 +252,7 @@ export default function OwnerDashboard() {
             </div>
 
             {/* Platform Distribution Pie */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+            <div className="chart-card" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>Distribusi Platform</h3>
               {barData.length === 0 ? (
                 <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
@@ -270,7 +270,7 @@ export default function OwnerDashboard() {
           </div>
 
           {/* 12-Month Revenue Trend */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div className="chart-card" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <TrendingUp size={16} color="#16a34a" />
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren Omzet 12 Bulan</h3>
@@ -291,12 +291,15 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Top Products + Pipeline */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '1.5rem' }}>
+          <div className="pipeline-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
 
             {/* Top Products */}
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
               <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Produk Terlaris</h3>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Produk Terlaris</h3>
+                  <a href="/owner/products" style={{ fontSize: '0.75rem', color: '#cc7030', textDecoration: 'none', fontWeight: '600' }}>Lihat semua →</a>
+                </div>
               </div>
               <div className="data-table">
                 {topProducts.length === 0 ? (
@@ -305,7 +308,7 @@ export default function OwnerDashboard() {
                   <table>
                     <thead><tr><th>Produk</th><th>Qty</th><th>Revenue</th></tr></thead>
                     <tbody>
-                      {topProducts.map((p, i) => (
+                      {topProducts.slice(0, 5).map((p, i) => (
                         <tr key={p.name}>
                           <td style={{ fontWeight: '500' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, background: i < 3 ? '#cc7030' : '#e5e7eb', color: i < 3 ? '#fff' : '#6b7280', borderRadius: '50%', fontSize: '0.65rem', fontWeight: '700', marginRight: '0.5rem' }}>
