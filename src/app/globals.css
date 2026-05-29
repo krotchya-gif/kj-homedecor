@@ -2034,6 +2034,68 @@ body {
     font-size: 0.85rem !important;
   }
 
+  /* Ensure Recharts containers have proper height on mobile */
+  .recharts-wrapper,
+  .recharts-responsive-container {
+    min-height: 200px !important;
+  }
+
+  .recharts-wrapper svg {
+    overflow: visible;
+  }
+
+  /* Chart container padding for mobile */
+  .chart-card > div {
+    width: 100% !important;
+  }
+
+  /* Ensure chart height is sufficient on mobile */
+  .recharts-responsive-container {
+    min-height: 180px !important;
+  }
+
+  /* Recharts SVG should render fully */
+  .recharts-surface {
+    overflow: visible;
+  }
+
+  /* Fix YAxis tick formatter spacing on mobile */
+  .recharts-yAxis .recharts-tick {
+    font-size: 10px;
+  }
+
+  .recharts-xAxis .recharts-tick {
+    font-size: 10px;
+  }
+
+  /* Page header responsive */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .page-header > div:last-child {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Pagination buttons - touch friendly */
+  .pagination-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* All products table - horizontal scroll on mobile */
+  .all-products-table {
+    overflow-x: auto;
+    display: block;
+  }
+
+  .all-products-table table {
+    min-width: 600px;
+  }
+
   /* Pipeline/Two-column grid - stack on mobile */
   .pipeline-grid {
     grid-template-columns: 1fr !important;

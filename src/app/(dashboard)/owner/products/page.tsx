@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Package, Loader2, Search } from 'lucide-react'
+import { Package, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Product {
   id: string
@@ -21,10 +21,13 @@ interface ProductStats {
   total_revenue: number
 }
 
+const ITEMS_PER_PAGE = 25
+
 export default function OwnerProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const supabase = createClient()
 
@@ -75,6 +78,15 @@ export default function OwnerProductsPage() {
   const filteredStats = search
     ? stats.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()) || s.sku?.toLowerCase().includes(search.toLowerCase()))
     : stats
+
+  // Pagination for "All Products"
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedProducts = filtered.slice(startIndex, endIndex)
+
+  // Reset to page 1 when search changes
+  useEffect(() => { setCurrentPage(1) }, [search])
 
   const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
@@ -153,12 +165,15 @@ export default function OwnerProductsPage() {
             </div>
           </div>
 
-          {/* All Products */}
+          {/* All Products with Pagination */}
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
               <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Semua Produk</h2>
+              <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                Menampilkan {startIndex + 1}–{Math.min(endIndex, filtered.length)} dari {filtered.length}
+              </span>
             </div>
-            <div className="data-table">
+            <div className="data-table all-products-table">
               <table>
                 <thead>
                   <tr>
@@ -170,7 +185,7 @@ export default function OwnerProductsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(p => (
+                  {paginatedProducts.map(p => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: '600' }}>{p.name}</td>
                       <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
@@ -187,7 +202,7 @@ export default function OwnerProductsPage() {
                       </td>
                     </tr>
                   ))}
-                  {filtered.length === 0 && (
+                  {paginatedProducts.length === 0 && (
                     <tr>
                       <td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
                         <Package size={28} style={{ opacity: 0.3, margin: '0 auto 0.75rem', display: 'block' }} />
@@ -198,6 +213,41 @@ export default function OwnerProductsPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.875rem',
+                    background: currentPage === 1 ? '#f3f4f6' : '#fff',
+                    border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.82rem', color: currentPage === 1 ? '#9ca3af' : '#374151', fontWeight: '600',
+                    opacity: currentPage === 1 ? 0.5 : 1
+                  }}
+                >
+                  <ChevronLeft size={14} /> Prev
+                </button>
+                <span style={{ fontSize: '0.82rem', color: '#6b7280', padding: '0 0.5rem' }}>
+                  Halaman {currentPage} dari {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.875rem',
+                    background: currentPage === totalPages ? '#f3f4f6' : '#fff',
+                    border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    fontSize: '0.82rem', color: currentPage === totalPages ? '#9ca3af' : '#374151', fontWeight: '600',
+                    opacity: currentPage === totalPages ? 0.5 : 1
+                  }}
+                >
+                  Next <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
