@@ -156,6 +156,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <strong>Kode Kain:</strong> {p.kode_kain}
               </div>
             )}
+
+            {/* Description */}
+            {(p as any).description && (
+              <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Deskripsi</div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{(p as any).description}</div>
+              </div>
+            )}
           </div>
 
         </div>
