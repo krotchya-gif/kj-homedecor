@@ -18,18 +18,17 @@ const formatRp = (n: number) =>
 const PAGE_SIZE = 20
 
 const IMPORT_COLUMNS = [
-  { key: 'name', label: 'Nama Produk', required: true },
-  { key: 'sku', label: 'SKU', aliases: ['kode_sku'] },
-  { key: 'kode_kain', label: 'Kode Kain' },
-  { key: 'category_name', label: 'Kategori', aliases: ['kategori', 'category'] },
-  { key: 'price', label: 'Harga', aliases: ['harga_jual'], required: true },
+  { key: 'name', label: 'Nama Produk', aliases: ['nama_produk'], required: true },
+  { key: 'sku', label: 'SKU', aliases: ['kode_sku', 'kode'] },
+  { key: 'kode_kain', label: 'Kode Kain', aliases: [] },
+  { key: 'category_name', label: 'Kategori', aliases: ['kategori'], required: true },
+  { key: 'price', label: 'Harga Jual (Rp)', aliases: ['harga', 'harga_jual'], required: true },
   { key: 'stock_toko', label: 'Stok Toko', aliases: ['stok'] },
-  { key: 'stock_gudang', label: 'Stok Gudang' },
-  { key: 'description', label: 'Deskripsi', aliases: ['keterangan'] },
-  { key: 'images', label: 'Gambar (URL)', aliases: ['gambar', 'image'] },
-  { key: 'product_type', label: 'Jenis', aliases: ['jenis', 'type'] },
-  { key: 'is_custom', label: 'Custom', aliases: ['is_custom', 'custom'] },
-  { key: 'is_catalog_visible', label: 'Tampil di Katalog', aliases: ['catalog_visible', 'visible'] },
+  { key: 'description', label: 'Deskripsi', aliases: ['keterangan', 'desc'] },
+  { key: 'product_type', label: 'Tipe/Jenis', aliases: ['jenis', 'type'] },
+  { key: 'images', label: 'Gambar (URL)', aliases: ['gambar', 'image', 'foto'] },
+  { key: 'is_custom', label: 'Custom', aliases: ['custom'] },
+  { key: 'is_catalog_visible', label: 'Tampil di Katalog', aliases: ['visible', 'catalog_visible'] },
 ]
 
 export default function ProductsPage() {
@@ -157,17 +156,14 @@ export default function ProductsPage() {
           sku: row.sku || null,
           kode_kain: row.kode_kain || null,
           category_id: catId,
-          price: row.price ?? 0,
-          stock_toko: row.stock_toko ?? 0,
-          stock_gudang: row.stock_gudang ?? 0,
-          description: row.description || null,
-          images: row.images ? [row.images] : [],
+          price: Number(row.price) || 0,
+          stock_toko: Number(row.stock_toko) || 0,
+          description: row.description ? String(row.description) : null,
+          images: row.images ? [String(row.images)] : [],
           product_type: (row.product_type as 'gorden' | 'perabot') || 'perabot',
-          is_custom: row.is_custom ?? false,
-          is_catalog_visible: row.is_catalog_visible ?? true,
+          is_custom: row.is_custom,
+          is_catalog_visible: row.is_catalog_visible,
         }
-        if (row.stock_toko !== undefined) (payload as any).stock_toko = Number(row.stock_toko) || 0
-        if (row.stock_gudang !== undefined) (payload as any).stock_gudang = Number(row.stock_gudang) || 0
         return payload
       })
 
