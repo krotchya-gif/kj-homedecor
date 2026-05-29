@@ -110,7 +110,7 @@ export default function HPPPage() {
         <p className="page-subtitle">Hitung Harga Pokok Produksi dari BOM + production cost + markup</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', alignItems: 'start' }}>
 
         {/* Left — BOM editor */}
         <div>
@@ -137,13 +137,13 @@ export default function HPPPage() {
 
           {/* Mode toggle */}
           {selectedProduct && (
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
               {[
                 { value: 'auto', label: '🔢 Auto (BOM)', desc: 'HPP dihitung dari material + biaya produksi' },
                 { value: 'manual', label: '✏️ Manual', desc: 'Input HPP langsung (override)' },
               ].map(opt => (
                 <label key={opt.value} onClick={() => { setMode(opt.value as 'auto' | 'manual'); if (opt.value === 'manual') setManualHpp(selectedProduct.hpp_calculated ?? 0) }}
-                  style={{ flex: 1, cursor: 'pointer', border: `2px solid ${mode === opt.value ? '#cc7030' : '#e5e7eb'}`, borderRadius: '0.5rem', padding: '0.75rem', background: mode === opt.value ? '#fff8f2' : '#fff' }}>
+                  style={{ flex: '1 1 calc(50% - 0.375rem)', minWidth: '140px', cursor: 'pointer', border: `2px solid ${mode === opt.value ? '#cc7030' : '#e5e7eb'}`, borderRadius: '0.5rem', padding: '0.75rem', background: mode === opt.value ? '#fff8f2' : '#fff' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <input type="radio" name="hppMode" value={opt.value} checked={mode === opt.value} onChange={() => {}} style={{ accentColor: '#cc7030' }} />
                     <span style={{ fontWeight: '700', fontSize: '0.875rem' }}>{opt.label}</span>
@@ -200,8 +200,8 @@ export default function HPPPage() {
             )}
 
             {showAddLine && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', alignItems: 'flex-end' }}>
-                <div style={{ flex: 2 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.75rem', alignItems: 'flex-end' }}>
+                <div style={{ flex: '2 1 200px' }}>
                   <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem' }}>Material</label>
                   <select value={newLine.material_id} onChange={e => setNewLine(f => ({ ...f, material_id: e.target.value }))}
                     style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8rem', outline: 'none', background: '#fff' }}>
@@ -209,7 +209,7 @@ export default function HPPPage() {
                     {materials.map(m => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
                   </select>
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: '1 1 80px' }}>
                   <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem' }}>Qty</label>
                   <input type="number" step="0.01" min="0" placeholder="0" value={newLine.qty} onChange={e => setNewLine(f => ({ ...f, qty: e.target.value }))}
                     style={{ width: '100%', padding: '0.5rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8rem', outline: 'none' }} />
@@ -223,7 +223,7 @@ export default function HPPPage() {
           {/* Extra cost & markup */}
           <div className="form-section">
             <div className="form-section-title">Biaya Produksi & Markup</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Biaya Produksi/Jasa (Rp)</label>
                 <input type="number" min="0" value={extraCost} onChange={e => setExtraCost(Number(e.target.value))}
