@@ -65,7 +65,7 @@ export default function NeracaPage() {
     })
 
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
+      startY: (doc as any).lastAutoTable.finalY + 10,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
         ...liabilities.map(a => [a.code, a.name, 'Liabilitas', formatRp(a.balance ?? 0)]),
@@ -76,7 +76,7 @@ export default function NeracaPage() {
     })
 
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
+      startY: (doc as any).lastAutoTable.finalY + 10,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
         ...equities.map(a => [a.code, a.name, 'Ekuitas', formatRp(a.balance ?? 0)]),
