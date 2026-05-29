@@ -2,12 +2,33 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Package, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Package, AlertTriangle, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
 import type { Material } from '@/types'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import ImportModal from '@/components/ui/ImportModal'
+import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 
 const PAGE_SIZE = 20
+
+const IMPORT_COLUMNS = [
+  { key: 'name', label: 'Nama Material', required: true },
+  { key: 'unit', label: 'Unit', aliases: ['satuan'] },
+  { key: 'cost_per_unit', label: 'Harga Per Unit', aliases: ['harga', 'cost'] },
+  { key: 'stock_gudang', label: 'Stok Gudang' },
+  { key: 'stock_toko', label: 'Stok Toko' },
+  { key: 'min_stock_level', label: 'Min Stok', aliases: ['minimum'] },
+  { key: 'supplier_name', label: 'Supplier', aliases: ['nama_supplier', 'vendor'] },
+]
+
+const EXPORT_COLUMNS = [
+  { key: 'name', label: 'Nama' },
+  { key: 'unit', label: 'Unit' },
+  { key: 'cost_per_unit', label: 'Harga' },
+  { key: 'stock_gudang', label: 'Stok Gudang' },
+  { key: 'stock_toko', label: 'Stok Toko' },
+  { key: 'min_stock_level', label: 'Min Stok' },
+]
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -20,6 +41,8 @@ export default function MaterialsPage() {
   const [saving, setSaving] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([])
   const [form, setForm] = useState({
     name: '', unit: 'meter', cost_per_unit: '', stock_gudang: '', stock_toko: '', min_stock_level: '',
   })
@@ -41,7 +64,59 @@ export default function MaterialsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchMaterials() }, [currentPage])
+  useEffect(() => {
+    fetchMaterials()
+    supabase.from('suppliers').select('id, name').then(({ data }) => setSuppliers(data ?? []))
+  }, [currentPage])
+
+  function getSupplierId(name: string): string | null {
+    if (!name) return null
+    const s = suppliers.find(s => s.name.toLowerCase() === name.toLowerCase())
+    return s?.id ?? null
+  }
+
+  function resolveMaterialField(key: string, value: string): string | number | null {
+    if (!value && value !== '0') return null
+    if (key === 'supplier_name') return getSupplierId(value)
+    if (key === 'cost_per_unit' || key === 'stock_gudang' || key === 'stock_toko' || key === 'min_stock_level') {
+      const n = parseFloat(value)
+      return isNaN(n) ? null : n
+    }
+    return value
+  }
+
+  function handleExport() {
+    exportToCSV(materials as any, EXPORT_COLUMNS)
+  }
+
+  function handleDownloadTemplate() {
+    generateCSVTemplate(IMPORT_COLUMNS)
+  }
+
+  async function handleImport(rows: Record<string, string | number | null>[]) {
+    const errors: string[] = []
+    let inserted = 0
+    const BATCH = 50
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH)
+      for (const row of batch) {
+        const supplierId = getSupplierId(String(row.supplier_name ?? ''))
+        const { error } = await supabase.from('materials').insert({
+          name: String(row.name ?? ''),
+          unit: String(row.unit ?? 'meter'),
+          cost_per_unit: Number(row.cost_per_unit) || 0,
+          stock_gudang: Number(row.stock_gudang) || 0,
+          stock_toko: Number(row.stock_toko) || 0,
+          min_stock_level: Number(row.min_stock_level) || 0,
+          supplier_id: supplierId,
+        })
+        if (error) errors.push(`Row ${i + 1}: ${error.message}`)
+        else inserted++
+      }
+    }
+    fetchMaterials()
+    return { inserted, updated: 0, errors }
+  }
 
   const filtered = materials.filter((m) => m.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -74,8 +149,17 @@ export default function MaterialsPage() {
           <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
           <input type="text" placeholder="Cari material..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
         </div>
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
-          <Plus size={16} /> Tambah Material
+        <button onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+          <Download size={14} /> Template
+        </button>
+        <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+          <Download size={14} /> Export
+        </button>
+        <button onClick={() => setImportModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+          <Upload size={14} /> Import
+        </button>
+        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+          <Plus size={16} /> Tambah
         </button>
       </div>
 
@@ -194,6 +278,14 @@ export default function MaterialsPage() {
           </div>
         </div>
       )}
+      <ImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        columns={IMPORT_COLUMNS}
+        resolveField={resolveMaterialField}
+        onImport={handleImport}
+        entityName="Material"
+      />
     </div>
   )
 }

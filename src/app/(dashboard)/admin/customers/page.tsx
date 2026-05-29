@@ -2,12 +2,28 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Users, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Users, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
 import type { Customer } from '@/types'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import ImportModal from '@/components/ui/ImportModal'
+import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 
 const PAGE_SIZE = 20
+
+const IMPORT_COLUMNS = [
+  { key: 'name', label: 'Nama', required: true },
+  { key: 'phone', label: 'No. HP / WhatsApp', aliases: ['whatsapp', 'telepon', 'no_hp', 'no_telp'] },
+  { key: 'address', label: 'Alamat', aliases: ['alamat'] },
+  { key: 'notes', label: 'Catatan', aliases: ['keterangan', 'note'] },
+]
+
+const EXPORT_COLUMNS = [
+  { key: 'name', label: 'Nama' },
+  { key: 'phone', label: 'No. HP' },
+  { key: 'address', label: 'Alamat' },
+  { key: 'notes', label: 'Catatan' },
+]
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -18,6 +34,7 @@ export default function CustomersPage() {
   const [form, setForm] = useState({ name: '', phone: '', address: '', notes: '' })
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   const supabase = createClient()
 
@@ -37,6 +54,35 @@ export default function CustomersPage() {
   }
 
   useEffect(() => { fetchCustomers() }, [currentPage])
+
+  function handleExport() {
+    exportToCSV(customers as any, EXPORT_COLUMNS)
+  }
+
+  function handleDownloadTemplate() {
+    generateCSVTemplate(IMPORT_COLUMNS)
+  }
+
+  async function handleImport(rows: Record<string, string | number | null>[]) {
+    const errors: string[] = []
+    let inserted = 0
+    const BATCH = 50
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH)
+      for (const row of batch) {
+        const { error } = await supabase.from('customers').insert({
+          name: String(row.name ?? ''),
+          phone: String(row.phone ?? ''),
+          address: row.address ? String(row.address) : null,
+          notes: row.notes ? String(row.notes) : null,
+        })
+        if (error) errors.push(`Row ${i + 1}: ${error.message}`)
+        else inserted++
+      }
+    }
+    fetchCustomers()
+    return { inserted, updated: 0, errors }
+  }
 
   const filtered = customers.filter(
     (c) =>
@@ -71,8 +117,17 @@ export default function CustomersPage() {
           <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
           <input type="text" placeholder="Cari nama atau nomor HP..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
         </div>
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
-          <Plus size={16} /> Tambah Pelanggan
+        <button onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+          <Download size={14} /> Template
+        </button>
+        <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+          <Download size={14} /> Export
+        </button>
+        <button onClick={() => setImportModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+          <Upload size={14} /> Import
+        </button>
+        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+          <Plus size={16} /> Tambah
         </button>
       </div>
 
@@ -162,6 +217,13 @@ export default function CustomersPage() {
           </div>
         </div>
       )}
+      <ImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        columns={IMPORT_COLUMNS}
+        onImport={handleImport}
+        entityName="Pelanggan"
+      />
     </div>
   )
 }

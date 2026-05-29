@@ -3,17 +3,34 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Pencil, Trash2, Package, Star, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Package, Star, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
 import type { Product, Category } from '@/types'
 import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import ImportModal from '@/components/ui/ImportModal'
+import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 const PAGE_SIZE = 20
+
+const IMPORT_COLUMNS = [
+  { key: 'name', label: 'Nama Produk', required: true },
+  { key: 'sku', label: 'SKU', aliases: ['kode_sku'] },
+  { key: 'kode_kain', label: 'Kode Kain' },
+  { key: 'category_name', label: 'Kategori', aliases: ['kategori', 'category'] },
+  { key: 'price', label: 'Harga', aliases: ['harga_jual'], required: true },
+  { key: 'stock_toko', label: 'Stok Toko', aliases: ['stok'] },
+  { key: 'stock_gudang', label: 'Stok Gudang' },
+  { key: 'description', label: 'Deskripsi', aliases: ['keterangan'] },
+  { key: 'images', label: 'Gambar (URL)', aliases: ['gambar', 'image'] },
+  { key: 'product_type', label: 'Jenis', aliases: ['jenis', 'type'] },
+  { key: 'is_custom', label: 'Custom', aliases: ['is_custom', 'custom'] },
+  { key: 'is_catalog_visible', label: 'Tampil di Katalog', aliases: ['catalog_visible', 'visible'] },
+]
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -24,6 +41,7 @@ export default function ProductsPage() {
   const [activeTab, setActiveTab] = useState<'gorden' | 'perabot' | 'all'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   // Form state
   const [categories, setCategories] = useState<Category[]>([])
@@ -86,6 +104,110 @@ export default function ProductsPage() {
     }
     fetchCategories()
   }, [currentPage])
+
+  // Category lookup map for import
+  function getCategoryId(name: string): string | null {
+    if (!name) return null
+    const cat = categories.find(c => c.name.toLowerCase() === name.toLowerCase())
+    return cat?.id ?? null
+  }
+
+  // Resolver for import modal (handles FK lookups)
+  function resolveProductField(key: string, value: string): string | number | null {
+    if (!value && value !== '0') return null
+    if (key === 'category_name') return getCategoryId(value)
+    if (key === 'price' || key === 'stock_toko' || key === 'stock_gudang' || key === 'dimension_p' || key === 'dimension_l' || key === 'dimension_t' || key === 'weight') {
+      const n = parseFloat(value)
+      return isNaN(n) ? null : n
+    }
+    if (key === 'is_custom' || key === 'is_catalog_visible') {
+      const v = value.toLowerCase()
+      return (v === 'true' || v === '1' || v === 'yes' || v === 'ya') as any
+    }
+    return value
+  }
+
+  // Export current products as CSV
+  function handleExport() {
+    exportToCSV(products as any, IMPORT_COLUMNS.filter(c =>
+      c.key === 'name' || c.key === 'sku' || c.key === 'kode_kain' || c.key === 'price' ||
+      c.key === 'stock_toko' || c.key === 'description' || c.key === 'product_type'
+    ))
+  }
+
+  // Download blank template
+  function handleDownloadTemplate() {
+    generateCSVTemplate(IMPORT_COLUMNS)
+  }
+
+  // Handle import rows
+  async function handleImport(rows: Record<string, string | number | null>[]) {
+    const errors: string[] = []
+    let inserted = 0
+    let updated = 0
+
+    // Batch process 50 rows at a time
+    const BATCH = 50
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH)
+      const upserts = batch.map(row => {
+        const catId = getCategoryId(String(row.category_name ?? ''))
+        const payload: Record<string, unknown> = {
+          name: row.name,
+          sku: row.sku || null,
+          kode_kain: row.kode_kain || null,
+          category_id: catId,
+          price: row.price ?? 0,
+          stock_toko: row.stock_toko ?? 0,
+          stock_gudang: row.stock_gudang ?? 0,
+          description: row.description || null,
+          images: row.images ? [row.images] : [],
+          product_type: (row.product_type as 'gorden' | 'perabot') || 'perabot',
+          is_custom: row.is_custom ?? false,
+          is_catalog_visible: row.is_catalog_visible ?? true,
+        }
+        if (row.stock_toko !== undefined) (payload as any).stock_toko = Number(row.stock_toko) || 0
+        if (row.stock_gudang !== undefined) (payload as any).stock_gudang = Number(row.stock_gudang) || 0
+        return payload
+      })
+
+      // Upsert by SKU
+      for (const payload of upserts) {
+        try {
+          if (payload.sku) {
+            // Check if exists by SKU
+            const { data: existing } = await supabase
+              .from('products')
+              .select('id')
+              .eq('sku', payload.sku)
+              .maybeSingle()
+            if (existing) {
+              const { error } = await supabase
+                .from('products')
+                .update(payload)
+                .eq('id', existing.id)
+              if (error) errors.push(`Update SKU ${payload.sku}: ${error.message}`)
+              else updated++
+            } else {
+              const { error } = await supabase.from('products').insert(payload)
+              if (error) errors.push(`Insert ${payload.name}: ${error.message}`)
+              else inserted++
+            }
+          } else {
+            // No SKU = always insert
+            const { error } = await supabase.from('products').insert(payload)
+            if (error) errors.push(`Insert ${payload.name}: ${error.message}`)
+            else inserted++
+          }
+        } catch (e: any) {
+          errors.push(`Error: ${e.message}`)
+        }
+      }
+    }
+
+    fetchProducts()
+    return { inserted, updated, errors }
+  }
 
   const filtered = products.filter(
     (p) =>
@@ -253,6 +375,60 @@ export default function ProductsPage() {
           />
         </div>
         <button
+          onClick={handleDownloadTemplate}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: '#fff',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+          }}
+        >
+          <Download size={14} /> Template
+        </button>
+        <button
+          onClick={handleExport}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: '#fff',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+          }}
+        >
+          <Download size={14} /> Export
+        </button>
+        <button
+          onClick={() => setImportModalOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: '#fff',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer',
+          }}
+        >
+          <Upload size={14} /> Import
+        </button>
+        <button
           onClick={openAdd}
           style={{
             display: 'flex',
@@ -263,7 +439,7 @@ export default function ProductsPage() {
             color: '#fff',
             border: 'none',
             borderRadius: '0.5rem',
-            fontWeight: '600',
+            fontWeight: 600,
             fontSize: '0.875rem',
             cursor: 'pointer',
           }}
@@ -636,6 +812,15 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
+      {/* Import Modal */}
+      <ImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        columns={IMPORT_COLUMNS}
+        resolveField={resolveProductField}
+        onImport={handleImport}
+        entityName="Produk"
+      />
     </div>
   )
 }

@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Pencil, Trash2, Users, FileText, Loader2 } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Users, FileText, Loader2, Download, Upload } from 'lucide-react'
+import ImportModal from '@/components/ui/ImportModal'
+import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 
 export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<any[]>([])
@@ -17,11 +19,30 @@ export default function SuppliersPage() {
   const [showPOForm, setShowPOForm] = useState(false)
   const [selectedPR, setSelectedPR] = useState<any | null>(null)
   const [poSaving, setPoSaving] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
 
   const [form, setForm] = useState({ name: '', contact_person: '', phone: '', email: '', address: '', notes: '' })
   const [poForm, setPoForm] = useState({ supplier_id: '', actual_cost: '', invoice_document: '', notes: '' })
 
   const supabase = createClient()
+
+const IMPORT_COLUMNS = [
+  { key: 'name', label: 'Nama Supplier', required: true },
+  { key: 'contact_person', label: 'Contact Person', aliases: ['cp', 'penanggung_jawab'] },
+  { key: 'phone', label: 'No. HP', aliases: ['telepon', 'no_hp', 'whatsapp'] },
+  { key: 'email', label: 'Email' },
+  { key: 'address', label: 'Alamat' },
+  { key: 'notes', label: 'Catatan' },
+]
+
+const EXPORT_COLUMNS = [
+  { key: 'name', label: 'Nama' },
+  { key: 'contact_person', label: 'Contact Person' },
+  { key: 'phone', label: 'HP' },
+  { key: 'email', label: 'Email' },
+  { key: 'address', label: 'Alamat' },
+  { key: 'notes', label: 'Catatan' },
+]
 
   async function load() {
     setLoading(true)
@@ -78,6 +99,37 @@ export default function SuppliersPage() {
     if (!confirm('Hapus supplier ini?')) return
     await supabase.from('suppliers').delete().eq('id', id)
     load()
+  }
+
+  function handleExport() {
+    exportToCSV(suppliers as any, EXPORT_COLUMNS)
+  }
+
+  function handleDownloadTemplate() {
+    generateCSVTemplate(IMPORT_COLUMNS)
+  }
+
+  async function handleImport(rows: Record<string, string | number | null>[]) {
+    const errors: string[] = []
+    let inserted = 0
+    const BATCH = 50
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH)
+      for (const row of batch) {
+        const { error } = await supabase.from('suppliers').insert({
+          name: String(row.name ?? ''),
+          contact_person: row.contact_person ? String(row.contact_person) : null,
+          phone: row.phone ? String(row.phone) : null,
+          email: row.email ? String(row.email) : null,
+          address: row.address ? String(row.address) : null,
+          notes: row.notes ? String(row.notes) : null,
+        })
+        if (error) errors.push(`Row ${i + 1}: ${error.message}`)
+        else inserted++
+      }
+    }
+    load()
+    return { inserted, updated: 0, errors }
   }
 
   async function createPO(e: React.FormEvent) {
@@ -153,9 +205,21 @@ export default function SuppliersPage() {
               <input type="text" placeholder="Cari supplier..." value={search} onChange={e => setSearch(e.target.value)}
                 style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
             </div>
+            <button onClick={handleDownloadTemplate}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+              <Download size={14} /> Template
+            </button>
+            <button onClick={handleExport}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+              <Download size={14} /> Export
+            </button>
+            <button onClick={() => setImportModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+              <Upload size={14} /> Import
+            </button>
             <button onClick={openAdd}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
-              <Plus size={16} /> Tambah Supplier
+              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+              <Plus size={16} /> Tambah
             </button>
           </div>
 
@@ -315,6 +379,13 @@ export default function SuppliersPage() {
           </div>
         </div>
       )}
+      <ImportModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        columns={IMPORT_COLUMNS}
+        onImport={handleImport}
+        entityName="Supplier"
+      />
     </div>
   )
 }
