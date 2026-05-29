@@ -18,15 +18,15 @@ const formatRp = (n: number) =>
 const PAGE_SIZE = 20
 
 const IMPORT_COLUMNS = [
-  { key: 'name', label: 'Nama Produk', aliases: ['nama_produk'], required: true },
+  { key: 'name', label: 'Nama', aliases: ['nama_produk'], required: true },
   { key: 'sku', label: 'SKU', aliases: ['kode_sku', 'kode'] },
   { key: 'kode_kain', label: 'Kode Kain', aliases: [] },
   { key: 'category_name', label: 'Kategori', aliases: ['kategori'], required: true },
-  { key: 'price', label: 'Harga Jual (Rp)', aliases: ['harga', 'harga_jual'], required: true },
+  { key: 'price', label: 'Harga', aliases: ['harga', 'harga_jual'], required: true },
   { key: 'stock_toko', label: 'Stok Toko', aliases: ['stok'] },
   { key: 'description', label: 'Deskripsi', aliases: ['keterangan', 'desc'] },
   { key: 'product_type', label: 'Tipe/Jenis', aliases: ['jenis', 'type'] },
-  { key: 'images', label: 'Gambar (URL)', aliases: ['gambar', 'image', 'foto'] },
+  { key: 'images', label: 'Gambar', aliases: ['gambar', 'image', 'foto'] },
   { key: 'is_custom', label: 'Custom', aliases: ['custom'] },
   { key: 'is_catalog_visible', label: 'Tampil di Katalog', aliases: ['visible', 'catalog_visible'] },
 ]
@@ -128,10 +128,20 @@ export default function ProductsPage() {
 
   // Export current products as CSV
   function handleExport() {
-    exportToCSV(products as any, IMPORT_COLUMNS.filter(c =>
-      c.key === 'name' || c.key === 'sku' || c.key === 'kode_kain' || c.key === 'price' ||
-      c.key === 'stock_toko' || c.key === 'description' || c.key === 'product_type'
-    ))
+    const rows = products.map(p => ({
+      name: p.name,
+      sku: p.sku ?? '',
+      kode_kain: p.kode_kain ?? '',
+      category_name: (p as any).category?.name ?? '',
+      price: p.price,
+      stock_toko: p.stock_toko,
+      description: p.description ?? '',
+      product_type: (p as any).product_type ?? 'perabot',
+      images: (p.images ?? []).join(';'),
+      is_custom: p.is_custom ? 'true' : 'false',
+      is_catalog_visible: p.is_catalog_visible ? 'true' : 'false',
+    }))
+    exportToCSV(rows as any, IMPORT_COLUMNS)
   }
 
   // Download blank template
