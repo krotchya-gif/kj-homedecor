@@ -172,27 +172,6 @@ export default function FinanceDashboard() {
         </div>
       </div>
 
-      {/* Piutang Aging Bar Chart */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-          <DollarSign size={16} color="#ef4444" />
-          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Piutang Aging</h3>
-        </div>
-        {agingData.every((a) => a.amount === 0) ? (
-          <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada piutang</div>
-        ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={agingData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-              <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
-              <Tooltip formatter={(v) => formatRp(v as number)} />
-              <Bar dataKey="amount" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
       {/* Navigation Modules */}
       <div className="module-grid">
         {MODULES.map((m) => (

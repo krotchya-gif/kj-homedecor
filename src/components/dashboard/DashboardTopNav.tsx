@@ -88,6 +88,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Jurnal', href: '/finance/journal', icon: <FileText size={18} /> },
     { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
     { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> },
+    { label: 'Laporan Keuangan', href: '/finance/laporan', icon: <BarChart3 size={18} /> },
   ],
   installer: [
     { label: 'Jadwal', href: '/installer', icon: <Calendar size={18} /> },
@@ -105,11 +106,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Staff', href: '/owner/staff', icon: <Users size={18} /> },
     { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingCart size={18} /> },
     { label: 'Top Produk', href: '/owner/products', icon: <Package size={18} /> },
-    { label: 'Neraca', href: '/owner/financial/balance', icon: <FileText size={18} /> },
-    { label: 'Laba Rugi', href: '/owner/financial/profit-loss', icon: <TrendingUp size={18} /> },
-    { label: 'Buku Besar', href: '/owner/financial/ledger', icon: <Book size={18} /> },
-    { label: 'Jurnal', href: '/owner/financial/journal-list', icon: <FileText size={18} /> },
-    { label: 'Mutasi Kas', href: '/owner/financial/cash-mutation', icon: <LandPlot size={18} /> },
+    { label: 'Laporan Keuangan', href: '/owner/laporan', icon: <BarChart3 size={18} /> },
   ],
 }
 
