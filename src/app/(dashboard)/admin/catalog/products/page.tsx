@@ -128,15 +128,15 @@ export default function ProductsPage() {
 
   // Export current products as CSV
   function handleExport() {
-    const rows = products.map(p => ({
+    const rows = (products as any[]).map((p: any) => ({
       name: p.name,
       sku: p.sku ?? '',
       kode_kain: p.kode_kain ?? '',
-      category_name: (p as any).category?.name ?? '',
+      category_name: p.category?.name ?? '',
       price: p.price,
       stock_toko: p.stock_toko,
       description: p.description ?? '',
-      product_type: (p as any).product_type ?? 'perabot',
+      product_type: p.product_type ?? 'perabot',
       images: (p.images ?? []).join(';'),
       is_custom: p.is_custom ? 'true' : 'false',
       is_catalog_visible: p.is_catalog_visible ? 'true' : 'false',
