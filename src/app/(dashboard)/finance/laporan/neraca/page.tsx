@@ -92,8 +92,9 @@ export default function NeracaPage() {
 
   return (
     <div>
-    <div>
+      <BackButton href="/finance/laporan" />
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
           <h1 className="page-title">Laporan Neraca</h1>
           <p className="page-subtitle">Laporan posisi keuangan (Aset, Liabilitas, Ekuitas)</p>
         </div>

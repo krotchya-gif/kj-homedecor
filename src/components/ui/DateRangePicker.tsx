@@ -211,7 +211,7 @@ export default function DateRangePicker({
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
           <button onClick={applyAndClose} style={{ flex: 1, padding: '0.5rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}>
-            Terapis
+            Terapkan
           </button>
           <button onClick={onClose} style={{ padding: '0.5rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '0.5rem', fontSize: '0.82rem', cursor: 'pointer' }}>
             Batal
