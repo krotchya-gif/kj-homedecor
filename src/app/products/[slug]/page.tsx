@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { ArrowLeft, MessageCircle, Star, Shield, Truck, Phone } from 'lucide-react'
 import type { Product } from '@/types'
+import ProductImageGallery from '@/components/ProductImageGallery'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -56,27 +57,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2.5rem', alignItems: 'start' }}>
 
           {/* Image Gallery */}
-          <div>
-            <div style={{ background: '#fff', borderRadius: '0.875rem', overflow: 'hidden', marginBottom: '1rem', aspectRatio: '4/3', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e5e7eb' }}>
-              {images.length > 0 ? (
-                <img src={images[0]} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ color: '#d1d5db', textAlign: 'center' }}>
-                  <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🪟</div>
-                  <span style={{ fontSize: '0.85rem' }}>Tidak ada foto</span>
-                </div>
-              )}
-            </div>
-            {images.length > 1 && (
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {images.map((img, i) => (
-                  <div key={i} style={{ width: 80, height: 80, borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb', cursor: 'pointer' }}>
-                    <img src={img} alt={`${p.name} ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ProductImageGallery images={images} productName={p.name} />
 
           {/* Product Info */}
           <div>
