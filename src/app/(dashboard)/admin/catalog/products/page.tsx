@@ -51,6 +51,7 @@ export default function ProductsPage() {
     category_id: '',
     price: '',
     stock_toko: '',
+    description: '',
     is_featured: false,
     is_custom: false,
     is_catalog_visible: true,
@@ -226,6 +227,7 @@ export default function ProductsPage() {
     setEditProduct(null)
     setForm({
       name: '', sku: '', kode_kain: '', category_id: '', price: '', stock_toko: '',
+      description: '',
       is_featured: false, is_custom: false, is_catalog_visible: true,
       product_type: activeTab === 'all' ? 'perabot' : activeTab,
       style_variants: [], smokring_colors: [], color_variants: '',
@@ -244,6 +246,7 @@ export default function ProductsPage() {
       category_id: (p as any).category_id ?? '',
       price: String(p.price),
       stock_toko: String(p.stock_toko),
+      description: (p as any).description ?? '',
       is_featured: p.is_featured,
       is_custom: p.is_custom,
       is_catalog_visible: p.is_catalog_visible !== false,
@@ -270,6 +273,7 @@ export default function ProductsPage() {
       category_id: form.category_id || null,
       price: Number(form.price),
       stock_toko: Number(form.stock_toko),
+      description: form.description || null,
       is_featured: form.is_featured,
       is_custom: form.is_custom,
       is_catalog_visible: form.is_catalog_visible,
@@ -620,6 +624,18 @@ export default function ProductsPage() {
                   />
                 </div>
               ))}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+                  Deskripsi
+                </label>
+                <textarea
+                  placeholder="Deskripsi produk (opsional)"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  style={{ width: '100%', padding: '0.625rem 0.875rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }}
+                />
+              </div>
               <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}>
                   <input type="radio" name="product_type" checked={form.product_type === 'gorden'} onChange={() => setForm((f) => ({ ...f, product_type: 'gorden' }))} />
