@@ -19,9 +19,9 @@ export default function ReportPDFButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-1.5 px-3 py-1.5 bg-[#cc7030] text-white text-xs font-semibold rounded-md hover:bg-[#b8652a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+      className={`flex items-center gap-2 px-5 py-2.5 bg-[#cc7030] text-white text-sm font-semibold rounded-lg hover:bg-[#b8652a] active:bg-[#a05823] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm ${className}`}
     >
-      <Download size={14} />
+      <Download size={18} />
       {label}
     </button>
   )

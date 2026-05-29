@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 
@@ -48,7 +49,7 @@ export default function KronologiHPPPage() {
       head: [['Order ID', 'Tanggal', 'Total', 'Status']],
       headStyles: { fillColor: [217, 119, 6] },
       body: orders.map(o => [
-        o.order_number ?? o.id.slice(0, 8),
+        o.order_number ?? (o.id ?? "N/A").slice(0, 8),
         new Date(o.created_at).toLocaleDateString('id-ID'),
         formatRp(o.total_amount ?? 0),
         o.payment_status ?? '—',
@@ -66,6 +67,7 @@ export default function KronologiHPPPage() {
 
   return (
     <div>
+      <BackButton href="/owner/laporan" />
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="page-title">Kronologi HPP</h1>
@@ -101,7 +103,7 @@ export default function KronologiHPPPage() {
             <tbody>
               {orders.map(o => (
                 <tr key={o.id}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{o.order_number ?? o.id.slice(0, 8)}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{o.order_number ?? (o.id ?? "N/A").slice(0, 8)}</td>
                   <td style={{ color: '#6b7280' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>{formatRp(o.total_amount ?? 0)}</td>
                   <td>

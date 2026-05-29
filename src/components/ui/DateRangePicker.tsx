@@ -59,19 +59,19 @@ export default function DateRangePicker({
   }
 
   return (
-    <div className={`flex items-center gap-2 flex-wrap ${className}`}>
-      <div className="flex items-center gap-1.5">
-        <Calendar size={14} className="text-gray-500" />
-        <span className="text-xs font-medium text-gray-600">Periode:</span>
+    <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-3 ${className}`}>
+      <div className="flex items-center gap-2">
+        <Calendar size={16} className="text-gray-500" />
+        <span className="text-sm font-medium text-gray-700">Periode:</span>
       </div>
 
       {/* Preset buttons */}
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-2">
         {PRESETS.map((preset) => (
           <button
             key={preset.label}
             onClick={() => applyPreset(preset)}
-            className="px-2.5 py-1 text-xs font-medium bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 rounded-lg hover:bg-gray-100 hover:border-orange-400 transition-colors shadow-sm"
           >
             {preset.label}
           </button>
@@ -79,25 +79,25 @@ export default function DateRangePicker({
       </div>
 
       {/* Date inputs */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <input
           type="date"
           value={startDate}
           onChange={(e) => onStartChange(e.target.value)}
-          className="px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-400"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
         />
-        <span className="text-xs text-gray-400">—</span>
+        <span className="text-sm text-gray-400">—</span>
         <input
           type="date"
           value={endDate === '2099-12-31' ? '' : endDate}
           onChange={(e) => onEndChange(e.target.value || '2099-12-31')}
-          className="px-2.5 py-1.5 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-orange-400"
+          className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400"
         />
       </div>
 
       {/* Display info */}
       {startDate && endDate && (
-        <span className="text-xs text-gray-500">
+        <span className="text-sm text-gray-500 font-medium">
           ({formatDisplayDate(startDate)} — {formatDisplayDate(endDate)})
         </span>
       )}

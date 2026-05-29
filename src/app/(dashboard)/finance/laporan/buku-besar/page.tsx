@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 
@@ -20,10 +21,7 @@ export default function BukuBesarPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
-      .from('accounts')
-      .select('*')
-      .order('code')
+    const { data } = await supabase.from('accounts').select('*').order('code')
     setAccounts(data ?? [])
     setLoading(false)
   }
@@ -37,25 +35,18 @@ export default function BukuBesarPage() {
     doc.text('Buku Besar', 14, 20)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('General Ledger per Akun', 14, 34)
+    doc.text(`Periode: ${startDate} - ${endDate}`, 14, 28)
 
     autoTable(doc, {
-      startY: 40,
+      startY: 35,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       headStyles: { fillColor: [37, 99, 235] },
       body: accounts.map(a => [
         a.code,
         a.name,
-        a.type.charAt(0).toUpperCase() + a.type.slice(1),
+        a.type ?? '—',
         formatRp(a.balance ?? 0),
       ]),
-      columnStyles: {
-        0: { cellWidth: 25, fontStyle: 'bold' },
-        1: { cellWidth: 80 },
-        2: { cellWidth: 40 },
-        3: { cellWidth: 45, halign: 'right' },
-      },
     })
 
     doc.save(`buku-besar-${startDate}-${endDate}.pdf`)
@@ -63,6 +54,7 @@ export default function BukuBesarPage() {
 
   return (
     <div>
+      <BackButton href="/finance/laporan" />
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 className="page-title">Buku Besar</h1>
