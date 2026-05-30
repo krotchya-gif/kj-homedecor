@@ -8,7 +8,7 @@
 
 ---
 
-## 📊 Implementation Status (2026-05-30)
+## 📊 Implementation Status (2026-05-30 Session)
 
 ### Complete ✅
 - [x] Landing page + Booking calendar public
@@ -18,6 +18,12 @@
 - [x] HPP Calculator (BOM-based + manual override)
 - [x] Double-entry journal (auto-journal from transactions)
 - [x] Laporan Keuangan (10 reports each for Finance + Owner: Neraca, Laba Rugi, Buku Besar, Jurnal, Mutasi Kas, Kronologi HPP, Neraca Saldo, Performa Tag, Umur Piutang, Umur Hutang)
+- [x] Product search in add order item modal (name + SKU)
+- [x] Style variants (Smokring/Kaitan/Kupu-kupu/Romanshade) in order item form
+- [x] Pipeline photos popup — clickable stage dots showing progress photos
+- [x] Auto transition `production → steam` when penjahit completes job
+- [x] Realtime subscriptions on penjahit jobs, installer schedule, and gudang/steam
+- [x] RLS policies added for `steam_jobs` and `order_progress_photos`
 - [x] DateRangePicker with interactive calendar popup
 - [x] PDF export (jsPDF + autoTable) for all reports
 - [x] Mobile responsive (charts, tables, dashboard components)
@@ -36,7 +42,23 @@
 
 ---
 
-## 🆕 Recently Implemented (2026-05-30)
+## 🆕 Recently Implemented (2026-05-30 Session)
+
+### Pipeline Fixes — Production Flow (2026-05-30)
+- **Auto `production → steam`** transition when penjahit submits report — no manual step needed
+- **Realtime subscription** on `/penjahit/jobs` — penjahit auto-refreshes when Gudang assigns job
+- **Realtime subscription** on `/installer/schedule` — installer auto-refreshes when booking is assigned
+- **Realtime subscription** on `/gudang/steam` — Gudang auto-refreshes when new steam_jobs created
+- **Fix**: `steam_jobs` creation — now fetches `order_id` from DB (not local state)
+- **Migration 037**: RLS policy on `steam_jobs` (was missing since migration 010)
+- **Migration 038**: RLS policy on `order_progress_photos` (was missing since migration 032)
+- **Pipeline photos popup** — click any stage dot in order detail → popup showing all photos from that stage (badge indicator for stages with photos)
+
+### Order Item Modal Improvements (2026-05-28)
+- **Product search** — searchable dropdown by name + SKU in add order item modal
+- **Style variant cards** — Smokring, Kaitan, Kupu-kupu, Romanshade radio cards in Gorden form
+- **Smokring color selector** — appears when Smokring style is selected
+- **Invoice/Packing List PDF fix** — now passes `order_items` to PDF functions correctly
 
 ### Laporan Keuangan — Consolidated Structure (2026-05-30)
 - **10 Laporan Keuangan** tersedia untuk Finance (`/finance/laporan/[report]`) dan Owner (`/owner/laporan/[report]`)
@@ -741,5 +763,5 @@ npx shadcn@latest add button card input label table badge alert
 
 ---
 
-*Last updated: 2026-05-30*
+*Last updated: 2026-05-30 (session)*
 *Phase 4 complete — Marketplace sync pending partnership*

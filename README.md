@@ -218,10 +218,12 @@ All planned features implemented:
 - Public booking calendar
 - Dark mode, PWA, ErrorBoundary
 - Laporan Keuangan (10 reports each for Finance + Owner with DateRangePicker + PDF export)
+- Pipeline progress photos — clickable stages showing photo evidence per stage
+- Auto transition production→steam when penjahit completes job
 
 **Marketplace Sync:** Ditunda (requires partnership with platform)
 
 ---
 
-*Last updated: 2026-05-30*
+*Last updated: 2026-05-30 (session)*
 *Dev server: `npm run dev` → http://localhost:3000*
