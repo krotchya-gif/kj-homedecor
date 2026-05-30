@@ -89,6 +89,11 @@ export default function GudangSteamPage() {
   useEffect(() => {
     loadLaundry()
     loadSteam()
+    const channel = supabase
+      .channel('gudang-steam')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'steam_jobs' }, () => loadSteam())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   async function handleLaundrySave(e: React.FormEvent) {
