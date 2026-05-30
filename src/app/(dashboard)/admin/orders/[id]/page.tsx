@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon, FileText, Package, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon, FileText, Package, Clock, AlertTriangle, Camera } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
@@ -82,6 +82,7 @@ export default function OrderDetailPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [photoPopup, setPhotoPopup] = useState<{stage:string;photos:string[]} | null>(null)
 
   // Photo upload modal for status change
   const [showPhotoModal, setShowPhotoModal] = useState(false)
@@ -502,18 +503,29 @@ export default function OrderDetailPage() {
           {ORDER_STATUSES.map((s,i)=>{
             const done = i<=statusIdx
             const current = s===order.status
+            const stagePhotos = orderPhotos.filter(p => p.stage === s)
+            const hasPhotos = stagePhotos.length > 0
             return (
               <div key={s} style={{display:'flex',alignItems:'center',flex:1,minWidth:80}}>
-                <div style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1,gap:'0.375rem'}}>
-                  <div style={{
-                    width:32,height:32,borderRadius:'50%',
-                    background: current?'#cc7030':done?'#d1fae5':'#f3f4f6',
-                    border:`2px solid ${current?'#cc7030':done?'#22c55e':'#e5e7eb'}`,
-                    display:'flex',alignItems:'center',justifyContent:'center',
-                    color: current?'#fff':done?'#16a34a':'#9ca3af',
-                    fontSize:'0.7rem',fontWeight:'700',
-                  }}>
+                <div style={{display:'flex',flexDirection:'column',alignItems:'center',flex:1,gap:'0.375rem',position:'relative'}}>
+                  <div
+                    onClick={() => hasPhotos ? setPhotoPopup({ stage: s, photos: stagePhotos.map(p => p.photo_url) }) : null}
+                    style={{
+                      width:32,height:32,borderRadius:'50%',
+                      background: current?'#cc7030':done?'#d1fae5':'#f3f4f6',
+                      border:`2px solid ${current?'#cc7030':done?'#22c55e':'#e5e7eb'}`,
+                      display:'flex',alignItems:'center',justifyContent:'center',
+                      color: current?'#fff':done?'#16a34a':'#9ca3af',
+                      fontSize:'0.7rem',fontWeight:'700',
+                      cursor: hasPhotos ? 'pointer' : 'default',
+                      position:'relative',
+                    }}>
                     {done&&!current ? <CheckCircle2 size={14}/> : i+1}
+                    {hasPhotos && (
+                      <div style={{position:'absolute',top:-4,right:-4,width:14,height:14,borderRadius:'50%',background:'#ef4444',display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid #fff'}}>
+                        <Camera size={8} style={{color:'#fff'}/>
+                      </div>
+                    )}
                   </div>
                   <span style={{fontSize:'0.68rem',fontWeight:current?'700':'400',color:current?'#cc7030':done?'#374151':'#9ca3af',textAlign:'center',whiteSpace:'nowrap'}}>
                     {STATUS_LABELS[s]}
@@ -1234,6 +1246,29 @@ export default function OrderDetailPage() {
       )}
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      {photoPopup && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}
+          onClick={e=>{if(e.target===e.currentTarget)setPhotoPopup(null)}}>
+          <div style={{background:'#fff',borderRadius:'0.875rem',padding:'1.5rem',width:'100%',maxWidth:480,boxShadow:'0 25px 60px rgba(0,0,0,0.3)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1rem'}}>
+              <div>
+                <h3 style={{fontSize:'1rem',fontWeight:'700',margin:0}}>📷 Foto Progress</h3>
+                <p style={{fontSize:'0.8rem',color:'#6b7280',margin:'0.25rem 0 0'}}>{STATUS_LABELS[photoPopup.stage as keyof typeof STATUS_LABELS]} — {photoPopup.photos.length} foto</p>
+              </div>
+              <button onClick={()=>setPhotoPopup(null)} style={{background:'none',border:'none',cursor:'pointer',padding:'0.25rem'}}><XIcon size={20}/></button>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'0.5rem',maxHeight:400,overflowY:'auto'}}>
+              {photoPopup.photos.map((url,i)=>(
+                <div key={i} style={{aspectRatio:'1',overflow:'hidden',borderRadius:'0.5rem',border:'1px solid #e5e7eb',cursor:'pointer'}}
+                  onClick={()=>{setLightboxPhotos(photoPopup.photos);setLightboxIndex(i);setLightboxOpen(true)}}>
+                  <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {lightboxOpen && (
         <Lightbox
           photos={lightboxPhotos}
