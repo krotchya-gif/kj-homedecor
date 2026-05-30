@@ -55,7 +55,7 @@ export default function PenjahitJobsPage() {
     })
     await supabase.from('production_jobs').update({ status:'done', completed_at: new Date().toISOString() }).eq('id',jobId)
 
-    // Auto-create steam_jobs entry after penjahit finishes
+    // Auto-create steam_jobs entry and advance order to steam after penjahit finishes
     const { data: jobData } = await supabase.from('production_jobs').select('order_id').eq('id', jobId).single()
     if (jobData?.order_id) {
       await supabase.from('steam_jobs').insert({
@@ -63,6 +63,8 @@ export default function PenjahitJobsPage() {
         production_job_id: jobId,
         status: 'pending',
       })
+      // Auto-transition order status from production to steam
+      await supabase.from('orders').update({ status: 'steam' }).eq('id', jobData.order_id)
     }
 
     setSaving(null)
