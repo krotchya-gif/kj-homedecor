@@ -525,7 +525,6 @@ export default function OrderDetailPage() {
                       <div style={{position:'absolute',top:-4,right:-4,width:14,height:14,borderRadius:'50%',background:'#ef4444',display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid #fff'}}>
                         <Camera size={8} style={{color:'#fff'}}/>
                       </div>
-                      </div>
                     )}
                   </div>
                   <span style={{fontSize:'0.68rem',fontWeight:current?'700':'400',color:current?'#cc7030':done?'#374151':'#9ca3af',textAlign:'center',whiteSpace:'nowrap'}}>
