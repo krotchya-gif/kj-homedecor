@@ -6,7 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon, FileText, Package, Clock, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } from '@/types'
-import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS } from '@/types'
+import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
@@ -63,6 +63,9 @@ export default function OrderDetailPage() {
     meter:'0',
     poni_lurus:false,
     poni_gel:false,
+    // style variants
+    style_type:'',
+    smokring_color:'',
     // perabot
     variant_color:'',
     dimension_p:'',dimension_l:'',dimension_t:'',
@@ -72,6 +75,7 @@ export default function OrderDetailPage() {
     kg:'0', meter_laundry:'0', description:'',
   })
   const [savingItem, setSavingItem] = useState(false)
+  const [searchProduct, setSearchProduct] = useState('')
 
   // Progress photos
   const [orderPhotos, setOrderPhotos] = useState<any[]>([])
@@ -351,6 +355,8 @@ export default function OrderDetailPage() {
         meter: itemType === 'gorden' ? Number(itemForm.meter) || null : null,
         poni_lurus: itemType === 'gorden' ? itemForm.poni_lurus : false,
         poni_gel: itemType === 'gorden' ? itemForm.poni_gel : false,
+        style_type: itemType === 'gorden' ? itemForm.style_type || null : null,
+        smokring_color: itemType === 'gorden' && itemForm.style_type === 'smokring' ? itemForm.smokring_color || null : null,
         variant_color: itemType === 'perabot' ? itemForm.variant_color || null : null,
         dimension_p: itemType === 'perabot' ? (itemForm.dimension_p ? Number(itemForm.dimension_p) : null) : null,
         dimension_l: itemType === 'perabot' ? (itemForm.dimension_l ? Number(itemForm.dimension_l) : null) : null,
@@ -422,9 +428,11 @@ export default function OrderDetailPage() {
       product_id:'', qty:'1', price:'', size:'',
       meter_gorden:'0', meter:'0',
       poni_lurus:false, poni_gel:false,
+      style_type:'', smokring_color:'',
       variant_color:'', dimension_p:'',dimension_l:'',dimension_t:'',weight:'',
       customer_name:'', customer_phone:'', kg:'0', meter_laundry:'0', description:'',
     })
+    setSearchProduct('')
   }
 
   const [showItemForm, setShowItemForm] = useState(false)
@@ -476,11 +484,11 @@ export default function OrderDetailPage() {
         )}
         {order.status !== 'cancelled' && (
           <div style={{display:'flex',gap:'0.5rem'}}>
-            <button onClick={() => generateInvoicePDF({ order: order as any, orderNumber: order.order_number || id.slice(0,8) })}
+            <button onClick={() => generateInvoicePDF({ order: { ...order, order_items: items } as any, orderNumber: order.order_number || id.slice(0,8) })}
               style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1rem',background:'#fff',color:'#374151',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer',fontSize:'0.8rem'}}>
               <FileText size={14}/> Invoice
             </button>
-            <button onClick={() => generatePackingListPDF({ order: order as any, orderNumber: order.order_number || id.slice(0,8) })}
+            <button onClick={() => generatePackingListPDF({ order: { ...order, order_items: items } as any, orderNumber: order.order_number || id.slice(0,8) })}
               style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1rem',background:'#fff',color:'#374151',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontWeight:'600',cursor:'pointer',fontSize:'0.8rem'}}>
               <Package size={14}/> Packing List
             </button>
@@ -738,13 +746,42 @@ export default function OrderDetailPage() {
                 <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'0.75rem'}}>
                   <div>
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
-                    <select value={itemForm.product_id} onChange={e=>{
-                      const p=products.find(x=>x.id===e.target.value)
-                      setItemForm(f=>({...f,product_id:e.target.value}))
-                    }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
-                      <option value="">— Pilih Produk —</option>
-                      {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
-                    </select>
+                    <div style={{position:'relative'}}>
+                      <input
+                        type="text"
+                        placeholder="Cari produk..."
+                        value={searchProduct}
+                        onChange={e=>setSearchProduct(e.target.value)}
+                        style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}
+                      />
+                      {searchProduct && (
+                        <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:50,background:'#fff',border:'1px solid #d1d5db',borderRadius:'0.5rem',boxShadow:'0 4px 12px rgba(0,0,0,0.1)',maxHeight:200,overflowY:'auto'}}>
+                          <div onClick={()=>{setItemForm(f=>({...f,product_id:'',price:''}));setSearchProduct('')}} style={{padding:'0.5rem 0.75rem',cursor:'pointer',fontSize:'0.8rem',color:'#6b7280',borderBottom:'1px solid #f3f4f6'}}>— Pilih Produk —</div>
+                          {products.filter(p=>p.name.toLowerCase().includes(searchProduct.toLowerCase())||(p.sku&&p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).map(p=>(
+                            <div key={p.id} onClick={()=>{setItemForm(f=>({...f,product_id:p.id,price:String(p.price??0)}));setSearchProduct('')}} style={{padding:'0.5rem 0.75rem',cursor:'pointer',fontSize:'0.8rem',borderBottom:'1px solid #f3f4f6',background:itemForm.product_id===p.id?'#fef3c7':'transparent'}}>
+                              <span style={{fontWeight:500}}>{p.name}</span>
+                              {p.sku&&<span style={{color:'#9ca3af',marginLeft:'0.5rem'}}>({p.sku})</span>}
+                              <span style={{float:'right',color:'#cc7030'}}>{p.price!=null?new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(p.price):''}</span>
+                            </div>
+                          ))}
+                          {products.filter(p=>p.name.toLowerCase().includes(searchProduct.toLowerCase())||(p.sku&&p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).length===0&&(
+                            <div style={{padding:'0.75rem',color:'#9ca3af',fontSize:'0.8rem'}}>Tidak ada produk ditemukan</div>
+                          )}
+                        </div>
+                      )}
+                      {!searchProduct && !itemForm.product_id && (
+                        <div style={{marginTop:'0.25rem',fontSize:'0.75rem',color:'#9ca3af'}}>Ketik untuk mencari produk</div>
+                      )}
+                      {!searchProduct && itemForm.product_id && (() => {
+                        const sel = products.find(p=>p.id===itemForm.product_id)
+                        return sel ? (
+                          <div style={{marginTop:'0.25rem',fontSize:'0.75rem',color:'#374151'}}>
+                            <span style={{fontWeight:500}}>{sel.name}</span>
+                            {sel.sku&&<span style={{color:'#9ca3af',marginLeft:'0.5rem'}}>({sel.sku})</span>}
+                          </div>
+                        ) : null
+                      })()}
+                    </div>
                   </div>
                   <div>
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>
@@ -800,6 +837,45 @@ export default function OrderDetailPage() {
                     </div>
                   </div>
                 </div>
+                {/* Style Variant Cards */}
+                <div>
+                  <div style={{fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.5rem'}}>Model Gorden</div>
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'0.5rem'}}>
+                    {GORDEN_STYLES.map(style=>(
+                      <div key={style}
+                        onClick={()=>setItemForm(f=>({...f,style_type:style,smokring_color:''}))}
+                        style={{
+                          padding:'0.625rem 0.5rem',textAlign:'center',borderRadius:'0.5rem',cursor:'pointer',fontSize:'0.75rem',fontWeight:'600',
+                          background: itemForm.style_type===style ? '#cc7030' : '#fff',
+                          color: itemForm.style_type===style ? '#fff' : '#374151',
+                          border: `1px solid ${itemForm.style_type===style ? '#cc7030' : '#d1d5db'}`,
+                        }}
+                      >
+                        {style.charAt(0).toUpperCase()+style.slice(1)}
+                      </div>
+                    ))}
+                  </div>
+                  {itemForm.style_type==='smokring'&&(
+                    <div style={{marginTop:'0.75rem'}}>
+                      <div style={{fontSize:'0.75rem',fontWeight:'600',color:'#6b7280',marginBottom:'0.4rem'}}>Warna Smokring</div>
+                      <div style={{display:'flex',gap:'0.5rem',flexWrap:'wrap'}}>
+                        {SMOKRING_COLORS.map(c=>(
+                          <div key={c}
+                            onClick={()=>setItemForm(f=>({...f,smokring_color:c}))}
+                            style={{
+                              padding:'0.375rem 0.75rem',borderRadius:'9999px',cursor:'pointer',fontSize:'0.72rem',fontWeight:'500',
+                              background: itemForm.smokring_color===c ? '#cc7030' : '#fff',
+                              color: itemForm.smokring_color===c ? '#fff' : '#374151',
+                              border: `1px solid ${itemForm.smokring_color===c ? '#cc7030' : '#d1d5db'}`,
+                            }}
+                          >
+                            {c}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div style={{background:'#f9fafb',borderRadius:'0.5rem',padding:'1rem'}}>
                   <div style={{display:'flex',gap:'1rem',flexWrap:'wrap',marginTop:'0.5rem'}}>
                     <label style={{display:'flex',alignItems:'center',gap:'0.375rem',fontSize:'0.8rem',cursor:'pointer'}}>
@@ -826,13 +902,36 @@ export default function OrderDetailPage() {
                 <div style={{display:'grid',gridTemplateColumns:'2fr 1fr',gap:'0.75rem'}}>
                   <div>
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Produk</label>
-                    <select value={itemForm.product_id} onChange={e=>{
-                      const p=products.find(x=>x.id===e.target.value)
-                      setItemForm(f=>({...f,product_id:e.target.value}))
-                    }} style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}>
-                      <option value="">— Pilih Produk —</option>
-                      {products.map(p=><option key={p.id} value={p.id}>{p.name} {p.sku?`(${p.sku})`:''}</option>)}
-                    </select>
+                    <div style={{position:'relative'}}>
+                      <input
+                        type="text"
+                        placeholder="Cari produk..."
+                        value={searchProduct}
+                        onChange={e=>setSearchProduct(e.target.value)}
+                        style={{width:'100%',padding:'0.625rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',fontSize:'0.875rem',outline:'none',background:'#fff'}}
+                      />
+                      {searchProduct && (
+                        <div style={{position:'absolute',top:'100%',left:0,right:0,zIndex:50,background:'#fff',border:'1px solid #d1d5db',borderRadius:'0.5rem',boxShadow:'0 4px 12px rgba(0,0,0,0.1)',maxHeight:200,overflowY:'auto'}}>
+                          <div onClick={()=>{setItemForm(f=>({...f,product_id:'',price:''}));setSearchProduct('')}} style={{padding:'0.5rem 0.75rem',cursor:'pointer',fontSize:'0.8rem',color:'#6b7280',borderBottom:'1px solid #f3f4f6'}}>— Pilih Produk —</div>
+                          {products.filter(p=>p.name.toLowerCase().includes(searchProduct.toLowerCase())||(p.sku&&p.sku.toLowerCase().includes(searchProduct.toLowerCase()))).map(p=>(
+                            <div key={p.id} onClick={()=>{setItemForm(f=>({...f,product_id:p.id,price:String(p.price??0)}));setSearchProduct('')}} style={{padding:'0.5rem 0.75rem',cursor:'pointer',fontSize:'0.8rem',borderBottom:'1px solid #f3f4f6',background:itemForm.product_id===p.id?'#fef3c7':'transparent'}}>
+                              <span style={{fontWeight:500}}>{p.name}</span>
+                              {p.sku&&<span style={{color:'#9ca3af',marginLeft:'0.5rem'}}>({p.sku})</span>}
+                              <span style={{float:'right',color:'#cc7030'}}>{p.price!=null?new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(p.price):''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {!searchProduct && itemForm.product_id && (() => {
+                        const sel = products.find(p=>p.id===itemForm.product_id)
+                        return sel ? (
+                          <div style={{marginTop:'0.25rem',fontSize:'0.75rem',color:'#374151'}}>
+                            <span style={{fontWeight:500}}>{sel.name}</span>
+                            {sel.sku&&<span style={{color:'#9ca3af',marginLeft:'0.5rem'}}>({sel.sku})</span>}
+                          </div>
+                        ) : null
+                      })()}
+                    </div>
                   </div>
                   <div>
                     <label style={{display:'block',fontSize:'0.8rem',fontWeight:'600',color:'#374151',marginBottom:'0.3rem'}}>Qty</label>

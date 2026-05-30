@@ -405,6 +405,5 @@
 
 ---
 
-*Last updated: 2026-05-28*
-*Project path: `c:\Users\okkyh\OneDrive\Desktop\PROJECT\kjhomedecor`*
+*Last updated: 2026-05-30*
 *Dev server: `npm run dev` → http://localhost:3000*

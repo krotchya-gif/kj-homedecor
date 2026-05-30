@@ -37,6 +37,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Top products by revenue
 - HPP Calculator (BOM-based)
 - Material price history tracking
+- **Laporan Keuangan (10 reports)** — Neraca, Laba Rugi, Buku Besar, Daftar Jurnal, Mutasi Kas, Kronologi HPP, Neraca Saldo, Performa Tag, Umur Piutang, Umur Hutang
 - Staff, suppliers, products overview
 
 ### Finance (`/finance`)
@@ -46,6 +47,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Supplier management + PO from approved PRs
 - Piutang (accounts receivable) management
 - Accounts, Journal, Cash, Assets
+- **Laporan Keuangan (10 reports)** — Neraca, Laba Rugi, Buku Besar, Daftar Jurnal, Mutasi Kas, Kronologi HPP, Neraca Saldo, Performa Tag, Umur Piutang, Umur Hutang
 - Reports: revenue, penjahit wages, overtime
 
 ### Gudang (`/gudang`)
@@ -163,6 +165,9 @@ Located in `supabase/migrations/` — apply in order. Key migrations:
 |------|---------|
 | `src/lib/invoice.ts` | Invoice & Packing List PDF generation |
 | `src/lib/upload.ts` | Local upload helper (`uploadToLocal`) |
+| `src/components/ui/DateRangePicker.tsx` | Interactive calendar popup date range picker |
+| `src/components/ui/ReportPDFButton.tsx` | Styled PDF download button (px-5 py-2.5) |
+| `src/components/ui/BackButton.tsx` | Navigation back button |
 | `src/components/ErrorBoundary.tsx` | React ErrorBoundary for graceful error handling |
 | `src/components/ui/ThemeToggle.tsx` | Dark mode toggle |
 | `src/components/ui/BookingCalendar.tsx` | Public booking calendar |
@@ -212,10 +217,11 @@ All planned features implemented:
 - Material price history
 - Public booking calendar
 - Dark mode, PWA, ErrorBoundary
+- Laporan Keuangan (10 reports each for Finance + Owner with DateRangePicker + PDF export)
 
 **Marketplace Sync:** Ditunda (requires partnership with platform)
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-05-30*
 *Dev server: `npm run dev` → http://localhost:3000*

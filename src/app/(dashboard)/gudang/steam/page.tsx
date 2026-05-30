@@ -123,6 +123,22 @@ export default function GudangSteamPage() {
       notes: `Steam/QC Passed oleh Gudang`,
       staff_id: user?.id ?? null,
     })
+
+    // Auto-advance to 'ready' if payment is already settled
+    const { data: order } = await supabase.from('orders').select('id, payment_status, total_amount, dp_amount, lunas_amount').eq('id', job.order_id).single()
+    if (order) {
+      const paid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
+      if (order.payment_status === 'paid' || paid >= order.total_amount) {
+        await supabase.from('orders').update({ status: 'ready' }).eq('id', job.order_id)
+        await supabase.from('order_logs').insert({
+          order_id: job.order_id,
+          action: 'status_change',
+          notes: `Auto-advance: steam → ready (QC pass + payment settled)`,
+          staff_id: user?.id ?? null,
+        })
+      }
+    }
+
     setPassSaving(false)
     setShowPassDialog(null)
     loadSteam()

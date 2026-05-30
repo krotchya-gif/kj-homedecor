@@ -1,18 +1,28 @@
 # KJ Homedecor — Development Guide
 
-*Omnichannel e-commerce platform untuk home decor business. Replacement for Jubelio ERP.*
+*Omnichannel ERP platform untuk home decor business (gorden, curtain, roman blind).*
 
-**Reference:** `artifacts/omni-commerce-brainstorm.md` (full spec)
-**Reference:** `DEPENDENCIES.md` (dependencies setup guide)
-**Status:** ✅ Phase 1-4 complete | ⚠️ Phase 5 (Marketplace sync — ditunda tunggu partnership)
+**Reference:** `doc/TODO.md` (current tasks)
+**Reference:** `doc/supabase.md` (database schema)
+**Status:** ✅ Landing + Auth + Dashboards + Order System + Laporan Keuangan + PDF + Mobile Responsive
 
 ---
 
-## 📊 Implementation Status
+## 📊 Implementation Status (2026-05-30)
 
-### Phase 1-4 Complete ✅
-All Phase 4 owner tools and advanced reporting features implemented as of 2026-05-28:
-- [x] Phase 4A — BOM auto-suggest on order detail + Material price history page
+### Complete ✅
+- [x] Landing page + Booking calendar public
+- [x] Auth flow (admin-created accounts, role-based routing)
+- [x] All 6 dashboards (Admin, Gudang, Penjahit, Finance, Installer, Owner)
+- [x] Order management (pipeline, payment gate, production, installation)
+- [x] HPP Calculator (BOM-based + manual override)
+- [x] Double-entry journal (auto-journal from transactions)
+- [x] Laporan Keuangan (10 reports each for Finance + Owner: Neraca, Laba Rugi, Buku Besar, Jurnal, Mutasi Kas, Kronologi HPP, Neraca Saldo, Performa Tag, Umur Piutang, Umur Hutang)
+- [x] DateRangePicker with interactive calendar popup
+- [x] PDF export (jsPDF + autoTable) for all reports
+- [x] Mobile responsive (charts, tables, dashboard components)
+- [x] PWA support + Dark mode
+- [x] Local file upload (not Supabase Storage)
 - [x] Phase 4B — Gudang low stock alerts (existing) + Material price tracking
 - [x] Phase 4C — Invoice/Packing List PDF, Pipeline ETA, MoM growth reports
 - [x] Phase 4D — Owner real-time dashboard widgets (today's orders, active installs)
@@ -26,7 +36,48 @@ All Phase 4 owner tools and advanced reporting features implemented as of 2026-0
 
 ---
 
-## 🆕 Recently Implemented (2026-05-28)
+## 🆕 Recently Implemented (2026-05-30)
+
+### Laporan Keuangan — Consolidated Structure (2026-05-30)
+- **10 Laporan Keuangan** tersedia untuk Finance (`/finance/laporan/[report]`) dan Owner (`/owner/laporan/[report]`)
+- Konsolidasi dari struktur lama yang tersebar di berbagai sub-menu
+- Setiap laporan memiliki:
+  - `DateRangePicker` dengan calendar popup interaktif (click tanggal → calendar terbuka → pilih range)
+  - `ReportPDFButton` (styled, px-5 py-2.5, icon size-18)
+  - `BackButton` navigasi ke hub laporan
+  - Export PDF via jsPDF + autoTable
+
+**Daftar 10 Laporan:**
+| Route | Deskripsi |
+|-------|-----------|
+| `/laporan/neraca` | Aset, Liabilitas, Ekuitas |
+| `/laporan/laba-rugi` | Profit & Loss statement |
+| `/laporan/buku-besar` | General ledger per akun |
+| `/laporan/daftar-jurnal` | Daftar entries jurnal |
+| `/laporan/mutasi-kas` | Perubahan saldo kas & bank |
+| `/laporan/kronologi-hpp` | HPP per periode |
+| `/laporan/neraca-saldo` | Trial balance (debit-kredit) |
+| `/laporan/performa-tag` | Laba rugi per marketplace |
+| `/laporan/umur-piutang` | Aging piutang per pelanggan |
+| `/laporan/umur-hutang` | Aging hutang per pemasok |
+
+### DateRangePicker — Interactive Calendar Popup
+- `src/components/ui/DateRangePicker.tsx` — Calendar popup yang terbuka saat klik tanggal
+- Bulan navigasi dengan ChevronLeft/ChevronRight buttons
+- Range selection: click start date → click end date
+- Quick presets: 7 Hari, 30 Hari, Bulan Ini, Semua
+- "Terapkan" button untuk konfirmasi, "Batal" untuk cancel
+- Format tanggal Indonesia (dd Mon yyyy)
+
+### Owner Dashboard — Neraca Report (2026-05-28)
+- Owner memiliki halaman Laporan Neraca (`/owner/laporan/neraca`)
+- 3 kolom: Aset (kuning), Liabilitas (merah), Ekuitas (hijau)
+- Read-only version dari Finance, dengan BackButton ke `/owner/laporan`
+
+### HPP Calculator — Mobile Responsive (2026-05-28)
+- `/owner/hpp` — flex-wrap grid, responsive di mobile
+- Product selector + BOM materials table + calculation result
+- Mobile: grid auto-fit `minmax(280px, 1fr)`
 
 ### Invoice & Packing List PDF (Phase 4C)
 - `src/lib/invoice.ts` — `generateInvoicePDF()` and `generatePackingListPDF()` functions
@@ -690,6 +741,5 @@ npx shadcn@latest add button card input label table badge alert
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-05-30*
 *Phase 4 complete — Marketplace sync pending partnership*
-*Next action: Confirm Supabase RLS grants before Oct 2026 Data API change*

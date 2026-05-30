@@ -595,6 +595,6 @@ Selesai ✓
 
 ---
 
-*Last updated: 2026-05-28*
+*Last updated: 2026-05-30*
 *Document version: 1.0*
 *Untuk pertanyaan atau masalah, hubungi admin sistem.*
