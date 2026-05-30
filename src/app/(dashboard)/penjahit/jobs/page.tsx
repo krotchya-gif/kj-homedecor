@@ -24,7 +24,14 @@ export default function PenjahitJobsPage() {
     setJobs(data ?? [])
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const channel = supabase
+      .channel('penjahit-jobs')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function startJob(id: string) {
     setSaving(id)

@@ -36,7 +36,14 @@ export default function InstallerSchedulePage() {
     setBookings(data ?? [])
     setLoading(false)
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const channel = supabase
+      .channel('installer-schedule')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'install_bookings' }, () => load())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   const upcoming = bookings.filter(b => b.status !== 'done' && b.status !== 'cancelled')
   const done     = bookings.filter(b => b.status === 'done' || b.status === 'cancelled')
