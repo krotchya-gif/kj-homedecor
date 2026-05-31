@@ -15,6 +15,7 @@ export default function HPPPage() {
 
   // Selected product for calc
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
+  const [searchProduct, setSearchProduct] = useState('')
   const [markup,    setMarkup]    = useState(30) // % markup
   const [extraCost, setExtraCost] = useState(0)  // production cost manual
 
@@ -117,11 +118,45 @@ export default function HPPPage() {
           {/* Product selector */}
           <div className="form-section" style={{ marginBottom: '1rem' }}>
             <div className="form-section-title">Pilih Produk</div>
-            <select value={selectedProduct?.id ?? ''} onChange={e => selectProduct(e.target.value)}
-              style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
-              <option value="">— Pilih produk —</option>
-              {products.map(p => <option key={p.id} value={p.id}>{p.name}{p.sku ? ` (${p.sku})` : ''}</option>)}
-            </select>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Cari produk..."
+                value={searchProduct}
+                onChange={e => setSearchProduct(e.target.value)}
+                style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}
+              />
+              {searchProduct && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 220, overflowY: 'auto' }}>
+                  {products.filter(p =>
+                    p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+                    (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
+                    .length === 0 && (
+                    <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>Tidak ada produk ditemukan</div>
+                  )}
+                  {products.filter(p =>
+                    p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+                    (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
+                  ).map(p => (
+                    <div key={p.id}
+                      onClick={() => { selectProduct(p.id); setSearchProduct('') }}
+                      style={{ padding: '0.625rem 0.75rem', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f3f4f6', background: selectedProduct?.id === p.id ? '#fef3c7' : 'transparent' }}>
+                      <span style={{ fontWeight: 500 }}>{p.name}</span>
+                      {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!searchProduct && !selectedProduct && (
+                <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: '#9ca3af' }}>Ketik untuk mencari produk</div>
+              )}
+              {!searchProduct && selectedProduct && (
+                <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', color: '#374151' }}>
+                  <span style={{ fontWeight: 500 }}>{selectedProduct.name}</span>
+                  {selectedProduct.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({selectedProduct.sku})</span>}
+                </div>
+              )}
+            </div>
             {selectedProduct && (
               <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.85rem', color: '#6b7280' }}>
                 <div>Harga jual saat ini: <strong style={{ color: '#cc7030' }}>{fmt(selectedProduct.price)}</strong></div>
