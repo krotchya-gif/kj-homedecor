@@ -659,58 +659,6 @@ export default function ProductsPage() {
                 </label>
               </div>
 
-              {/* Style Variants for Gorden */}
-              {form.product_type === 'gorden' && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
-                    Model Gorden (Style Variants)
-                  </label>
-                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    {GORDEN_STYLES.map((style) => (
-                      <label key={style} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={form.style_variants.includes(style)}
-                          onChange={(e) => {
-                            const newStyles = e.target.checked
-                              ? [...form.style_variants, style]
-                              : form.style_variants.filter(s => s !== style)
-                            setForm((f) => ({ ...f, style_variants: newStyles }))
-                          }}
-                        />
-                        {style.charAt(0).toUpperCase() + style.slice(1)}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Smokring Colors */}
-              {form.product_type === 'gorden' && form.style_variants.includes('smokring') && (
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
-                    Warna Smokring
-                  </label>
-                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                    {SMOKRING_COLORS.map((color) => (
-                      <label key={color} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.875rem', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={form.smokring_colors.includes(color)}
-                          onChange={(e) => {
-                            const newColors = e.target.checked
-                              ? [...form.smokring_colors, color]
-                              : form.smokring_colors.filter(c => c !== color)
-                            setForm((f) => ({ ...f, smokring_colors: newColors }))
-                          }}
-                        />
-                        {color}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Color Variants for Perabot */}
               {form.product_type === 'perabot' && (
                 <div>

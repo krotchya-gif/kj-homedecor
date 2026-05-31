@@ -107,18 +107,25 @@ interface LightboxGalleryProps {
   photos: string[]
   onPhotoClick?: (index: number) => void
   columns?: 2 | 3 | 4
+  thumbSize?: 'sm' | 'md' | 'lg'
 }
 
-export function LightboxGallery({ photos, onPhotoClick, columns = 4 }: LightboxGalleryProps) {
+export function LightboxGallery({ photos, onPhotoClick, columns = 4, thumbSize = 'md' }: LightboxGalleryProps) {
   const visiblePhotos = photos.slice(0, 4)
   const extraCount = photos.length - 4
 
+  const sizeClasses = {
+    sm: 'w-12 h-12',
+    md: 'w-16 h-16',
+    lg: 'w-20 h-20',
+  }
+
   return (
-    <div className={`grid grid-cols-${columns} gap-1`}>
+    <div className="flex flex-wrap gap-1">
       {visiblePhotos.map((photo, i) => (
         <button
           key={i}
-          className="relative aspect-square overflow-hidden rounded border bg-muted hover:opacity-80 transition-opacity"
+          className={`relative ${sizeClasses[thumbSize]} overflow-hidden rounded border bg-muted hover:opacity-80 transition-opacity flex-shrink-0`}
           onClick={() => onPhotoClick?.(i)}
         >
           <img
@@ -127,7 +134,7 @@ export function LightboxGallery({ photos, onPhotoClick, columns = 4 }: LightboxG
             className="size-full object-cover"
           />
           {i === 3 && extraCount > 0 && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-medium text-lg">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-medium text-xs">
               +{extraCount}
             </div>
           )}

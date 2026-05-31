@@ -600,6 +600,7 @@ export default function AdminDashboardPage() {
                         photos={photos}
                         onPhotoClick={(i) => { setLightboxPhotos(photos); setLightboxIndex(i); setLightboxOpen(true) }}
                         columns={4}
+                        thumbSize="sm"
                       />
                     </div>
                   )}
