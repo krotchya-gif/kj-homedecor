@@ -574,7 +574,17 @@ export default function ProductsPage() {
             background: '#fff', borderRadius: '0.875rem', padding: '2rem',
             width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto',
             boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
-          }}>
+          }} className="product-form-modal">
+            <style>{`
+              .product-form-modal input[type=radio],
+              .product-form-modal input[type=checkbox] {
+                width: 14px;
+                height: 14px;
+                accent-color: #cc7030;
+                cursor: pointer;
+                flex-shrink: 0;
+              }
+            `}</style>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
               {editProduct ? 'Edit Produk' : 'Tambah Produk'}
             </h2>
