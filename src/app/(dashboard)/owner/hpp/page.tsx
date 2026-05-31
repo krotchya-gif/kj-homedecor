@@ -128,23 +128,23 @@ export default function HPPPage() {
               />
               {searchProduct && (
                 <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 220, overflowY: 'auto' }}>
-                  {products.filter(p =>
-                    p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                    (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                    .length === 0 && (
-                    <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>Tidak ada produk ditemukan</div>
-                  )}
-                  {products.filter(p =>
-                    p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                    (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                  ).map(p => (
-                    <div key={p.id}
-                      onClick={() => { selectProduct(p.id); setSearchProduct('') }}
-                      style={{ padding: '0.625rem 0.75rem', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f3f4f6', background: selectedProduct?.id === p.id ? '#fef3c7' : 'transparent' }}>
-                      <span style={{ fontWeight: 500 }}>{p.name}</span>
-                      {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
-                    </div>
-                  ))}
+                  {(() => {
+                    const filtered = products.filter(p =>
+                      p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+                      (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
+                    )
+                    if (filtered.length === 0) {
+                      return <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>Tidak ada produk ditemukan</div>
+                    }
+                    return filtered.map(p => (
+                      <div key={p.id}
+                        onClick={() => { selectProduct(p.id); setSearchProduct('') }}
+                        style={{ padding: '0.625rem 0.75rem', cursor: 'pointer', fontSize: '0.85rem', borderBottom: '1px solid #f3f4f6', background: selectedProduct?.id === p.id ? '#fef3c7' : 'transparent' }}>
+                        <span style={{ fontWeight: 500 }}>{p.name}</span>
+                        {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                      </div>
+                    ))
+                  })()}
                 </div>
               )}
               {!searchProduct && !selectedProduct && (
