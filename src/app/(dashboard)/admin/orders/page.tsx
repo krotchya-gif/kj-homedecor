@@ -53,9 +53,25 @@ export default function OrdersPage() {
     notes: '',
     customer_name: '',
     customer_phone: '',
+    customer_address: '',
   })
+  const [customers, setCustomers] = useState<any[]>([])
+  const [searchCustomer, setSearchCustomer] = useState('')
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
 
   const supabase = createClient()
+
+  async function fetchCustomers() {
+    const { data } = await supabase.from('customers').select('id, name, phone, address').order('name')
+    setCustomers(data ?? [])
+  }
+
+  function filteredCustomers(search: string) {
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.phone && c.phone.includes(search))
+    ).slice(0, 10)
+  }
 
   async function fetchOrders() {
     setLoading(true)
@@ -79,6 +95,7 @@ export default function OrdersPage() {
   }
 
   useEffect(() => { fetchOrders() }, [currentPage])
+  useEffect(() => { if (showForm) fetchCustomers() }, [showForm])
 
   const filtered = orders.filter((o) => {
     const matchSearch =
@@ -98,9 +115,9 @@ export default function OrdersPage() {
     setSaving(true)
 
     // Create or find existing customer
-    let customerId: string | null = null
+    let customerId: string | null = selectedCustomerId
     let customerWasCreated = false
-    if (form.customer_name.trim()) {
+    if (!customerId && form.customer_name.trim()) {
       const nameTrimmed = form.customer_name.trim()
       // Look up existing customer by phone (if provided) or name
       const { data: existingCust } = await supabase
@@ -111,15 +128,28 @@ export default function OrdersPage() {
 
       if (existingCust) {
         customerId = existingCust.id
+        // Update customer info if edited
+        await supabase.from('customers').update({
+          name: nameTrimmed,
+          phone: form.customer_phone?.trim() || null,
+          address: form.customer_address?.trim() || null,
+        }).eq('id', customerId)
       } else {
         const { data: cust } = await supabase
           .from('customers')
-          .insert({ name: nameTrimmed, phone: form.customer_phone?.trim() || null })
+          .insert({ name: nameTrimmed, phone: form.customer_phone?.trim() || null, address: form.customer_address?.trim() || null })
           .select('id')
           .single()
         customerId = cust?.id ?? null
         customerWasCreated = !!customerId
       }
+    } else if (customerId) {
+      // Update selected customer info if edited
+      await supabase.from('customers').update({
+        name: form.customer_name.trim() || undefined,
+        phone: form.customer_phone?.trim() || undefined,
+        address: form.customer_address?.trim() || undefined,
+      }).eq('id', customerId)
     }
 
     const dpAmt = Number(form.dp_amount) || 0
@@ -197,7 +227,7 @@ export default function OrdersPage() {
           <option value="ready_to_ship">Siap Kirim</option>
         </select>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => { setForm({ source: 'offline', classification: 'kirim', total_amount: '', dp_amount: '', notes: '', customer_name: '', customer_phone: '', customer_address: '' }); setSelectedCustomerId(null); setSearchCustomer(''); setShowForm(true) }}
           style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}
         >
           <Plus size={16} /> Buat Pesanan
@@ -319,12 +349,49 @@ export default function OrdersPage() {
                 <div className="form-section-title">Data Pelanggan</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Pelanggan *</label>
-                    <input required type="text" placeholder="Nama lengkap" value={form.customer_name} onChange={(e) => setForm(f => ({ ...f, customer_name: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Pilih / Tambah Pelanggan</label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        placeholder="Ketik nama atau no HP untuk cari..."
+                        value={searchCustomer}
+                        onChange={e => { setSearchCustomer(e.target.value); if (!e.target.value) { setSelectedCustomerId(null); setForm(f => ({ ...f, customer_name: '', customer_phone: '', customer_address: '' })) }}}
+                        style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}
+                      />
+                      {searchCustomer && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 200, overflowY: 'auto' }}>
+                          {filteredCustomers(searchCustomer).length === 0 && (
+                            <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>Ketik untuk cari atau buat pelanggan baru</div>
+                          )}
+                          {filteredCustomers(searchCustomer).map(c => (
+                            <div key={c.id}
+                              onClick={() => {
+                                setSelectedCustomerId(c.id)
+                                setSearchCustomer('')
+                                setForm(f => ({ ...f, customer_name: c.name, customer_phone: c.phone || '', customer_address: c.address || '' }))
+                              }}
+                              style={{ padding: '0.625rem 0.75rem', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: '0.85rem', background: selectedCustomerId === c.id ? '#fef3c7' : 'transparent' }}>
+                              <div style={{ fontWeight: 500 }}>{c.name}</div>
+                              <div style={{ color: '#9ca3af', fontSize: '0.78rem' }}>{c.phone || '—'}{c.address && ` · ${c.address}`}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {!searchCustomer && selectedCustomerId && (() => {
+                      const sel = customers.find(c => c.id === selectedCustomerId)
+                      return sel ? (
+                        <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', color: '#16a34a' }}>✓ {sel.name} — {sel.phone || '—'}</div>
+                      ) : null
+                    })()}
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>No. HP</label>
                     <input type="text" placeholder="08xxx" value={form.customer_phone} onChange={(e) => setForm(f => ({ ...f, customer_phone: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Alamat</label>
+                    <input type="text" placeholder="Alamat lengkap" value={form.customer_address} onChange={(e) => setForm(f => ({ ...f, customer_address: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
                   </div>
                 </div>
               </div>
