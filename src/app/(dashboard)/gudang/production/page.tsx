@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
-import { CheckCircle2, Clock, Layers, ExternalLink, UserPlus, X } from 'lucide-react'
+import { CheckCircle2, Layers, ExternalLink, UserPlus, X, Package, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   waiting:     {bg:'#fef2f2',text:'#991b1b'},
@@ -12,14 +12,17 @@ const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
 }
 
 interface UserType { id: string; name: string; role: string }
+interface JobMaterial { material_id: string; material_name: string; unit: string; qty_needed: number; stock_gudang: number }
 
 export default function GudangProductionPage() {
-  const [jobs, setJobs]       = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter]   = useState('')
+  const [jobs, setJobs]         = useState<any[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [filter, setFilter]     = useState('')
   const [penjahits, setPenjahits] = useState<UserType[]>([])
   const [assignJob, setAssignJob] = useState<any|null>(null)
   const [assigning, setAssigning] = useState(false)
+  const [expandedJob, setExpandedJob] = useState<string|null>(null)
+  const [jobMaterials, setJobMaterials] = useState<Record<string, JobMaterial[]>>({})
   const supabase = createClient()
 
   async function load() {
@@ -34,16 +37,51 @@ export default function GudangProductionPage() {
     setJobs(data ?? [])
     setPenjahits((penjahitData ?? []) as UserType[])
     setLoading(false)
+
+    // Pre-load BOM materials for all jobs that are waiting/in_progress
+    const activeJobs = (data ?? []).filter((j: any) => j.status === 'waiting' || j.status === 'in_progress')
+    const materialsMap: Record<string, JobMaterial[]> = {}
+    for (const job of activeJobs) {
+      materialsMap[job.id] = await loadJobMaterials(job.order_id)
+    }
+    setJobMaterials(materialsMap)
   }
+
+  async function loadJobMaterials(orderId: string): Promise<JobMaterial[]> {
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('product_id, qty')
+      .eq('order_id', orderId)
+
+    const materials: JobMaterial[] = []
+    for (const item of orderItems ?? []) {
+      if (!item.product_id) continue
+      const { data: bomItems } = await supabase
+        .from('bom')
+        .select('material_id, qty_per_unit, material:materials(name, unit, stock_gudang)')
+        .eq('product_id', item.product_id)
+
+      for (const bom of bomItems ?? []) {
+        const mat = (bom as any).material
+        materials.push({
+          material_id: bom.material_id,
+          material_name: mat?.name ?? 'Unknown',
+          unit: mat?.unit ?? 'unit',
+          qty_needed: Number(bom.qty_per_unit) * Number(item.qty),
+          stock_gudang: mat?.stock_gudang ?? 0,
+        })
+      }
+    }
+    return materials
+  }
+
   useEffect(() => { load() }, [])
 
   async function updateJobStatus(jobId: string, status: string) {
     const { data: { user } } = await supabase.auth.getUser()
     const job = jobs.find(j => j.id === jobId)
 
-    // BOM consumption when production is done
     if (status === 'done' && job?.order_id) {
-      // Get order items with their products and BOM
       const { data: orderItems } = await supabase
         .from('order_items')
         .select('product_id, qty')
@@ -51,7 +89,6 @@ export default function GudangProductionPage() {
 
       for (const item of orderItems ?? []) {
         if (!item.product_id) continue
-        // Get BOM for this product
         const { data: bomItems } = await supabase
           .from('bom')
           .select('material_id, qty_per_unit')
@@ -59,22 +96,14 @@ export default function GudangProductionPage() {
 
         for (const bom of bomItems ?? []) {
           const consumptionQty = Number(bom.qty_per_unit) * Number(item.qty)
-          // Decrement stock_gudang
           try {
-            await supabase.rpc('decrement_stock_gudang', {
-              material_id: bom.material_id,
-              amount: consumptionQty,
-            })
+            await supabase.rpc('decrement_stock_gudang', { material_id: bom.material_id, amount: consumptionQty })
           } catch {
-            // Fallback: manual update
             const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', bom.material_id).single()
             if (mat) {
-              await supabase.from('materials').update({
-                stock_gudang: (mat.stock_gudang ?? 0) - consumptionQty,
-              }).eq('id', bom.material_id)
+              await supabase.from('materials').update({ stock_gudang: (mat.stock_gudang ?? 0) - consumptionQty }).eq('id', bom.material_id)
             }
           }
-          // Record inventory movement
           await supabase.from('inventory_movements').insert({
             material_id: bom.material_id,
             type: 'out',
@@ -95,9 +124,7 @@ export default function GudangProductionPage() {
     await supabase.from('order_logs').insert({
       order_id: job?.order_id,
       action: status === 'in_progress' ? 'production_started' : 'production_done',
-      notes: status === 'in_progress'
-        ? `Produksi dimulai oleh Gudang`
-        : `Produksi selesai — siap QC`,
+      notes: status === 'in_progress' ? `Produksi dimulai oleh Gudang` : `Produksi selesai — siap QC`,
       staff_id: user?.id ?? null,
     })
     load()
@@ -129,7 +156,6 @@ export default function GudangProductionPage() {
         <p className="page-subtitle">Queue produksi dari penjahit — tracking status jahit per order</p>
       </div>
 
-      {/* Stats */}
       <div className="stat-grid" style={{ marginBottom:'1.25rem' }}>
         {[
           {label:'Menunggu',   val:jobs.filter(j=>j.status==='waiting').length,     color:'#ef4444'},
@@ -163,65 +189,119 @@ export default function GudangProductionPage() {
             <p>Belum ada job produksi</p>
           </div>
         ) : (
-          <table>
-            <thead>
-              <tr><th>Pesanan</th><th>Pelanggan</th><th>Penjahit</th><th>Gorden</th><th>Vitras</th><th>Roman</th><th>Kupu²</th><th>Status</th><th>Aksi</th></tr>
-            </thead>
-            <tbody>
-              {filtered.map(job => {
-                const sc = STATUS_COLORS[job.status]
-                return (
-                  <tr key={job.id}>
-                    <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280' }}>
-                      <Link href={`/admin/orders/${job.order?.id}`} style={{ color:'#cc7030', textDecoration:'none' }}>
-                        {job.order?.id?.slice(0,8)} <ExternalLink size={10}/>
-                      </Link>
-                    </td>
-                    <td style={{ fontWeight:'500' }}>{job.order?.customer?.name ?? '—'}</td>
-                    <td style={{ color:'#6b7280' }}>{job.penjahit?.name ?? '—'}</td>
-                    <td>{Number(job.meter_gorden    ?? 0).toFixed(2)}m</td>
-                    <td>{Number(job.meter_vitras    ?? 0).toFixed(2)}m</td>
-                    <td>{Number(job.meter_roman     ?? 0).toFixed(2)}m</td>
-                    <td>{Number(job.meter_kupu_kupu ?? 0).toFixed(2)}m</td>
-                    <td>
-                      <span style={{ ...sc, padding:'0.2rem 0.6rem', borderRadius:'999px', fontSize:'0.72rem', fontWeight:'600' }}>
-                        {job.status === 'waiting' ? 'Menunggu' : job.status === 'in_progress' ? 'Dikerjakan' : 'Selesai'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display:'flex', gap:'0.375rem' }}>
-                        {job.status === 'waiting' && !job.penjahit_id && (
-                          <button onClick={() => setAssignJob(job)}
-                            style={{ padding:'0.25rem 0.625rem', background:'#e0e7ff', color:'#3730a3', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.2rem' }}>
-                            <UserPlus size={11}/> Beri Penjahit
-                          </button>
-                        )}
-                        {job.status === 'waiting' && job.penjahit_id && (
-                          <button onClick={() => updateJobStatus(job.id,'in_progress')}
-                            style={{ padding:'0.25rem 0.625rem', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer' }}>
-                            Mulai
-                          </button>
-                        )}
-                        {job.status === 'in_progress' && (
-                          <button onClick={() => updateJobStatus(job.id,'done')}
-                            style={{ padding:'0.25rem 0.625rem', background:'#d1fae5', color:'#065f46', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer', display:'flex', alignItems:'center', gap:'0.2rem' }}>
-                            <CheckCircle2 size={11}/> Selesai
-                          </button>
+          <>
+            {filtered.map(job => {
+              const sc = STATUS_COLORS[job.status]
+              const mats = jobMaterials[job.id] ?? []
+              const isExpanded = expandedJob === job.id
+              const hasInsufficient = mats.some(m => m.stock_gudang < m.qty_needed)
+              return (
+                <div key={job.id} style={{ borderBottom:'1px solid #f3f4f6' }}>
+                  {/* Main row */}
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ fontFamily:'monospace', fontSize:'0.78rem', color:'#6b7280', padding:'0.75rem 0.5rem', width:100 }}>
+                          <Link href={`/admin/orders/${job.order?.id}`} style={{ color:'#cc7030', textDecoration:'none', display:'flex', alignItems:'center', gap:'0.25rem' }}>
+                            {job.order?.id?.slice(0,8)} <ExternalLink size={10}/>
+                          </Link>
+                        </td>
+                        <td style={{ fontWeight:'500', padding:'0.75rem 0.5rem' }}>{job.order?.customer?.name ?? '—'}</td>
+                        <td style={{ color:'#6b7280', padding:'0.75rem 0.5rem' }}>{job.penjahit?.name ?? '—'}</td>
+                        <td style={{ padding:'0.75rem 0.25rem' }}>{Number(job.meter_gorden ?? 0).toFixed(1)}m</td>
+                        <td style={{ padding:'0.75rem 0.25rem' }}>{Number(job.meter_vitras ?? 0).toFixed(1)}m</td>
+                        <td style={{ padding:'0.75rem 0.25rem' }}>{Number(job.meter_roman ?? 0).toFixed(1)}m</td>
+                        <td style={{ padding:'0.75rem 0.25rem' }}>{Number(job.meter_kupu_kupu ?? 0).toFixed(1)}m</td>
+                        <td style={{ padding:'0.75rem 0.25rem' }}>
+                          <span style={{ ...sc, padding:'0.2rem 0.6rem', borderRadius:'999px', fontSize:'0.72rem', fontWeight:'600' }}>
+                            {job.status === 'waiting' ? 'Menunggu' : job.status === 'in_progress' ? 'Dikerjakan' : 'Selesai'}
+                          </span>
+                        </td>
+                        <td style={{ padding:'0.75rem 0.25rem', whiteSpace:'nowrap' }}>
+                          {(job.status === 'waiting' || job.status === 'in_progress') && mats.length > 0 && (
+                            <button onClick={() => setExpandedJob(isExpanded ? null : job.id)}
+                              style={{ display:'inline-flex', alignItems:'center', gap:'0.3rem', padding:'0.2rem 0.6rem', background: hasInsufficient ? '#fef2f2' : '#f0fdf4', color: hasInsufficient ? '#dc2626' : '#16a34a', border:'none', borderRadius:'999px', fontSize:'0.7rem', fontWeight:'600', cursor:'pointer', marginRight:'0.375rem' }}>
+                              {hasInsufficient && <AlertTriangle size={10}/>}
+                              <Package size={11}/> Material
+                              {isExpanded ? <ChevronUp size={10}/> : <ChevronDown size={10}/>}
+                            </button>
+                          )}
+                          <div style={{ display:'inline-flex', gap:'0.25rem' }}>
+                            {job.status === 'waiting' && !job.penjahit_id && (
+                              <button onClick={() => setAssignJob(job)}
+                                style={{ padding:'0.2rem 0.5rem', background:'#e0e7ff', color:'#3730a3', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer' }}>
+                                <UserPlus size={10}/> Penjahit
+                              </button>
+                            )}
+                            {job.status === 'waiting' && job.penjahit_id && (
+                              <button onClick={() => updateJobStatus(job.id,'in_progress')}
+                                style={{ padding:'0.2rem 0.625rem', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer' }}>
+                                Mulai
+                              </button>
+                            )}
+                            {job.status === 'in_progress' && (
+                              <button onClick={() => updateJobStatus(job.id,'done')}
+                                style={{ padding:'0.2rem 0.625rem', background:'#d1fae5', color:'#065f46', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer' }}>
+                                <CheckCircle2 size={10}/> Selesai
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Expanded BOM panel */}
+                  {isExpanded && mats.length > 0 && (
+                    <div style={{ padding:'0 1rem 1rem 1rem' }}>
+                      <div style={{ background:'#fffbeb', border:'1px solid #f59e0b', borderRadius:'0.5rem', padding:'0.875rem', marginBottom:'0.5rem' }}>
+                        <div style={{ fontSize:'0.78rem', fontWeight:'700', color:'#92400e', marginBottom:'0.5rem' }}>📋 Material yang Dibutuhkan</div>
+                        <table style={{ width:'100%', fontSize:'0.8rem' }}>
+                          <thead>
+                            <tr style={{ color:'#9ca3af', fontWeight:'600' }}>
+                              <td>Material</td>
+                              <td style={{ textAlign:'center' }}>Dibutuhkan</td>
+                              <td style={{ textAlign:'center' }}>Stok Gudang</td>
+                              <td style={{ textAlign:'center' }}>Status</td>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {mats.map((m, idx) => {
+                              const insufficient = m.stock_gudang < m.qty_needed
+                              return (
+                                <tr key={idx} style={{ borderTop:'1px solid #fde68a' }}>
+                                  <td style={{ padding:'0.35rem 0', fontWeight:'500' }}>{m.material_name}</td>
+                                  <td style={{ textAlign:'center', fontWeight:'600' }}>{m.qty_needed} {m.unit}</td>
+                                  <td style={{ textAlign:'center', color: insufficient ? '#dc2626' : '#374151', fontWeight:'600' }}>{m.stock_gudang}</td>
+                                  <td>
+                                    {insufficient ? (
+                                      <span style={{ color:'#dc2626', fontWeight:'700', fontSize:'0.72rem' }}>⚠️ Kurang {m.qty_needed - m.stock_gudang} {m.unit}</span>
+                                    ) : (
+                                      <span style={{ color:'#16a34a', fontWeight:'600', fontSize:'0.72rem' }}>✅ Cukup</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                        {hasInsufficient && (
+                          <div style={{ marginTop:'0.5rem', padding:'0.5rem', background:'#fef2f2', borderRadius:'0.375rem', fontSize:'0.75rem', color:'#991b1b', fontWeight:'600' }}>
+                            ⚠️ Stok kurang!material belum mencukupi. Hubungi Owner untuk restock sebelum produksi dimulai.
+                          </div>
                         )}
                       </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </>
         )}
       </div>
 
-      {/* Assign Penjahit Modal */}
       {assignJob && (
-        <div
-          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
           onClick={e => { if (e.target === e.currentTarget) setAssignJob(null) }}>
           <div style={{ background:'#fff', borderRadius:'0.875rem', padding:'2rem', width:'100%', maxWidth:420, boxShadow:'0 25px 60px rgba(0,0,0,0.25)' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1.5rem' }}>
@@ -229,28 +309,23 @@ export default function GudangProductionPage() {
               <button onClick={() => setAssignJob(null)} style={{ background:'none', border:'none', cursor:'pointer' }}><X size={20}/></button>
             </div>
             <p style={{ fontSize:'0.875rem', color:'#6b7280', marginBottom:'1.25rem' }}>
-              Pilih penjahit untuk job: <strong>{assignJob.order?.customer?.name ?? assignJob.order_id?.slice(0,8)}</strong>
+              Job: <strong>{assignJob.order?.customer?.name ?? assignJob.order_id?.slice(0,8)}</strong>
             </p>
             <div style={{ display:'flex', flexDirection:'column', gap:'0.625rem' }}>
               {penjahits.length === 0 ? (
                 <p style={{ color:'#9ca3af', fontSize:'0.875rem' }}>Tidak ada penjahit tersedia</p>
-              ) : (
-                penjahits.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleAssignPenjahit(p.id)}
-                    disabled={assigning}
-                    style={{ display:'flex', alignItems:'center', gap:'0.625rem', padding:'0.875rem', border:`2px solid ${'#e5e7eb'}`, borderRadius:'0.5rem', background:'#fff', cursor:'pointer', textAlign:'left' }}>
-                    <div style={{ width:36, height:36, borderRadius:'50%', background:'#16a34a20', color:'#16a34a', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'0.9rem', flexShrink:0 }}>
-                      {p.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight:'600', fontSize:'0.875rem', color:'#1f2937' }}>{p.name}</div>
-                      <div style={{ fontSize:'0.75rem', color:'#9ca3af' }}>Penjahit</div>
-                    </div>
-                  </button>
-                ))
-              )}
+              ) : penjahits.map(p => (
+                <button key={p.id} onClick={() => handleAssignPenjahit(p.id)} disabled={assigning}
+                  style={{ display:'flex', alignItems:'center', gap:'0.625rem', padding:'0.875rem', border:'2px solid #e5e7eb', borderRadius:'0.5rem', background:'#fff', cursor:'pointer', textAlign:'left' }}>
+                  <div style={{ width:36, height:36, borderRadius:'50%', background:'#16a34a20', color:'#16a34a', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'700', fontSize:'0.9rem', flexShrink:0 }}>
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight:'600', fontSize:'0.875rem', color:'#1f2937' }}>{p.name}</div>
+                    <div style={{ fontSize:'0.75rem', color:'#9ca3af' }}>Penjahit</div>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </div>

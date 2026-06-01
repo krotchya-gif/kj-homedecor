@@ -288,12 +288,12 @@ const EXPORT_COLUMNS = [
                           </span>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', gap: '0.375rem' }}>
                             {po.status === 'pending' && (
-                              <>
-                                <button onClick={() => updatePOStatus(po.id, 'received')} style={{ padding: '0.25rem 0.625rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>Terima</button>
-                                <button onClick={() => updatePOStatus(po.id, 'paid')} style={{ padding: '0.25rem 0.625rem', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>Bayar</button>
-                              </>
+                              <button onClick={() => updatePOStatus(po.id, 'delivered')} style={{ padding: '0.25rem 0.625rem', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>Dikirim</button>
+                            )}
+                            {(po.status === 'pending' || po.status === 'delivered') && (
+                              <button onClick={() => updatePOStatus(po.id, 'received')} style={{ padding: '0.25rem 0.625rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>Terima</button>
                             )}
                             {po.status === 'received' && (
                               <button onClick={() => updatePOStatus(po.id, 'paid')} style={{ padding: '0.25rem 0.625rem', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>Bayar</button>
