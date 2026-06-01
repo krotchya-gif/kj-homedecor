@@ -15,12 +15,26 @@ export default function PenjahitJobsPage() {
   async function load() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase
+    if (!user) {
+      console.warn('[Penjahit Jobs] No user session. Please login.')
+      setJobs([])
+      setLoading(false)
+      return
+    }
+    // Debug: log user.id untuk matching dengan production_jobs.penjahit_id
+    console.log('[Penjahit Jobs] Loading jobs for user.id:', user.id)
+    const { data, error } = await supabase
       .from('production_jobs')
       .select('*, order:orders(id, customer:customers(name)), order_item:order_items(size, product:products(name))')
-      .eq('penjahit_id', user?.id ?? '')
+      .eq('penjahit_id', user.id)
       .neq('status', 'done')
       .order('created_at', { ascending: true })
+    if (error) {
+      console.error('[Penjahit Jobs] Query error:', error)
+      alert('⚠️ Gagal load job: ' + error.message)
+    } else {
+      console.log(`[Penjahit Jobs] Found ${data?.length ?? 0} jobs for user.id=${user.id}`)
+    }
     setJobs(data ?? [])
     setLoading(false)
   }

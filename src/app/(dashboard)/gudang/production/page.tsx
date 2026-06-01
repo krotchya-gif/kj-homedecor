@@ -144,11 +144,15 @@ export default function GudangProductionPage() {
       }
     }
 
-    await supabase.from('production_jobs').update({
+    // CRITICAL: error handling + ALERT kalau update gagal
+    const { error: statusErr } = await supabase.from('production_jobs').update({
       status,
       ...(status === 'in_progress' ? { started_at: new Date().toISOString() } : {}),
       ...(status === 'done'        ? { completed_at: new Date().toISOString() } : {}),
     }).eq('id', jobId)
+    if (statusErr) {
+      alert('⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek RLS policy atau koneksi database.')
+    }
 
     await supabase.from('order_logs').insert({
       order_id: job?.order_id,
@@ -163,12 +167,28 @@ export default function GudangProductionPage() {
     if (!assignJob) return
     setAssigning(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('production_jobs').update({ penjahit_id: penjahitId }).eq('id', assignJob.id)
+    // CRITICAL: error handling + ALERT kalau update gagal
+    const { data: updated, error: updateErr } = await supabase
+      .from('production_jobs')
+      .update({ penjahit_id: penjahitId })
+      .eq('id', assignJob.id)
+      .select('id, penjahit_id, status')
+      .single()
+    if (updateErr) {
+      alert('⚠️ Gagal assign penjahit: ' + updateErr.message + '\n\nCek RLS policy atau koneksi database.')
+      setAssigning(false)
+      return
+    }
+    if (!updated?.penjahit_id) {
+      alert('⚠️ Update berhasil tapi penjahit_id tidak ter-set. Refresh halaman dan coba lagi.')
+      setAssigning(false)
+      return
+    }
     const selectedPenjahit = penjahits.find((p: UserType) => p.id === penjahitId)
     await supabase.from('order_logs').insert({
       order_id: assignJob.order_id,
       action: 'penjahit_assigned',
-      notes: `Job diserahkan ke penjahit: ${selectedPenjahit?.name ?? penjahitId}`,
+      notes: `Job diserahkan ke penjahit: ${selectedPenjahit?.name ?? penjahitId} (penjahit_id: ${updated.penjahit_id.slice(0,8)})`,
       staff_id: user?.id ?? null,
     })
     setAssigning(false)
