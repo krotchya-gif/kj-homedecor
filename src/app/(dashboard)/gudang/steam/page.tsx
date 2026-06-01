@@ -219,8 +219,8 @@ export default function GudangSteamPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Laundry & Steam</h1>
-        <p className="page-subtitle">Kelola laundry dan QC Steam — setelah penjahit selesai</p>
+        <h1 className="page-title">Steam & QC Jahitan Penjahit</h1>
+        <p className="page-subtitle">QC jahitan penjahit setelah mereka submit laporan produksi. <strong>Bukan</strong> untuk QC per-item pesanan (lihat <a href="/gudang/qc" style={{color:'#cc7030'}}>QC Per-Item & Retur</a>).</p>
       </div>
 
       {/* Tabs */}
@@ -239,7 +239,7 @@ export default function GudangSteamPage() {
               marginBottom: '-2px',
               transition: 'all 0.15s',
             }}>
-            {t === 'laundry' ? '🧺 Laundry' : '♨️ Steam / QC'}
+            {t === 'laundry' ? '🧺 Laundry' : '♨️ QC Jahitan (Steam)'}
           </button>
         ))}
       </div>
@@ -295,11 +295,11 @@ export default function GudangSteamPage() {
               {/* Menunggu QC */}
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151', marginBottom: '0.75rem' }}>
-                  ⏳ Menunggu QC ({steamPending.length})
+                  ⏳ Menunggu QC Jahitan ({steamPending.length})
                 </h3>
                 {steamPending.length === 0 ? (
                   <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
-                    Tidak ada job yang menunggu QC
+                    Tidak ada job yang menunggu QC jahitan
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -318,7 +318,7 @@ export default function GudangSteamPage() {
                             <button
                               onClick={() => setShowPassDialog(job)}
                               style={{ padding: '0.5rem 1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                              <CheckCircle2 size={14} /> QC Pass
+                              <CheckCircle2 size={14} /> QC Jahitan Pass
                             </button>
                             <button
                               onClick={() => { setShowFailModal(job); setFailReason('') }}
@@ -361,7 +361,7 @@ export default function GudangSteamPage() {
               {steamDone.length > 0 && (
                 <div>
                   <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#16a34a', marginBottom: '0.75rem' }}>
-                    ✅ QC Pass — Menunggu Finance ({steamDone.length})
+                    ✅ QC Jahitan Pass — Lanjut ke QC Per-Item ({steamDone.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {steamDone.map(job => (
@@ -370,7 +370,7 @@ export default function GudangSteamPage() {
                           {job.order?.customer?.name ?? 'Tanpa Nama'}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>
-                          ✓ QC Pass — {new Date(job.completed_at ?? job.created_at).toLocaleDateString('id-ID')}
+                          ✓ QC Jahitan Pass — {new Date(job.completed_at ?? job.created_at).toLocaleDateString('id-ID')}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                           Order #{job.order_id?.slice(0, 8)}

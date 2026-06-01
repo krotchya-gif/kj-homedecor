@@ -25,8 +25,14 @@ export default function GudangQCPage() {
 
   async function load() {
     setLoading(true)
+    // QC per-item hanya relevan untuk order yang sudah LEWAT steam/QC penjahit (status=ready)
+    // atau setelahnya (packed/shipped/done). Jangan tampilkan order yang masih di new/sorted/production/steam.
     const [itemsRes, returnsRes] = await Promise.all([
-      supabase.from('order_items').select('*, order:orders(id, customer:customers(name)), product:products(name)').order('created_at', { ascending: false }),
+      supabase
+        .from('order_items')
+        .select('*, order:orders!inner(id, status, customer:customers(name)), product:products(name)')
+        .in('order.status', ['ready', 'packed', 'shipped', 'done'])
+        .order('created_at', { ascending: false }),
       supabase.from('returns').select('*, order:orders(id, customer:customers(name))').order('created_at', { ascending: false }),
     ])
     setItems(itemsRes.data ?? [])
@@ -173,15 +179,20 @@ export default function GudangQCPage() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Quality Control</h1>
-        <p className="page-subtitle">QC pass/fail per item — dan verifikasi barang return dari customer</p>
+        <h1 className="page-title">QC Per-Item & Verifikasi Retur</h1>
+        <p className="page-subtitle">
+          <strong>QC Per-Item</strong> untuk ceklist barang per item dari order yang sudah <strong>Siap (ready)</strong>.
+          <strong> Retur Customer</strong> untuk verifikasi barang yang diretur.
+          <br/>
+          <span style={{color:'#ef4444',fontWeight:'600'}}>⚠️ Bukan</span> untuk QC jahitan penjahit — itu di <a href="/gudang/steam" style={{color:'#cc7030',fontWeight:'600'}}>Steam & QC Jahitan</a>.
+        </p>
       </div>
 
       {/* Tab switcher */}
       <div style={{ display:'flex', gap:0, borderBottom:'2px solid #e5e7eb', marginBottom:'1.5rem' }}>
         {[
-          { key: 'qc', label: '🔍 QC Items', count: items.filter(i=>!i.ready).length },
-          { key: 'retur', label: '📦 Retur Customer', count: pendingReturns.length },
+          { key: 'qc', label: '🔍 QC Per-Item', count: items.filter(i=>!i.ready).length },
+          { key: 'retur', label: '📦 Verifikasi Retur', count: pendingReturns.length },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key as 'qc' | 'retur')}
             style={{ padding:'0.75rem 1.5rem', background:'none', border:'none', borderBottom:`2px solid ${tab===t.key?'#cc7030':'transparent'}`,

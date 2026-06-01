@@ -91,6 +91,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ data: null, error: { message: 'Order not found' } }, { status: 404 })
     }
 
+    // WAJIB: foto bukti pengerjaan harus di-upload (accountability)
+    // photoUrls bisa dikirim via body.photo_urls atau body.progress_photos
+    const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
+    if (photoEvidence.length === 0) {
+      return NextResponse.json(
+        { data: null, error: { message: 'Wajib upload minimal 1 foto bukti pengerjaan (accountability). Field: photo_urls atau progress_photos.' } },
+        { status: 400 }
+      )
+    }
+
     // Check role-based permission for this transition
     if (!isStatusTransitionAllowed(current.status, body.status, userRole)) {
       return NextResponse.json(
@@ -115,6 +125,47 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           { data: null, error: { message: 'Payment gate: order belum lunas. Finance harus approve pembayaran dulu.' } },
           { status: 403 }
         )
+      }
+    }
+
+    // sorted → production: create production_job (server-side, idempotent)
+    // Cek dulu apakah sudah ada production_job aktif untuk order ini (idempotency)
+    if (body.status === 'production' && current.status === 'sorted') {
+      const { data: existingJob } = await supabase
+        .from('production_jobs')
+        .select('id')
+        .eq('order_id', id)
+        .in('status', ['waiting', 'in_progress'])
+        .maybeSingle()
+
+      if (!existingJob) {
+        // Hitung total meter dari order_items
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
+          .eq('order_id', id)
+        const totalMeterGorden    = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? i.meter ?? 0), 0)
+        const totalMeterVitras    = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
+        const totalMeterRoman     = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+        const totalMeterKupuKupu  = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
+
+        const { error: jobErr } = await supabase
+          .from('production_jobs')
+          .insert({
+            order_id: id,
+            meter_gorden: totalMeterGorden,
+            meter_vitras: totalMeterVitras,
+            meter_roman: totalMeterRoman,
+            meter_kupu_kupu: totalMeterKupuKupu,
+            status: 'waiting',
+          })
+
+        if (jobErr) {
+          return NextResponse.json(
+            { data: null, error: { message: 'Gagal membuat production_job: ' + jobErr.message } },
+            { status: 500 }
+          )
+        }
       }
     }
 

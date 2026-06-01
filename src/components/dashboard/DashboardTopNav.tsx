@@ -66,11 +66,11 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   gudang: [
     { label: 'Dashboard', href: '/gudang', icon: <LayoutDashboard size={18} /> },
     { label: 'Produksi', href: '/gudang/production', icon: <Warehouse size={18} /> },
-    { label: 'Laundry/Steam', href: '/gudang/steam', icon: <Package size={18} /> },
+    { label: 'Steam & QC Jahitan', href: '/gudang/steam', icon: <Package size={18} /> },
+    { label: 'QC Per-Item & Retur', href: '/gudang/qc', icon: <Wrench size={18} /> },
     { label: 'Posisi Stok', href: '/gudang/stock', icon: <Package size={18} /> },
     { label: 'Alerts', href: '/gudang/alerts', icon: <Calendar size={18} /> },
     { label: 'Lembur', href: '/gudang/lembur', icon: <Calendar size={18} /> },
-    { label: 'QC', href: '/gudang/qc', icon: <Wrench size={18} /> },
   ],
   penjahit: [
     { label: 'Dashboard', href: '/penjahit', icon: <LayoutDashboard size={18} /> },

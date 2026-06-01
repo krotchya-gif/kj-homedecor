@@ -29,10 +29,12 @@ export default function GudangProductionPage() {
 
   async function load() {
     setLoading(true)
+    // Load production_jobs dengan order info lengkap (status, order_number, customer)
+    // agar Gudang bisa lihat konteks pipeline + assign penjahit.
     const [{ data }, { data: penjahitData }] = await Promise.all([
       supabase
         .from('production_jobs')
-        .select('*, order:orders(id, customer:customers(name)), penjahit:users(name)')
+        .select('*, order:orders(id, status, order_number, customer:customers(name)), penjahit:users(name)')
         .order('created_at', { ascending: false }),
       supabase.from('users').select('id, name, role').eq('role', 'penjahit'),
     ])
@@ -76,7 +78,16 @@ export default function GudangProductionPage() {
     return materials
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    // Realtime: auto-refresh saat ada job baru atau status berubah
+    const channel = supabase
+      .channel('production_jobs_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders'      }, () => load())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function updateJobStatus(jobId: string, status: string) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -170,7 +181,7 @@ export default function GudangProductionPage() {
     <div>
       <div className="page-header">
         <h1 className="page-title">Proses Pesanan</h1>
-        <p className="page-subtitle">Queue produksi dari penjahit — tracking status jahit per order</p>
+        <p className="page-subtitle">Queue produksi dari penjahit — tracking status jahit per order. Order dari Admin (status: production) akan muncul di sini untuk di-assign penjahit.</p>
       </div>
 
       <div className="stat-grid" style={{ marginBottom:'1.25rem' }}>

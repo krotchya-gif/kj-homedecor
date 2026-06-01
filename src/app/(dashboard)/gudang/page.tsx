@@ -1,9 +1,10 @@
 import Link from 'next/link'
-import { Warehouse, Package, Calendar, BarChart3, AlertTriangle, Layers } from 'lucide-react'
+import { Warehouse, Package, Calendar, BarChart3, AlertTriangle, Layers, Wrench } from 'lucide-react'
 
 const MODULES = [
   { title: 'Proses Pesanan', desc: 'Queue produksi dan tracking status', href: '/gudang/production', icon: <Layers size={20} />, color: 'orange' },
-  { title: 'Barang Masuk', desc: 'Laundry & Steam entry', href: '/gudang/steam', icon: <Warehouse size={20} />, color: 'blue' },
+  { title: 'Steam & QC Jahitan', desc: 'QC jahitan penjahit + laundry entry', href: '/gudang/steam', icon: <Warehouse size={20} />, color: 'blue' },
+  { title: 'QC Per-Item & Retur', desc: 'Ceklist per item + verifikasi retur', href: '/gudang/qc', icon: <Wrench size={20} />, color: 'amber' },
   { title: 'Posisi Stok', desc: 'Gudang vs Toko', href: '/gudang/stock', icon: <Package size={20} />, color: 'green' },
   { title: 'Monitor Stok', desc: 'Low stock alerts & PR', href: '/gudang/alerts', icon: <AlertTriangle size={20} />, color: 'red' },
   { title: 'Lembur', desc: 'Input jam lembur staff', href: '/gudang/lembur', icon: <Calendar size={20} />, color: 'purple' },

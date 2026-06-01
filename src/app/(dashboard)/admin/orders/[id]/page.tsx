@@ -33,6 +33,43 @@ type ItemType = 'gorden' | 'perabot' | 'laundry'
 
 const fmt = (n:number) => new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n)
 
+// Role → stage yang boleh di-LANJUTKAN (mirror API di /api/orders/[id]/route.ts)
+// Setiap role hanya boleh klik "Lanjut" di stage yang menjadi tanggung jawabnya.
+// Admin/owner adalah escape hatch (bisa semua).
+// Penjual tombol Lanjut: sembunyikan kalau bukan role ini.
+// Stage transition permissions — setiap role hanya boleh klik "Lanjut" di stage yang menjadi tanggung jawabnya.
+// Owner = escape hatch (bisa semua stage). Admin TIDAK escape hatch — hanya di sortir (awal) dan shipping (akhir).
+// Source of truth: matrix di Pipeline V2 docs
+const ROLE_NEXT_ALLOWED: Record<string, string[]> = {
+  // Admin: sortir order (awal) + shipping akhir
+  admin:     ['new', 'sorted', 'packed', 'shipped'],
+  // Owner: escape hatch — semua stage
+  owner:     ['new','sorted','production','steam','ready','payment_ok','packed','shipped','done'],
+  // Gudang: produksi + QC jahitan + packing (setelah finance verify)
+  gudang:    ['production', 'steam', 'ready', 'packed'],
+  // Finance: verify lunas + packing
+  finance:   ['ready', 'payment_ok', 'packed'],
+  // Installer: shipping akhir
+  installer: ['packed', 'shipped'],
+  // Penjahit: TIDAK boleh klik "Lanjut" di order detail (mereka kerjakan via /penjahit/jobs)
+}
+function canRoleAdvanceNext(role: string, currentStatus: string): boolean {
+  // Owner adalah escape hatch — boleh semua
+  if (role === 'owner') return true
+  const allowed = ROLE_NEXT_ALLOWED[role] ?? []
+  return allowed.includes(currentStatus)
+}
+// Tampilkan list role yang bertanggung jawab untuk advance dari currentStatus
+function getResponsibleRoles(currentStatus: string): string {
+  const responsibles: string[] = []
+  for (const [role, stages] of Object.entries(ROLE_NEXT_ALLOWED)) {
+    if (stages.includes(currentStatus)) responsibles.push(role)
+  }
+  // Owner selalu termasuk (escape hatch)
+  if (!responsibles.includes('owner')) responsibles.push('owner')
+  return responsibles.join(', ')
+}
+
 export default function OrderDetailPage() {
   const { id } = useParams<{id:string}>()
   const router = useRouter()
@@ -44,6 +81,7 @@ export default function OrderDetailPage() {
   const [orderLogs, setOrderLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [currentUserRole, setCurrentUserRole] = useState<string>('admin')
 
   // BOM data for material suggestion
   const [boms, setBoms] = useState<any[]>([])
@@ -112,6 +150,12 @@ export default function OrderDetailPage() {
 
   async function load() {
     setLoading(true)
+    // Fetch current user role for UI guard on action buttons
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single()
+      if (userData) setCurrentUserRole(userData.role)
+    }
     const [orderRes, itemsRes, prodsRes, logsRes, checklistRes, photosRes, bomsRes, matsRes] = await Promise.all([
       supabase.from('orders').select('*, customer:customers(name,phone,address)').eq('id',id).single(),
       supabase.from('order_items').select('*, product:products(name,sku)').eq('order_id',id),
@@ -180,7 +224,19 @@ export default function OrderDetailPage() {
     }
     setUpdating(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('orders').update({status:newStatus}).eq('id',id)
+
+    // 1) Update order status (client-side direct, simple & reliable)
+    const { error: updateErr } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', id)
+    if (updateErr) {
+      alert('Gagal update status: ' + updateErr.message)
+      setUpdating(false)
+      return
+    }
+
+    // 2) Catat ke order_logs untuk audit trail
     await supabase.from('order_logs').insert({
       order_id: id,
       action: newStatus === 'sorted' ? 'sorted' :
@@ -193,7 +249,8 @@ export default function OrderDetailPage() {
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null,
     })
-    // Save progress photos
+
+    // 3) Save progress photos (accountability)
     for (const url of photoUrls) {
       await supabase.from('order_progress_photos').insert({
         order_id: id,
@@ -202,21 +259,47 @@ export default function OrderDetailPage() {
         uploaded_by: user?.id ?? null,
       })
     }
-    if (newStatus === 'production') {
-      const { data: orderItems } = await supabase.from('order_items').select('*, product:products(name)').eq('order_id', id)
-      const totalMeterGorden = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? 0), 0)
-      const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
-      const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
-      const totalMeterKupuKupu = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
-      await supabase.from('production_jobs').insert({
-        order_id: id,
-        meter_gorden: totalMeterGorden,
-        meter_vitras: totalMeterVitras,
-        meter_roman: totalMeterRoman,
-        meter_kupu_kupu: totalMeterKupuKupu,
-        status: 'waiting',
-      })
+
+    // 4) PENTING: sorted→production. Auto-create production_job dengan idempotency check.
+    // Kalau insert gagal, ALERT user — jangan silent fail. Gudang Production page butuh job ini.
+    if (newStatus === 'production' && order.status === 'sorted') {
+      // Cek dulu apakah sudah ada production_job aktif untuk order ini
+      const { data: existingJob } = await supabase
+        .from('production_jobs')
+        .select('id')
+        .eq('order_id', id)
+        .in('status', ['waiting', 'in_progress'])
+        .maybeSingle()
+
+      if (!existingJob) {
+        // Hitung total meter dari order_items
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
+          .eq('order_id', id)
+        const totalMeterGorden    = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? i.meter ?? 0), 0)
+        const totalMeterVitras    = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
+        const totalMeterRoman     = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+        const totalMeterKupuKupu  = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
+
+        const { error: jobErr } = await supabase
+          .from('production_jobs')
+          .insert({
+            order_id: id,
+            meter_gorden: totalMeterGorden,
+            meter_vitras: totalMeterVitras,
+            meter_roman: totalMeterRoman,
+            meter_kupu_kupu: totalMeterKupuKupu,
+            status: 'waiting',
+          })
+
+        if (jobErr) {
+          // CRITICAL: order stuck di production tapi tidak ada job
+          alert('⚠️ Order sudah di-update ke production, TAPI gagal membuat production_job: ' + jobErr.message + '\n\nGudang tidak akan melihat order ini di /gudang/production. Hubungi developer untuk fix data integrity.')
+        }
+      }
     }
+
     setOrder(o => o ? {...o, status:newStatus as Order['status']} : o)
     setUpdating(false)
     setShowPhotoModal(false)
@@ -467,12 +550,17 @@ export default function OrderDetailPage() {
           <p style={{fontSize:'0.9rem',fontFamily:'monospace',color:'#cc7030',fontWeight:'700',marginTop:'0.25rem'}}>{order.order_number || `#${id.slice(0,8)}`}</p>
           <p style={{fontSize:'0.72rem',fontFamily:'monospace',color:'#9ca3af',marginTop:'0.1rem'}}>{id}</p>
         </div>
-        {nextStatus && !['done','returned','cancelled'].includes(order.status) && (
+        {nextStatus && !['done','returned','cancelled'].includes(order.status) && canRoleAdvanceNext(currentUserRole, order.status) && (
           <button onClick={()=>{setPendingStatus(nextStatus);setShowPhotoModal(true)}} disabled={updating}
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:updating?'not-allowed':'pointer'}}>
             {updating ? <Loader2 size={15} style={{animation:'spin 1s linear infinite'}}/> : <ChevronRight size={15}/>}
             Lanjut: {STATUS_LABELS[nextStatus]}
           </button>
+        )}
+        {nextStatus && !['done','returned','cancelled'].includes(order.status) && !canRoleAdvanceNext(currentUserRole, order.status) && (
+          <div style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.25rem',background:'#f3f4f6',color:'#6b7280',border:'1px dashed #d1d5db',borderRadius:'0.5rem',fontWeight:'600',fontSize:'0.8rem',flexWrap:'wrap'}}>
+            🔒 Role <strong style={{color:'#dc2626'}}>{currentUserRole}</strong> tidak boleh lanjut di stage ini. Stage <strong>{STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}</strong> adalah tanggung jawab: <strong style={{color:'#cc7030'}}>{getResponsibleRoles(order.status)}</strong>
+          </div>
         )}
         {['new','sorted'].includes(order.status) && (
           <button onClick={()=>setShowCancelForm(true)}
@@ -1102,7 +1190,9 @@ export default function OrderDetailPage() {
                 <XIcon size={18}/>
               </button>
             </div>
-            <p style={{fontSize:'0.8rem',color:'#6b7280',marginBottom:'1rem'}}>Upload foto progress untuk stage ini. Foto akan terlihat di dashboard Progress Pesanan.</p>
+            <p style={{fontSize:'0.8rem',color:'#6b7280',marginBottom:'1rem'}}>
+              <strong style={{color:'#dc2626'}}>WAJIB</strong> upload minimal <strong>1 foto</strong> sebagai bukti pengerjaan. Foto akan tercatat sebagai akuntabilitas siapa yang bertanggung jawab di stage ini.
+            </p>
             <div style={{border:'2px dashed #d1d5db',borderRadius:'0.5rem',padding:'1.5rem',textAlign:'center',marginBottom:'1rem',cursor:uploadingPhoto?'not-allowed':'pointer',opacity:uploadingPhoto?0.6:1}}>
               <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={uploadingPhoto} id="progress-photo-input" style={{display:'none'}}/>
               <label htmlFor="progress-photo-input" style={{cursor:uploadingPhoto?'not-allowed':'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:'0.5rem'}}>
@@ -1122,9 +1212,19 @@ export default function OrderDetailPage() {
             )}
             <div style={{display:'flex',gap:'0.75rem'}}>
               <button onClick={()=>{setShowPhotoModal(false);setProgressPhotos([]);setPendingStatus(null)}} style={{flex:1,padding:'0.75rem',border:'1px solid #d1d5db',borderRadius:'0.5rem',background:'#fff',cursor:'pointer',fontWeight:'600'}}>Batal</button>
-              <button onClick={()=>pendingStatus && updateStatus(pendingStatus, progressPhotos)} disabled={updating} style={{flex:1,padding:'0.75rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',cursor:updating?'not-allowed':'pointer',fontWeight:'600',opacity:updating?0.6:1}}>
+              <button
+                onClick={()=>pendingStatus && updateStatus(pendingStatus, progressPhotos)}
+                disabled={updating || progressPhotos.length === 0}
+                style={{
+                  flex:1, padding:'0.75rem',
+                  background: progressPhotos.length === 0 ? '#9ca3af' : '#cc7030',
+                  color:'#fff', border:'none', borderRadius:'0.5rem',
+                  cursor: (updating || progressPhotos.length === 0) ? 'not-allowed' : 'pointer',
+                  fontWeight:'600', opacity:updating?0.6:1,
+                }}
+              >
                 {updating ? <Loader2 size={14} style={{animation:'spin 1s linear infinite',display:'inline',marginRight:4}}/> : null}
-                Lanjut & Simpan
+                {progressPhotos.length === 0 ? '📷 Upload foto dulu' : `Lanjut & Simpan (${progressPhotos.length} foto)`}
               </button>
             </div>
           </div>
