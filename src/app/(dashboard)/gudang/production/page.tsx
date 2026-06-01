@@ -38,6 +38,7 @@ export default function GudangProductionPage() {
         .order('created_at', { ascending: false }),
       supabase.from('users').select('id, name, role').eq('role', 'penjahit'),
     ])
+    setJobs((data ?? []) as any[])  // ← CRITICAL FIX: setJobs() dipanggil agar UI render data
     setPenjahits((penjahitData ?? []) as UserType[])
     setLoading(false)
 
