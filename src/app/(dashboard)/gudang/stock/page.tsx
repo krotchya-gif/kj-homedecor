@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { AlertTriangle, CheckCircle2, Minus, Plus, Pencil } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Minus, Plus, Pencil, Package, Truck } from 'lucide-react'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 
@@ -15,7 +15,7 @@ export default function GudangStockPage() {
   const [materials, setMaterials] = useState<any[]>([])
   const [products, setProducts]   = useState<any[]>([])
   const [loading, setLoading]     = useState(true)
-  const [tab, setTab]             = useState<'materials'|'products'|'mutasi'|'edit'>('materials')
+  const [tab, setTab]             = useState<'materials'|'products'|'mutasi'|'edit'|'delivery'>('materials')
   const [search, setSearch]       = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -44,6 +44,11 @@ export default function GudangStockPage() {
   const [editNotes, setEditNotes] = useState('')
   const [savingEdit, setSavingEdit] = useState(false)
 
+  // Delivery state
+  const [deliveryPOs, setDeliveryPOs] = useState<any[]>([])
+  const [loadingDelivery, setLoadingDelivery] = useState(false)
+  const [confirmingId, setConfirmingId] = useState<string|null>(null)
+
   async function load() {
     setLoading(true)
     const from = (currentPage - 1) * PAGE_SIZE
@@ -61,6 +66,36 @@ export default function GudangStockPage() {
     setLoading(false)
   }
   useEffect(() => { load() }, [currentPage, tab])
+
+  useEffect(() => {
+    if (tab === 'delivery') loadDeliveries()
+  }, [tab])
+
+  async function loadDeliveries() {
+    setLoadingDelivery(true)
+    try {
+      const res = await fetch('/api/gudang/po-delivery')
+      const json = await res.json()
+      setDeliveryPOs(json.data ?? [])
+    } catch {
+      setDeliveryPOs([])
+    }
+    setLoadingDelivery(false)
+  }
+
+  async function handleConfirmDelivery(poId: string) {
+    setConfirmingId(poId)
+    try {
+      await fetch('/api/gudang/po-delivery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ po_id: poId }),
+      })
+      await loadDeliveries()
+    } finally {
+      setConfirmingId(null)
+    }
+  }
 
   function filteredItems(list: any[], searchVal: string) {
     return list.filter((it: any) => it.name.toLowerCase().includes(searchVal.toLowerCase()))
@@ -164,10 +199,10 @@ export default function GudangStockPage() {
       </div>
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
-        {(['materials', 'products', 'mutasi', 'edit'] as const).map(t => (
+        {(['materials', 'products', 'mutasi', 'edit', 'delivery'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             style={{ padding: '0.75rem 1.5rem', background: 'none', border: 'none', borderBottom: `2px solid ${tab === t ? '#cc7030' : 'transparent'}`, cursor: 'pointer', fontWeight: tab === t ? '700' : '500', color: tab === t ? '#cc7030' : '#6b7280', fontSize: '0.9rem', marginBottom: '-2px' }}>
-            {t === 'materials' ? '🧵 Material' : t === 'products' ? '📦 Produk' : t === 'mutasi' ? '📥 Barang Masuk' : '✏️ Edit Stok'}
+            {t === 'materials' ? '🧵 Material' : t === 'products' ? '📦 Produk' : t === 'mutasi' ? '📥 Barang Masuk' : t === 'edit' ? '✏️ Edit Stok' : '📦 Pesanan Datang'}
           </button>
         ))}
       </div>
@@ -461,6 +496,56 @@ export default function GudangStockPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {tab === 'delivery' && (
+        <div>
+          <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '0.5rem', padding: '0.875rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#92400e' }}>
+            ⚠️ Konfirmasi barang yang benar-benar sudah diterima di gudang. Stok akan bertambah setelah Anda klik "Sudah Sampai".
+          </div>
+
+          {loadingDelivery ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Memuat...</div>
+          ) : deliveryPOs.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+              <Truck size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem', display: 'block' }}/>
+              <p>Tidak ada pesanan yang sedang dalam perjalanan.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {deliveryPOs.map(po => {
+                const pr = po.pr as any
+                const material = pr?.material
+                return (
+                  <div key={po.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
+                          <span style={{ background: '#7c3aed', color: '#fff', padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '700' }}>📦 Sedang dalam perjalanan</span>
+                        </div>
+                        <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1f2937' }}>{material?.name ?? '—'}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                          Supplier: <strong>{po.supplier?.name ?? '—'}</strong> &bull; Qty: <strong>{pr?.qty ?? '—'} {material?.unit ?? ''}</strong>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem' }}>
+                          PO: <span style={{ fontFamily: 'monospace' }}>{po.id.slice(0, 8)}</span> &bull; Estimation cost: <strong style={{ color: '#cc7030' }}>
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(po.actual_cost ?? 0)}
+                          </strong>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleConfirmDelivery(po.id)}
+                        disabled={confirmingId === po.id}
+                        style={{ padding: '0.625rem 1.25rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: confirmingId === po.id ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem', opacity: confirmingId === po.id ? 0.6 : 1 }}>
+                        {confirmingId === po.id ? 'Memproses...' : '✅'} Sudah Sampai di Gudang
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

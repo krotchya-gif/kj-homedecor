@@ -23,6 +23,8 @@ export default function GudangProductionPage() {
   const [assigning, setAssigning] = useState(false)
   const [expandedJob, setExpandedJob] = useState<string|null>(null)
   const [jobMaterials, setJobMaterials] = useState<Record<string, JobMaterial[]>>({})
+  const [warningJob, setWarningJob] = useState<any|null>(null)
+  const [warningMats, setWarningMats] = useState<JobMaterial[]>([])
   const supabase = createClient()
 
   async function load() {
@@ -234,7 +236,16 @@ export default function GudangProductionPage() {
                               </button>
                             )}
                             {job.status === 'waiting' && job.penjahit_id && (
-                              <button onClick={() => updateJobStatus(job.id,'in_progress')}
+                              <button onClick={() => {
+                                const mats = jobMaterials[job.id] ?? []
+                                const insufficient = mats.some(m => m.stock_gudang < m.qty_needed)
+                                if (insufficient) {
+                                  setWarningJob(job)
+                                  setWarningMats(mats.filter((m: JobMaterial) => m.stock_gudang < m.qty_needed))
+                                } else {
+                                  updateJobStatus(job.id,'in_progress')
+                                }
+                              }}
                                 style={{ padding:'0.2rem 0.625rem', background:'#fef3c7', color:'#92400e', border:'none', borderRadius:'0.375rem', fontSize:'0.72rem', fontWeight:'600', cursor:'pointer' }}>
                                 Mulai
                               </button>
@@ -326,6 +337,39 @@ export default function GudangProductionPage() {
                   </div>
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {warningJob && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:201, display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}
+          onClick={e => { if (e.target === e.currentTarget) { setWarningJob(null); setWarningMats([]) } }}>
+          <div style={{ background:'#fff', borderRadius:'0.875rem', padding:'2rem', width:'100%', maxWidth:480, boxShadow:'0 25px 60px rgba(0,0,0,0.25)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'1rem' }}>
+              <AlertTriangle size={28} style={{ color:'#dc2626', flexShrink:0 }}/>
+              <h2 style={{ fontSize:'1.1rem', fontWeight:'700', margin:0, color:'#dc2626' }}>Material Tidak Mencukupi!</h2>
+            </div>
+            <p style={{ fontSize:'0.875rem', color:'#6b7280', marginBottom:'1.25rem' }}>
+              Job <strong>{warningJob.order?.customer?.name ?? warningJob.order_id?.slice(0,8)}</strong> — material BOM belum tersedia. production akan dimulai tapi material kurang:
+            </p>
+            <div style={{ background:'#fef2f2', border:'1px solid #fca5a5', borderRadius:'0.5rem', padding:'0.875rem', marginBottom:'1.25rem', maxHeight:180, overflowY:'auto' }}>
+              {warningMats.map((m: JobMaterial, idx: number) => (
+                <div key={idx} style={{ display:'flex', justifyContent:'space-between', padding:'0.3rem 0', borderBottom: idx < warningMats.length - 1 ? '1px solid #fecaca' : 'none', fontSize:'0.82rem' }}>
+                  <span style={{ fontWeight:'500', color:'#991b1b' }}>{m.material_name}</span>
+                  <span style={{ color:'#991b1b' }}>Stok: {m.stock_gudang} / Butuh: {m.qty_needed} {m.unit}</span>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex', gap:'0.75rem' }}>
+              <button onClick={() => { setWarningJob(null); setWarningMats([]) }}
+                style={{ flex:1, padding:'0.75rem', border:'1px solid #d1d5db', borderRadius:'0.5rem', background:'#fff', cursor:'pointer', fontWeight:'600', fontSize:'0.875rem' }}>
+                Batal
+              </button>
+              <button onClick={() => { setWarningJob(null); setWarningMats([]); updateJobStatus(warningJob.id,'in_progress') }}
+                style={{ flex:2, padding:'0.75rem', background:'#dc2626', color:'#fff', border:'none', borderRadius:'0.5rem', cursor:'pointer', fontWeight:'700', fontSize:'0.875rem' }}>
+                ⚠️ Tetap Mulai (Material Akan Dimakan Habis)
+              </button>
             </div>
           </div>
         </div>
