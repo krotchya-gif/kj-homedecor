@@ -25,12 +25,12 @@ CREATE TABLE IF NOT EXISTS public.stock_opname_items (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- RLS policies
+-- RLS policies — authenticated users with valid users.role IN (admin/gudang/owner/finance) can manage
 ALTER TABLE public.stock_opname_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stock_opname_items    ENABLE ROW LEVEL SECURITY;
 
--- Admin and Gudang can manage sessions
-CREATE POLICY "Admin/Gudang can manage stock_opname_sessions"
+-- Admin, Gudang, Owner, Finance can do ALL on sessions and items
+CREATE POLICY "stock_opname_all"
   ON public.stock_opname_sessions
   FOR ALL
   TO authenticated
@@ -38,11 +38,11 @@ CREATE POLICY "Admin/Gudang can manage stock_opname_sessions"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE id = auth.uid()
-        AND role IN ('admin', 'gudang', 'owner')
+        AND role IN ('admin', 'gudang', 'owner', 'finance')
     )
   );
 
-CREATE POLICY "Admin/Gudang can manage stock_opname_items"
+CREATE POLICY "stock_opname_items_all"
   ON public.stock_opname_items
   FOR ALL
   TO authenticated
@@ -50,12 +50,12 @@ CREATE POLICY "Admin/Gudang can manage stock_opname_items"
     EXISTS (
       SELECT 1 FROM public.users
       WHERE id = auth.uid()
-        AND role IN ('admin', 'gudang', 'owner')
+        AND role IN ('admin', 'gudang', 'owner', 'finance')
     )
   );
 
--- Owner can approve
-CREATE POLICY "Owner can view all sessions"
+-- Finance can view sessions too
+CREATE POLICY "stock_opname_sessions_select"
   ON public.stock_opname_sessions
   FOR SELECT
   TO authenticated
@@ -66,8 +66,3 @@ CREATE POLICY "Owner can view all sessions"
         AND role IN ('admin', 'gudang', 'owner', 'finance')
     )
   );
-
--- Grant
-GRANT USAGE ON SCHEMA public TO gudang, finance;
-GRANT ALL ON public.stock_opname_sessions TO gudang, finance;
-GRANT ALL ON public.stock_opname_items    TO gudang, finance;
