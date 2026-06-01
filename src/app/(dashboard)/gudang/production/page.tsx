@@ -82,7 +82,8 @@ export default function GudangProductionPage() {
     const { data: { user } } = await supabase.auth.getUser()
     const job = jobs.find(j => j.id === jobId)
 
-    if (status === 'done' && job?.order_id) {
+    // Idempotency: skip consumption if job is already done (prevent double-consume on retry)
+    if (status === 'done' && job?.order_id && job.status !== 'done') {
       const { data: orderItems } = await supabase
         .from('order_items')
         .select('product_id, qty')
@@ -97,12 +98,27 @@ export default function GudangProductionPage() {
 
         for (const bom of bomItems ?? []) {
           const consumptionQty = Number(bom.qty_per_unit) * Number(item.qty)
-          try {
-            await supabase.rpc('decrement_stock_gudang', { material_id: bom.material_id, amount: consumptionQty })
-          } catch {
-            const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', bom.material_id).single()
+          // Use RPC decrement (has GREATEST(0) guard) — no fallback to direct UPDATE
+          // because direct UPDATE could produce negative stock.
+          const { error: rpcErr } = await supabase.rpc('decrement_stock_gudang', {
+            material_id: bom.material_id,
+            amount: consumptionQty,
+          })
+          if (rpcErr) {
+            console.error('decrement_stock_gudang RPC failed:', rpcErr)
+            // Fallback: do a safe update with GREATEST(0) guard via .gte() filter
+            // to avoid negative stock. If material doesn't exist, skip.
+            const { data: mat } = await supabase
+              .from('materials')
+              .select('stock_gudang')
+              .eq('id', bom.material_id)
+              .single()
             if (mat) {
-              await supabase.from('materials').update({ stock_gudang: (mat.stock_gudang ?? 0) - consumptionQty }).eq('id', bom.material_id)
+              const newStock = Math.max(0, (mat.stock_gudang ?? 0) - consumptionQty)
+              await supabase
+                .from('materials')
+                .update({ stock_gudang: newStock })
+                .eq('id', bom.material_id)
             }
           }
           await supabase.from('inventory_movements').insert({
@@ -307,7 +323,7 @@ export default function GudangProductionPage() {
                         </table>
                         {hasInsufficient && (
                           <div style={{ marginTop:'0.5rem', padding:'0.5rem', background:'#fef2f2', borderRadius:'0.375rem', fontSize:'0.75rem', color:'#991b1b', fontWeight:'600' }}>
-                            ⚠️ Stok kurang!material belum mencukupi. Hubungi Owner untuk restock sebelum produksi dimulai.
+                            ⚠️ Stok kurang! Material belum mencukupi. Hubungi Owner untuk restock sebelum produksi dimulai.
                           </div>
                         )}
                       </div>

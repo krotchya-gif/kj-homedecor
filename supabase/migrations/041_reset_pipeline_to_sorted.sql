@@ -8,7 +8,7 @@ BEGIN;
 
 -- Backup before reset
 CREATE TABLE IF NOT EXISTS public.orders_pipeline_reset_backup_20260602 AS
-  SELECT id, status, payment_status, total_amount, dp_amount, lunas_amount, updated_at
+  SELECT id, status, payment_status, total_amount, dp_amount, lunas_amount, created_at
   FROM public.orders
   WHERE status NOT IN ('new', 'sorted', 'cancelled');
 

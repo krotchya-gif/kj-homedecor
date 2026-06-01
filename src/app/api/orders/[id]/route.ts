@@ -192,6 +192,29 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // RBAC: only admin/owner can hard-delete. Other roles should use 'cancelled' status instead.
+  const { data: requester } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  const userRole = requester?.role ?? 'admin'
+
+  if (userRole !== 'admin' && userRole !== 'owner') {
+    return NextResponse.json(
+      { data: null, error: { message: `Role "${userRole}" tidak punya permission untuk hard-delete order. Gunakan status 'cancelled' sebagai gantinya.` } },
+      { status: 403 }
+    )
+  }
+
+  // Log the deletion for audit trail before deleting
+  await supabase.from('order_logs').insert({
+    order_id: id,
+    action: 'order_deleted',
+    notes: `Order dihapus oleh ${userRole} (${user.id})`,
+    staff_id: user.id,
+  })
+
   const { error } = await supabase.from('orders').delete().eq('id', id)
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
   return NextResponse.json({ data: { deleted: true }, error: null })

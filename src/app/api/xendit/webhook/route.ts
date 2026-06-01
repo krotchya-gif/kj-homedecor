@@ -46,6 +46,32 @@ export async function POST(request: Request) {
           .single()
 
         if (order) {
+          // Idempotency: try INSERT payment first. If xendit_payment_id already exists
+          // (unique partial index), this is a webhook retry — skip silently.
+          const { data: insertedPayment, error: insertError } = await supabase
+            .from('payments')
+            .insert({
+              order_id: order.id,
+              type: paymentType,
+              amount,
+              date: new Date().toISOString(),
+              notes: `Xendit ${type} — ${id}`,
+              xendit_payment_id: id, // unique dedup key
+            })
+            .select('id')
+            .single()
+
+          // Unique violation = duplicate webhook delivery, idempotent success
+          if (insertError) {
+            if (insertError.code === '23505') { // unique_violation
+              console.log(`Xendit webhook: payment ${id} already processed (idempotent)`)
+              return NextResponse.json({ data: { success: true, idempotent: true }, error: null })
+            }
+            console.error('Failed to insert payment record:', insertError)
+            return NextResponse.json({ data: null, error: { message: 'Failed to record payment' } }, { status: 500 })
+          }
+
+          // Payment successfully inserted — now update order lunas_amount
           const newLunas = order.lunas_amount + amount
           const isFullyPaid = newLunas >= order.total_amount
 
@@ -55,29 +81,6 @@ export async function POST(request: Request) {
             lunas_amount: newLunas,
             payment_status: isFullyPaid ? 'paid' : 'partial',
           }).eq('id', order.id)
-
-          // Idempotency: check if payment already recorded
-          const { data: existingPayment } = await supabase
-            .from('payments')
-            .select('id')
-            .eq('order_id', order.id)
-            .eq('amount', amount)
-            .maybeSingle()
-
-          if (!existingPayment) {
-            const { error: insertError } = await supabase.from('payments').insert({
-              order_id: order.id,
-              type: paymentType,
-              amount,
-              date: new Date().toISOString(),
-              notes: `Xendit ${type} — ${id}`,
-            })
-
-            if (insertError) {
-              console.error('Failed to insert payment record:', insertError)
-              return NextResponse.json({ data: null, error: { message: 'Failed to record payment' } }, { status: 500 })
-            }
-          }
         }
       }
 

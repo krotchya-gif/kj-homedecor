@@ -1,11 +1,11 @@
-import { test, expect, describe } from '@playwright/test'
+import { test, expect } from '@playwright/test'
 
 const TEST_USERS = {
   finance: { email: 'kjhomedecornew26@gmail.com', password: 'finance321' },
   admin: { email: 'kjhomedecor22@gmail.com', password: 'admin321' },
 }
 
-describe('Finance - AKUN Module', () => {
+test.describe('Finance - AKUN Module', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', TEST_USERS.finance.email)
@@ -46,7 +46,7 @@ describe('Finance - AKUN Module', () => {
   })
 })
 
-describe('Finance - HUTANG Module', () => {
+test.describe('Finance - HUTANG Module', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', TEST_USERS.finance.email)
@@ -70,7 +70,7 @@ describe('Finance - HUTANG Module', () => {
   })
 })
 
-describe('Finance - PIUTANG Module', () => {
+test.describe('Finance - PIUTANG Module', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', TEST_USERS.finance.email)
@@ -116,7 +116,7 @@ describe('Finance - PIUTANG Module', () => {
   })
 })
 
-describe('Finance - KAS DAN BANK Module', () => {
+test.describe('Finance - KAS DAN BANK Module', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', TEST_USERS.finance.email)
@@ -140,7 +140,7 @@ describe('Finance - KAS DAN BANK Module', () => {
   })
 })
 
-describe('Finance - MANAJEMEN ASET Module', () => {
+test.describe('Finance - MANAJEMEN ASET Module', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', TEST_USERS.finance.email)
@@ -164,7 +164,7 @@ describe('Finance - MANAJEMEN ASET Module', () => {
   })
 })
 
-describe('Finance - JURNAL Module', () => {
+test.describe('Finance - JURNAL Module', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', TEST_USERS.finance.email)
