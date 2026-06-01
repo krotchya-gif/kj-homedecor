@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Users, ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
+import { Plus, Search, Users, ChevronLeft, ChevronRight, Download, Upload, Pencil } from 'lucide-react'
 import type { Customer } from '@/types'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -31,6 +31,7 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [editCustomer, setEditCustomer] = useState<Customer | null>(null)
   const [form, setForm] = useState({ name: '', phone: '', address: '', notes: '' })
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -93,16 +94,38 @@ export default function CustomersPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from('customers').insert({
-      name: form.name,
-      phone: form.phone,
-      address: form.address || null,
-      notes: form.notes || null,
-    })
+    if (editCustomer) {
+      await supabase.from('customers').update({
+        name: form.name,
+        phone: form.phone,
+        address: form.address || null,
+        notes: form.notes || null,
+      }).eq('id', editCustomer.id)
+    } else {
+      await supabase.from('customers').insert({
+        name: form.name,
+        phone: form.phone,
+        address: form.address || null,
+        notes: form.notes || null,
+      })
+    }
     setSaving(false)
     setShowForm(false)
+    setEditCustomer(null)
     setForm({ name: '', phone: '', address: '', notes: '' })
     fetchCustomers()
+  }
+
+  function openEdit(c: Customer) {
+    setEditCustomer(c)
+    setForm({ name: c.name, phone: c.phone || '', address: c.address || '', notes: c.notes || '' })
+    setShowForm(true)
+  }
+
+  function openAdd() {
+    setEditCustomer(null)
+    setForm({ name: '', phone: '', address: '', notes: '' })
+    setShowForm(true)
   }
 
   return (
@@ -126,7 +149,7 @@ export default function CustomersPage() {
         <button onClick={() => setImportModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
           <Upload size={14} /> Import
         </button>
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
           <Plus size={16} /> Tambah
         </button>
       </div>
@@ -160,6 +183,11 @@ export default function CustomersPage() {
                   <td style={{ color: '#6b7280' }}>{c.notes ?? '—'}</td>
                   <td style={{ color: '#9ca3af', fontSize: '0.8rem' }}>
                     {new Date(c.created_at).toLocaleDateString('id-ID')}
+                  </td>
+                  <td>
+                    <button onClick={() => openEdit(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: '#6b7280' }}>
+                      <Pencil size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -196,7 +224,7 @@ export default function CustomersPage() {
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
           <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 460, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Tambah Pelanggan</h2>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>{editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan'}</h2>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {[
                 { label: 'Nama *', id: 'name', placeholder: 'Nama lengkap', required: true },
