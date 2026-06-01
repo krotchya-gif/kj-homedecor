@@ -140,17 +140,19 @@ export default function FinancePaymentsPage() {
       toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
       return
     }
-    if (order.status !== 'sorted') {
+    // Pipeline baru: payment_ok adalah gate antara ready → packed
+    // Finance approve order dari 'ready' (sudah selesai produksi+QC) ke 'payment_ok'
+    if (order.status !== 'ready') {
       toast('error', `Status order belum bisa diapprove. Order saat ini: "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}"`)
       return
     }
-    await supabase.from('orders').update({ status: 'payment_ok' }).eq('id', order.id).eq('status', 'sorted')
+    await supabase.from('orders').update({ status: 'payment_ok' }).eq('id', order.id).eq('status', 'ready')
     await supabase.from('order_logs').insert({
       order_id: order.id, action: 'payment_approved',
       notes: `Payment gate approved oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}`,
       staff_id: currentUser?.id,
     })
-    toast('success', 'Order berhasil diapprove! Status berubah menjadi "Pembayaran OK".')
+    toast('success', 'Order berhasil diapprove! Status berubah menjadi "Cek Bayar".')
     load()
   }
 
@@ -211,9 +213,9 @@ export default function FinancePaymentsPage() {
       <div style={{ background: 'linear-gradient(135deg, #1a0a00, #3d1a08)', borderRadius: '0.75rem', padding: '1rem 1.25rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         <Lock size={18} style={{ color: '#f4a857', flexShrink: 0 }} />
         <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.85)' }}>
-          <strong style={{ color: '#f4a857' }}>Payment Gate aktif:</strong> Order hanya bisa lanjut ke produksi jika{' '}
+          <strong style={{ color: '#f4a857' }}>Payment Gate aktif:</strong> Order hanya bisa lanjut ke <strong>packing</strong> jika{' '}
           <strong style={{ color: '#fff' }}>(1)</strong> payment_status = 'paid' (DP + Lunas ≥ Total), dan{' '}
-          <strong style={{ color: '#fff' }}>(2)</strong> ada record pembayaran dengan verified_by. Finance harus approve manually.
+          <strong style={{ color: '#fff' }}>(2)</strong> ada record pembayaran dengan verified_by. Finance harus approve manual dari status <strong>Siap</strong> ke <strong>Cek Bayar</strong>.
         </div>
       </div>
 
@@ -326,7 +328,7 @@ export default function FinancePaymentsPage() {
                     const sisa = o.total_amount - o.dp_amount - o.lunas_amount
                     const paidSum = o.dp_amount + o.lunas_amount
                     const pc = PAYMENT_COLORS[o.payment_status]
-                    const canApprove = o.payment_status === 'paid' && o.status === 'sorted'
+                    const canApprove = o.payment_status === 'paid' && o.status === 'ready'
                     return (
                       <tr key={o.id}>
                         <td style={{ fontWeight:'500' }}>{o.customer?.name ?? '—'}</td>

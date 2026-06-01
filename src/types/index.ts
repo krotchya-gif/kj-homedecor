@@ -202,6 +202,10 @@ export interface ProductionJob {
   poni_gel?: boolean;
   started_at?: string;
   completed_at?: string;
+  // Steam revision tracking (migration 042)
+  revision_of?: string;
+  revision_round?: number;
+  revision_reason?: string;
   order?: Order;
   penjahit?: User;
 }
@@ -403,7 +407,7 @@ export const SOURCE_LABELS: Record<OrderSource, string> = {
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   new: "Baru",
   sorted: "Sudah Disortir",
-  payment_ok: "Pembayaran OK",
+  payment_ok: "Cek Bayar",
   production: "Produksi",
   steam: "Steam/QC",
   ready: "Siap",

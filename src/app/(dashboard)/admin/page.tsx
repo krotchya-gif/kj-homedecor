@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import {
   Package,
@@ -192,6 +193,10 @@ export default function AdminDashboardPage() {
   const pendingPayment = orders.filter((o) => o.payment_status === 'pending').length
   const doneOrders = orders.filter((o) => o.status === 'done').length
   const inProduction = orders.filter((o) => o.status === 'production' || o.status === 'steam').length
+  // Order sudah lunas tapi Admin belum sortir — perlu perhatian
+  const paidNotSorted = orders.filter((o) =>
+    o.payment_status === 'paid' && (o.status === 'new' || o.status === 'sorted')
+  ).length
 
   // Real-time: today's orders
   const today = new Date()
@@ -332,6 +337,24 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Paid but Not Sorted — alert for Admin */}
+        {paidNotSorted > 0 && (
+          <Link href="/admin/orders" style={{ textDecoration: 'none' }}>
+            <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div className="stat-card-label">Sudah Bayar Belum Disortir</div>
+                  <div className="stat-card-value" style={{ color: '#f59e0b' }}>{paidNotSorted}</div>
+                  <div className="stat-card-sub" style={{ color: '#92400e' }}>⚠️ Perlu sortir Admin</div>
+                </div>
+                <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
+                  <AlertCircle size={20} style={{ color: '#f59e0b' }} />
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
 
         {/* Done Orders */}
         <div className="stat-card" style={{ borderLeft: '4px solid #22c55e' }}>
@@ -513,7 +536,7 @@ export default function AdminDashboardPage() {
               const statusColor = STATUS_COLORS[order.status] ?? '#9ca3af'
               const payColor = PAYMENT_COLORS[order.payment_status] ?? '#9ca3af'
               const photos = order.progressPhotos?.map(p => p.photo_url) ?? []
-              const stages = ['new', 'sorted', 'payment_ok', 'production', 'steam', 'ready', 'packed', 'shipped', 'done']
+              const stages = ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'shipped', 'done']
               const currentStageIdx = stages.indexOf(order.status)
               const date = new Date(order.created_at)
               const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })

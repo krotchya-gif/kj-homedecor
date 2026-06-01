@@ -129,20 +129,9 @@ export default function GudangSteamPage() {
       staff_id: user?.id ?? null,
     })
 
-    // Auto-advance to 'ready' if payment is already settled
-    const { data: order } = await supabase.from('orders').select('id, payment_status, total_amount, dp_amount, lunas_amount').eq('id', job.order_id).single()
-    if (order) {
-      const paid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
-      if (order.payment_status === 'paid' || paid >= order.total_amount) {
-        await supabase.from('orders').update({ status: 'ready' }).eq('id', job.order_id)
-        await supabase.from('order_logs').insert({
-          order_id: job.order_id,
-          action: 'status_change',
-          notes: `Auto-advance: steam → ready (QC pass + payment settled)`,
-          staff_id: user?.id ?? null,
-        })
-      }
-    }
+    // Pipeline baru: auto-advance dihapus. Gudang/Admin harus klik manual di order detail
+    // untuk transisi steam → ready. Ini untuk konsistensi — payment_ok sekarang di antara
+    // ready dan packed, jadi Gudang perlu acknowledge 'ready' stage eksplisit.
 
     setPassSaving(false)
     setShowPassDialog(null)
@@ -153,19 +142,70 @@ export default function GudangSteamPage() {
     if (!showFailModal || !failReason.trim()) return
     setFailSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
+    const steamJobId = showFailModal.id
+    const orderId = showFailModal.order_id
+    const failReasonText = failReason
+
+    // 1. Mark steam_job as revision (audit trail)
     await supabase.from('steam_jobs').update({
       status: 'revision',
       result: 'fail',
-      fail_reason: failReason,
+      fail_reason: failReasonText,
       checked_by: user?.id ?? null,
-    }).eq('id', showFailModal.id)
-    // Log
+    }).eq('id', steamJobId)
+
+    // 2. Get original production_job to preserve penjahit_id
+    let originalPenjahitId: string | null = null
+    if (showFailModal.production_job_id) {
+      const { data: origJob } = await supabase
+        .from('production_jobs')
+        .select('penjahit_id')
+        .eq('id', showFailModal.production_job_id)
+        .single()
+      originalPenjahitId = origJob?.penjahit_id ?? null
+    }
+
+    // 3. Calculate revision round for this order (MAX + 1)
+    const { data: priorRevisions } = await supabase
+      .from('production_jobs')
+      .select('revision_round')
+      .eq('order_id', orderId)
+      .order('revision_round', { ascending: false })
+      .limit(1)
+    const nextRound = ((priorRevisions?.[0]?.revision_round ?? -1)) + 1
+
+    // 4. INSERT new production_job for re-do
+    const { data: newJob, error: newJobErr } = await supabase
+      .from('production_jobs')
+      .insert({
+        order_id: orderId,
+        penjahit_id: originalPenjahitId,
+        status: 'waiting',
+        revision_of: showFailModal.production_job_id ?? null,
+        revision_round: nextRound,
+        revision_reason: failReasonText,
+      })
+      .select('id')
+      .single()
+
+    if (newJobErr) {
+      console.error('Failed to create revision production_job:', newJobErr)
+      alert('Gagal membuat job revisi: ' + newJobErr.message)
+      setFailSaving(false)
+      return
+    }
+
+    // 5. Update order status back to 'production' (re-queue ke Penjahit)
+    await supabase.from('orders').update({ status: 'production' }).eq('id', orderId)
+
+    // 6. Log the revision re-queue
     await supabase.from('order_logs').insert({
-      order_id: showFailModal.order_id,
-      action: 'steam_qc_fail',
-      notes: `Steam/QC Gagal — dikembalikan ke Penjahit. Alasan: ${failReason}`,
+      order_id: orderId,
+      action: 'steam_revision_requeue',
+      notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${failReasonText}. Job revisi: ${newJob.id.slice(0, 8)}`,
       staff_id: user?.id ?? null,
     })
+
     setFailSaving(false)
     setShowFailModal(null)
     setFailReason('')

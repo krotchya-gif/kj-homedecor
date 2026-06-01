@@ -66,6 +66,11 @@ export default function FinanceDashboard() {
   const piutangOrders = orders.filter((o) => o.payment_status !== 'paid' && o.payment_status !== 'cancelled')
   const piutangTotal = piutangOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
 
+  // Orders waiting for Finance verification (pipeline baru: status='ready' adalah trigger)
+  // Finance approve → status='payment_ok' (gate ke packing)
+  const needsVerification = orders.filter((o) => o.status === 'ready')
+  const needsVerificationPaid = needsVerification.filter((o) => o.payment_status === 'paid')
+
   // Piutang aging buckets (based on days since created)
   const now = new Date()
   const aging = { '<30': 0, '30-60': 0, '60-90': 0, '>90': 0 }
@@ -125,6 +130,26 @@ export default function FinanceDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Butuh Verifikasi Bayar — pipeline baru: order status='ready' menunggu Finance approve ke payment_ok */}
+        {needsVerification.length > 0 && (
+          <Link href="/finance/payments" style={{ textDecoration: 'none' }}>
+            <div className="stat-card" style={{ borderLeft: '4px solid #dc2626', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div className="stat-card-label">Butuh Verifikasi Bayar</div>
+                  <div className="stat-card-value" style={{ color: '#dc2626' }}>{needsVerification.length}</div>
+                  <div className="stat-card-sub" style={{ color: '#991b1b' }}>
+                    {needsVerificationPaid.length} siap approve · {needsVerification.length - needsVerificationPaid.length} belum lunas
+                  </div>
+                </div>
+                <div style={{ background: '#fef2f2', borderRadius: '0.5rem', padding: '0.5rem' }}>
+                  <DollarSign size={20} style={{ color: '#dc2626' }} />
+                </div>
+              </div>
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Charts */}

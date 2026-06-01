@@ -36,7 +36,6 @@ export default function GudangProductionPage() {
         .order('created_at', { ascending: false }),
       supabase.from('users').select('id, name, role').eq('role', 'penjahit'),
     ])
-    setJobs(data ?? [])
     setPenjahits((penjahitData ?? []) as UserType[])
     setLoading(false)
 
@@ -208,7 +207,17 @@ export default function GudangProductionPage() {
                             {job.order?.id?.slice(0,8)} <ExternalLink size={10}/>
                           </Link>
                         </td>
-                        <td style={{ fontWeight:'500', padding:'0.75rem 0.5rem' }}>{job.order?.customer?.name ?? '—'}</td>
+                        <td style={{ fontWeight:'500', padding:'0.75rem 0.5rem' }}>
+                          <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
+                            <span>{job.order?.customer?.name ?? '—'}</span>
+                            {(job.revision_round ?? 0) > 0 && (
+                              <span style={{ background:'#fef3c7', color:'#92400e', padding:'0.15rem 0.5rem', borderRadius:'999px', fontSize:'0.65rem', fontWeight:'700' }}
+                                title={job.revision_reason ?? ''}>
+                                🔄 Revisi #{job.revision_round}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td style={{ color:'#6b7280', padding:'0.75rem 0.5rem' }}>{job.penjahit?.name ?? '—'}</td>
                         <td style={{ padding:'0.75rem 0.25rem' }}>{Number(job.meter_gorden ?? 0).toFixed(1)}m</td>
                         <td style={{ padding:'0.75rem 0.25rem' }}>{Number(job.meter_vitras ?? 0).toFixed(1)}m</td>

@@ -11,7 +11,7 @@ import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
 
-const ORDER_STATUSES = ['new','sorted','payment_ok','production','steam','ready','packed','shipped','done'] as const
+const ORDER_STATUSES = ['new','sorted','production','steam','ready','payment_ok','packed','shipped','done'] as const
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   new:        {bg:'#dbeafe',text:'#1e40af'},
   sorted:     {bg:'#e0e7ff',text:'#3730a3'},
@@ -173,8 +173,9 @@ export default function OrderDetailPage() {
 
   async function updateStatus(newStatus: string, photoUrls: string[] = []) {
     if (!order) return
-    if (['ready','packed','done'].includes(newStatus) && order.payment_status !== 'paid') {
-      alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu.')
+    // Pipeline baru: payment gate sebelum packed/shipped/done (Finance sudah verify via payment_ok)
+    if (['packed','shipped','done'].includes(newStatus) && order.payment_status !== 'paid') {
+      alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu (status Cek Bayar).')
       return
     }
     setUpdating(true)
@@ -183,9 +184,11 @@ export default function OrderDetailPage() {
     await supabase.from('order_logs').insert({
       order_id: id,
       action: newStatus === 'sorted' ? 'sorted' :
-             newStatus === 'payment_ok' ? 'payment_approved' :
+             newStatus === 'payment_ok' ? 'payment_verified' :
              newStatus === 'production' ? 'production_started' :
-             newStatus === 'ready' ? 'ready' :
+             newStatus === 'ready' ? 'qc_pass' :
+             newStatus === 'packed' ? 'packed' :
+             newStatus === 'shipped' ? 'shipped' :
              newStatus === 'done' ? 'done' : newStatus,
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null,

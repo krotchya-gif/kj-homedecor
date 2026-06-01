@@ -49,10 +49,11 @@ export async function POST(request: Request) {
           const newLunas = order.lunas_amount + amount
           const isFullyPaid = newLunas >= order.total_amount
 
+          // Webhook hanya update payment info (lunas_amount + payment_status).
+          // Status pipeline TIDAK di-auto-advance — Admin/Finance yang atur manual.
           await supabase.from('orders').update({
             lunas_amount: newLunas,
             payment_status: isFullyPaid ? 'paid' : 'partial',
-            ...(order.status === 'payment_ok' && isFullyPaid ? { status: 'production' } : {}),
           }).eq('id', order.id)
 
           // Idempotency: check if payment already recorded
