@@ -13,12 +13,24 @@ export default function PenjahitHistoryPage() {
     async function load() {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
-      const { data } = await supabase
+      if (!user) {
+        setJobs([])
+        setLoading(false)
+        return
+      }
+      // Note: Tidak ada FK production_jobs -> order_items (fix: pakai nested via order)
+      // Note: Tidak ada FK production_jobs -> production_reports (setelah migration 046, ada)
+      //       Tapi kita tidak perlu relasi reports di sini — meter_* sudah ada di production_jobs
+      const { data, error } = await supabase
         .from('production_jobs')
-        .select('*, order:orders(customer:customers(name)), order_item:order_items(size, product:products(name)), reports:production_reports(*)')
-        .eq('penjahit_id', user?.id ?? '')
+        .select('*, order:orders(id, order_number, customer:customers(name), order_items(id, size, product:products(name)))')
+        .eq('penjahit_id', user.id)
         .eq('status', 'done')
         .order('completed_at', { ascending: false })
+      if (error) {
+        console.error('[Penjahit History] Query error:', error)
+        alert('⚠️ Gagal load history: ' + error.message)
+      }
       setJobs(data ?? [])
       setLoading(false)
     }
@@ -47,19 +59,22 @@ export default function PenjahitHistoryPage() {
             </thead>
             <tbody>
               {jobs.map(job => {
-                const rep = (job.reports ?? [])[0]
+                // order_items nested di order.order_items (array, bukan single object)
+                const firstItem = job.order?.order_items?.[0]
+                const productName = firstItem?.product?.name
+                const itemSize = firstItem?.size
                 return (
                   <tr key={job.id}>
                     <td style={{ color:'#6b7280', fontSize:'0.8rem', whiteSpace:'nowrap' }}>
                       {job.completed_at ? new Date(job.completed_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}) : '—'}
                     </td>
-                    <td style={{ fontWeight:'500' }}>{job.order_item?.product?.name ?? '—'}</td>
+                    <td style={{ fontWeight:'500' }}>{productName ?? '—'}</td>
                     <td>{job.order?.customer?.name ?? '—'}</td>
-                    <td style={{ color:'#6b7280', fontSize:'0.8rem' }}>{job.order_item?.size ?? '—'}</td>
-                    <td>{Number(rep?.meter_gorden    ?? job.meter_gorden    ?? 0).toFixed(2)}m</td>
-                    <td>{Number(rep?.meter_vitras    ?? job.meter_vitras    ?? 0).toFixed(2)}m</td>
-                    <td>{Number(rep?.meter_roman     ?? job.meter_roman     ?? 0).toFixed(2)}m</td>
-                    <td>{Number(rep?.meter_kupu_kupu ?? job.meter_kupu_kupu ?? 0).toFixed(2)}m</td>
+                    <td style={{ color:'#6b7280', fontSize:'0.8rem' }}>{itemSize ?? '—'}</td>
+                    <td>{Number(job.meter_gorden    ?? 0).toFixed(2)}m</td>
+                    <td>{Number(job.meter_vitras    ?? 0).toFixed(2)}m</td>
+                    <td>{Number(job.meter_roman     ?? 0).toFixed(2)}m</td>
+                    <td>{Number(job.meter_kupu_kupu ?? 0).toFixed(2)}m</td>
                   </tr>
                 )
               })}

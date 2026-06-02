@@ -17,14 +17,30 @@ export default function PenjahitReportsPage() {
     async function load() {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
-      const { data } = await supabase
+      if (!user) {
+        setReports([])
+        setLoading(false)
+        return
+      }
+      // Note: production_reports TIDAK punya FK ke production_jobs (sebelum migration 046)
+      //       Setelah migration 046, FK ada. Tapi untuk filter by user+month, lebih efisien
+      //       query langsung production_reports dengan filter penjahit_id, bukan via relasi.
+      // Plus: order_items TIDAK punya relasi langsung ke production_reports, jadi tidak bisa
+      //       join order via sini. Kita skip info customer name untuk ringkasan bulanan.
+      const { data, error } = await supabase
         .from('production_reports')
-        .select('*, job:production_jobs(penjahit_id, order:orders(customer:customers(name)))')
+        .select('*')
+        .eq('penjahit_id', user.id)
         .order('created_at', { ascending: false })
-      // filter by penjahit_id and month
+      if (error) {
+        console.error('[Penjahit Reports] Query error:', error)
+        alert('⚠️ Gagal load rekap: ' + error.message)
+      }
+      // filter by month & year (di client-side karena schema TIDAK punya kolom month/year
+      // yang bisa di-query efficient — pakai created_at)
       const filtered = (data ?? []).filter((r: any) => {
         const d = new Date(r.created_at)
-        return r.job?.penjahit_id === user?.id && d.getMonth() === month && d.getFullYear() === year
+        return d.getMonth() === month && d.getFullYear() === year
       })
       setReports(filtered)
       setLoading(false)
@@ -111,12 +127,14 @@ export default function PenjahitReportsPage() {
         ) : (
           <table>
             <thead>
-              <tr><th>Pelanggan</th><th>Gorden</th><th>Vitras</th><th>Roman</th><th>Kupu²</th><th>P.Lurus</th><th>P.Gel</th><th>Catatan</th></tr>
+              <tr><th>Tanggal</th><th>Gorden</th><th>Vitras</th><th>Roman</th><th>Kupu²</th><th>P.Lurus</th><th>P.Gel</th><th>Catatan</th></tr>
             </thead>
             <tbody>
               {reports.map(r=>(
                 <tr key={r.id}>
-                  <td style={{ fontWeight:'500' }}>{r.job?.order?.customer?.name ?? '—'}</td>
+                  <td style={{ fontWeight:'500' }}>
+                    {r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short'}) : '—'}
+                  </td>
                   <td>{(r.meter_gorden ?? 0).toFixed(2)}m</td>
                   <td>{(r.meter_vitras ?? 0).toFixed(2)}m</td>
                   <td>{(r.meter_roman ?? 0).toFixed(2)}m</td>

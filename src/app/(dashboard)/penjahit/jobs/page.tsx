@@ -60,7 +60,9 @@ export default function PenjahitJobsPage() {
   async function submitReport(jobId: string) {
     setSaving(jobId)
     const rf = reportForm[jobId] ?? {}
-    await supabase.from('production_reports').insert({
+    // Insert production_reports dengan production_job_id (kolom ada setelah migration 046)
+    // TAPI kalau kolom belum ada (sebelum migration di-apply), insert gagal 400 — kita warn user
+    const { error: repErr } = await supabase.from('production_reports').insert({
       production_job_id: jobId,
       meter_gorden:     Number(rf.meter_gorden ?? 0),
       meter_vitras:     Number(rf.meter_vitras ?? 0),
@@ -69,7 +71,26 @@ export default function PenjahitJobsPage() {
       poni_lurus:       Number(rf.poni_lurus ?? 0),
       poni_gel:         Number(rf.poni_gel ?? 0),
       notes: rf.notes || null,
-    })
+    } as any)
+    if (repErr) {
+      // Fallback kalau kolom production_job_id belum ada (migration 046 belum di-apply)
+      if (repErr.message?.includes('production_job_id') || repErr.code === 'PGRST204') {
+        console.warn('[Penjahit Jobs] production_job_id column missing, retrying without it. Apply migration 046!')
+        await supabase.from('production_reports').insert({
+          meter_gorden:     Number(rf.meter_gorden ?? 0),
+          meter_vitras:     Number(rf.meter_vitras ?? 0),
+          meter_roman:      Number(rf.meter_roman ?? 0),
+          meter_kupu_kupu:  Number(rf.meter_kupu_kupu ?? 0),
+          poni_lurus:       Number(rf.poni_lurus ?? 0),
+          poni_gel:         Number(rf.poni_gel ?? 0),
+          notes: rf.notes || null,
+        } as any)
+      } else {
+        alert('⚠️ Gagal submit laporan: ' + repErr.message)
+        setSaving(null)
+        return
+      }
+    }
     await supabase.from('production_jobs').update({ status:'done', completed_at: new Date().toISOString() }).eq('id',jobId)
 
     // Auto-create steam_jobs entry and advance order to steam after penjahit finishes
