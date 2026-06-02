@@ -16,7 +16,18 @@
 BEGIN;
 
 -- ============================================================
--- 0. Tambah UNIQUE constraint di account_mappings.transaction_type
+-- 0. Cleanup (supaya idempotent — bisa di-apply ulang tanpa conflict)
+--    Hapus semua rows di account_mappings, accounts, account_categories
+--    yang akan di-recreate. Aman karena data ini 100% seed (akan
+--    di-replace dengan version baru).
+-- ============================================================
+DELETE FROM public.account_mappings;
+DELETE FROM public.accounts;
+DELETE FROM public.account_categories;
+
+-- ============================================================
+-- 1. Tambah UNIQUE constraint di account_mappings.transaction_type
+--    (kalau belum ada, supaya ON CONFLICT di bawah bisa jalan)
 -- ============================================================
 DO $$
 BEGIN
@@ -25,18 +36,13 @@ BEGIN
     WHERE conname = 'account_mappings_transaction_type_key'
       AND conrelid = 'public.account_mappings'::regclass
   ) THEN
-    DELETE FROM public.account_mappings a
-    USING public.account_mappings b
-    WHERE a.transaction_type = b.transaction_type
-      AND a.ctid > b.ctid;
-
     ALTER TABLE public.account_mappings
       ADD CONSTRAINT account_mappings_transaction_type_key UNIQUE (transaction_type);
   END IF;
 END $$;
 
 -- ============================================================
--- 1. Seed Account Categories (UUID valid: position 13 = '4')
+-- 2. Seed Account Categories (UUID valid: position 13 = '4')
 -- ============================================================
 -- Pattern: '00000000-0000-4000-8000-000000000001' (version=4, variant=8)
 INSERT INTO public.account_categories (id, name, type, description) VALUES
@@ -53,7 +59,7 @@ INSERT INTO public.account_categories (id, name, type, description) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 2. Seed Chart of Accounts (UUID valid: position 13 = '4')
+-- 3. Seed Chart of Accounts (UUID valid: position 13 = '4')
 -- ============================================================
 -- Pattern by type:
 --   Asset:     '22222222-2222-4222-8222-222222222201' to ...209
@@ -89,7 +95,7 @@ INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account,
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
--- 3. Update account_mappings dengan valid account IDs
+-- 4. Update account_mappings dengan valid account IDs
 -- ============================================================
 UPDATE public.account_mappings SET
   debit_account_id  = '22222222-2222-4222-8222-222222222205'::uuid,
