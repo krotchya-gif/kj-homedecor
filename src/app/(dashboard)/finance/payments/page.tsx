@@ -110,7 +110,14 @@ export default function FinancePaymentsPage() {
         entry_date: payForm.date,
       })
     } catch (e) {
-      console.warn('Failed to create journal entry:', e)
+      // CRITICAL: journal entry gagal = double-entry accounting rusak.
+      // Alert user, bukan cuma console.warn.
+      const errMsg = e instanceof Error ? e.message : String(e)
+      console.error('Failed to create journal entry:', errMsg)
+      alert('⚠️ Pembayaran TERCATAT di payments, TAPI journal entry GAGAL.\n\n' +
+            'Error: ' + errMsg + '\n\n' +
+            'Ini masalah akuntansi serius. Hubungi Owner untuk fix double-entry.\n' +
+            'Bisa karena: account_mappings belum di-setup. Lihat /finance/accounts/mapping')
     }
     await supabase.from('order_logs').insert({
       order_id: selected.id, action: 'payment_input',
