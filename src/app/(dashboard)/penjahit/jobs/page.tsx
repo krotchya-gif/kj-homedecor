@@ -23,9 +23,12 @@ export default function PenjahitJobsPage() {
     }
     // Debug: log user.id untuk matching dengan production_jobs.penjahit_id
     console.log('[Penjahit Jobs] Loading jobs for user.id:', user.id)
+    // Note: Tidak ada FK production_jobs→order_items, jadi jangan pakai relasi 'order_item:order_items(...)'
+    // Relasi yang valid: production_jobs.order_id → orders.id → order_items (via orders)
+    // Untuk saat ini, tampilkan order info saja. Detail order_items bisa di-fetch terpisah kalau perlu.
     const { data, error } = await supabase
       .from('production_jobs')
-      .select('*, order:orders(id, customer:customers(name)), order_item:order_items(size, product:products(name))')
+      .select('*, order:orders(id, status, order_number, customer:customers(name), order_items(id, size, product:products(name)))')
       .eq('penjahit_id', user.id)
       .neq('status', 'done')
       .order('created_at', { ascending: true })
@@ -103,15 +106,18 @@ export default function PenjahitJobsPage() {
         <div style={{ display:'flex', flexDirection:'column', gap:'1rem' }}>
           {loading && <div style={{ textAlign:'center', color:'#9ca3af', padding:'2rem' }}>Memuat...</div>}
           {jobs.map(job => {
-            const item = job.order_item
+            // order_items sekarang nested di order.order_items (array, bukan single)
+            const firstItem = job.order?.order_items?.[0]
+            const productName = firstItem?.product?.name
+            const itemSize = firstItem?.size
             return (
               <div key={job.id} style={{ background:'#fff', border:'1px solid #e5e7eb', borderRadius:'0.75rem', padding:'1.25rem' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:'0.75rem' }}>
                   <div>
-                    <div style={{ fontWeight:'700', fontSize:'1rem', color:'#1f2937' }}>{item?.product?.name ?? 'Item Pesanan'}</div>
+                    <div style={{ fontWeight:'700', fontSize:'1rem', color:'#1f2937' }}>{productName ?? 'Item Pesanan'}</div>
                     <div style={{ fontSize:'0.85rem', color:'#6b7280', marginTop:'0.25rem' }}>
                       Pelanggan: {job.order?.customer?.name ?? '—'}
-                      {item?.size && <span style={{ marginLeft:'0.75rem' }}>Ukuran: {item.size}</span>}
+                      {itemSize && <span style={{ marginLeft:'0.75rem' }}>Ukuran: {itemSize}</span>}
                     </div>
                     <div style={{ display:'flex', gap:'0.75rem', marginTop:'0.75rem', flexWrap:'wrap' }}>
                       {[
