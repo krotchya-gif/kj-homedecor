@@ -94,53 +94,28 @@ export default function GudangProductionPage() {
     const { data: { user } } = await supabase.auth.getUser()
     const job = jobs.find(j => j.id === jobId)
 
-    // Idempotency: skip consumption if job is already done (prevent double-consume on retry)
+    // V3: Panggil API server-side untuk material consumption (atomic)
+    // Saat job.status transitions ke 'done', panggil /api/orders/[id]/consume-materials
+    // yang internally call RPC consume_materials_for_production.
+    // - Decrement stock_gudang (with GREATEST(0) guard)
+    // - Insert order_material_consumption (per-order traceability)
+    // - Insert inventory_movements (audit trail with FK order_id, production_job_id)
     if (status === 'done' && job?.order_id && job.status !== 'done') {
-      const { data: orderItems } = await supabase
-        .from('order_items')
-        .select('product_id, qty')
-        .eq('order_id', job.order_id)
-
-      for (const item of orderItems ?? []) {
-        if (!item.product_id) continue
-        const { data: bomItems } = await supabase
-          .from('bom')
-          .select('material_id, qty_per_unit')
-          .eq('product_id', item.product_id)
-
-        for (const bom of bomItems ?? []) {
-          const consumptionQty = Number(bom.qty_per_unit) * Number(item.qty)
-          // Use RPC decrement (has GREATEST(0) guard) — no fallback to direct UPDATE
-          // because direct UPDATE could produce negative stock.
-          const { error: rpcErr } = await supabase.rpc('decrement_stock_gudang', {
-            material_id: bom.material_id,
-            amount: consumptionQty,
-          })
-          if (rpcErr) {
-            console.error('decrement_stock_gudang RPC failed:', rpcErr)
-            // Fallback: do a safe update with GREATEST(0) guard via .gte() filter
-            // to avoid negative stock. If material doesn't exist, skip.
-            const { data: mat } = await supabase
-              .from('materials')
-              .select('stock_gudang')
-              .eq('id', bom.material_id)
-              .single()
-            if (mat) {
-              const newStock = Math.max(0, (mat.stock_gudang ?? 0) - consumptionQty)
-              await supabase
-                .from('materials')
-                .update({ stock_gudang: newStock })
-                .eq('id', bom.material_id)
-            }
-          }
-          await supabase.from('inventory_movements').insert({
-            material_id: bom.material_id,
-            type: 'out',
-            qty: consumptionQty,
-            reason: `BOM consumption — production job ${jobId.slice(0,8)} order ${job.order_id.slice(0,8)}`,
-            created_by: user?.id ?? null,
-          })
+      try {
+        const consumeRes = await fetch(`/api/orders/${job.order_id}/consume-materials`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ production_job_id: jobId }),
+        })
+        const consumeJson = await consumeRes.json()
+        if (!consumeRes.ok) {
+          alert('⚠️ Gagal consume materials: ' + (consumeJson.error?.message ?? 'unknown error'))
+          return  // Jangan continue kalau material gagal
         }
+        console.log('Material consumption:', consumeJson.data)
+      } catch (e) {
+        alert('⚠️ Gagal consume materials: ' + (e as Error).message)
+        return
       }
     }
 

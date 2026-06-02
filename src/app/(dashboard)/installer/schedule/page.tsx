@@ -50,20 +50,19 @@ export default function InstallerSchedulePage() {
   const list     = tab === 'upcoming' ? upcoming : done
 
   async function updateStatus(id: string, status: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    const booking = bookings.find(b => b.id === id)
-    await supabase.from('install_bookings').update({
-      status,
-      ...(status === 'done' ? { actual_date: new Date().toISOString() } : {}),
-    }).eq('id', id)
-    await supabase.from('order_logs').insert({
-      order_id: booking?.order_id,
-      action: status === 'in_progress' ? 'install_started' : 'install_done',
-      notes: status === 'in_progress'
-        ? `Instalasi dimulai oleh Installer`
-        : `Instalasi selesai oleh Installer`,
-      staff_id: user?.id ?? null,
+    // V3: pakai API route (server-side RPC advance_install_booking_status)
+    // Auto-cascade ke orders.status (single source of truth)
+    const res = await fetch(`/api/install-bookings/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status }),
     })
+    const json = await res.json()
+    if (!res.ok) {
+      alert('⚠️ Gagal update status: ' + (json.error?.message ?? 'unknown error'))
+      return
+    }
+    // Refresh data
     load()
   }
 

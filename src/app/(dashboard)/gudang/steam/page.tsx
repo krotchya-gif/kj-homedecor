@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Waves, CheckCircle2, X, AlertTriangle } from 'lucide-react'
+import { Plus, Waves, CheckCircle2, X, AlertTriangle, Camera } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -65,6 +65,30 @@ export default function GudangSteamPage() {
   const [failSaving, setFailSaving] = useState(false)
   const [showPassDialog, setShowPassDialog] = useState<SteamJob | null>(null)
   const [passSaving, setPassSaving] = useState(false)
+  // V3: foto bukti WAJIB sebelum steam pass/fail (PHOTO_REQUIRED_STAGES include 'steam')
+  const [steamPassPhoto, setSteamPassPhoto] = useState<string | null>(null)
+  const [steamFailPhoto, setSteamFailPhoto] = useState<string | null>(null)
+  const [uploadingSteamPhoto, setUploadingSteamPhoto] = useState(false)
+
+  async function handleSteamPhotoUpload(
+    e: React.ChangeEvent<HTMLInputElement>,
+    target: 'pass' | 'fail'
+  ) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingSteamPhoto(true)
+    try {
+      const { uploadToLocal } = await import('@/lib/upload')
+      const result = await uploadToLocal(file, 'order_progress', { compress: true, maxSizeMB: 1 })
+      if (target === 'pass') setSteamPassPhoto(result.url)
+      else setSteamFailPhoto(result.url)
+    } catch (err) {
+      console.error('Upload failed:', err)
+      alert('⚠️ Gagal upload foto: ' + (err as Error).message)
+    } finally {
+      setUploadingSteamPhoto(false)
+    }
+  }
 
   async function loadLaundry() {
     setLaundryLoading(true)
@@ -113,6 +137,11 @@ export default function GudangSteamPage() {
   }
 
   async function handleSteamPass(job: SteamJob) {
+    // V3: foto bukti WAJIB untuk stage 'steam' (per PHOTO_REQUIRED_STAGES)
+    if (!steamPassPhoto) {
+      alert('⚠️ Wajib upload foto bukti QC Steam (V3 accountability) sebelum konfirmasi Pass.')
+      return
+    }
     setPassSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     await supabase.from('steam_jobs').update({
@@ -121,6 +150,14 @@ export default function GudangSteamPage() {
       completed_at: new Date().toISOString(),
       checked_by: user?.id ?? null,
     }).eq('id', job.id)
+    // V3: insert order_progress_photos dengan stage='steam' (V3 foto bukti)
+    await supabase.from('order_progress_photos').insert({
+      order_id: job.order_id,
+      stage: 'steam',
+      photo_url: steamPassPhoto,
+      uploaded_by: user?.id ?? null,
+      notes: `Steam QC Pass — foto bukti hasil pengerjaan (V3)`,
+    })
     // Log
     await supabase.from('order_logs').insert({
       order_id: job.order_id,
@@ -135,16 +172,31 @@ export default function GudangSteamPage() {
 
     setPassSaving(false)
     setShowPassDialog(null)
+    setSteamPassPhoto(null) // V3: reset foto
     loadSteam()
   }
 
   async function handleSteamFail() {
     if (!showFailModal || !failReason.trim()) return
+    // V3: foto bukti WAJIB untuk stage 'steam' (saat fail/revisi)
+    if (!steamFailPhoto) {
+      alert('⚠️ Wajib upload foto bukti QC Steam Fail (V3 accountability) sebelum konfirmasi Revisi.')
+      return
+    }
     setFailSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
     const steamJobId = showFailModal.id
     const orderId = showFailModal.order_id
     const failReasonText = failReason
+
+    // V3: insert order_progress_photos dengan stage='steam' (foto bukti fail)
+    await supabase.from('order_progress_photos').insert({
+      order_id: orderId,
+      stage: 'steam',
+      photo_url: steamFailPhoto,
+      uploaded_by: user?.id ?? null,
+      notes: `Steam QC Fail — foto bukti (V3). Alasan: ${failReasonText}`,
+    })
 
     // 1. Mark steam_job as revision (audit trail)
     await supabase.from('steam_jobs').update({
@@ -209,6 +261,7 @@ export default function GudangSteamPage() {
     setFailSaving(false)
     setShowFailModal(null)
     setFailReason('')
+    setSteamFailPhoto(null) // V3: reset foto
     loadSteam()
   }
 
@@ -436,7 +489,7 @@ export default function GudangSteamPage() {
       )}
 
       {/* ===== PASS CONFIRMATION DIALOG ===== */}
-      <Dialog open={!!showPassDialog} onOpenChange={() => setShowPassDialog(null)}>
+      <Dialog open={!!showPassDialog} onOpenChange={() => { setShowPassDialog(null); setSteamPassPhoto(null) }}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Konfirmasi QC Pass</DialogTitle>
@@ -444,9 +497,38 @@ export default function GudangSteamPage() {
               Yakin bahwa barang untuk <strong>{showPassDialog?.order?.customer?.name}</strong> sudah lolos QC Steam dan siap dikirim ke Finance untuk approval pembayaran?
             </DialogDescription>
           </DialogHeader>
+          {/* V3: Foto bukti WAJIB untuk stage 'steam' */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+              Foto Bukti Hasil QC <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            {steamPassPhoto ? (
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img src={steamPassPhoto} alt="Foto bukti" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                <button
+                  onClick={() => setSteamPassPhoto(null)}
+                  style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}
+                >×</button>
+              </div>
+            ) : (
+              <label
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 100, height: 100, border: '2px dashed #d1d5db', borderRadius: '0.5rem', cursor: 'pointer', background: '#f9fafb', gap: '0.25rem' }}
+              >
+                <input type="file" accept="image/*" onChange={e => handleSteamPhotoUpload(e, 'pass')} disabled={uploadingSteamPhoto} style={{ display: 'none' }} />
+                {uploadingSteamPhoto ? (
+                  <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
+                ) : (
+                  <>
+                    <Camera size={18} style={{ color: '#9ca3af' }} />
+                    <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Wajib</span>
+                  </>
+                )}
+              </label>
+            )}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPassDialog(null)}>Batal</Button>
-            <Button onClick={() => showPassDialog && handleSteamPass(showPassDialog)} disabled={passSaving}>
+            <Button variant="outline" onClick={() => { setShowPassDialog(null); setSteamPassPhoto(null) }}>Batal</Button>
+            <Button onClick={() => showPassDialog && handleSteamPass(showPassDialog)} disabled={passSaving || !steamPassPhoto}>
               {passSaving ? 'Menyimpan...' : '✓ Ya, QC Pass'}
             </Button>
           </DialogFooter>
@@ -454,7 +536,7 @@ export default function GudangSteamPage() {
       </Dialog>
 
       {/* ===== FAIL / REVISION MODAL ===== */}
-      <Dialog open={!!showFailModal} onOpenChange={() => setShowFailModal(null)}>
+      <Dialog open={!!showFailModal} onOpenChange={() => { setShowFailModal(null); setSteamFailPhoto(null) }}>
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Kembalikan ke Penjahit</DialogTitle>
@@ -473,9 +555,38 @@ export default function GudangSteamPage() {
               style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }}
             />
           </div>
+          {/* V3: Foto bukti WAJIB untuk stage 'steam' (saat fail) */}
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+              Foto Bukti QC Gagal <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            {steamFailPhoto ? (
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <img src={steamFailPhoto} alt="Foto bukti fail" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                <button
+                  onClick={() => setSteamFailPhoto(null)}
+                  style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}
+                >×</button>
+              </div>
+            ) : (
+              <label
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 100, height: 100, border: '2px dashed #d1d5db', borderRadius: '0.5rem', cursor: 'pointer', background: '#f9fafb', gap: '0.25rem' }}
+              >
+                <input type="file" accept="image/*" onChange={e => handleSteamPhotoUpload(e, 'fail')} disabled={uploadingSteamPhoto} style={{ display: 'none' }} />
+                {uploadingSteamPhoto ? (
+                  <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
+                ) : (
+                  <>
+                    <Camera size={18} style={{ color: '#9ca3af' }} />
+                    <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Wajib</span>
+                  </>
+                )}
+              </label>
+            )}
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowFailModal(null)}>Batal</Button>
-            <Button onClick={handleSteamFail} disabled={failSaving || !failReason.trim()}
+            <Button variant="outline" onClick={() => { setShowFailModal(null); setSteamFailPhoto(null) }}>Batal</Button>
+            <Button onClick={handleSteamFail} disabled={failSaving || !failReason.trim() || !steamFailPhoto}
               style={{ background: '#dc2626' }}>
               {failSaving ? 'Menyimpan...' : '↩️ Ya, Kembalikan'}
             </Button>
