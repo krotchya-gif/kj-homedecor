@@ -25,6 +25,8 @@ export type OrderStatus =
   | "ready"
   | "packed"
   | "shipped"
+  | "scheduled"    // V3: alur pasang — input jadwal pasang
+  | "installing"   // V3: alur pasang — sedang dipasang
   | "done"
   | "returned"
   | "cancelled";
@@ -153,6 +155,7 @@ export interface Order {
   shipped_by?: string;
   installed_at?: string;
   installed_by?: string;
+  scheduled_installation_date?: string;  // V3: untuk alur pasang (input jadwal)
   created_at: string;
   customer?: Customer;
   order_items?: OrderItem[];
@@ -229,15 +232,21 @@ export interface PortfolioPost {
 
 export interface InstallBooking {
   id: string;
-  order_id: string;
-  customer_id: string;
-  address: string;
-  date: string;
-  time: string;
+  order_id?: string | null;
+  customer_id?: string | null;
+  customer_name?: string;
+  customer_phone?: string;
+  address?: string;
+  date?: string;                 // legacy field (deprecated)
+  time?: string;                 // legacy field (deprecated)
+  scheduled_date?: string;       // V3: real DB column
+  scheduled_time?: string;       // V3: real DB column
   type: "survey" | "pasang";
-  status: "scheduled" | "done" | "cancelled";
+  status: "pending" | "scheduled" | "in_progress" | "done" | "revision" | "cancelled";
   installer_id?: string;
   notes?: string;
+  revision_reason?: string;       // V3 (migration 034)
+  revision_photos?: string[];    // V3 (migration 034)
   customer?: Customer;
   installer?: User;
 }
@@ -414,6 +423,8 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   ready: "Siap",
   packed: "Dikemas",
   shipped: "Terkirim",
+  scheduled: "Terjadwal Pasang",   // V3
+  installing: "Sedang Dipasang",    // V3
   done: "Selesai",
   returned: "Return",
   cancelled: "Batal",

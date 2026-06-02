@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
+// V3 Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   new: ['sorted', 'cancelled'],
   sorted: ['production', 'cancelled'],
@@ -8,23 +9,26 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   production: ['steam', 'cancelled'],
   steam: ['ready', 'cancelled', 'production'], // 'production' = Steam revision re-queue
   ready: ['payment_ok', 'cancelled'],
-  packed: ['shipped', 'cancelled'],
+  packed: ['shipped', 'scheduled', 'cancelled'], // V3: 'scheduled' untuk alur pasang
   shipped: ['done'],
+  scheduled: ['installing', 'cancelled'],         // V3: alur pasang
+  installing: ['done', 'cancelled'],                // V3: alur pasang
   done: [],
   returned: [],
   cancelled: [],
 }
 
 // Role-based permissions for status transitions
+// V3: tambah permissions untuk alur pasang (scheduled, installing)
 // finance: ready→payment_ok (verify lunas) + payment_ok→packed (approve before packing)
-// admin: all transitions
+// admin: all transitions + packed→scheduled (input jadwal pasang untuk admin)
 // gudang: production→steam (QC pass) + steam→production (revision re-queue)
-// installer: packed→shipped (delivery)
+// installer: packed→shipped (kirim) + scheduled→installing + installing→done (pasang)
 const ROLE_STATUS_PERMISSIONS: Record<string, string[]> = {
   finance: ['ready->payment_ok', 'payment_ok->packed'],
-  admin: [], // admin can do all transitions (handled separately)
+  admin: ['packed->scheduled'], // V3: admin bisa input jadwal pasang
   gudang: ['production->steam', 'steam->production'],
-  installer: ['packed->shipped'],
+  installer: ['packed->shipped', 'scheduled->installing', 'installing->done'],
 }
 
 function isStatusTransitionAllowed(
@@ -85,7 +89,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
   // Validate status transition if status is being changed
   if (body.status) {
-    const { data: current } = await supabase.from('orders').select('status, payment_status, total_amount, dp_amount, lunas_amount').eq('id', id).single()
+    const { data: current } = await supabase.from('orders').select('status, payment_status, total_amount, dp_amount, lunas_amount, classification, customer_id, scheduled_installation_date').eq('id', id).single()
 
     if (!current) {
       return NextResponse.json({ data: null, error: { message: 'Order not found' } }, { status: 404 })
@@ -229,6 +233,71 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${latestSteamJob?.fail_reason ?? 'n/a'}. Job revisi: ${newJob.id.slice(0, 8)}`,
         staff_id: authUser?.id ?? null,
       })
+    }
+
+    // V3 Pipeline: packed → scheduled (alur pasang)
+    // Auto-create install_bookings row dengan status 'pending'.
+    // Admin akan assign installer + tanggal di /admin/booking.
+    if (body.status === 'scheduled' && current.status === 'packed') {
+      if (current.classification !== 'pasang') {
+        return NextResponse.json(
+          { data: null, error: { message: `Hanya order classification='pasang' yang bisa ke status 'scheduled'. Order ini classification='${current.classification}'.` } },
+          { status: 400 }
+        )
+      }
+
+      // Cek apakah sudah ada install_bookings row aktif
+      const { data: existingBooking } = await supabase
+        .from('install_bookings')
+        .select('id')
+        .eq('order_id', id)
+        .eq('type', 'pasang')
+        .in('status', ['pending', 'scheduled', 'in_progress'])
+        .maybeSingle()
+
+      if (!existingBooking) {
+        // Get customer address (untuk default install_bookings.address)
+        let defaultAddress = 'Alamat belum di-set'
+        if (current.customer_id) {
+          const { data: customer } = await supabase
+            .from('customers')
+            .select('address')
+            .eq('id', current.customer_id)
+            .maybeSingle()
+          if (customer?.address) defaultAddress = customer.address
+        }
+
+        // Insert install_bookings dengan status='pending'
+        const { data: newBooking, error: bookingErr } = await supabase
+          .from('install_bookings')
+          .insert({
+            order_id: id,
+            type: 'pasang',
+            status: 'pending',
+            address: defaultAddress,
+            scheduled_date: current.scheduled_installation_date ?? null,
+            scheduled_time: null,
+            notes: 'Auto-created oleh sistem saat order masuk stage scheduled. Silakan Admin assign installer & tanggal.',
+          })
+          .select('id')
+          .single()
+
+        if (bookingErr) {
+          return NextResponse.json(
+            { data: null, error: { message: 'Gagal membuat install_bookings: ' + bookingErr.message } },
+            { status: 500 }
+          )
+        }
+
+        // Log ke order_logs
+        const { data: { user: authUserBooking } } = await supabase.auth.getUser()
+        await supabase.from('order_logs').insert({
+          order_id: id,
+          action: 'install_started',
+          notes: `Order masuk stage 'scheduled' → install_bookings auto-created (id: ${newBooking.id.slice(0, 8)}, status: pending). Admin perlu assign installer + tanggal.`,
+          staff_id: authUserBooking?.id ?? null,
+        })
+      }
     }
   }
 
