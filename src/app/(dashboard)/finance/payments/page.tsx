@@ -137,29 +137,100 @@ export default function FinancePaymentsPage() {
   }
 
   async function handleApprove(order: any) {
-    const paidSum = order.dp_amount + order.lunas_amount
-    if (paidSum < order.total_amount) {
-      toast('error', `Gagal Approve — Sisa pembayaran ${fmt(order.total_amount - paidSum)}, order belum lunas!`)
+    // PENTING: Fetch fresh order data dari DB untuk avoid stale data
+    const { data: freshOrder, error: fetchErr } = await supabase
+      .from('orders')
+      .select('id, status, dp_amount, lunas_amount, total_amount, payment_status')
+      .eq('id', order.id)
+      .single()
+    if (fetchErr || !freshOrder) {
+      toast('error', 'Gagal Approve — order tidak ditemukan di database.')
       return
     }
-    const verifiedPayment = await getVerifiedPayment(order.id)
+
+    const paidSum = freshOrder.dp_amount + freshOrder.lunas_amount
+    if (paidSum < freshOrder.total_amount) {
+      toast('error', `Gagal Approve — Sisa pembayaran ${fmt(freshOrder.total_amount - paidSum)}, order belum lunas!`)
+      return
+    }
+    if (freshOrder.payment_status !== 'paid') {
+      toast('error', `Gagal Approve — payment_status belum 'paid' (saat ini: ${freshOrder.payment_status}).`)
+      return
+    }
+    const verifiedPayment = await getVerifiedPayment(freshOrder.id)
     if (!verifiedPayment) {
       toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
       return
     }
-    // Pipeline baru: payment_ok adalah gate antara ready → packed
-    // Finance approve order dari 'ready' (sudah selesai produksi+QC) ke 'payment_ok'
-    if (order.status !== 'ready') {
-      toast('error', `Status order belum bisa diapprove. Order saat ini: "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}"`)
+
+    // ALUR V2 YANG SEBENARNYA: Finance 1 klik Approve = langsung 2 tahap
+    //   ready -> payment_ok -> packed
+    // Karena Finance TIDAK perlu submit bukti lagi (berbeda dengan Gudang/Penjahit/Installer
+    // yang perlu detail pesanan untuk lanjut). Finance cukup konfirmasi lunas, sisanya
+    // adalah auto-advance ke Gudang untuk packing.
+
+    if (freshOrder.status === 'ready') {
+      // Auto-advance: ready -> payment_ok (Finance verify) -> packed (lanjut Gudang)
+      // Step 1: ready -> payment_ok
+      const { error: step1Err } = await supabase
+        .from('orders')
+        .update({ status: 'payment_ok' })
+        .eq('id', freshOrder.id)
+        .eq('status', 'ready')
+      if (step1Err) {
+        toast('error', 'Gagal update ke Cek Bayar: ' + step1Err.message)
+        return
+      }
+      await supabase.from('order_logs').insert({
+        order_id: freshOrder.id, action: 'payment_verified',
+        notes: `Payment verified oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}. Status: ready → payment_ok`,
+        staff_id: currentUser?.id,
+      })
+
+      // Step 2: payment_ok -> packed (Finance tidak perlu submit bukti lagi,
+      // auto-advance ke Gudang untuk packing)
+      const { error: step2Err } = await supabase
+        .from('orders')
+        .update({ status: 'packed' })
+        .eq('id', freshOrder.id)
+        .eq('status', 'payment_ok')
+      if (step2Err) {
+        toast('error', 'Gagal auto-advance ke Dikemas: ' + step2Err.message)
+        return
+      }
+      await supabase.from('order_logs').insert({
+        order_id: freshOrder.id, action: 'packed',
+        notes: `Auto-advance ke Dikemas (siap untuk packing oleh Gudang) — order sudah lunas, tidak perlu detail submission di Finance. Status: payment_ok → packed`,
+        staff_id: currentUser?.id,
+      })
+      toast('success', '✅ Order berhasil diapprove! Status: Siap → Cek Bayar → Dikemas. Lanjut Gudang untuk input resi.')
+    } else if (freshOrder.status === 'payment_ok') {
+      // Order sudah di-approve sampai Cek Bayar, lanjut ke packed
+      const { error: step2Err } = await supabase
+        .from('orders')
+        .update({ status: 'packed' })
+        .eq('id', freshOrder.id)
+        .eq('status', 'payment_ok')
+      if (step2Err) {
+        toast('error', 'Gagal auto-advance ke Dikemas: ' + step2Err.message)
+        return
+      }
+      toast('success', '✅ Lanjut ke Dikemas.')
+    } else if (freshOrder.status === 'packed') {
+      toast('info', 'Order sudah di Dikemas. Gudang tinggal input resi (di /admin/shipping).')
+      load()
+      return
+    } else if (freshOrder.status === 'shipped' || freshOrder.status === 'done') {
+      toast('info', 'Order sudah selesai.')
+      load()
+      return
+    } else if (freshOrder.status === 'steam') {
+      toast('warning', `Order masih di "Steam/QC". Gudang harus QC Pass dulu di /gudang/steam sebelum Finance bisa approve.`)
+      return
+    } else {
+      toast('error', `Status order belum bisa diapprove: "${STATUS_LABELS[freshOrder.status as keyof typeof STATUS_LABELS]}".`)
       return
     }
-    await supabase.from('orders').update({ status: 'payment_ok' }).eq('id', order.id).eq('status', 'ready')
-    await supabase.from('order_logs').insert({
-      order_id: order.id, action: 'payment_approved',
-      notes: `Payment gate approved oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}`,
-      staff_id: currentUser?.id,
-    })
-    toast('success', 'Order berhasil diapprove! Status berubah menjadi "Cek Bayar".')
     load()
   }
 

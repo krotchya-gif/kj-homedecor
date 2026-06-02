@@ -2,12 +2,38 @@
 -- Date: 2026-06-02
 -- Reason: Migration 020 seed account_mappings dengan debit/credit_account_id = NULL,
 --          sehingga createSimpleJournal('payment_received') selalu throw error.
---          Plus, tabel accounts belum punya data default — user harus insert manual.
+--          Plus, tabel accounts belum punya data default.
 --
--- Solusi: Seed default Chart of Accounts (standar akuntansi Indonesia untuk bisnis gorden),
---         lalu update account_mappings dengan account IDs yang valid.
+-- VERSI 2 (perbaikan dari 42P10 error):
+--   - account_mappings.transaction_type TIDAK PUNYA UNIQUE constraint,
+--     sehingga 'ON CONFLICT (transaction_type)' gagal.
+--   - Fix: tambah UNIQUE constraint di account_mappings.transaction_type
+--     supaya ON CONFLICT bisa dipakai dengan benar.
 
 BEGIN;
+
+-- ============================================================
+-- 0. Tambah UNIQUE constraint di account_mappings.transaction_type
+--    (kalau belum ada). Hapus duplicates dulu kalau ada.
+-- ============================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'account_mappings_transaction_type_key'
+      AND conrelid = 'public.account_mappings'::regclass
+  ) THEN
+    -- Hapus duplicate rows (sisakan yang pertama berdasarkan created_at)
+    DELETE FROM public.account_mappings a
+    USING public.account_mappings b
+    WHERE a.transaction_type = b.transaction_type
+      AND a.ctid > b.ctid;
+
+    -- Tambah UNIQUE constraint
+    ALTER TABLE public.account_mappings
+      ADD CONSTRAINT account_mappings_transaction_type_key UNIQUE (transaction_type);
+  END IF;
+END $$;
 
 -- ============================================================
 -- 1. Seed Account Categories
@@ -49,35 +75,35 @@ INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account,
   -- Expenses
   ('50000000-0000-0000-0000-000000000001', '5101', 'HPP Gorden', 'expense', '00000000-0000-0000-0000-000000000008', false, 'HPP material + upah penjahit'),
   ('50000000-0000-0000-0000-000000000002', '5102', 'HPP Laundry', 'expense', '00000000-0000-0000-0000-000000000008', false, 'HPP laundry'),
-  ('50000000-0000-0000-0000-000000000003', '5201', 'Beban Gaji', 'expense', '00000000-0000-0000-0000-000000000009', false, 'Beban gaji staff'),
-  ('50000000-0000-0000-0000-000000000004', '5202', 'Beban Sewa', 'expense', '00000000-0000-0000-0000-000000000009', false, 'Beban sewa tempat'),
+  ('50000000-0000-0000-0000-0000-000000000003', '5201', 'Beban Gaji', 'expense', '00000000-0000-0000-0000-000000000009', false, 'Beban gaji staff'),
+  ('50000000-0000-0000-0000-0000-000000000004', '5202', 'Beban Sewa', 'expense', '00000000-0000-0000-0000-000000000009', false, 'Beban sewa tempat'),
   ('50000000-0000-0000-0000-000000000005', '5203', 'Beban Utilitas', 'expense', '00000000-0000-0000-0000-000000000009', false, 'Listrik, air, internet'),
   ('50000000-0000-0000-0000-000000000006', '5301', 'Beban Selisih Kurs', 'expense', '00000000-0000-0000-0000-000000000010', false, 'Beban selisih kurs (USD/IDR)')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================
 -- 3. Update account_mappings dengan valid account IDs
---    Default: pakai Xendit Cash untuk payment (Xendit adalah payment gateway utama)
 -- ============================================================
 UPDATE public.account_mappings SET
-  debit_account_id  = '10000000-0000-0000-0000-000000000005'::uuid,  -- Piutang Customer
-  credit_account_id = '40000000-0000-0000-0000-000000000001'::uuid,  -- Penjualan Gorden
+  debit_account_id  = '10000000-0000-0000-0000-000000000005'::uuid,
+  credit_account_id = '40000000-0000-0000-0000-000000000001'::uuid,
   description       = 'Order baru — Piutang (Debit) / Penjualan (Kredit)'
 WHERE transaction_type = 'order_created';
 
 UPDATE public.account_mappings SET
-  debit_account_id  = '10000000-0000-0000-0000-000000000004'::uuid,  -- Xendit Cash
-  credit_account_id = '10000000-0000-0000-0000-000000000005'::uuid,  -- Piutang Customer
+  debit_account_id  = '10000000-0000-0000-0000-000000000004'::uuid,
+  credit_account_id = '10000000-0000-0000-0000-000000000005'::uuid,
   description       = 'Pembayaran diterima — Xendit (Debit) / Piutang (Kredit)'
 WHERE transaction_type = 'payment_received';
 
 UPDATE public.account_mappings SET
-  debit_account_id  = '50000000-0000-0000-0000-000000000003'::uuid,  -- Beban Gaji
-  credit_account_id = '10000000-0000-0000-0000-000000000001'::uuid,  -- Kas
+  debit_account_id  = '50000000-0000-0000-0000-000000000003'::uuid,
+  credit_account_id = '10000000-0000-0000-0000-000000000001'::uuid,
   description       = 'Beban dibayar — Kas (Kredit) / Beban (Debit)'
 WHERE transaction_type = 'expense_paid';
 
--- Insert new mappings yang belum ada
+-- Insert new mappings (sekarang ON CONFLICT(transaction_type) works
+-- karena kita sudah tambah UNIQUE constraint di step 0)
 INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_account_id, description) VALUES
   ('purchase', '10000000-0000-0000-0000-000000000006'::uuid, '20000000-0000-0000-0000-000000000001'::uuid, 'PO received — Persediaan Bahan (Debit) / Hutang Supplier (Kredit)'),
   ('exchange_rate_diff', '50000000-0000-0000-0000-000000000006'::uuid, '50000000-0000-0000-0000-000000000006'::uuid, 'Selisih kurs — bisa debit atau credit (placeholder)')
