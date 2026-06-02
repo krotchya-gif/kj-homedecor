@@ -35,8 +35,10 @@ const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'Menunggu', color: '#92400e', bg: '#fef3c7' },
   scheduled: { label: 'Terjadwal', color: '#3730a3', bg: '#e0e7ff' },
+  in_progress: { label: 'Sedang Dipasang', color: '#1e40af', bg: '#dbeafe' }, // V3
   done: { label: 'Selesai', color: '#065f46', bg: '#d1fae5' },
   cancelled: { label: 'Dibatalkan', color: '#991b1b', bg: '#fee2e2' },
+  revision: { label: 'Revisi', color: '#92400e', bg: '#fed7aa' },
 }
 
 const TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
@@ -80,6 +82,18 @@ export default function AdminBookingPage() {
   useEffect(() => {
     loadData()
     fetchOccupiedDates()
+
+    // V3: Realtime subscription untuk auto-refresh saat install_bookings berubah
+    // (mis. saat 'packed -> scheduled' auto-create booking di API, atau saat
+    // installer update status via /api/install-bookings/[id])
+    const channel = supabase
+      .channel('admin-booking-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'install_bookings' }, () => {
+        loadData()
+        fetchOccupiedDates()
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   async function fetchOccupiedDates() {
@@ -152,7 +166,23 @@ export default function AdminBookingPage() {
   }
 
   async function handleUpdateStatus(bookingId: string, newStatus: string) {
-    await supabase.from('install_bookings').update({ status: newStatus }).eq('id', bookingId)
+    // V3: pakai API route (server-side RPC advance_install_booking_status)
+    // Auto-cascade ke orders.status kalau booking type='pasang' & order classification='pasang'
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/install-bookings/${bookingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        alert('⚠️ ' + (json.error?.message ?? 'Gagal update status booking'))
+      }
+    } catch (e) {
+      alert('⚠️ Gagal update status: ' + (e as Error).message)
+    }
+    setSaving(false)
     loadData()
   }
 
@@ -198,6 +228,12 @@ export default function AdminBookingPage() {
           <h1 className="page-title">Booking & Pemasangan</h1>
           <p className="page-subtitle">Kelola semua booking dari customer dan manual</p>
         </div>
+      </div>
+
+      {/* V3: Banner info auto-create integration */}
+      <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: '0.5rem', padding: '0.875rem 1rem', marginBottom: '1.25rem', fontSize: '0.825rem', color: '#1e3a8a' }}>
+        <strong>ℹ️ V3 Info:</strong> Order <code>pasang</code> dengan status <code>packed</code> akan otomatis dibuat install_bookings di sini (status: <code>pending</code>).
+        Silakan klik <strong>Tambah Manual</strong> atau langsung edit untuk assign installer & tanggal. List ini auto-refresh via realtime subscription.
         <button
           onClick={() => setShowForm(true)}
           style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}

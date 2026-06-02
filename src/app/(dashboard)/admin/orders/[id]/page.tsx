@@ -3,15 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { ORDER_STAGES_BY_CLASSIFICATION, getNextStage, getNextStageButtonLabel, isPhotoRequired } from '@/lib/orders'
 import { ArrowLeft, ChevronRight, Plus, Trash2, CheckCircle2, Loader2, Upload, X as XIcon, ImageIcon, FileText, Package, Clock, AlertTriangle, Camera } from 'lucide-react'
 import Link from 'next/link'
-import type { Order, OrderItem, Product, Customer, PreparationChecklistItem } from '@/types'
+import type { Order, OrderItem, Product, Customer, PreparationChecklistItem, OrderStatus } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
 
-const ORDER_STATUSES = ['new','sorted','production','steam','ready','payment_ok','packed','shipped','done'] as const
+// V3 Pipeline: ORDER_STATUSES now conditional based on order.classification
+// Use shared util ORDER_STAGES_BY_CLASSIFICATION untuk single source of truth
 const STATUS_COLORS: Record<string,{bg:string,text:string}> = {
   new:        {bg:'#dbeafe',text:'#1e40af'},
   sorted:     {bg:'#e0e7ff',text:'#3730a3'},
@@ -534,8 +536,17 @@ export default function OrderDetailPage() {
   if (!order)  return <div style={{padding:'3rem',textAlign:'center',color:'#9ca3af'}}>Order tidak ditemukan.</div>
 
   const customer = order.customer as {name:string,phone:string,address?:string}|null
-  const statusIdx = ORDER_STATUSES.indexOf(order.status as typeof ORDER_STATUSES[number])
-  const nextStatus = statusIdx < ORDER_STATUSES.length-1 ? ORDER_STATUSES[statusIdx+1] : null
+  // V3: ORDER_STATUSES now conditional per classification (kirim vs pasang)
+  const orderClassification: 'kirim' | 'pasang' = (order.classification ?? 'kirim') as 'kirim' | 'pasang'
+  const ORDER_STATUSES = ORDER_STAGES_BY_CLASSIFICATION[orderClassification] ?? ORDER_STAGES_BY_CLASSIFICATION.kirim
+  const statusIdx = (ORDER_STATUSES as readonly string[]).indexOf(order.status)
+  const nextStatus: OrderStatus | null = statusIdx >= 0 && statusIdx < ORDER_STATUSES.length - 1
+    ? (ORDER_STATUSES[statusIdx + 1] as OrderStatus)
+    : null
+  // V3: dynamic button label (mis. 'Input Resi' vs 'Jadwalkan Pasang')
+  const nextStageButtonLabel = nextStatus
+    ? getNextStageButtonLabel(nextStatus, orderClassification)
+    : 'Lanjut'
 
   return (
     <div>
@@ -554,7 +565,7 @@ export default function OrderDetailPage() {
           <button onClick={()=>{setPendingStatus(nextStatus);setShowPhotoModal(true)}} disabled={updating}
             style={{display:'flex',alignItems:'center',gap:'0.5rem',padding:'0.75rem 1.5rem',background:'#cc7030',color:'#fff',border:'none',borderRadius:'0.5rem',fontWeight:'600',cursor:updating?'not-allowed':'pointer'}}>
             {updating ? <Loader2 size={15} style={{animation:'spin 1s linear infinite'}}/> : <ChevronRight size={15}/>}
-            Lanjut: {STATUS_LABELS[nextStatus]}
+            Lanjut: {nextStatus ? nextStageButtonLabel : STATUS_LABELS[nextStatus!]}
           </button>
         )}
         {nextStatus && !['done','returned','cancelled'].includes(order.status) && !canRoleAdvanceNext(currentUserRole, order.status) && (
@@ -1191,7 +1202,15 @@ export default function OrderDetailPage() {
               </button>
             </div>
             <p style={{fontSize:'0.8rem',color:'#6b7280',marginBottom:'1rem'}}>
-              <strong style={{color:'#dc2626'}}>WAJIB</strong> upload minimal <strong>1 foto</strong> sebagai bukti pengerjaan. Foto akan tercatat sebagai akuntabilitas siapa yang bertanggung jawab di stage ini.
+              {pendingStatus && isPhotoRequired(pendingStatus as any) ? (
+                <>
+                  <strong style={{color:'#dc2626'}}>WAJIB</strong> upload minimal <strong>1 foto</strong> untuk stage <strong>{STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS]}</strong> (V3 accountability). Foto akan tercatat sebagai bukti pengerjaan.
+                </>
+              ) : (
+                <>
+                  <strong style={{color:'#dc2626'}}>WAJIB</strong> upload minimal <strong>1 foto</strong> sebagai bukti pengerjaan. Foto akan tercatat sebagai akuntabilitas siapa yang bertanggung jawab di stage ini.
+                </>
+              )}
             </p>
             <div style={{border:'2px dashed #d1d5db',borderRadius:'0.5rem',padding:'1.5rem',textAlign:'center',marginBottom:'1rem',cursor:uploadingPhoto?'not-allowed':'pointer',opacity:uploadingPhoto?0.6:1}}>
               <input type="file" accept="image/*" onChange={handlePhotoUpload} disabled={uploadingPhoto} id="progress-photo-input" style={{display:'none'}}/>

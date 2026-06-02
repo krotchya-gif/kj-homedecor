@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Truck, Package, Search, Check, X, ExternalLink, Printer } from 'lucide-react'
+import { Truck, Package, Search, Check, X, ExternalLink, Printer, Upload, Camera } from 'lucide-react'
 import Link from 'next/link'
 import type { Order } from '@/types'
 import { STATUS_LABELS } from '@/types'
@@ -33,6 +33,26 @@ export default function AdminShippingPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [resiForm, setResiForm] = useState({ courier: '', tracking_number: '' })
   const [saving, setSaving] = useState(false)
+  // V3: foto bukti shipped (required per PHOTO_REQUIRED_STAGES)
+  const [shippedPhoto, setShippedPhoto] = useState<string | null>(null)
+  const [uploadingShippedPhoto, setUploadingShippedPhoto] = useState(false)
+
+  // V3: upload foto untuk resi
+  async function handleShippedPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !selectedOrder) return
+    setUploadingShippedPhoto(true)
+    try {
+      const { uploadToLocal } = await import('@/lib/upload')
+      const result = await uploadToLocal(file, 'order_progress', { compress: true, maxSizeMB: 1 })
+      setShippedPhoto(result.url)
+    } catch (err) {
+      console.error('Upload failed:', err)
+      alert('⚠️ Gagal upload foto: ' + (err as Error).message)
+    } finally {
+      setUploadingShippedPhoto(false)
+    }
+  }
 
   const supabase = createClient()
 
@@ -59,29 +79,41 @@ export default function AdminShippingPage() {
 
   async function handleSaveResi() {
     if (!selectedOrder || !resiForm.courier || !resiForm.tracking_number) return
+    // V3: foto bukti WAJIB untuk 'shipped' (per PHOTO_REQUIRED_STAGES)
+    if (!shippedPhoto) {
+      alert('⚠️ Wajib upload foto bukti pengiriman untuk stage "shipped" (V3 accountability).')
+      return
+    }
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
 
-    await supabase.from('orders').update({
-      status: 'shipped',
-      courier: resiForm.courier,
-      tracking_number: resiForm.tracking_number,
-      shipped_at: new Date().toISOString(),
-      shipped_by: user?.id ?? null,
-    }).eq('id', selectedOrder.id)
-
+    // V3: pakai API route (server-side enforcement: role check, transition check)
     const courierLabel = COURIERS.find(c => c.value === resiForm.courier)?.label ?? resiForm.courier
-    await supabase.from('order_logs').insert({
-      order_id: selectedOrder.id,
-      action: 'shipped',
-      notes: `Shipped via ${courierLabel}, Resi: ${resiForm.tracking_number}`,
-      staff_id: user?.id ?? null,
+    const apiRes = await fetch(`/api/orders/${selectedOrder.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'shipped',
+        courier: resiForm.courier,
+        tracking_number: resiForm.tracking_number,
+        shipped_at: new Date().toISOString(),
+        shipped_by: user?.id ?? null,
+        photo_urls: [shippedPhoto], // V3: foto bukti
+        notes: `Shipped via ${courierLabel}, Resi: ${resiForm.tracking_number}`,
+      }),
     })
+    const apiJson = await apiRes.json()
+    if (!apiRes.ok) {
+      alert('⚠️ ' + (apiJson.error?.message ?? 'Gagal update order'))
+      setSaving(false)
+      return
+    }
 
     setSaving(false)
     setShowResiModal(false)
     setSelectedOrder(null)
     setResiForm({ courier: '', tracking_number: '' })
+    setShippedPhoto(null) // V3: reset foto
     loadOrders()
   }
 
@@ -318,11 +350,42 @@ export default function AdminShippingPage() {
                   style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem' }}
                 />
               </div>
+              {/* V3: Foto bukti shipped WAJIB (PHOTO_REQUIRED_STAGES) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+                  Foto Bukti Pengiriman <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  {shippedPhoto ? (
+                    <div style={{ position: 'relative' }}>
+                      <img src={shippedPhoto} alt="Foto bukti" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                      <button
+                        onClick={() => setShippedPhoto(null)}
+                        style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}
+                      >×</button>
+                    </div>
+                  ) : (
+                    <label
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 100, height: 100, border: '2px dashed #d1d5db', borderRadius: '0.5rem', cursor: 'pointer', background: '#f9fafb', gap: '0.25rem' }}
+                    >
+                      <input type="file" accept="image/*" onChange={handleShippedPhotoUpload} disabled={uploadingShippedPhoto} style={{ display: 'none' }} />
+                      {uploadingShippedPhoto ? (
+                        <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
+                      ) : (
+                        <>
+                          <Camera size={18} style={{ color: '#9ca3af' }} />
+                          <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Wajib</span>
+                        </>
+                      )}
+                    </label>
+                  )}
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button onClick={() => setShowResiModal(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
+                <button onClick={() => { setShowResiModal(false); setShippedPhoto(null); }} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
                 <button
                   onClick={handleSaveResi}
-                  disabled={saving || !resiForm.courier || !resiForm.tracking_number}
+                  disabled={saving || !resiForm.courier || !resiForm.tracking_number || !shippedPhoto}
                   style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600' }}
                 >
                   {saving ? 'Menyimpan...' : 'Simpan & Kirim'}
