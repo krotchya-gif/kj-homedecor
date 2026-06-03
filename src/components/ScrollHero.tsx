@@ -176,7 +176,7 @@ export default function ScrollHero({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '0.5rem',
-            background: 'linear-gradient(135deg, #DDC0B4 0%, #C9A98C 100%)',
+            background: 'linear-gradient(135deg, var(--landing-primary, #DDC0B4) 0%, var(--landing-secondary, #C9A98C) 100%)',
             color: '#fff',
             fontSize: '1rem',
             fontWeight: 700,

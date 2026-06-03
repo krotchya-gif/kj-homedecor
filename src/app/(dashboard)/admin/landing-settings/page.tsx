@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Save, Plus, Trash2, Eye, MessageCircle, Loader2, Star, Shield, Truck, Clock, CheckCircle, Phone, MapPin, ShoppingBag, Upload, ImageIcon, LayoutGrid, Award, Megaphone } from 'lucide-react'
+import { Save, Plus, Trash2, Eye, MessageCircle, Loader2, Star, Shield, Truck, Clock, CheckCircle, Phone, MapPin, ShoppingBag, Upload, ImageIcon, LayoutGrid, Award, Megaphone, RotateCcw } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import ColorPicker from '@/components/ui/ColorPicker'
+import ThemePresetCard, { THEME_PRESETS, type ThemePreset } from '@/components/ui/ThemePresetCard'
 
 interface TrustBadge {
   icon: string
@@ -52,6 +54,18 @@ interface LandingSettings {
   cta_badge?: string
   cta_title?: string
   cta_subtitle?: string
+  // Theme customization
+  theme_primary_color?: string
+  theme_secondary_color?: string
+  theme_accent_color?: string
+  theme_background_color?: string
+  theme_text_color?: string
+  theme_preset?: string
+  hero_background_image?: string
+  hero_background_overlay_opacity?: number
+  theme_border_radius?: string
+  theme_font_heading?: string
+  theme_font_body?: string
 }
 
 const ICON_OPTIONS = [
@@ -107,6 +121,18 @@ export default function AdminLandingSettingsPage() {
     cta_badge: '',
     cta_title: '',
     cta_subtitle: '',
+    // Theme customization
+    theme_primary_color: '#DDC0B4',
+    theme_secondary_color: '#C9A98C',
+    theme_accent_color: '#f4a857',
+    theme_background_color: '#FAF5EE',
+    theme_text_color: '#2B2321',
+    theme_preset: 'default',
+    hero_background_image: '',
+    hero_background_overlay_opacity: 0.75,
+    theme_border_radius: '0.5rem',
+    theme_font_heading: 'Playfair Display',
+    theme_font_body: 'Inter',
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
   const [heroImageUploading, setHeroImageUploading] = useState(false)
@@ -162,6 +188,18 @@ export default function AdminLandingSettingsPage() {
         cta_badge: (data as any).cta_badge ?? '',
         cta_title: (data as any).cta_title ?? '',
         cta_subtitle: (data as any).cta_subtitle ?? '',
+        // Theme customization
+        theme_primary_color: (data as any).theme_primary_color ?? '#DDC0B4',
+        theme_secondary_color: (data as any).theme_secondary_color ?? '#C9A98C',
+        theme_accent_color: (data as any).theme_accent_color ?? '#f4a857',
+        theme_background_color: (data as any).theme_background_color ?? '#FAF5EE',
+        theme_text_color: (data as any).theme_text_color ?? '#2B2321',
+        theme_preset: (data as any).theme_preset ?? 'default',
+        hero_background_image: (data as any).hero_background_image ?? '',
+        hero_background_overlay_opacity: (data as any).hero_background_overlay_opacity ?? 0.75,
+        theme_border_radius: (data as any).theme_border_radius ?? '0.5rem',
+        theme_font_heading: (data as any).theme_font_heading ?? 'Playfair Display',
+        theme_font_body: (data as any).theme_font_body ?? 'Inter',
       })
       setTrustBadges(data.trust_badges ?? [])
     }
@@ -209,6 +247,18 @@ export default function AdminLandingSettingsPage() {
         cta_badge: form.cta_badge,
         cta_title: form.cta_title,
         cta_subtitle: form.cta_subtitle,
+        // Theme customization
+        theme_primary_color: form.theme_primary_color,
+        theme_secondary_color: form.theme_secondary_color,
+        theme_accent_color: form.theme_accent_color,
+        theme_background_color: form.theme_background_color,
+        theme_text_color: form.theme_text_color,
+        theme_preset: form.theme_preset,
+        hero_background_image: form.hero_background_image,
+        hero_background_overlay_opacity: form.hero_background_overlay_opacity,
+        theme_border_radius: form.theme_border_radius,
+        theme_font_heading: form.theme_font_heading,
+        theme_font_body: form.theme_font_body,
         updated_at: new Date().toISOString(),
       })
       .eq('id', 'hero')
@@ -259,6 +309,39 @@ export default function AdminLandingSettingsPage() {
 
   function updateTrustBadge(idx: number, field: 'icon' | 'label', value: string) {
     setTrustBadges(prev => prev.map((b, i) => i === idx ? { ...b, [field]: value } : b))
+  }
+
+  function handlePresetSelect(preset: ThemePreset) {
+    setForm(f => ({
+      ...f,
+      theme_primary_color: preset.colors.primary,
+      theme_secondary_color: preset.colors.secondary,
+      theme_accent_color: preset.colors.accent,
+      theme_background_color: preset.colors.background,
+      theme_text_color: preset.colors.text,
+      theme_preset: preset.id,
+    }))
+  }
+
+  function handleResetTheme() {
+    if (!confirm('Reset theme to default KJ Homedecor colors? This will overwrite your current theme settings.')) {
+      return
+    }
+    const defaultPreset = THEME_PRESETS[0] // Default Brown
+    setForm(f => ({
+      ...f,
+      theme_primary_color: defaultPreset.colors.primary,
+      theme_secondary_color: defaultPreset.colors.secondary,
+      theme_accent_color: defaultPreset.colors.accent,
+      theme_background_color: defaultPreset.colors.background,
+      theme_text_color: defaultPreset.colors.text,
+      theme_preset: 'default',
+      hero_background_image: '',
+      hero_background_overlay_opacity: 0.75,
+      theme_border_radius: '0.5rem',
+      theme_font_heading: 'Playfair Display',
+      theme_font_body: 'Inter',
+    }))
   }
 
   if (loading) {
@@ -444,6 +527,65 @@ export default function AdminLandingSettingsPage() {
               </div>
             </div>
           </div>
+          {/* Theme Preset */}
+          <ThemePresetCard
+            selectedPreset={form.theme_preset}
+            onSelectPreset={handlePresetSelect}
+          />
+
+          {/* Theme Colors */}
+          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                🎨 Theme Colors
+              </h2>
+              <button
+                type="button"
+                onClick={handleResetTheme}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.375rem 0.75rem', background: '#f3f4f6', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}
+              >
+                <RotateCcw size={12} /> Reset to Default
+              </button>
+            </div>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <ColorPicker
+                label="Primary Color"
+                value={form.theme_primary_color}
+                defaultValue="#DDC0B4"
+                onChange={(color) => setForm(f => ({ ...f, theme_primary_color: color }))}
+                description="Main brand color for buttons and accents"
+              />
+              <ColorPicker
+                label="Secondary Color"
+                value={form.theme_secondary_color}
+                defaultValue="#C9A98C"
+                onChange={(color) => setForm(f => ({ ...f, theme_secondary_color: color }))}
+                description="Secondary brand color for gradients"
+              />
+              <ColorPicker
+                label="Accent Color"
+                value={form.theme_accent_color}
+                defaultValue="#f4a857"
+                onChange={(color) => setForm(f => ({ ...f, theme_accent_color: color }))}
+                description="Highlight color for badges and icons"
+              />
+              <ColorPicker
+                label="Background Color"
+                value={form.theme_background_color}
+                defaultValue="#FAF5EE"
+                onChange={(color) => setForm(f => ({ ...f, theme_background_color: color }))}
+                description="Page background color"
+              />
+              <ColorPicker
+                label="Text Color"
+                value={form.theme_text_color}
+                defaultValue="#2B2321"
+                onChange={(color) => setForm(f => ({ ...f, theme_text_color: color }))}
+                description="Primary text color for headings"
+              />
+            </div>
+          </div>
+
 
           {/* Trust Badges */}
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
@@ -728,24 +870,24 @@ export default function AdminLandingSettingsPage() {
                 Live Preview — Hero Section
               </h2>
             </div>
-            <div style={{ background: 'linear-gradient(135deg, #1a0a00 0%, #3d1a08 40%, #6b2d0f 100%)', padding: '2rem', minHeight: 300 }}>
-              <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffd6a5', fontSize: '0.75rem', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.3rem 0.75rem', borderRadius: '999px', marginBottom: '1rem' }}>
+            <div style={{ background: `linear-gradient(135deg, ${form.theme_text_color}22 0%, ${form.theme_text_color}44 40%, ${form.theme_text_color}66 100%)`, padding: '2rem', minHeight: 300 }}>
+              <div style={{ display: 'inline-block', background: `${form.theme_accent_color}22`, border: `1px solid ${form.theme_accent_color}44`, color: form.theme_accent_color, fontSize: '0.75rem', fontWeight: '600', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '0.3rem 0.75rem', borderRadius: '999px', marginBottom: '1rem' }}>
                 ✨ Home Decor Premium Indonesia
               </div>
 
-              <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: '700', lineHeight: 1.3, marginBottom: '0.75rem', fontFamily: 'Playfair Display, serif' }}>
+              <h2 style={{ color: '#fff', fontSize: '1.5rem', fontWeight: '700', lineHeight: 1.3, marginBottom: '0.75rem', fontFamily: form.theme_font_heading }}>
                 {form.hero_title || 'Hero Title'}
               </h2>
 
-              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.25rem' }}>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.25rem', fontFamily: form.theme_font_body }}>
                 {form.hero_subtitle || 'Subtitle text...'}
               </p>
 
               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <div style={{ padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                <div style={{ padding: '0.625rem 1.25rem', background: `linear-gradient(135deg, ${form.theme_primary_color}, ${form.theme_secondary_color})`, color: '#fff', borderRadius: form.theme_border_radius, fontSize: '0.8rem', fontWeight: '600' }}>
                   {form.hero_cta_text || 'CTA Text'} →
                 </div>
-                <div style={{ padding: '0.625rem 1.25rem', border: '2px solid rgba(255,255,255,0.4)', color: '#fff', borderRadius: '0.5rem', fontSize: '0.8rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                <div style={{ padding: '0.625rem 1.25rem', border: '2px solid rgba(255,255,255,0.4)', color: '#fff', borderRadius: form.theme_border_radius, fontSize: '0.8rem', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   <MessageCircle size={14} /> Konsultasi Gratis
                 </div>
               </div>
@@ -753,7 +895,7 @@ export default function AdminLandingSettingsPage() {
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                 {trustBadges.map((badge, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#f4a857' }}>
+                    <span style={{ color: form.theme_accent_color }}>
                       {badge.icon === 'Star' && <Star size={14} />}
                       {badge.icon === 'Shield' && <Shield size={14} />}
                       {badge.icon === 'Truck' && <Truck size={14} />}

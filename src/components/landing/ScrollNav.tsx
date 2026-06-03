@@ -130,7 +130,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               textDecoration: 'none',
               transition: 'all 0.25s',
               background: scrolled
-                ? 'linear-gradient(135deg,#DDC0B4,#C9A98C)'
+                ? 'linear-gradient(135deg, var(--landing-primary, #DDC0B4), var(--landing-secondary, #C9A98C))'
                 : 'rgba(255,255,255,0.15)',
               color: '#fff',
               border: scrolled ? 'none' : '1px solid rgba(255,255,255,0.35)',

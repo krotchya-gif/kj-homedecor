@@ -59,8 +59,27 @@ export default async function LandingPage() {
   const address = settings?.address ?? 'Jakarta, Indonesia'
   const phone = settings?.phone ?? '+62 812-3456-7890'
 
+  // Theme customization
+  const themePrimary = settings?.theme_primary_color ?? '#DDC0B4'
+  const themeSecondary = settings?.theme_secondary_color ?? '#C9A98C'
+  const themeAccent = settings?.theme_accent_color ?? '#f4a857'
+  const themeBackground = settings?.theme_background_color ?? '#FAF5EE'
+  const themeText = settings?.theme_text_color ?? '#2B2321'
+
   return (
-    <div style={{ background: '#FAF5EE', fontFamily: 'Inter, sans-serif' }}>
+    <>
+      {/* Inject theme CSS variables */}
+      <style>{`
+        :root {
+          --landing-primary: ${themePrimary};
+          --landing-secondary: ${themeSecondary};
+          --landing-accent: ${themeAccent};
+          --landing-background: ${themeBackground};
+          --landing-text: ${themeText};
+        }
+      `}</style>
+      
+      <div style={{ background: themeBackground, fontFamily: 'Inter, sans-serif' }}>
       {/* ===== NAVBAR ===== */}
       <ScrollNav whatsappNumber={whatsappNumber} whatsappMessage={whatsappMessage} />
 
@@ -208,7 +227,7 @@ export default async function LandingPage() {
       </section>
 
       {/* ===== CTA Banner ===== */}
-      <section style={{ background: 'linear-gradient(135deg,#C9A98C 0%,#DDC0B4 40%,#E8D4C8 100%)', padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ background: `linear-gradient(135deg, var(--landing-secondary, #C9A98C) 0%, var(--landing-primary, #DDC0B4) 40%, ${themeBackground} 100%)`, padding: '6rem 1.5rem', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         {/* Animated blobs */}
         <div style={{ position: 'absolute', top: '-30%', right: '-15%', width: 500, height: 500, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', animation: 'blobMove 10s ease-in-out infinite', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', bottom: '-40%', left: '-10%', width: 450, height: 450, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', animation: 'blobMove 14s ease-in-out infinite reverse', pointerEvents: 'none' }} />
@@ -340,5 +359,6 @@ export default async function LandingPage() {
         </div>
       </footer>
     </div>
+    </>
   )
 }
