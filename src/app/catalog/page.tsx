@@ -1,17 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Search, MessageCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import type { Product, Category } from '@/types'
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0,
-  }).format(n)
+import { formatRp } from '@/lib/utils'
 
 export default function CatalogPage() {
   const [products, setProducts] = useState<Product[]>([])
@@ -22,7 +16,7 @@ export default function CatalogPage() {
   const [whatsappNumber, setWhatsappNumber] = useState('6281234567890')
   const [whatsappMessage, setWhatsappMessage] = useState('Halo KJ Homedecor')
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function load() {
@@ -110,7 +104,7 @@ export default function CatalogPage() {
                 <Link href={`/products/${product.id}`} style={{ textDecoration: 'none', display: 'block' }}>
                   <div style={{ height: 180, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                     {product.images && (product.images as string[]).length > 0 ? (
-                      <img src={(product.images as string[])[0]} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={(product.images as string[])[0]} alt={product.name} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>No Image</span>
                     )}

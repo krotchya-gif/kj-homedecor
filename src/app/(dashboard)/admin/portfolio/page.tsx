@@ -135,7 +135,7 @@ export default function AdminPortfolioPage() {
               {post.images && post.images.length > 0 ? (
                 <div style={{ display: 'flex', gap: '0.25rem', padding: '0.5rem', background: '#f9fafb', overflowX: 'auto' }}>
                   {post.images.slice(0, 3).map((img, i) => (
-                    <img key={i} src={img} alt={`Post ${i}`} style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: '0.375rem', border: '1px solid #e5e7eb', flexShrink: 0 }} />
+                    <img key={i} src={img} alt={`Post ${i}`} loading="lazy" style={{ width: 80, height: 60, objectFit: 'cover', borderRadius: '0.375rem', border: '1px solid #e5e7eb', flexShrink: 0 }} />
                   ))}
                   {post.images.length > 3 && (
                     <div style={{ width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', borderRadius: '0.375rem', fontSize: '0.75rem', color: '#6b7280', flexShrink: 0 }}>
@@ -211,7 +211,7 @@ export default function AdminPortfolioPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
                   {form.images.map((url, i) => (
                     <div key={i} style={{ position: 'relative' }}>
-                      <img src={url} alt={`Img ${i}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }} />
+                      <img src={url} alt={`Img ${i}`} loading="lazy" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }} />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}

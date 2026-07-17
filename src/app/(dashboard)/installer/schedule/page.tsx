@@ -250,7 +250,7 @@ export default function InstallerSchedulePage() {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
                   {revPhotos.map((url, i) => (
                     <div key={i} style={{ position: 'relative', width: 72, height: 72 }}>
-                      <img src={url} style={{ width: 72, height: 72, borderRadius: '0.5rem', objectFit: 'cover', border: '1px solid #e5e7eb' }} />
+                      <img src={url} style={{ width: 72, height: 72, borderRadius: '0.5rem', objectFit: 'cover', border: '1px solid #e5e7eb' }} loading="lazy" alt="Photo" />
                       <button onClick={() => removePhoto(i)}
                         style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, background: '#dc2626', color: '#fff', border: 'none', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem' }}>
                         ✕

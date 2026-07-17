@@ -32,6 +32,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { formatRp } from '@/lib/utils'
 
 interface Order { id: string; status: string; payment_status: string; source?: string; total_amount?: number; created_at: string }
 interface PurchaseRequest { id: string; qty: number; estimated_cost: number; status: string; material?: { name: string } }
@@ -60,8 +62,6 @@ const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   return_disposed: { icon: <XOctagon size={14} />, color: '#ef4444' },
   refund_issued: { icon: <DollarSign size={14} />, color: '#f59e0b' },
 }
-
-const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<StatData | null>(null)
@@ -388,70 +388,117 @@ export default function AdminDashboardPage() {
       {/* Charts Section */}
       {!loading && data && (
         <>
-          {/* Order by Status Bar Chart */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <BarChart3 size={16} color="#cc7030" />
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Pesanan per Status</h3>
-              </div>
-              {data.orders.length === 0 ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={statusChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#cc7030" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={16} style={{ color: 'var(--brand-500)' }} />
+                  <CardTitle>Pesanan per Status</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {data.orders.length === 0 ? (
+                  <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <BarChart3 size={32} className="opacity-30" />
+                    <span>Belum ada data pesanan</span>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={statusChartData} barCategoryGap="20%">
+                      <defs>
+                        <linearGradient id="brandGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--brand-400)" />
+                          <stop offset="100%" stopColor="var(--brand-600)" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        formatter={(value, name) => [value, 'Jumlah']}
+                        cursor={{ fill: 'var(--muted)' }}
+                      />
+                      <Bar dataKey="count" fill="url(#brandGrad)" radius={[6, 6, 0, 0]} animationDuration={800} label={{ position: 'top', fontSize: 10, fontWeight: 600, fill: 'var(--muted-foreground)' }} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Revenue by Source Bar Chart */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <TrendingUp size={16} color="#2563eb" />
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Sumber</h3>
-              </div>
-              {data.orders.length === 0 ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={revenueChartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
-                    <Tooltip formatter={(v) => formatRp(v as number)} />
-                    <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <TrendingUp size={16} color="#2563eb" />
+                  <CardTitle>Omzet per Sumber</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {data.orders.length === 0 ? (
+                  <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <TrendingUp size={32} className="opacity-30" />
+                    <span>Belum ada data omzet</span>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={revenueChartData} barCategoryGap="20%">
+                      <defs>
+                        <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#60a5fa" />
+                          <stop offset="100%" stopColor="#2563eb" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                        formatter={(v) => [formatRp(v as number), 'Omzet']}
+                        cursor={{ fill: 'var(--muted)' }}
+                      />
+                      <Bar dataKey="revenue" fill="url(#blueGrad)" radius={[6, 6, 0, 0]} animationDuration={800} label={{ position: 'top', fontSize: 9, fontWeight: 600, fill: 'var(--muted-foreground)' }} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* 30-Day Order Trend */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <TrendingUp size={16} color="#16a34a" />
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren 30 Hari</h3>
-            </div>
-            {trendData.length === 0 ? (
-              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} color="#16a34a" />
+                <CardTitle>Tren 30 Hari</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {trendData.length === 0 ? (
+                <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <TrendingUp size={32} className="opacity-30" />
+                  <span>Belum ada data tren</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={trendData}>
+                    <defs>
+                      <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#4ade80" />
+                        <stop offset="100%" stopColor="#16a34a" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                      formatter={(value, name) => [value, 'Pesanan']}
+                    />
+                    <Line type="monotone" dataKey="count" stroke="url(#greenGrad)" strokeWidth={3} dot={{ r: 3, fill: '#16a34a', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#16a34a', stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
 

@@ -504,7 +504,7 @@ export default function GudangSteamPage() {
             </label>
             {steamPassPhoto ? (
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img src={steamPassPhoto} alt="Foto bukti" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                <img src={steamPassPhoto} alt="Foto bukti" loading="lazy" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
                 <button
                   onClick={() => setSteamPassPhoto(null)}
                   style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}
@@ -562,7 +562,7 @@ export default function GudangSteamPage() {
             </label>
             {steamFailPhoto ? (
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img src={steamFailPhoto} alt="Foto bukti fail" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                <img src={steamFailPhoto} alt="Foto bukti fail" loading="lazy" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
                 <button
                   onClick={() => setSteamFailPhoto(null)}
                   style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}

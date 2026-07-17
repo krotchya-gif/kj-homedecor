@@ -64,7 +64,7 @@ export default function BookingCalendar({
   function getDateOccupiedLevel(dateStr: string): 'none' | 'low' | 'medium' | 'high' {
     if (!occupiedDates.has(dateStr)) return 'none'
     if (!occupiedSlots) return 'medium'
-    const count = occupiedSlots.size
+    const count = Array.from(occupiedSlots).filter(s => s.startsWith(dateStr)).length
     if (count >= 8) return 'high'
     if (count >= 4) return 'medium'
     return 'low'
@@ -113,7 +113,7 @@ export default function BookingCalendar({
                 isPast ? 'cal-past' : '',
                 level !== 'none' ? `cal-occupied-${level}` : '',
               ].filter(Boolean).join(' ')}
-              title={level !== 'none' ? `Terbooking ${occupiedSlots?.size || ''} slot` : 'Tersedia'}
+              title={level !== 'none' && occupiedSlots ? `Terbooking ${Array.from(occupiedSlots).filter(s => s.startsWith(dateStr)).length} slot` : 'Tersedia'}
             >
               {day}
               {level !== 'none' && (

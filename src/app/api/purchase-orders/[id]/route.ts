@@ -1,10 +1,30 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { requireAuth, requireAuthRole, checkRateLimit } from '@/lib/auth'
+
+const ALLOWED_PO_FIELDS = [
+  'supplier_id', 'pr_id', 'status', 'expected_cost', 'actual_cost',
+  'notes', 'order_date', 'received_at', 'paid_at', 'paid_by',
+] as const
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { supabase, user } = auth
+
+  // Restrict to admin/owner/gudang/finance
+  const { data: requester } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  const userRole = requester?.role ?? ''
+  if (!['admin', 'owner', 'gudang', 'finance'].includes(userRole)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { id } = await params
-  const supabase = await createClient()
 
   const { data, error } = await supabase
     .from('purchase_orders')
@@ -12,21 +32,29 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+
+  const auth = await requireAuthRole(['admin', 'owner', 'gudang'])
+  if (auth.error) return auth.error
+  const { supabase, user } = auth
+
   const { id } = await params
-  const supabase = await createClient()
   const body = await request.json()
-  const { data: { user } } = await supabase.auth.getUser()
 
   // Get current PO data (before update)
   const { data: currentPO } = await supabase.from('purchase_orders').select('status, pr_id, actual_cost').eq('id', id).single()
 
-  // Handle status transitions
-  const updates: any = { ...body }
+  // Handle status transitions — start with whitelisted fields only
+  const updates: Record<string, any> = {}
+  for (const field of ALLOWED_PO_FIELDS) {
+    if (body[field] !== undefined) updates[field] = body[field]
+  }
 
   if (body.status === 'received') {
     updates.received_at = new Date().toISOString()
@@ -105,6 +133,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const { data, error } = await supabase.from('purchase_orders').update(updates).eq('id', id).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

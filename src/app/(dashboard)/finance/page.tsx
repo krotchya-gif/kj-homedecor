@@ -5,10 +5,11 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { DollarSign, BarChart3, WashingMachine, Loader2, TrendingUp, PieChart as PieChartIcon } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { formatRp } from '@/lib/utils'
 
 const COLORS = ['#16a34a', '#f59e0b', '#ef4444', '#2563eb', '#9333ea']
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 const MODULES = [
   { title: 'Pembayaran', desc: 'Tracking DP/Lunas dan approval gate', href: '/finance/payments', icon: <DollarSign size={20} />, color: 'green' },
@@ -153,48 +154,66 @@ export default function FinanceDashboard() {
       </div>
 
       {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
-        {/* Monthly Revenue Bar Chart */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <TrendingUp size={16} color="#cc7030" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Bulan ({currentYear})</h3>
-          </div>
-          {monthlyData.every((m) => m.revenue === 0) ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
-                <Tooltip formatter={(v) => formatRp(v as number)} />
-                <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <TrendingUp size={16} style={{ color: 'var(--brand-500)' }} />
+              <CardTitle>Omzet per Bulan ({currentYear})</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {monthlyData.every((m) => m.revenue === 0) ? (
+              <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                <TrendingUp size={32} className="opacity-30" />
+                <span>Belum ada data omzet</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={monthlyData} barCategoryGap="15%">
+                  <defs>
+                    <linearGradient id="finBrandGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--brand-400)" />
+                      <stop offset="100%" stopColor="var(--brand-600)" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(v) => [formatRp(v as number), 'Omzet']} cursor={{ fill: 'var(--muted)' }} />
+                  <Bar dataKey="revenue" fill="url(#finBrandGrad)" radius={[6, 6, 0, 0]} animationDuration={800} label={{ position: 'top', fontSize: 9, fontWeight: 600, fill: 'var(--muted-foreground)' }} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Payment Status Pie Chart */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <PieChartIcon size={16} color="#2563eb" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Distribusi Status Bayar</h3>
-          </div>
-          {paymentStatusData.length === 0 ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={paymentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
-                  {paymentStatusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <PieChartIcon size={16} color="#2563eb" />
+              <CardTitle>Distribusi Status Bayar</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {paymentStatusData.length === 0 ? (
+              <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                <PieChartIcon size={32} className="opacity-30" />
+                <span>Belum ada data pembayaran</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie data={paymentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={35} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }} animationDuration={800}>
+                    {paymentStatusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#fff" strokeWidth={2} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Navigation Modules */}

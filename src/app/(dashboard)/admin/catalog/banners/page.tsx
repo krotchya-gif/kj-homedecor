@@ -112,7 +112,7 @@ export default function BannersPage() {
           {banners.map(banner => (
             <div key={banner.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
               <div style={{ position: 'relative', aspectRatio: '16/9', background: '#f3f4f6' }}>
-                <img src={banner.image_url} alt="Banner" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={banner.image_url} alt="Banner" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 {!banner.is_active && (
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '0.875rem', fontWeight: '600' }}>
                     Nonaktif
@@ -155,7 +155,7 @@ export default function BannersPage() {
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Gambar Banner</label>
                 {uploadedUrl ? (
                   <div style={{ position: 'relative' }}>
-                    <img src={uploadedUrl} alt="Preview" style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }} />
+                    <img src={uploadedUrl} alt="Preview" loading="lazy" style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }} />
                     <button
                       type="button"
                       onClick={() => setUploadedUrl('')}

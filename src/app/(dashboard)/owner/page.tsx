@@ -4,11 +4,11 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { TrendingUp, Users, ShoppingCart, Package, Download, Loader2, ChevronDown, Clock, Activity, AlertCircle } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { formatRp } from '@/lib/utils'
 import { SOURCE_LABELS } from '@/types'
 
 const COLORS = ['#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488']
-
-const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface Order {
   id: string
@@ -231,64 +231,94 @@ export default function OwnerDashboard() {
           </div>
 
           {/* Charts Row */}
-          <div className="chart-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 
-            {/* Revenue by Platform Bar Chart */}
-            <div className="chart-card" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>Omzet per Platform</h3>
-              {barData.length === 0 ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={barData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
-                    <Tooltip formatter={(v) => formatRp(v as number)} />
-                    <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Omzet per Platform</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {barData.length === 0 ? (
+                  <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <TrendingUp size={32} className="opacity-30" />
+                    <span>Belum ada data omzet</span>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={barData} barCategoryGap="25%">
+                      <defs>
+                        <linearGradient id="ownBrandGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="var(--brand-400)" />
+                          <stop offset="100%" stopColor="var(--brand-600)" />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(v) => [formatRp(v as number), 'Omzet']} cursor={{ fill: 'var(--muted)' }} />
+                      <Bar dataKey="revenue" fill="url(#ownBrandGrad)" radius={[6, 6, 0, 0]} animationDuration={800} label={{ position: 'top', fontSize: 9, fontWeight: 600, fill: 'var(--muted-foreground)' }} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
 
-            {/* Platform Distribution Pie */}
-            <div className="chart-card" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>Distribusi Platform</h3>
-              {barData.length === 0 ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-              ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={barData} dataKey="orders" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
-                      {barData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Distribusi Platform</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {barData.length === 0 ? (
+                  <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                    <TrendingUp size={32} className="opacity-30" />
+                    <span>Belum ada data platform</span>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <PieChart>
+                      <Pie data={barData} dataKey="orders" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={35} label={({ name, percent }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={{ stroke: 'var(--muted-foreground)', strokeWidth: 1 }} animationDuration={800}>
+                        {barData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="#fff" strokeWidth={2} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* 12-Month Revenue Trend */}
-          <div className="chart-card" style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <TrendingUp size={16} color="#16a34a" />
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren Omzet 12 Bulan</h3>
-            </div>
-            {trendData.length === 0 ? (
-              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
-                  <Tooltip formatter={(v) => formatRp(v as number)} />
-                  <Line type="monotone" dataKey="revenue" stroke="#cc7030" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp size={16} color="#16a34a" />
+                <CardTitle>Tren Omzet 12 Bulan</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {trendData.length === 0 ? (
+                <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <TrendingUp size={32} className="opacity-30" />
+                  <span>Belum ada data tren</span>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={trendData}>
+                    <defs>
+                      <linearGradient id="ownGreenGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#4ade80" />
+                        <stop offset="100%" stopColor="#16a34a" />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} formatter={(v) => [formatRp(v as number), 'Revenue']} />
+                    <Line type="monotone" dataKey="revenue" stroke="url(#ownGreenGrad)" strokeWidth={3} dot={{ r: 3, fill: '#16a34a', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#16a34a', stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Top Products + Pipeline */}
           <div className="pipeline-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>

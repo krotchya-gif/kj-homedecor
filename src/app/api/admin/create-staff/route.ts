@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { requireAuthRole, checkRateLimit } from '@/lib/auth'
 
 const CreateStaffSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter').max(100),
@@ -14,6 +15,16 @@ const CreateStaffSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+    if (rateLimit.blocked) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
+    // Auth + role check — only admin/owner can create staff
+    const auth = await requireAuthRole(['admin', 'owner'])
+    if (auth.error) return auth.error
+
     const body = await request.json()
     const parsed = CreateStaffSchema.safeParse(body)
 
@@ -39,15 +50,6 @@ export async function POST(request: NextRequest) {
         },
       }
     )
-
-    // Verify requester is admin
-    const { data: { user: requester } } = await supabase.auth.getUser()
-    if (requester) {
-      const { data: requesterData } = await supabase.from('users').select('role').eq('id', requester.id).single()
-      if (requesterData?.role !== 'admin' && requesterData?.role !== 'owner') {
-        return NextResponse.json({ error: 'Hanya Admin yang dapat membuat akun staff' }, { status: 403 })
-      }
-    }
 
     // Create auth user
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({

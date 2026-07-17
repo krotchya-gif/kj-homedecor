@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAuth, requireAuthRole, checkRateLimit } from '@/lib/auth'
 
 interface JournalLine {
   account_id: string
@@ -26,9 +27,12 @@ interface CreateJournalOptions {
  * POST /api/journal { reference_type, reference_id, description, lines }
  */
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+
+  const auth = await requireAuthRole(['admin', 'owner', 'finance'])
+  if (auth.error) return auth.error
+  const { supabase } = auth
 
   const body: CreateJournalOptions = await request.json()
 
@@ -65,7 +69,7 @@ export async function POST(request: Request) {
       .single()
 
     if (entryError) {
-      return NextResponse.json({ data: null, error: { message: entryError.message } }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
     }
 
     // Create journal lines
@@ -81,13 +85,12 @@ export async function POST(request: Request) {
     if (linesError) {
       // Rollback: delete entry
       await supabase.from('journal_entries').delete().eq('id', entry.id)
-      return NextResponse.json({ data: null, error: { message: linesError.message } }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
     }
 
     return NextResponse.json({ data: entry, error: null }, { status: 201 })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err ?? 'Unknown error')
-    return NextResponse.json({ data: null, error: { message } }, { status: 500 })
+    return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
   }
 }
 
@@ -95,18 +98,23 @@ export async function POST(request: Request) {
  * GET - list recent journal entries
  */
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  const auth = await requireAuth()
+  if (auth.error) return auth.error
+  const { supabase } = auth
 
   const { searchParams } = new URL(request.url)
-  const limit = Number(searchParams.get('limit') ?? 50)
+  const page = Math.max(1, Number(searchParams.get('page')) || 1)
+  const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
+  const offset = (page - 1) * limit
 
-  const { data, error } = await supabase
+  const { data, error, count } = await supabase
     .from('journal_entries')
-    .select('*, lines:journal_lines(count)')
+    .select('*, lines:journal_lines(count)', { count: 'exact' })
     .order('entry_date', { ascending: false })
-    .limit(limit)
+    .range(offset, offset + limit - 1)
 
-  return NextResponse.json({ data: data ?? [], error: null })
+  if (error) {
+    return NextResponse.json({ data: [], error: { message: 'Internal server error' } }, { status: 500 })
+  }
+  return NextResponse.json({ data: data ?? [], pagination: { page, limit, total: count ?? 0 }, error: null })
 }

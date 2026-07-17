@@ -16,13 +16,10 @@ export default function PenjahitJobsPage() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      console.warn('[Penjahit Jobs] No user session. Please login.')
       setJobs([])
       setLoading(false)
       return
     }
-    // Debug: log user.id untuk matching dengan production_jobs.penjahit_id
-    console.log('[Penjahit Jobs] Loading jobs for user.id:', user.id)
     // Note: Tidak ada FK production_jobs→order_items, jadi jangan pakai relasi 'order_item:order_items(...)'
     // Relasi yang valid: production_jobs.order_id → orders.id → order_items (via orders)
     // Untuk saat ini, tampilkan order info saja. Detail order_items bisa di-fetch terpisah kalau perlu.
@@ -36,7 +33,6 @@ export default function PenjahitJobsPage() {
       console.error('[Penjahit Jobs] Query error:', error)
       alert('⚠️ Gagal load job: ' + error.message)
     } else {
-      console.log(`[Penjahit Jobs] Found ${data?.length ?? 0} jobs for user.id=${user.id}`)
     }
     setJobs(data ?? [])
     setLoading(false)
@@ -75,7 +71,6 @@ export default function PenjahitJobsPage() {
     if (repErr) {
       // Fallback kalau kolom production_job_id belum ada (migration 046 belum di-apply)
       if (repErr.message?.includes('production_job_id') || repErr.code === 'PGRST204') {
-        console.warn('[Penjahit Jobs] production_job_id column missing, retrying without it. Apply migration 046!')
         await supabase.from('production_reports').insert({
           meter_gorden:     Number(rf.meter_gorden ?? 0),
           meter_vitras:     Number(rf.meter_vitras ?? 0),

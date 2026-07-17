@@ -358,7 +358,7 @@ export default function AdminShippingPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                   {shippedPhoto ? (
                     <div style={{ position: 'relative' }}>
-                      <img src={shippedPhoto} alt="Foto bukti" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                      <img src={shippedPhoto} alt="Foto bukti" loading="lazy" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
                       <button
                         onClick={() => setShippedPhoto(null)}
                         style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}

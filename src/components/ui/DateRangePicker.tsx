@@ -159,11 +159,11 @@ export default function DateRangePicker({
       }}>
         {/* Month navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <button onClick={prevMonth} style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}>
+          <button onClick={prevMonth} aria-label="Bulan sebelumnya" style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}>
             <ChevronLeft size={18} />
           </button>
           <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{MONTHS[viewMonth]} {viewYear}</span>
-          <button onClick={nextMonth} style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}>
+          <button onClick={nextMonth} aria-label="Bulan berikutnya" style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}>
             <ChevronRight size={18} />
           </button>
         </div>

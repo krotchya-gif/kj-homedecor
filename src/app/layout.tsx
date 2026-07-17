@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import SeoScripts from "@/components/SeoScripts";
 import Providers from "@/components/Providers";
 import FontLoader from "@/components/FontLoader";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const viewport: Viewport = {
   themeColor: "#DDC0B4",
@@ -52,7 +53,9 @@ export default function RootLayout({
           <Providers>
             <SeoScripts />
             <FontLoader />
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </Providers>
         </ThemeProvider>
       </body>

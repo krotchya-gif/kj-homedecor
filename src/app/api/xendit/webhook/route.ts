@@ -22,7 +22,18 @@ export async function POST(request: Request) {
       .update(rawBody, 'utf8')
       .digest('hex')
 
-    if (xenditSignature !== expectedSig) {
+    // Timing-safe comparison to prevent timing attacks
+    if (typeof expectedSig === 'string' && typeof xenditSignature === 'string') {
+      try {
+        const sigBuffer = Buffer.from(xenditSignature, 'utf-8')
+        const expectedBuffer = Buffer.from(expectedSig, 'utf-8')
+        if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+          return NextResponse.json({ data: null, error: { message: 'Invalid signature' } }, { status: 401 })
+        }
+      } catch {
+        return NextResponse.json({ data: null, error: { message: 'Invalid signature' } }, { status: 401 })
+      }
+    } else {
       return NextResponse.json({ data: null, error: { message: 'Invalid signature' } }, { status: 401 })
     }
 

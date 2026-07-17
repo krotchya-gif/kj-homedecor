@@ -1223,7 +1223,7 @@ export default function OrderDetailPage() {
               <div style={{display:'flex',flexWrap:'wrap',gap:'0.5rem',marginBottom:'1rem'}}>
                 {progressPhotos.map((url,i)=>(
                   <div key={i} style={{position:'relative',width:72,height:72}}>
-                    <img src={url} style={{width:72,height:72,objectFit:'cover',borderRadius:'0.375rem',border:'1px solid #e5e7eb'}}/>
+                    <img src={url} loading="lazy" style={{width:72,height:72,objectFit:'cover',borderRadius:'0.375rem',border:'1px solid #e5e7eb'}} alt="Progress photo"/>
                     <button onClick={()=>setProgressPhotos(p=>p.filter((_,j)=>j!==i))} style={{position:'absolute',top:-6,right:-6,background:'#ef4444',border:'none',borderRadius:'50%',width:20,height:20,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',color:'#fff',fontSize:10}}>✕</button>
                   </div>
                 ))}
@@ -1383,7 +1383,7 @@ export default function OrderDetailPage() {
               {photoPopup.photos.map((url,i)=>(
                 <div key={i} style={{aspectRatio:'1',overflow:'hidden',borderRadius:'0.5rem',border:'1px solid #e5e7eb',cursor:'pointer'}}
                   onClick={()=>{setLightboxPhotos(photoPopup.photos);setLightboxIndex(i);setLightboxOpen(true)}}>
-                  <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                  <img src={url} loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} alt="Photo"/>
                 </div>
               ))}
             </div>

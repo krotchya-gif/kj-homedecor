@@ -440,7 +440,7 @@ export default function GudangQCPage() {
                 <div style={{ display:'flex', gap:'0.75rem', flexWrap:'wrap', marginBottom:'0.5rem' }}>
                   {returForm.photos.map((url, idx) => (
                     <div key={idx} style={{ position:'relative', width:72, height:72 }}>
-                      <img src={url} alt={`Photo ${idx+1}`} style={{ width:72, height:72, objectFit:'cover', borderRadius:'0.5rem', border:'1px solid #e5e7eb' }}/>
+                      <img src={url} alt={`Photo ${idx+1}`} loading="lazy" style={{ width:72, height:72, objectFit:'cover', borderRadius:'0.5rem', border:'1px solid #e5e7eb' }}/>
                       <button type='button' onClick={()=>setReturForm(f=>({...f, photos: f.photos.filter((_,i)=>i!==idx)}))}
                         style={{ position:'absolute', top:-6, right:-6, width:20, height:20, borderRadius:'50%', background:'#ef4444', color:'#fff', border:'none', fontSize:'0.7rem', cursor:'pointer' }}>
                         ✕

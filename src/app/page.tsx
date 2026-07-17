@@ -12,23 +12,11 @@ import {
   Calendar,
   ShoppingBag,
 } from 'lucide-react'
-import type { Category, PortfolioPost } from '@/types'
+import type { Category, PortfolioPost, LandingSettings } from '@/types'
 import ProductCatalog from '@/components/landing/ProductCatalog'
 import ScrollNav from '@/components/landing/ScrollNav'
 import ScrollHero from '@/components/ScrollHero'
 import AnimatedCounter from '@/components/landing/AnimatedCounter'
-
-const CATEGORY_COLORS = [
-  '#DDC0B4', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626',
-]
-
-const TRUST_ICON_MAP: Record<string, React.ReactNode> = {
-  Star: <Star size={16} />,
-  Shield: <Shield size={16} />,
-  Truck: <Truck size={16} />,
-  Clock: <Clock size={16} />,
-  CheckCircle: <CheckCircle size={16} />,
-}
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -41,7 +29,7 @@ export default async function LandingPage() {
 
   const categories = (categoriesRes.data ?? []) as Category[]
   const portfolio = (portfolioRes.data ?? []) as PortfolioPost[]
-  const settings = settingsRes.data as any
+  const settings = settingsRes.data as LandingSettings | null
 
   const heroTitle = settings?.hero_title ?? 'Percantik Ruanganmu dengan Gorden Premium'
   const heroSubtitle = settings?.hero_subtitle ?? 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'
@@ -211,7 +199,7 @@ export default async function LandingPage() {
                   <div className="portfolio-card-img-wrap">
                     <div style={{ height: 240, background: `linear-gradient(135deg, ${themePrimary}33, ${themeSecondary}77)`, overflow: 'hidden' }}>
                       {(post.images as string[])?.[0]
-                        ? <img src={(post.images as string[])[0]} alt={post.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ? <img src={(post.images as string[])[0]} alt={post.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Sparkles size={44} style={{ color: themePrimary, opacity: 0.5 }} /></div>}
                     </div>
                     <div className="portfolio-card-overlay">
@@ -266,7 +254,7 @@ export default async function LandingPage() {
             {/* Brand column */}
             <div>
               <div style={{ marginBottom: '1.5rem' }}>
-                <img src="/kjlogo.png" alt="KJ Homedecor" style={{ height: '42px', width: 'auto' }} suppressHydrationWarning />
+                <img src="/kjlogo.png" alt="KJ Homedecor" loading="lazy" style={{ height: '42px', width: 'auto' }} suppressHydrationWarning />
               </div>
               <p style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'rgba(255,255,255,0.5)', maxWidth: 280, marginBottom: '1.5rem' }}>
                 Spesialis gorden, curtain, roman blind, dan vitras premium. Pemasangan profesional ke seluruh Jabodetabek.

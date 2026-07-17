@@ -1,5 +1,19 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAuth, requireAuthRole, checkRateLimit } from '@/lib/auth'
+
+const ALLOWED_ORDER_UPDATE_FIELDS = [
+  'source', 'classification', 'notes',
+  'status',
+  'shipping_cost', 'tracking_number', 'courier',
+  'scheduled_installation_date',
+  'photo_urls', 'progress_photos',
+] as const
+
+const ALLOWED_ORDER_FINANCIAL_FIELDS = [
+  'total_amount', 'dp_amount', 'lunas_amount',
+  'payment_status', 'customer_id',
+] as const
 
 // V3 Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -56,9 +70,32 @@ function isStatusTransitionAllowed(
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  const auth = await requireAuthRole(['admin', 'owner', 'finance', 'gudang', 'penjahit', 'installer'])
+  if (auth.error) return auth.error
+  const { supabase, user, userData } = auth
+
+  // IDOR protection: non-admin/owner/finance can only see orders related to them
+  const userRole = userData?.role
+  if (userRole !== 'admin' && userRole !== 'owner' && userRole !== 'finance') {
+    // Check if user is related to this order via install_bookings or production_jobs
+    const { data: relatedBooking } = await supabase
+      .from('install_bookings')
+      .select('id')
+      .eq('order_id', id)
+      .eq('installer_id', user.id)
+      .maybeSingle()
+
+    const { data: relatedJob } = await supabase
+      .from('production_jobs')
+      .select('id')
+      .eq('order_id', id)
+      .eq('penjahit_id', user.id)
+      .maybeSingle()
+
+    if (!relatedBooking && !relatedJob) {
+      return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+    }
+  }
 
   const { data, error } = await supabase
     .from('orders')
@@ -66,25 +103,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+
+  const auth = await requireAuthRole(['admin', 'owner', 'finance', 'gudang', 'penjahit', 'installer'])
+  if (auth.error) return auth.error
+  const { supabase, user, userData } = auth
+
   const { id } = await params
-  const supabase = await createClient()
-
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
-
-  // Get requester role
-  const { data: requester } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const userRole = requester?.role ?? 'admin'
+  const userRole = userData?.role ?? 'admin'
   const body = await request.json()
 
   // Validate status transition if status is being changed
@@ -95,14 +127,16 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ data: null, error: { message: 'Order not found' } }, { status: 404 })
     }
 
-    // WAJIB: foto bukti pengerjaan harus di-upload (accountability)
-    // photoUrls bisa dikirim via body.photo_urls atau body.progress_photos
-    const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
-    if (photoEvidence.length === 0) {
-      return NextResponse.json(
-        { data: null, error: { message: 'Wajib upload minimal 1 foto bukti pengerjaan (accountability). Field: photo_urls atau progress_photos.' } },
-        { status: 400 }
-      )
+    // WAJIB: foto bukti untuk status yang butuh accountability (hasil kerja/fisik)
+    const PHOTO_REQUIRED_TRANSITIONS = ['steam', 'packed', 'shipped', 'done']
+    if (PHOTO_REQUIRED_TRANSITIONS.includes(body.status)) {
+      const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
+      if (photoEvidence.length === 0) {
+        return NextResponse.json(
+          { data: null, error: { message: 'Wajib upload minimal 1 foto bukti pengerjaan (accountability). Field: photo_urls atau progress_photos.' } },
+          { status: 400 }
+        )
+      }
     }
 
     // Check role-based permission for this transition
@@ -166,7 +200,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
         if (jobErr) {
           return NextResponse.json(
-            { data: null, error: { message: 'Gagal membuat production_job: ' + jobErr.message } },
+            { data: null, error: { message: 'Gagal membuat production_job' } },
             { status: 500 }
           )
         }
@@ -220,7 +254,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       if (newJobErr) {
         return NextResponse.json(
-          { data: null, error: { message: 'Gagal membuat job revisi: ' + newJobErr.message } },
+          { data: null, error: { message: 'Gagal membuat job revisi' } },
           { status: 500 }
         )
       }
@@ -301,31 +335,33 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  const { data, error } = await supabase.from('orders').update(body).eq('id', id).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  // Build whitelisted update object
+  const whitelistedUpdate: Record<string, any> = {}
+  for (const field of ALLOWED_ORDER_UPDATE_FIELDS) {
+    if (body[field] !== undefined) whitelistedUpdate[field] = body[field]
+  }
+  // Hanya admin/owner/finance yang bisa update financial fields
+  if (['admin', 'owner', 'finance'].includes(userRole)) {
+    for (const field of ALLOWED_ORDER_FINANCIAL_FIELDS) {
+      if (body[field] !== undefined) whitelistedUpdate[field] = body[field]
+    }
+  }
+
+  const { data, error } = await supabase.from('orders').update(whitelistedUpdate).eq('id', id).select().single()
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+
+  const auth = await requireAuthRole(['admin', 'owner'])
+  if (auth.error) return auth.error
+  const { supabase, user, userData } = auth
+
   const { id } = await params
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
-
-  // RBAC: only admin/owner can hard-delete. Other roles should use 'cancelled' status instead.
-  const { data: requester } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  const userRole = requester?.role ?? 'admin'
-
-  if (userRole !== 'admin' && userRole !== 'owner') {
-    return NextResponse.json(
-      { data: null, error: { message: `Role "${userRole}" tidak punya permission untuk hard-delete order. Gunakan status 'cancelled' sebagai gantinya.` } },
-      { status: 403 }
-    )
-  }
+  const userRole = userData?.role ?? 'admin'
 
   // Log the deletion for audit trail before deleting
   await supabase.from('order_logs').insert({
@@ -336,6 +372,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   })
 
   const { error } = await supabase.from('orders').delete().eq('id', id)
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
   return NextResponse.json({ data: { deleted: true }, error: null })
 }

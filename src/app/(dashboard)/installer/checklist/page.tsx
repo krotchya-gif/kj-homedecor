@@ -210,7 +210,7 @@ export default function InstallerChecklistPage() {
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                 {photos.map((url, i) => (
                   <div key={i} style={{ position: 'relative' }}>
-                    <img src={url} alt={`Evidence ${i + 1}`} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }} />
+                    <img src={url} alt={`Evidence ${i + 1}`} loading="lazy" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }} />
                     <button
                       type="button"
                       onClick={() => setPhotos(prev => prev.filter((_, idx) => idx !== i))}

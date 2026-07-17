@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { z } from 'zod'
+import { requireAuth, checkRateLimit } from '@/lib/auth'
 
 const FolderSchema = z.enum([
   'products', 'banners', 'portfolio', 'evidence', 'documents',
@@ -37,9 +38,14 @@ const MAX_SIZES = {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+    const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+    if (rateLimit.blocked) {
+      return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+    }
+
+    const auth = await requireAuth()
+    if (auth.error) return auth.error
+    const supabase = auth.supabase
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null
@@ -73,8 +79,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'jpg'
+    // Validate file extension against allowed types
+    const ext = file.name.split('.').pop()?.toLowerCase() || ''
+    const ALLOWED_EXTENSIONS: Record<string, string[]> = {
+      'image/jpeg': ['jpg', 'jpeg'],
+      'image/png': ['png'],
+      'image/webp': ['webp'],
+      'application/pdf': ['pdf'],
+      'video/mp4': ['mp4'],
+      'video/webm': ['webm'],
+    }
+    const allowedExts = ALLOWED_EXTENSIONS[file.type]
+    if (!allowedExts || !allowedExts.includes(ext)) {
+      return NextResponse.json(
+        { data: null, error: { message: `Invalid file extension "${ext}" for type "${file.type}"` } },
+        { status: 400 }
+      )
+    }
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
     const filename = `${timestamp}-${random}.${ext}`
@@ -86,6 +107,33 @@ export async function POST(request: NextRequest) {
     // Write file
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+
+    // Magic bytes validation to prevent MIME spoofing
+    if (buffer.length > 0) {
+      const magicBytes: Record<string, Uint8Array[]> = {
+        'image/jpeg': [new Uint8Array([0xFF, 0xD8, 0xFF])],
+        'image/png': [new Uint8Array([0x89, 0x50, 0x4E, 0x47])],
+        'image/webp': [new Uint8Array([0x52, 0x49, 0x46, 0x46])], // RIFF header
+        'application/pdf': [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
+        'video/mp4': [new Uint8Array([0x00, 0x00, 0x00]), new Uint8Array([0x66, 0x74, 0x79, 0x70])],
+        'video/webm': [new Uint8Array([0x1A, 0x45, 0xDF, 0xA3])],
+      }
+
+      const magicCheckers = magicBytes[file.type]
+      if (magicCheckers) {
+        const header = new Uint8Array(buffer.slice(0, 16))
+        const matchesMagic = magicCheckers.some((magic) => {
+          return magic.every((byte, i) => header[i] === byte)
+        })
+        if (!matchesMagic) {
+          return NextResponse.json(
+            { data: null, error: { message: 'File content does not match its declared type' } },
+            { status: 400 }
+          )
+        }
+      }
+    }
+
     const filepath = path.join(uploadDir, filename)
     await writeFile(filepath, buffer)
 

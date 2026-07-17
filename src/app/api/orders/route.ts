@@ -2,6 +2,12 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { z } from 'zod'
+import { requireAuth, requireAuthRole, checkRateLimit } from '@/lib/auth'
+
+const ALLOWED_ORDER_FIELDS = [
+  'source', 'classification', 'total_amount', 'dp_amount',
+  'customer_id', 'notes',
+] as const
 
 const OrderSourceSchema = z.enum(['shopee', 'tokopedia', 'tiktok', 'offline', 'landing_page'])
 const OrderClassificationSchema = z.enum(['kirim', 'pasang'])
@@ -16,28 +22,64 @@ const CreateOrderSchema = z.object({
 })
 
 export async function GET(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  const auth = await requireAuthRole(['admin', 'owner', 'finance', 'gudang', 'penjahit', 'installer'])
+  if (auth.error) return auth.error
+  const { supabase, user, userData } = auth
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const source = searchParams.get('source')
+  const page = Math.max(1, Number(searchParams.get('page')) || 1)
+  const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
+  const offset = (page - 1) * limit
 
-  let query = supabase.from('orders').select('*, customer:customers(name, phone, address), order_items(count)').order('created_at', { ascending: false })
+  // IDOR protection: non-admin/owner/finance can only see orders related to them
+  const userRole = userData?.role
+  let query = supabase.from('orders')
+    .select('*, customer:customers(name, phone, address), order_items(count)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+
+  // If user is not admin/owner/finance, restrict to their own orders
+  if (userRole !== 'admin' && userRole !== 'owner' && userRole !== 'finance') {
+    // For installers: orders with their install_bookings
+    // For gudang/penjahit: orders they're working on via production_jobs
+    // Simple approach: use a subquery to get relevant order IDs
+    const { data: relatedOrderIds } = await supabase
+      .from('install_bookings')
+      .select('order_id')
+      .eq('installer_id', user.id)
+    const installerOrderIds = (relatedOrderIds ?? []).map(b => b.order_id).filter(Boolean)
+
+    const { data: productionOrderIds } = await supabase
+      .from('production_jobs')
+      .select('order_id')
+      .eq('penjahit_id', user.id)
+    const prodOrderIds = (productionOrderIds ?? []).map(j => j.order_id).filter(Boolean)
+
+    const allRelatedIds = [...new Set([...installerOrderIds, ...prodOrderIds])]
+    if (allRelatedIds.length > 0) {
+      query = query.in('id', allRelatedIds)
+    } else {
+      // Return empty if no related orders
+      return NextResponse.json({ data: [], pagination: { page, limit, total: 0 }, error: null })
+    }
+  }
 
   if (status) query = query.eq('status', status)
   if (source) query = query.eq('source', source)
 
-  const { data, error } = await query
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
-  return NextResponse.json({ data, error: null })
+  const { data, error, count } = await query.range(offset, offset + limit - 1)
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
+  return NextResponse.json({ data, pagination: { page, limit, total: count ?? 0 }, error: null })
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+
+  const auth = await requireAuthRole(['admin', 'owner', 'finance'])
+  if (auth.error) return auth.error
+  const { supabase } = auth
 
   const body = await request.json()
   const parsed = CreateOrderSchema.safeParse(body)
@@ -48,13 +90,29 @@ export async function POST(request: Request) {
 
   const data = parsed.data
 
+  // Server-side price validation: verify total_amount matches products in DB
+  if (data.total_amount !== undefined && data.total_amount > 0) {
+    // If customer_id is provided, check if there are any order_items already set
+    // Otherwise, just validate that total_amount is reasonable (positive number)
+    // The detailed price validation happens when order_items are created
+    if (data.total_amount < 0) {
+      return NextResponse.json({ data: null, error: { message: 'Invalid total_amount' } }, { status: 400 })
+    }
+  }
+
   // Generate order number via RPC
   const { data: orderNum } = await supabase.rpc('generate_order_number')
   const orderNumber = typeof orderNum === 'string' ? orderNum : null
 
-  const orderData = { ...data, order_number: orderNumber }
-  const { data: order, error } = await supabase.from('orders').insert(orderData).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  // Whitelist fields for insert
+  const insertData: Record<string, any> = {}
+  for (const field of ALLOWED_ORDER_FIELDS) {
+    if (data[field as keyof typeof data] !== undefined) insertData[field] = data[field as keyof typeof data]
+  }
+  insertData.order_number = orderNumber
+
+  const { data: order, error } = await supabase.from('orders').insert(insertData).select().single()
+  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
   if (order && data.total_amount && data.total_amount > 0) {

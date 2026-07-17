@@ -12,7 +12,7 @@ const DASHBOARD_ROUTES = [
 
 const PUBLIC_ROUTES = ["/", "/login"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { supabase, supabaseResponse } = createClient(request);
 
   // Refresh session
@@ -65,6 +65,7 @@ export async function middleware(request: NextRequest) {
     const userRole = staffData?.role ?? "admin";
 
     // Map dashboard paths to allowed roles
+    // Use prefix matching so /admin/orders matches /admin
     const ROLE_DASHBOARD_MAP: Record<string, string[]> = {
       "/admin": ["admin", "owner"],
       "/finance": ["finance", "owner"],
@@ -74,7 +75,11 @@ export async function middleware(request: NextRequest) {
       "/owner": ["owner"],
     };
 
-    const allowedRoles = ROLE_DASHBOARD_MAP[pathname];
+    const dashboardPrefix = Object.keys(ROLE_DASHBOARD_MAP).find(
+      (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+    );
+    const allowedRoles = dashboardPrefix ? ROLE_DASHBOARD_MAP[dashboardPrefix] : undefined;
+
     if (allowedRoles && !allowedRoles.includes(userRole)) {
       // Redirect to user's own dashboard
       const dashboards: Record<string, string> = {
@@ -90,6 +95,9 @@ export async function middleware(request: NextRequest) {
       );
     }
   }
+
+  // Set x-pathname header for dashboard layout to read
+  supabaseResponse.headers.set("x-pathname", request.nextUrl.pathname);
 
   return supabaseResponse;
 }

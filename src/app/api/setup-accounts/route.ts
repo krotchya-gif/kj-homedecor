@@ -1,10 +1,35 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAuth, checkRateLimit } from '@/lib/auth'
 
 // POST /api/setup-accounts — create initial admin & owner accounts
 // Uses signUp instead of admin API (no service role key needed)
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient()
+
+    // If any user already exists, require auth + admin/owner role
+    const { count } = await supabase.from('users').select('*', { count: 'exact', head: true })
+    if (count && count > 0) {
+      const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+      if (rateLimit.blocked) {
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+      }
+
+      const auth = await requireAuth()
+      if (auth.error) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+      const { data: requester } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', auth.user.id)
+        .single()
+
+      if (!['admin', 'owner'].includes(requester?.role ?? '')) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    }
+
     const { email, password, name, role } = await request.json()
 
     if (!email || !password || !name || !role) {
@@ -14,8 +39,6 @@ export async function POST(request: Request) {
     if (!['admin', 'owner'].includes(role)) {
       return NextResponse.json({ error: 'Role must be admin or owner' }, { status: 400 })
     }
-
-    const supabase = await createClient()
 
     // Check if any user with this role already exists
     const { data: existing } = await supabase
@@ -73,6 +96,13 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const supabase = await createClient()
+
+    // If any user exists, require auth
+    const { count } = await supabase.from('users').select('*', { count: 'exact', head: true })
+    if (count && count > 0) {
+      const auth = await requireAuth()
+      if (auth.error) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const [{ data: admins }, { data: owners }] = await Promise.all([
       supabase.from('users').select('id').eq('role', 'admin').limit(1).maybeSingle(),

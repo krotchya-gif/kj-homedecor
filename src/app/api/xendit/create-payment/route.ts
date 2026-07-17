@@ -1,13 +1,27 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { requireAuthRole, checkRateLimit } from '@/lib/auth'
 
 // Create Xendit payment (VA or QRIS)
 export async function POST(request: Request) {
   try {
+    const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+    if (rateLimit.blocked) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
+    const auth = await requireAuthRole(['admin', 'owner', 'finance'])
+    if (auth.error) return auth.error
+
     const { order_id, amount, payment_type = 'VA', email, customer_name, phone } = await request.json()
 
     if (!order_id || !amount) {
       return NextResponse.json({ error: 'order_id and amount are required' }, { status: 400 })
+    }
+
+    // Validate amount is positive
+    if (typeof amount !== 'number' || amount <= 0) {
+      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
     }
 
     const xenditApiKey = process.env.XENDIT_API_KEY
@@ -25,6 +39,15 @@ export async function POST(request: Request) {
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
+    }
+
+    // Amount validation: amount must not exceed total_amount - total paid
+    const totalPaid = order.lunas_amount ?? 0
+    const remainingAmount = (order.total_amount ?? 0) - totalPaid
+    if (amount > remainingAmount) {
+      return NextResponse.json({
+        error: `Amount exceeds remaining balance. Order total: ${order.total_amount}, already paid: ${totalPaid}, remaining: ${remainingAmount}`,
+      }, { status: 400 })
     }
 
     // Create Xendit invoice/VA

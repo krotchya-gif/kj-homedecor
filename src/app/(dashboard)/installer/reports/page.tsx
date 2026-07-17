@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Calendar, MapPin, Package, TrendingUp } from 'lucide-react'
+import { formatRp } from '@/lib/utils'
 
 interface CompletedBooking {
   id: string
@@ -25,9 +26,6 @@ interface CompletedBooking {
     customer?: { name: string; phone: string }
   }
 }
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function InstallerReportsPage() {
   const [bookings, setBookings] = useState<CompletedBooking[]>([])

@@ -456,7 +456,7 @@ export default function AdminLandingSettingsPage() {
                 </div>
                 {form.hero_image_url && (
                   <div style={{ marginTop: '0.5rem', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-                    <img src={form.hero_image_url} alt="Hero preview" style={{ width: '100%', height: 120, objectFit: 'cover' }} />
+                    <img src={form.hero_image_url} alt="Hero preview" loading="lazy" style={{ width: '100%', height: 120, objectFit: 'cover' }} />
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
-import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { requireAuthRole, checkRateLimit } from '@/lib/auth'
 
 /**
  * POST /api/orders/[id]/consume-materials
@@ -21,16 +21,19 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const supabase = await createClient()
 
-  // 1. Auth check
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) {
+  // 1. Rate limiting + Auth + Role check (only gudang/admin/owner can consume)
+  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+  if (rateLimit.blocked) {
     return NextResponse.json(
-      { data: null, error: { message: 'Unauthorized' } },
-      { status: 401 }
+      { data: null, error: { message: 'Too many requests' } },
+      { status: 429 }
     )
   }
+
+  const auth = await requireAuthRole(['gudang', 'admin', 'owner'])
+  if (auth.error) return auth.error
+  const { supabase, user } = auth
 
   // 2. Parse body
   const body = await request.json()
@@ -91,7 +94,7 @@ export async function POST(
   if (rpcErr) {
     console.error('consume_materials_for_production RPC failed:', rpcErr)
     return NextResponse.json(
-      { data: null, error: { message: 'Gagal consume materials: ' + rpcErr.message } },
+      { data: null, error: { message: 'Gagal consume materials' } },
       { status: 500 }
     )
   }

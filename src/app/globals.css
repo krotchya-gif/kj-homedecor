@@ -37,6 +37,27 @@
 
   /* Radius */
   --radius: 0.5rem;
+
+  /* ========== Shadcn / UI System Tokens ========== */
+  --background: var(--neutral-50);
+  --foreground: var(--neutral-800);
+  --card: #ffffff;
+  --card-foreground: var(--neutral-800);
+  --popover: #ffffff;
+  --popover-foreground: var(--neutral-800);
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-800);
+  --muted: var(--neutral-100);
+  --muted-foreground: var(--neutral-500);
+  --accent: var(--brand-100);
+  --accent-foreground: var(--neutral-800);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--neutral-200);
+  --input: var(--neutral-200);
+  --ring: var(--brand-500);
 }
 
 html, body {
@@ -63,6 +84,27 @@ html, body {
   /* Brand warm in dark */
   --brand-500: #EDA4A3;
   --brand-600: #C87870;
+
+  /* ========== Shadcn / UI Tokens — Dark ========== */
+  --background: #0E0B0A;
+  --foreground: var(--neutral-900);
+  --card: var(--neutral-100);
+  --card-foreground: var(--neutral-900);
+  --popover: var(--neutral-100);
+  --popover-foreground: var(--neutral-900);
+  --primary: var(--brand-500);
+  --primary-foreground: #1A1412;
+  --secondary: var(--neutral-200);
+  --secondary-foreground: var(--neutral-900);
+  --muted: var(--neutral-200);
+  --muted-foreground: var(--neutral-600);
+  --accent: var(--neutral-200);
+  --accent-foreground: var(--neutral-900);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--neutral-300);
+  --input: var(--neutral-300);
+  --ring: var(--brand-500);
 
   /* Dark backgrounds */
   background-color: #0E0B0A;

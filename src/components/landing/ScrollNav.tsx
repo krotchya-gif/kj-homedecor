@@ -78,7 +78,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             flexShrink: 0,
           }}
         >
-          <img src="/kjlogo.png" alt="KJ Homedecor" style={{ height: '38px', width: 'auto' }} suppressHydrationWarning />
+          <img src="/kjlogo.png" alt="KJ Homedecor" loading="lazy" style={{ height: '38px', width: 'auto' }} suppressHydrationWarning />
         </Link>
 
         {/* Desktop links */}

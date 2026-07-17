@@ -59,6 +59,7 @@ export default function ScrollHero({
         muted
         loop
         playsInline
+        preload="none"
         onError={() => setVideoError(true)}
         aria-hidden="true"
         style={{

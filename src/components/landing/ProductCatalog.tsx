@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/utils/supabase/client'
 import { Search, MessageCircle, Package, X } from 'lucide-react'
 import type { Product, Category } from '@/types'
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+import { formatRp } from '@/lib/utils'
 
 interface ProductCatalogProps {
   maxProducts?: number
@@ -22,7 +20,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [whatsappNumber, setWhatsappNumber] = useState('6281234567890')
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     loadData()

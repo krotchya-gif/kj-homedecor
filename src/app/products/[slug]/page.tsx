@@ -4,9 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { ArrowLeft, MessageCircle, Star, Shield, Truck, Phone } from 'lucide-react'
 import type { Product } from '@/types'
 import ProductImageGallery from '@/components/ProductImageGallery'
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+import { formatRp } from '@/lib/utils'
 
 interface PageProps {
   params: Promise<{ slug: string }>

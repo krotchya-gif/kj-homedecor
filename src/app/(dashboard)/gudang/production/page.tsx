@@ -112,7 +112,6 @@ export default function GudangProductionPage() {
           alert('⚠️ Gagal consume materials: ' + (consumeJson.error?.message ?? 'unknown error'))
           return  // Jangan continue kalau material gagal
         }
-        console.log('Material consumption:', consumeJson.data)
       } catch (e) {
         alert('⚠️ Gagal consume materials: ' + (e as Error).message)
         return

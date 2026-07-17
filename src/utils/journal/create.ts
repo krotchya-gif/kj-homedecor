@@ -1,7 +1,5 @@
 import { createClient } from '@/utils/supabase/client'
-
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+import { formatRp } from '@/lib/utils'
 
 export interface JournalLineInput {
   account_id: string

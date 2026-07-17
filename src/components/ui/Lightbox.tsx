@@ -93,6 +93,7 @@ export function Lightbox({ photos, currentIndex, onClose, onNext, onPrev }: Ligh
         alt={`Photo ${currentIndex + 1}`}
         className="max-w-full max-h-full object-contain"
         onClick={(e) => e.stopPropagation()}
+        loading="lazy"
       />
 
       {/* Counter */}
@@ -132,6 +133,7 @@ export function LightboxGallery({ photos, onPhotoClick, columns = 4, thumbSize =
             src={photo}
             alt={`Photo ${i + 1}`}
             className="size-full object-cover"
+            loading="lazy"
           />
           {i === 3 && extraCount > 0 && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-medium text-xs">
