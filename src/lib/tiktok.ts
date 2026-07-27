@@ -1,72 +1,88 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from "@/utils/supabase/server";
 
 export interface TikTokSettings {
-  id: string
-  app_key: string
-  app_secret: string
-  access_token: string | null
-  refresh_token: string | null
-  shop_cipher?: string | null
-  seller_name?: string | null
-  open_id?: string | null
-  token_expires_at: string | null
-  is_active: boolean
+	id: string;
+	app_key: string;
+	app_secret: string;
+	access_token: string | null;
+	refresh_token: string | null;
+	shop_cipher?: string | null;
+	seller_name?: string | null;
+	open_id?: string | null;
+	token_expires_at: string | null;
+	is_active: boolean;
 }
 
-export async function getTikTokSettings(shopId?: string): Promise<TikTokSettings | null> {
-  const supabase = await createClient()
-  let query = supabase.from('tiktok_shop_settings').select('*').limit(1)
-  if (shopId) {
-    query = query.eq('id', shopId)
-  }
-  
-  const { data } = await query
-  const settings = Array.isArray(data) ? data[0] : data
-  return (settings ?? null) as TikTokSettings | null
+export async function getTikTokSettings(
+	shopId?: string,
+): Promise<TikTokSettings | null> {
+	const supabase = await createClient();
+	let query = supabase.from("tiktok_shop_settings").select("*").limit(1);
+	if (shopId) {
+		query = query.eq("id", shopId);
+	}
+
+	const { data } = await query;
+	const settings = Array.isArray(data) ? data[0] : data;
+	return (settings ?? null) as TikTokSettings | null;
 }
 
-export async function refreshTikTokToken(settings: TikTokSettings): Promise<string | null> {
-  if (!settings.refresh_token) return null
+export async function refreshTikTokToken(
+	settings: TikTokSettings,
+): Promise<string | null> {
+	if (!settings.refresh_token) return null;
 
-  try {
-    const qs = new URLSearchParams({
-      grant_type: 'authorized_code',
-      refresh_token: settings.refresh_token,
-      app_key: settings.app_key,
-      app_secret: settings.app_secret,
-    })
+	try {
+		const qs = new URLSearchParams({
+			grant_type: "authorized_code",
+			refresh_token: settings.refresh_token,
+			app_key: settings.app_key,
+			app_secret: settings.app_secret,
+		});
 
-    const res = await fetch(`https://auth.tiktok-shops.com/api/v2/token/refresh?${qs}`)
-    const json = await res.json()
+		const res = await fetch(
+			`https://auth.tiktok-shops.com/api/v2/token/refresh?${qs}`,
+		);
+		const json = await res.json();
 
-    if (json.data?.access_token) {
-      const supabase = await createClient()
-      await supabase.from('tiktok_shop_settings').update({
-        access_token: json.data.access_token,
-        refresh_token: json.data.refresh_token ?? settings.refresh_token,
-        token_expires_at: json.data.access_token_expire_in
-          ? new Date(Date.now() + json.data.access_token_expire_in * 1000).toISOString()
-          : null,
-      }).eq('id', settings.id)
+		if (json.data?.access_token) {
+			const supabase = await createClient();
+			await supabase
+				.from("tiktok_shop_settings")
+				.update({
+					access_token: json.data.access_token,
+					refresh_token: json.data.refresh_token ?? settings.refresh_token,
+					token_expires_at: json.data.access_token_expire_in
+						? new Date(
+								Date.now() + json.data.access_token_expire_in * 1000,
+							).toISOString()
+						: null,
+				})
+				.eq("id", settings.id);
 
-      return json.data.access_token
-    }
-    return null
-  } catch {
-    return null
-  }
+			return json.data.access_token;
+		}
+		return null;
+	} catch {
+		return null;
+	}
 }
 
-export async function getValidToken(settings?: TikTokSettings | null): Promise<string | null> {
-  if (!settings) {
-    settings = await getTikTokSettings()
-  }
-  if (!settings?.access_token) return null
+export async function getValidToken(
+	settings?: TikTokSettings | null,
+): Promise<string | null> {
+	if (!settings) {
+		settings = await getTikTokSettings();
+	}
+	if (!settings?.access_token) return null;
 
-  // Check if token is expired and refresh if needed
-  if (settings.token_expires_at && new Date(settings.token_expires_at) < new Date()) {
-    return await refreshTikTokToken(settings)
-  }
+	// Check if token is expired and refresh if needed
+	if (
+		settings.token_expires_at &&
+		new Date(settings.token_expires_at) < new Date()
+	) {
+		return await refreshTikTokToken(settings);
+	}
 
-  return settings.access_token
+	return settings.access_token;
 }
