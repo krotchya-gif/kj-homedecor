@@ -49,3 +49,14 @@ doc/
 
 # Claude AI context and memory (local only)
 .claude/
+
+# Graphify knowledge graph output (generated artifacts)
+/graphify-out/
+
+# MCP configuration (machine-specific)
+.mcp.json
+
+# Temp / garbage files
+tmp_*
+nul
+nul.*
