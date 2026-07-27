@@ -50,10 +50,11 @@ export default function AdminReportsPage() {
 
   async function loadOrders() {
     setLoading(true)
-    let query = supabase
+    const query = supabase
       .from('orders')
       .select('*, order_items(product_id, price, qty, product(name))')
       .order('created_at', { ascending: false })
+      .limit(200)
 
     const { data } = await query
     let filtered = (data as Order[]) ?? []

@@ -34,6 +34,7 @@ export default function AdminPortfolioPage() {
       .from('portfolio_posts')
       .select('*')
       .order('created_at', { ascending: false })
+      .limit(50)
     setPosts(data ?? [])
     setLoading(false)
   }

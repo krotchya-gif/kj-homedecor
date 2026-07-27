@@ -55,8 +55,8 @@ export default function FinancePaymentsPage() {
         .select('id, total_amount, dp_amount, lunas_amount, payment_status, status, created_at, customer:customers(name, phone)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to),
-      supabase.from('returns').select('*, order:orders(id, customer:customers(name))').order('created_at', { ascending: false }),
-      supabase.from('steam_jobs').select('*, order:orders(id, total_amount, dp_amount, lunas_amount, payment_status, status, customer:customers(name, phone))').eq('result', 'pass').eq('status', 'done'),
+      supabase.from('returns').select('*, order:orders(id, customer:customers(name))').order('created_at', { ascending: false }).limit(100),
+      supabase.from('steam_jobs').select('*, order:orders(id, total_amount, dp_amount, lunas_amount, payment_status, status, customer:customers(name, phone))').eq('result', 'pass').eq('status', 'done').limit(100),
     ])
 
     setOrders(ordersData.data ?? [])

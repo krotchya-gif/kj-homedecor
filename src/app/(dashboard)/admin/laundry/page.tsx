@@ -40,7 +40,7 @@ export default function AdminLaundryPage() {
   async function fetchData() {
     setLoading(true)
     const [ordersRes, staffRes, rateRes] = await Promise.all([
-      supabase.from('laundry_orders').select('*').order('created_at', { ascending: false }),
+      supabase.from('laundry_orders').select('*').order('created_at', { ascending: false }).limit(100),
       supabase.from('users').select('*').eq('role', 'laundry').eq('status', 'active'),
       supabase.from('laundry_rates').select('*').eq('is_active', true).single(),
     ])
