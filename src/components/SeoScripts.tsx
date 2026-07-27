@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Script from 'next/script'
 import { createClient } from '@/utils/supabase/client'
 
 export default function SeoScripts() {
@@ -25,7 +26,7 @@ export default function SeoScripts() {
   return (
     <>
       {pixelId && (
-        <script
+        <Script id="fb-pixel" strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)
@@ -43,7 +44,7 @@ export default function SeoScripts() {
         />
       )}
       {ga4Id && (
-        <script
+        <Script id="ga4-init" strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];

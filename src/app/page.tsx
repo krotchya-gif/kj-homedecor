@@ -163,8 +163,8 @@ export default async function LandingPage() {
               { icon: <Star size={34} />, title: settings?.whyus_card2_title ?? 'Ratusan Pelanggan', desc: settings?.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek', color: themePrimary },
               { icon: <Truck size={34} />, title: settings?.whyus_card3_title ?? 'Pasang Profesional', desc: settings?.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda', color: themeSecondary },
               { icon: <Shield size={34} />, title: settings?.whyus_card4_title ?? 'Garansi Resmi', desc: settings?.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan', color: themeAccent },
-            ].map((f) => (
-              <div key={f.title} className="why-us-card">
+            ].map((f, i) => (
+              <div key={i} className="why-us-card">
                 <div style={{ width: 64, height: 64, borderRadius: '50%', background: `${f.color}22`, border: `2px solid ${f.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', color: f.color, animation: 'pulseGlow 3s ease-in-out infinite' }}>{f.icon}</div>
                 <div className="why-us-card-title">{f.title}</div>
                 <div className="why-us-card-desc">{f.desc}</div>
