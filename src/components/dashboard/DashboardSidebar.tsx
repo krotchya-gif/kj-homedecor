@@ -28,6 +28,7 @@ import {
 	ArrowLeftRight,
 	LandPlot,
 	FileText,
+	ShoppingBag,
 } from "lucide-react";
 import { useState } from "react";
 import ThemeToggle from "@/components/ui/ThemeToggle";
@@ -232,6 +233,11 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
 			label: "Marketplace",
 			href: "/owner/marketplace",
 			icon: <ShoppingCart size={18} />,
+		},
+		{
+			label: "TikTok Shop",
+			href: "/owner/tiktok",
+			icon: <ShoppingBag size={18} />,
 		},
 		{
 			label: "Top Produk",
