@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://kjhomedecor.com";
+
 // GET /api/tiktok/auth?code=xxx&state=shop_id → OAuth callback from TikTok
 export async function GET(req: NextRequest) {
 	const { searchParams } = new URL(req.url);
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
 
 		if (!settings) {
 			return NextResponse.redirect(
-				new URL("/owner/tiktok?error=settings_not_found", req.url),
+				new URL("/owner/tiktok?error=settings_not_found", BASE_URL),
 			);
 		}
 
@@ -61,13 +63,13 @@ export async function GET(req: NextRequest) {
 			}
 
 			return NextResponse.redirect(
-				new URL("/owner/tiktok?success=connected", req.url),
+				new URL("/owner/tiktok?success=connected", BASE_URL),
 			);
 		} catch (err: any) {
 			return NextResponse.redirect(
 				new URL(
 					`/owner/tiktok?error=${encodeURIComponent(err.message)}`,
-					req.url,
+					BASE_URL,
 				),
 			);
 		}
