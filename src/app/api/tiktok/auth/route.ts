@@ -89,12 +89,8 @@ export async function GET(req: NextRequest) {
 								.map((k) => `${k}${authParams[k as keyof typeof authParams]}`)
 								.join("");
 							input = authPath + input;
-							const pt =
-								settings.app_secret + input + settings.app_secret;
-							const hmac = crypto.createHmac(
-								"sha256",
-								settings.app_secret,
-							);
+							const pt = settings.app_secret + input + settings.app_secret;
+							const hmac = crypto.createHmac("sha256", settings.app_secret);
 							hmac.update(pt);
 							const authSign = hmac.digest("hex");
 

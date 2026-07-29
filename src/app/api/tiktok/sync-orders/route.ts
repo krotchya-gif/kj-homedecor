@@ -98,18 +98,29 @@ export async function POST(req: NextRequest) {
 				.maybeSingle();
 
 			if (!existing) {
+				// TikTok API field mapping — payment details are in nested payment object
+				const payment = order.payment || {};
+				const totalAmount = payment.total_amount
+					? Number(payment.total_amount)
+					: 0;
+				const shippingFee = payment.shipping_fee
+					? Number(payment.shipping_fee)
+					: 0;
+
 				await supabase.from("tiktok_shop_orders").insert({
 					tiktok_order_id: order.id,
-					order_status: order.order_status,
-					payment_status: order.payment_status,
-					total_amount: order.total_amount ?? 0,
-					shipping_amount: order.shipping_amount ?? 0,
-					platform_fee: 0,
+					order_status: order.status || order.order_status, // status: COMPLETED, etc.
+					payment_status: order.status === "COMPLETED" || order.status === "DELIVERED" ? "PAID" : order.status,
+					total_amount: totalAmount,
+					shipping_amount: shippingFee,
+					platform_fee: payment.platform_discount
+						? -Math.abs(Number(payment.platform_discount))
+						: 0,
 					commission_fee: 0,
-					net_amount: order.total_amount ?? 0,
-					currency: order.currency || "IDR",
-					buyer_name: order.buyer_user_name || order.recipient_address?.name,
-					buyer_phone: order.recipient_address?.phone,
+					net_amount: totalAmount - shippingFee,
+					currency: payment.currency || "IDR",
+					buyer_name: order.recipient_address?.name || order.buyer_user_name,
+					buyer_phone: order.recipient_address?.phone_number,
 					shipping_address: order.recipient_address?.full_address,
 					order_data: order,
 				});
