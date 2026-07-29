@@ -7,10 +7,12 @@ import {
 	DollarSign,
 	RefreshCw,
 	Link2,
-	Unlink,
 	Loader2,
-	ExternalLink,
-	Search,
+	Trash2,
+	AlertCircle,
+	CheckCircle2,
+	Clock,
+	Info,
 } from "lucide-react";
 
 const formatRp = (n: number) =>
@@ -26,8 +28,15 @@ export default function TikTokDashboardPage() {
 	const [statements, setStatements] = useState<any[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [syncing, setSyncing] = useState<string | null>(null);
-	const [syncResult, setSyncResult] = useState<string | null>(null);
+	const [syncResult, setSyncResult] = useState<{
+		type: "success" | "error";
+		text: string;
+	} | null>(null);
 	const [showAddForm, setShowAddForm] = useState(false);
+	const [showReauthConfirm, setShowReauthConfirm] = useState<string | null>(
+		null,
+	);
+	const [reauthLoading, setReauthLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [form, setForm] = useState({
 		shop_name: "",
@@ -38,6 +47,8 @@ export default function TikTokDashboardPage() {
 	const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
 	const supabase = createClient();
+
+	const activeShop = settings.find((s) => s.is_active);
 
 	useEffect(() => {
 		fetchData();
@@ -67,26 +78,57 @@ export default function TikTokDashboardPage() {
 	async function handleSave(e: React.FormEvent) {
 		e.preventDefault();
 		setSaving(true);
-		const res = await fetch("/api/tiktok/auth", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(form),
-		});
-		const json = await res.json();
-		if (json.oauth_url) {
-			// Redirect to TikTok OAuth
-			window.location.href = json.oauth_url;
-		} else {
-			setSyncResult(json.error || "Error saving settings");
+		setSyncResult(null);
+		try {
+			const res = await fetch("/api/tiktok/auth", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(form),
+			});
+			const json = await res.json();
+			if (json.oauth_url) {
+				window.location.href = json.oauth_url;
+			} else {
+				setSyncResult({
+					type: "error",
+					text: json.error || "Gagal menyimpan settings",
+				});
+			}
+		} catch (err: any) {
+			setSyncResult({ type: "error", text: err.message });
 		}
 		setSaving(false);
+	}
+
+	async function handleReauthorize(shopId: string) {
+		setReauthLoading(true);
+		setSyncResult(null);
+		try {
+			const res = await fetch("/api/tiktok/auth/reauthorize", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ shop_id: shopId }),
+			});
+			const json = await res.json();
+			if (json.oauth_url) {
+				setShowReauthConfirm(null);
+				window.location.href = json.oauth_url;
+			} else {
+				setSyncResult({
+					type: "error",
+					text: json.error || "Gagal mendapatkan OAuth URL",
+				});
+			}
+		} catch (err: any) {
+			setSyncResult({ type: "error", text: err.message });
+		}
+		setReauthLoading(false);
 	}
 
 	async function handleSync(type: "orders" | "finance") {
 		setSyncing(type);
 		setSyncResult(null);
 
-		const activeShop = settings.find((s) => s.is_active);
 		const res = await fetch(`/api/tiktok/sync-${type}`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -98,9 +140,29 @@ export default function TikTokDashboardPage() {
 			}),
 		});
 		const json = await res.json();
-		setSyncResult(json.message || json.error || "Sync completed");
+		if (json.error) {
+			setSyncResult({ type: "error", text: json.error });
+		} else {
+			setSyncResult({ type: "success", text: json.message || "Sync selesai" });
+		}
 		setSyncing(null);
 		fetchData();
+	}
+
+	async function handleDelete(shopId: string) {
+		if (
+			!confirm(
+				"Hapus TikTok Shop ini? Data orders & statements tetap tersimpan.",
+			)
+		)
+			return;
+		await supabase.from("tiktok_shop_settings").delete().eq("id", shopId);
+		fetchData();
+	}
+
+	function isTokenExpired(shop: any): boolean {
+		if (!shop.token_expires_at || !shop.access_token) return true;
+		return new Date(shop.token_expires_at) < new Date();
 	}
 
 	const totalSales = orders.reduce(
@@ -111,17 +173,9 @@ export default function TikTokDashboardPage() {
 		(s, st) => s + Number(st.total_amount || 0),
 		0,
 	);
-
 	if (loading) {
 		return (
-			<div
-				style={{
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					minHeight: 400,
-				}}
-			>
+			<div className="flex-center" style={{ minHeight: 400 }}>
 				<Loader2
 					size={32}
 					style={{ animation: "spin 1s linear infinite", color: "#cc7030" }}
@@ -160,22 +214,244 @@ export default function TikTokDashboardPage() {
 					</div>
 				</div>
 				<div className="stat-card">
-					<div className="stat-card-label">Shop Connected</div>
+					<div className="stat-card-label">Shop Terkoneksi</div>
 					<div
 						className="stat-card-value"
 						style={{
-							color: settings.find((s) => s.is_active) ? "#16a34a" : "#ef4444",
+							color:
+								activeShop && !isTokenExpired(activeShop)
+									? "#16a34a"
+									: "#ef4444",
 						}}
 					>
-						{settings.find((s) => s.is_active) ? "Yes" : "No"}
+						{activeShop
+							? isTokenExpired(activeShop)
+								? "Expired"
+								: "Aktif"
+							: "Tidak Ada"}
 					</div>
 					<div className="stat-card-sub">
-						{settings.find((s) => s.is_active)?.seller_name ||
-							settings.find((s) => s.is_active)?.shop_name ||
-							"-"}
+						{activeShop?.seller_name || activeShop?.shop_name || "-"}
 					</div>
 				</div>
 			</div>
+
+			{/* Shop Management */}
+			{settings.length > 0 && (
+				<div
+					style={{
+						background: "#fff",
+						border: "1px solid #e5e7eb",
+						borderRadius: "0.75rem",
+						padding: "1rem 1.25rem",
+						marginBottom: "1.5rem",
+					}}
+				>
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "space-between",
+							marginBottom: "0.75rem",
+						}}
+					>
+						<h2
+							style={{
+								fontSize: "0.9rem",
+								fontWeight: "700",
+								color: "#374151",
+								margin: 0,
+								display: "flex",
+								alignItems: "center",
+								gap: "0.4rem",
+							}}
+						>
+							<Link2 size={16} />
+							Shop Terhubung
+						</h2>
+						<button
+							onClick={() => setShowAddForm(true)}
+							style={{
+								padding: "0.4rem 0.8rem",
+								background: "#cc7030",
+								color: "#fff",
+								border: "none",
+								borderRadius: "0.5rem",
+								fontSize: "0.75rem",
+								fontWeight: "600",
+								cursor: "pointer",
+							}}
+						>
+							+ Add Shop
+						</button>
+					</div>
+					<div
+						style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
+					>
+						{settings.map((s) => {
+							const expired = isTokenExpired(s);
+							const missingCipher = !s.shop_cipher;
+							return (
+								<div
+									key={s.id}
+									style={{
+										display: "flex",
+										alignItems: "center",
+										justifyContent: "space-between",
+										padding: "0.6rem 0.75rem",
+										background: s.is_active ? "#faf5ef" : "#f9fafb",
+										borderRadius: "0.5rem",
+										border: s.is_active
+											? "1px solid #f0dcc0"
+											: "1px solid #e5e7eb",
+									}}
+								>
+									<div
+										style={{
+											display: "flex",
+											alignItems: "center",
+											gap: "0.75rem",
+											flex: 1,
+											minWidth: 0,
+										}}
+									>
+										<div
+											style={{
+												width: 8,
+												height: 8,
+												borderRadius: "50%",
+												background: expired
+													? "#ef4444"
+													: s.is_active
+														? "#16a34a"
+														: "#d1d5db",
+												flexShrink: 0,
+											}}
+										/>
+										<div style={{ minWidth: 0 }}>
+											<div
+												style={{
+													fontSize: "0.85rem",
+													fontWeight: "600",
+													color: "#374151",
+													whiteSpace: "nowrap",
+													overflow: "hidden",
+													textOverflow: "ellipsis",
+												}}
+											>
+												{s.seller_name || s.shop_name || "Unnamed Shop"}
+											</div>
+											<div
+												style={{
+													display: "flex",
+													gap: "0.5rem",
+													alignItems: "center",
+													flexWrap: "wrap",
+													marginTop: "0.15rem",
+												}}
+											>
+												{expired && (
+													<span
+														style={{
+															fontSize: "0.7rem",
+															color: "#ef4444",
+															fontWeight: "500",
+															background: "#fef2f2",
+															padding: "0.1rem 0.4rem",
+															borderRadius: "999px",
+															display: "flex",
+															alignItems: "center",
+															gap: "0.2rem",
+														}}
+													>
+														<Clock size={10} /> Token expired
+													</span>
+												)}
+												{missingCipher && (
+													<span
+														style={{
+															fontSize: "0.7rem",
+															color: "#d97706",
+															fontWeight: "500",
+															background: "#fffbeb",
+															padding: "0.1rem 0.4rem",
+															borderRadius: "999px",
+															display: "flex",
+															alignItems: "center",
+															gap: "0.2rem",
+														}}
+													>
+														<AlertCircle size={10} /> Perlu re-authorize
+													</span>
+												)}
+												{s.shop_cipher && !expired && (
+													<span
+														style={{
+															fontSize: "0.7rem",
+															color: "#16a34a",
+															fontWeight: "500",
+															background: "#f0fdf4",
+															padding: "0.1rem 0.4rem",
+															borderRadius: "999px",
+															display: "flex",
+															alignItems: "center",
+															gap: "0.2rem",
+														}}
+													>
+														<CheckCircle2 size={10} /> Siap sync
+													</span>
+												)}
+											</div>
+										</div>
+									</div>
+									<div
+										style={{ display: "flex", gap: "0.4rem", flexShrink: 0 }}
+									>
+										<button
+											onClick={() => setShowReauthConfirm(s.id)}
+											disabled={reauthLoading}
+											title="Re-authorize (refresh token & shop_cipher)"
+											style={{
+												padding: "0.35rem 0.65rem",
+												background: "#f3f4f6",
+												border: "1px solid #d1d5db",
+												borderRadius: "0.375rem",
+												fontSize: "0.75rem",
+												fontWeight: "500",
+												cursor: "pointer",
+												display: "flex",
+												alignItems: "center",
+												gap: "0.3rem",
+												color: "#374151",
+											}}
+										>
+											<RefreshCw size={12} />
+											Re-authorize
+										</button>
+										<button
+											onClick={() => handleDelete(s.id)}
+											title="Hapus shop"
+											style={{
+												padding: "0.35rem 0.5rem",
+												background: "#fef2f2",
+												border: "1px solid #fecaca",
+												borderRadius: "0.375rem",
+												fontSize: "0.75rem",
+												cursor: "pointer",
+												color: "#ef4444",
+												display: "flex",
+												alignItems: "center",
+											}}
+										>
+											<Trash2 size={12} />
+										</button>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+				</div>
+			)}
 
 			{/* Sync Controls */}
 			<div
@@ -205,16 +481,16 @@ export default function TikTokDashboardPage() {
 					>
 						Sync Controls
 					</h2>
-					<div style={{ display: "flex", gap: "0.5rem" }}>
+					{settings.length === 0 && (
 						<button
 							onClick={() => setShowAddForm(true)}
 							style={{
-								padding: "0.5rem 1rem",
+								padding: "0.4rem 0.8rem",
 								background: "#cc7030",
 								color: "#fff",
 								border: "none",
 								borderRadius: "0.5rem",
-								fontSize: "0.8rem",
+								fontSize: "0.75rem",
 								fontWeight: "600",
 								cursor: "pointer",
 							}}
@@ -223,9 +499,9 @@ export default function TikTokDashboardPage() {
 								size={14}
 								style={{ marginRight: "0.3rem", verticalAlign: "middle" }}
 							/>
-							{settings.length > 0 ? "Add Shop" : "Connect TikTok"}
+							Connect TikTok
 						</button>
-					</div>
+					)}
 				</div>
 
 				<div
@@ -274,20 +550,24 @@ export default function TikTokDashboardPage() {
 				<div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
 					<button
 						onClick={() => handleSync("orders")}
-						disabled={syncing !== null}
+						disabled={syncing !== null || !activeShop}
 						style={{
 							padding: "0.5rem 1rem",
-							background: syncing === "orders" ? "#e5e7eb" : "#f3f4f6",
-							color: "#374151",
+							background:
+								syncing === "orders" || !activeShop ? "#e5e7eb" : "#f3f4f6",
+							color:
+								syncing === "orders" || !activeShop ? "#9ca3af" : "#374151",
 							border: "1px solid #d1d5db",
 							borderRadius: "0.5rem",
 							fontSize: "0.8rem",
 							fontWeight: "600",
-							cursor: syncing !== null ? "not-allowed" : "pointer",
+							cursor:
+								syncing !== null || !activeShop ? "not-allowed" : "pointer",
 							display: "flex",
 							alignItems: "center",
 							gap: "0.4rem",
 						}}
+						title={!activeShop ? "Tidak ada shop aktif" : undefined}
 					>
 						{syncing === "orders" ? (
 							<Loader2
@@ -301,20 +581,24 @@ export default function TikTokDashboardPage() {
 					</button>
 					<button
 						onClick={() => handleSync("finance")}
-						disabled={syncing !== null}
+						disabled={syncing !== null || !activeShop}
 						style={{
 							padding: "0.5rem 1rem",
-							background: syncing === "finance" ? "#e5e7eb" : "#f3f4f6",
-							color: "#374151",
+							background:
+								syncing === "finance" || !activeShop ? "#e5e7eb" : "#f3f4f6",
+							color:
+								syncing === "finance" || !activeShop ? "#9ca3af" : "#374151",
 							border: "1px solid #d1d5db",
 							borderRadius: "0.5rem",
 							fontSize: "0.8rem",
 							fontWeight: "600",
-							cursor: syncing !== null ? "not-allowed" : "pointer",
+							cursor:
+								syncing !== null || !activeShop ? "not-allowed" : "pointer",
 							display: "flex",
 							alignItems: "center",
 							gap: "0.4rem",
 						}}
+						title={!activeShop ? "Tidak ada shop aktif" : undefined}
 					>
 						{syncing === "finance" ? (
 							<Loader2
@@ -328,19 +612,38 @@ export default function TikTokDashboardPage() {
 					</button>
 				</div>
 
+				{/* Error/Success Result */}
 				{syncResult && (
 					<div
 						style={{
 							marginTop: "0.75rem",
 							padding: "0.5rem 0.75rem",
-							background: "#f0fdf4",
-							border: "1px solid #86efac",
+							background: syncResult.type === "success" ? "#f0fdf4" : "#fef2f2",
+							border: `1px solid ${syncResult.type === "success" ? "#86efac" : "#fecaca"}`,
 							borderRadius: "0.5rem",
 							fontSize: "0.8rem",
-							color: "#166534",
+							color: syncResult.type === "success" ? "#166534" : "#991b1b",
+							whiteSpace: "pre-wrap",
+							wordBreak: "break-word",
 						}}
 					>
-						{syncResult}
+						{syncResult.type === "error" && (
+							<AlertCircle
+								size={14}
+								style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
+							/>
+						)}
+						{syncResult.text.includes("(36009004)") ? (
+							<>
+								<strong>Error shop_id invalid</strong> — TikTok butuh
+								re-authorization.
+								<br />
+								Klik tombol <strong>Re-authorize</strong> di atas untuk refresh
+								token & dapatkan shop_cipher dari TikTok.
+							</>
+						) : syncResult.text.includes("(36009004)") ? null : (
+							syncResult.text
+						)}
 					</div>
 				)}
 			</div>
@@ -386,7 +689,7 @@ export default function TikTokDashboardPage() {
 							style={{ opacity: 0.3, margin: "0 auto 0.5rem" }}
 						/>
 						<p style={{ fontSize: "0.85rem" }}>
-							No orders synced yet. Click "Sync Orders" to import.
+							Belum ada order tersync. Klik "Sync Orders" untuk import.
 						</p>
 					</div>
 				) : (
@@ -417,16 +720,16 @@ export default function TikTokDashboardPage() {
 													borderRadius: "999px",
 													fontSize: "0.75rem",
 													fontWeight: "600",
-													background:
-														o.order_status === "DELIVERED" ||
-														o.order_status === "COMPLETED"
-															? "#f0fdf4"
-															: "#fef9c3",
-													color:
-														o.order_status === "DELIVERED" ||
-														o.order_status === "COMPLETED"
-															? "#166534"
-															: "#854d0e",
+													background: ["DELIVERED", "COMPLETED"].includes(
+														o.order_status,
+													)
+														? "#f0fdf4"
+														: "#fef9c3",
+													color: ["DELIVERED", "COMPLETED"].includes(
+														o.order_status,
+													)
+														? "#166534"
+														: "#854d0e",
 												}}
 											>
 												{o.order_status || "-"}
@@ -503,7 +806,7 @@ export default function TikTokDashboardPage() {
 							style={{ opacity: 0.3, margin: "0 auto 0.5rem" }}
 						/>
 						<p style={{ fontSize: "0.85rem" }}>
-							No settlements synced yet. Click "Sync Finance" to import.
+							Belum ada settlement tersync. Klik "Sync Finance" untuk import.
 						</p>
 					</div>
 				) : (
@@ -538,14 +841,12 @@ export default function TikTokDashboardPage() {
 													borderRadius: "999px",
 													fontSize: "0.75rem",
 													fontWeight: "600",
-													background:
-														st.status === "SUCCESS" || st.status === "PAID"
-															? "#f0fdf4"
-															: "#fef9c3",
-													color:
-														st.status === "SUCCESS" || st.status === "PAID"
-															? "#166534"
-															: "#854d0e",
+													background: ["SUCCESS", "PAID"].includes(st.status)
+														? "#f0fdf4"
+														: "#fef9c3",
+													color: ["SUCCESS", "PAID"].includes(st.status)
+														? "#166534"
+														: "#854d0e",
 												}}
 											>
 												{st.status || "-"}
@@ -707,18 +1008,25 @@ export default function TikTokDashboardPage() {
 									}}
 								/>
 							</div>
-							<div style={{ marginBottom: "1rem" }}>
+							<div style={{ marginBottom: "0.5rem" }}>
 								<label
 									style={{
-										display: "block",
+										display: "flex",
+										alignItems: "center",
+										gap: "0.3rem",
 										fontSize: "0.8rem",
 										fontWeight: "600",
 										marginBottom: "0.3rem",
 									}}
 								>
 									Shop Cipher{" "}
+									<Info
+										size={12}
+										style={{ color: "#9ca3af", cursor: "help" }}
+										data-tip="Akan otomatis terisi setelah OAuth"
+									/>
 									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-										(opsional)
+										(otomatis dari TikTok)
 									</span>
 								</label>
 								<input
@@ -726,13 +1034,16 @@ export default function TikTokDashboardPage() {
 									onChange={(e) =>
 										setForm((f) => ({ ...f, shop_cipher: e.target.value }))
 									}
-									placeholder="Shop cipher (jika ada)"
+									placeholder="Nanti otomatis terisi"
+									disabled
 									style={{
 										width: "100%",
 										padding: "0.6rem",
 										border: "1px solid #d1d5db",
 										borderRadius: "0.5rem",
 										fontSize: "0.85rem",
+										background: "#f9fafb",
+										color: "#9ca3af",
 									}}
 								/>
 							</div>
@@ -771,7 +1082,7 @@ export default function TikTokDashboardPage() {
 										cursor: saving ? "not-allowed" : "pointer",
 									}}
 								>
-									{saving ? "Saving..." : "Save & Connect"}
+									{saving ? "Menyimpan..." : "Save & Connect"}
 								</button>
 							</div>
 						</form>
@@ -787,7 +1098,7 @@ export default function TikTokDashboardPage() {
 								color: "#1e40af",
 							}}
 						>
-							<strong>Cara mendapatkan App Key & Secret:</strong>
+							<strong>Langkah-langkah:</strong>
 							<ol
 								style={{
 									margin: "0.3rem 0 0",
@@ -806,7 +1117,7 @@ export default function TikTokDashboardPage() {
 										TikTok Partner Center
 									</a>
 								</li>
-								<li>Buat aplikasi baru → dapatkan App Key & App Secret</li>
+								<li>Buat aplikasi → dapatkan App Key & App Secret</li>
 								<li>
 									Set redirect URL:{" "}
 									<code
@@ -819,10 +1130,109 @@ export default function TikTokDashboardPage() {
 										https://kjhomedecor.com/api/tiktok/auth
 									</code>
 								</li>
-								<li>
-									Masukkan App Key & Secret di sini, klik "Save & Connect"
-								</li>
+								<li>Isi App Key & Secret, klik "Save & Connect"</li>
 							</ol>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Re-authorize Confirmation Modal */}
+			{showReauthConfirm && (
+				<div
+					style={{
+						position: "fixed",
+						inset: 0,
+						background: "rgba(0,0,0,0.4)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						zIndex: 1000,
+					}}
+					onClick={() => setShowReauthConfirm(null)}
+				>
+					<div
+						style={{
+							background: "#fff",
+							borderRadius: "0.75rem",
+							padding: "1.5rem",
+							width: "90%",
+							maxWidth: 400,
+							boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+						}}
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h3
+							style={{
+								fontSize: "1rem",
+								fontWeight: "700",
+								margin: "0 0 0.5rem",
+							}}
+						>
+							Re-authorize Shop?
+						</h3>
+						<p
+							style={{
+								fontSize: "0.85rem",
+								color: "#6b7280",
+								margin: "0 0 0.25rem",
+							}}
+						>
+							Ini akan membuka halaman OAuth TikTok untuk refresh token &
+							mendownload shop_cipher.
+						</p>
+						<p
+							style={{
+								fontSize: "0.8rem",
+								color: "#d97706",
+								margin: "0 0 1rem",
+								background: "#fffbeb",
+								padding: "0.5rem",
+								borderRadius: "0.375rem",
+							}}
+						>
+							<AlertCircle
+								size={12}
+								style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
+							/>
+							Pastikan IP server sudah di-whitelist di TikTok Partner Center.
+						</p>
+						<div
+							style={{
+								display: "flex",
+								gap: "0.5rem",
+								justifyContent: "flex-end",
+							}}
+						>
+							<button
+								onClick={() => setShowReauthConfirm(null)}
+								style={{
+									padding: "0.5rem 1rem",
+									background: "#f3f4f6",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.5rem",
+									fontSize: "0.85rem",
+									cursor: "pointer",
+								}}
+							>
+								Batal
+							</button>
+							<button
+								onClick={() => handleReauthorize(showReauthConfirm)}
+								disabled={reauthLoading}
+								style={{
+									padding: "0.5rem 1.25rem",
+									background: "#cc7030",
+									color: "#fff",
+									border: "none",
+									borderRadius: "0.5rem",
+									fontSize: "0.85rem",
+									fontWeight: "600",
+									cursor: reauthLoading ? "not-allowed" : "pointer",
+								}}
+							>
+								{reauthLoading ? "Loading..." : "Ya, Re-authorize"}
+							</button>
 						</div>
 					</div>
 				</div>

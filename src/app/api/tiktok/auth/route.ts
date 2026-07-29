@@ -5,80 +5,88 @@ const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://kjhomedecor.com";
 
 // GET /api/tiktok/auth?code=xxx&state=shop_id → OAuth callback from TikTok
 export async function GET(req: NextRequest) {
-	const { searchParams } = new URL(req.url);
-	const code = searchParams.get("code");
-	const state = searchParams.get("state"); // shop_id passed during redirect
+	try {
+		const { searchParams } = new URL(req.url);
+		const code = searchParams.get("code");
+		const state = searchParams.get("state"); // shop_id passed during redirect
 
-	const supabase = await createClient();
-	const {
-		data: { user },
-	} = await supabase.auth.getUser();
-	if (!user) {
-		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-	}
-
-	// OAuth callback — exchange code for access token
-	if (code && state) {
-		const { data: settings } = await supabase
-			.from("tiktok_shop_settings")
-			.select("*")
-			.eq("id", state)
-			.single();
-
-		if (!settings) {
-			return NextResponse.redirect(
-				new URL("/owner/tiktok?error=settings_not_found", BASE_URL),
-			);
+		const supabase = await createClient();
+		const {
+			data: { user },
+		} = await supabase.auth.getUser();
+		if (!user) {
+			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
 
-		try {
-			const qs = new URLSearchParams({
-				grant_type: "authorized_code",
-				auth_code: code,
-				app_key: settings.app_key,
-				app_secret: settings.app_secret,
-			});
+		// OAuth callback — exchange code for access token
+		if (code && state) {
+			const { data: settings } = await supabase
+				.from("tiktok_shop_settings")
+				.select("*")
+				.eq("id", state)
+				.single();
 
-			const res = await fetch(
-				`https://auth.tiktok-shops.com/api/v2/token/get?${qs}`,
-			);
-			const json = await res.json();
-
-			if (json.data?.access_token) {
-				await supabase
-					.from("tiktok_shop_settings")
-					.update({
-						access_token: json.data.access_token,
-						refresh_token: json.data.refresh_token,
-						token_expires_at: json.data.access_token_expire_in
-							? new Date(
-									Date.now() + json.data.access_token_expire_in * 1000,
-								).toISOString()
-							: null,
-						seller_name: json.data.seller_name,
-						open_id: json.data.open_id,
-						is_active: true,
-					})
-					.eq("id", state);
+			if (!settings) {
+				return NextResponse.redirect(
+					new URL("/owner/tiktok?error=settings_not_found", BASE_URL),
+				);
 			}
 
-			return NextResponse.redirect(
-				new URL("/owner/tiktok?success=connected", BASE_URL),
-			);
-		} catch (err: any) {
-			return NextResponse.redirect(
-				new URL(
-					`/owner/tiktok?error=${encodeURIComponent(err.message)}`,
-					BASE_URL,
-				),
-			);
-		}
-	}
+			try {
+				const qs = new URLSearchParams({
+					grant_type: "authorized_code",
+					auth_code: code,
+					app_key: settings.app_key,
+					app_secret: settings.app_secret,
+				});
 
-	return NextResponse.json(
-		{ error: "Missing code or state parameter" },
-		{ status: 400 },
-	);
+				const res = await fetch(
+					`https://auth.tiktok-shops.com/api/v2/token/get?${qs}`,
+				);
+				const json = await res.json();
+
+				if (json.data?.access_token) {
+					await supabase
+						.from("tiktok_shop_settings")
+						.update({
+							access_token: json.data.access_token,
+							refresh_token: json.data.refresh_token,
+							token_expires_at: json.data.access_token_expire_in
+								? new Date(
+										Date.now() + json.data.access_token_expire_in * 1000,
+									).toISOString()
+								: null,
+							seller_name: json.data.seller_name,
+							open_id: json.data.open_id,
+							shop_cipher: json.data.shop_cipher?.trim() || undefined,
+							is_active: true,
+						})
+						.eq("id", state);
+				}
+
+				return NextResponse.redirect(
+					new URL("/owner/tiktok?success=connected", BASE_URL),
+				);
+			} catch (err: any) {
+				return NextResponse.redirect(
+					new URL(
+						`/owner/tiktok?error=${encodeURIComponent(err.message)}`,
+						BASE_URL,
+					),
+				);
+			}
+		}
+
+		return NextResponse.json(
+			{ error: "Missing code or state parameter" },
+			{ status: 400 },
+		);
+	} catch (err: any) {
+		return NextResponse.json(
+			{ error: `Invalid request: ${err.message}` },
+			{ status: 400 },
+		);
+	}
 }
 
 // POST /api/tiktok/auth — save/update TikTok Shop settings
