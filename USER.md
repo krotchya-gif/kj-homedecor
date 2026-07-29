@@ -1,20 +1,17 @@
 # User Credentials — KJ Homedecor
 
-> ⚠️ **Password default**: `admin123`
 > 🔗 **Project URL**: `https://glblgsfenarnztawtpmu.supabase.co`
 
 ## Staff Accounts
 
-| Email | Username | Role |
-| ------- | ---------- | ------ |
-| `owner@kjhomedecor.com` | Owner KJ | `owner` |
-| `admin@kjhomedecor.com` | Admin KJ | `admin` |
-| `gudang@kjhomedecor.com` | admin gudang | `gudang` |
-| `finance@kjhomedecor.com` | admin Finance | `finance` |
-| `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` |
-| `cici.yunita124@gmail.com` | Cici Yunita | `owner` |
-
-> 🔑 `cici.yunita124@gmail.com` — password: kosongaja
+| Email | Username | Role | Password |
+| ------- | ---------- | ------ | ---------- |
+| `owner@kjhomedecor.com` | Owner KJ | `owner` | `owner123` |
+| `admin@kjhomedecor.com` | Admin KJ | `admin` | `admin456` |
+| `gudang@kjhomedecor.com` | admin gudang | `gudang` | `gudang789` |
+| `finance@kjhomedecor.com` | admin Finance | `finance` | `finance321` |
+| `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` | `penjahit654` |
+| `cici.yunita124@gmail.com` | Cici Yunita | `owner` | kosongaja |
 
 ## Role Access
 
