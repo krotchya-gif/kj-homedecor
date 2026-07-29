@@ -44,17 +44,22 @@ export async function POST(req: NextRequest) {
 			? Math.floor(new Date(end_date).getTime() / 1000)
 			: now;
 
+		const extraQs: Record<string, string> = {
+			sort_field: "create_time",
+			create_time_ge: String(timeGe),
+			create_time_lt: String(timeLt),
+			page_size: "100",
+		};
+		if (settings.shop_cipher) {
+			extraQs.shop_cipher = settings.shop_cipher;
+		}
+
 		const url = signTikTokRequest(
 			"/finance/202309/payments",
 			settings.app_key,
 			settings.app_secret,
 			undefined,
-			{
-				sort_field: "create_time",
-				create_time_ge: String(timeGe),
-				create_time_lt: String(timeLt),
-				page_size: "100",
-			},
+			extraQs,
 		);
 
 		const paymentsRes = await fetch(url, {

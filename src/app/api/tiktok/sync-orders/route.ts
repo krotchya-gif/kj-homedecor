@@ -47,12 +47,19 @@ export async function POST(req: NextRequest) {
 			reqBody.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000);
 		}
 
+		const extraQs: Record<string, string> = {
+			page_size: "100",
+		};
+		if (settings.shop_cipher) {
+			extraQs.shop_cipher = settings.shop_cipher;
+		}
+
 		const url = signTikTokRequest(
 			"/order/202309/orders/search",
 			settings.app_key,
 			settings.app_secret,
 			reqBody,
-			{ page_size: "100" },
+			extraQs,
 		);
 
 		const orderListRes = await fetch(url, {
