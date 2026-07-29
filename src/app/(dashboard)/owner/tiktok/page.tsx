@@ -32,6 +32,8 @@ const [loading, setLoading] = useState(true);
 const [orderPage, setOrderPage] = useState(0);
 const [orderTotal, setOrderTotal] = useState(0);
 const ORDER_PAGE_SIZE = 25;
+const [filterStatus, setFilterStatus] = useState("");
+const [filterPayment, setFilterPayment] = useState("");
 	const [syncing, setSyncing] = useState<string | null>(null);
 	const [syncResult, setSyncResult] = useState<{
 		type: "success" | "error";
@@ -61,24 +63,40 @@ const ORDER_PAGE_SIZE = 25;
 
 	const orderPageCount = Math.ceil(orderTotal / ORDER_PAGE_SIZE);
 
-	async function fetchData(page = 0) {
+	async function fetchData(
+		page = 0,
+		statusFilter?: string,
+		paymentFilter?: string,
+	) {
 		setLoading(true);
-		const [settingsRes, ordersRes, totalRes, statementsRes] = await Promise.all([
-			supabase.from("tiktok_shop_settings").select("*"),
-			supabase
-				.from("tiktok_shop_orders")
-				.select("*")
-				.order("created_at", { ascending: false })
-				.range(page * ORDER_PAGE_SIZE, (page + 1) * ORDER_PAGE_SIZE - 1),
-			supabase
-				.from("tiktok_shop_orders")
-				.select("*", { count: "exact", head: true }),
-			supabase
-				.from("tiktok_shop_statements")
-				.select("*")
-				.order("created_at", { ascending: false })
-				.limit(50),
-		]);
+		const sf = statusFilter ?? filterStatus;
+		const pf = paymentFilter ?? filterPayment;
+
+		let orderQuery = supabase.from("tiktok_shop_orders").select("*");
+		if (sf) orderQuery = orderQuery.eq("order_status", sf);
+		if (pf) orderQuery = orderQuery.eq("payment_status", pf);
+		orderQuery = orderQuery
+			.order("created_at", { ascending: false })
+			.range(page * ORDER_PAGE_SIZE, (page + 1) * ORDER_PAGE_SIZE - 1);
+
+		let countQuery = supabase
+			.from("tiktok_shop_orders")
+			.select("*", { count: "exact", head: true });
+		if (sf) countQuery = countQuery.eq("order_status", sf);
+		if (pf) countQuery = countQuery.eq("payment_status", pf);
+
+		const [settingsRes, ordersRes, totalRes, statementsRes] = await Promise.all(
+			[
+				supabase.from("tiktok_shop_settings").select("*"),
+				orderQuery,
+				countQuery,
+				supabase
+					.from("tiktok_shop_statements")
+					.select("*")
+					.order("created_at", { ascending: false })
+					.limit(50),
+			],
+		);
 		setSettings(settingsRes.data ?? []);
 		setOrders(ordersRes.data ?? []);
 		setOrderTotal(totalRes.count ?? 0);
@@ -112,7 +130,8 @@ const ORDER_PAGE_SIZE = 25;
 		setSaving(false);
 	}
 
-	async function handleReauthorize(shopId: string) {
+	async function handleReauthorize(shopId: string | null) {
+		if (!shopId) return;
 		setReauthLoading(true);
 		setSyncResult(null);
 		try {
@@ -556,6 +575,15 @@ const ORDER_PAGE_SIZE = 25;
 								fontSize: "0.8rem",
 							}}
 						/>
+						<span
+							style={{
+								fontSize: "0.75rem",
+								color: "#9ca3af",
+								fontStyle: "italic",
+							}}
+						>
+							(kosongkan untuk sync semua order)
+						</span>
 					</div>
 				</div>
 
@@ -705,6 +733,61 @@ const ORDER_PAGE_SIZE = 25;
 						</p>
 					</div>
 				) : (
+					<>
+					<div
+						style={{
+							padding: "0.75rem 1.25rem",
+							borderBottom: "1px solid #e5e7eb",
+							display: "flex",
+							gap: "0.75rem",
+							flexWrap: "wrap",
+							alignItems: "center",
+							background: "#fafafa",
+						}}
+					>
+						<select
+							value={filterStatus}
+							onChange={async (e) => {
+								const v = e.target.value;
+								setFilterStatus(v);
+								setOrderPage(0);
+								await fetchData(0, v, filterPayment);
+							}}
+							style={{
+								padding: "0.35rem 0.6rem",
+								border: "1px solid #d1d5db",
+								borderRadius: "0.375rem",
+								fontSize: "0.8rem",
+							}}
+						>
+							<option value="">Status: Semua</option>
+							<option value="COMPLETED">Completed</option>
+							<option value="DELIVERED">Delivered</option>
+							<option value="CANCELLED">Cancelled</option>
+						</select>
+						<select
+							value={filterPayment}
+							onChange={async (e) => {
+								const v = e.target.value;
+								setFilterPayment(v);
+								setOrderPage(0);
+								await fetchData(0, filterStatus, v);
+							}}
+							style={{
+								padding: "0.35rem 0.6rem",
+								border: "1px solid #d1d5db",
+								borderRadius: "0.375rem",
+								fontSize: "0.8rem",
+							}}
+						>
+							<option value="">Payment: Semua</option>
+							<option value="PAID">Paid</option>
+							<option value="CANCELLED">Cancelled</option>
+						</select>
+						<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+							{orderTotal} order
+						</span>
+					</div>
 					<div className="data-table">
 						<table>
 							<thead>
@@ -772,88 +855,77 @@ const ORDER_PAGE_SIZE = 25;
 										</td>
 									</tr>
 								))}
-						</tbody>
-					</table>
-				</div>
-			)}
+							</tbody>
+						</table>
+					</div>
+					</>
+				)}
 
-			{/* Pagination */}
-			{orderTotal > ORDER_PAGE_SIZE && (
-				<div
-					style={{
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						gap: "0.5rem",
-						padding: "0.75rem",
-						borderTop: "1px solid #e5e7eb",
-					}}
-				>
-					<button
-						onClick={() => fetchData(orderPage - 1)}
-						disabled={orderPage === 0}
+				{/* Pagination */}
+				{orderTotal > ORDER_PAGE_SIZE && (
+					<div
 						style={{
-							padding: "0.35rem 0.7rem",
-							border: "1px solid #d1d5db",
-							borderRadius: "0.375rem",
-							background:
-								orderPage === 0 ? "#f9fafb" : "#fff",
-							color:
-								orderPage === 0 ? "#d1d5db" : "#374151",
-							cursor:
-								orderPage === 0
-									? "not-allowed"
-									: "pointer",
 							display: "flex",
 							alignItems: "center",
-							gap: "0.25rem",
-							fontSize: "0.8rem",
+							justifyContent: "center",
+							gap: "0.5rem",
+							padding: "0.75rem",
+							borderTop: "1px solid #e5e7eb",
 						}}
 					>
-						<ChevronLeft size={14} />
-						Prev
-					</button>
-					<span
-						style={{
-							fontSize: "0.8rem",
-							color: "#6b7280",
-						}}
-					>
-						{orderPage + 1} of {orderPageCount}
-					</span>
-					<button
-						onClick={() => fetchData(orderPage + 1)}
-						disabled={orderPage >= orderPageCount - 1}
-						style={{
-							padding: "0.35rem 0.7rem",
-							border: "1px solid #d1d5db",
-							borderRadius: "0.375rem",
-							background:
-								orderPage >= orderPageCount - 1
-									? "#f9fafb"
-									: "#fff",
-							color:
-								orderPage >= orderPageCount - 1
-									? "#d1d5db"
-									: "#374151",
-							cursor:
-								orderPage >= orderPageCount - 1
-									? "not-allowed"
-									: "pointer",
-							display: "flex",
-							alignItems: "center",
-							gap: "0.25rem",
-							fontSize: "0.8rem",
-						}}
-					>
-						Next
-						<ChevronRight size={14} />
-					</button>
-				</div>
-			)}
-		</div>
+						<button
+							onClick={() => fetchData(orderPage - 1)}
+							disabled={orderPage === 0}
+							style={{
+								padding: "0.35rem 0.7rem",
+								border: "1px solid #d1d5db",
+								borderRadius: "0.375rem",
+								background: orderPage === 0 ? "#f9fafb" : "#fff",
+								color: orderPage === 0 ? "#d1d5db" : "#374151",
+								cursor: orderPage === 0 ? "not-allowed" : "pointer",
+								display: "flex",
+								alignItems: "center",
+								gap: "0.25rem",
+								fontSize: "0.8rem",
+							}}
+						>
+							<ChevronLeft size={14} />
+							Prev
+						</button>
+						<span
+							style={{
+								fontSize: "0.8rem",
+								color: "#6b7280",
+							}}
+						>
+							{orderPage + 1} of {orderPageCount}
+						</span>
+						<button
+							onClick={() => fetchData(orderPage + 1)}
+							disabled={orderPage >= orderPageCount - 1}
+							style={{
+								padding: "0.35rem 0.7rem",
+								border: "1px solid #d1d5db",
+								borderRadius: "0.375rem",
+								background:
+									orderPage >= orderPageCount - 1 ? "#f9fafb" : "#fff",
+								color: orderPage >= orderPageCount - 1 ? "#d1d5db" : "#374151",
+								cursor:
+									orderPage >= orderPageCount - 1 ? "not-allowed" : "pointer",
+								display: "flex",
+								alignItems: "center",
+								gap: "0.25rem",
+								fontSize: "0.8rem",
+							}}
+						>
+							Next
+							<ChevronRight size={14} />
+						</button>
+					</div>
+				)}
+			</div>
 
-		{/* Statements Table */}
+			{/* Statements Table */}
 			<div
 				style={{
 					background: "#fff",
@@ -970,8 +1042,7 @@ const ORDER_PAGE_SIZE = 25;
 				)}
 			</div>
 
-			{/* Add Shop Modal */}
-			{showAddForm && (
+			{/* Add Shop Modal */}showAddForm && (
 				<div
 					style={{
 						position: "fixed",
@@ -1222,10 +1293,9 @@ const ORDER_PAGE_SIZE = 25;
 						</div>
 					</div>
 				</div>
-			)}
+			)
 
-			{/* Re-authorize Confirmation Modal */}
-			{showReauthConfirm && (
+			{/* Re-authorize Confirmation Modal */}showReauthConfirm && (
 				<div
 					style={{
 						position: "fixed",
@@ -1323,7 +1393,7 @@ const ORDER_PAGE_SIZE = 25;
 						</div>
 					</div>
 				</div>
-			)}
+			)
 		</div>
 	);
 }
