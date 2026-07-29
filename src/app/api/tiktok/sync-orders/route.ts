@@ -44,9 +44,7 @@ export async function POST(req: NextRequest) {
 			);
 		}
 		if (end_date) {
-			reqBody.create_time_lt = Math.floor(
-				new Date(end_date).getTime() / 1000,
-			);
+			reqBody.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000);
 		}
 
 		const url = signTikTokRequest(
@@ -64,9 +62,7 @@ export async function POST(req: NextRequest) {
 				"x-tts-access-token": token,
 			},
 			body:
-				Object.keys(reqBody).length > 0
-					? JSON.stringify(reqBody)
-					: undefined,
+				Object.keys(reqBody).length > 0 ? JSON.stringify(reqBody) : undefined,
 		});
 
 		const orderData = await orderListRes.json();
