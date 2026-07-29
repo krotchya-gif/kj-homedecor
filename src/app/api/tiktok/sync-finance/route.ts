@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { getTikTokSettings, getValidToken, signTikTokRequest } from "@/lib/tiktok";
+import {
+	getTikTokSettings,
+	getValidToken,
+	signTikTokRequest,
+} from "@/lib/tiktok";
 
 export async function POST(req: NextRequest) {
 	const supabase = await createClient();
@@ -61,6 +65,16 @@ export async function POST(req: NextRequest) {
 		});
 
 		const paymentsData = await paymentsRes.json();
+
+		// Check for TikTok API errors
+		if (paymentsData.code && paymentsData.code !== 0) {
+			return NextResponse.json(
+				{
+					error: `TikTok API error (${paymentsData.code}): ${paymentsData.message || "Unknown error"}`,
+				},
+				{ status: 400 },
+			);
+		}
 
 		if (!paymentsData.data?.payments) {
 			return NextResponse.json({ synced: 0, message: "No payments found" });

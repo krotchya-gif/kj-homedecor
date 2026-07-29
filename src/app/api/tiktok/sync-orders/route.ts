@@ -1,6 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { getTikTokSettings, getValidToken, signTikTokRequest } from "@/lib/tiktok";
+import {
+	getTikTokSettings,
+	getValidToken,
+	signTikTokRequest,
+} from "@/lib/tiktok";
 
 export async function POST(req: NextRequest) {
 	const supabase = await createClient();
@@ -36,14 +40,10 @@ export async function POST(req: NextRequest) {
 			page_size: 100,
 		};
 		if (start_date) {
-			body.create_time_ge = Math.floor(
-				new Date(start_date).getTime() / 1000,
-			);
+			body.create_time_ge = Math.floor(new Date(start_date).getTime() / 1000);
 		}
 		if (end_date) {
-			body.create_time_lt = Math.floor(
-				new Date(end_date).getTime() / 1000,
-			);
+			body.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000);
 		}
 
 		const url = signTikTokRequest(
@@ -63,6 +63,16 @@ export async function POST(req: NextRequest) {
 		});
 
 		const orderData = await orderListRes.json();
+
+		// Check for TikTok API errors
+		if (orderData.code && orderData.code !== 0) {
+			return NextResponse.json(
+				{
+					error: `TikTok API error (${orderData.code}): ${orderData.message || "Unknown error"}`,
+				},
+				{ status: 400 },
+			);
+		}
 
 		if (!orderData.data?.orders) {
 			return NextResponse.json({ synced: 0, message: "No orders found" });
