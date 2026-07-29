@@ -32,6 +32,7 @@ export default function TikTokDashboardPage() {
 	const [orderPage, setOrderPage] = useState(0);
 	const [orderTotal, setOrderTotal] = useState(0);
 	const [orderPageSize, setOrderPageSize] = useState(25);
+	const [totalAllSales, setTotalAllSales] = useState(0);
 	const [filterStatus, setFilterStatus] = useState("");
 	const [filterPayment, setFilterPayment] = useState("");
 	const [syncing, setSyncing] = useState<string | null>(null);
@@ -87,23 +88,30 @@ export default function TikTokDashboardPage() {
 		if (sf) countQuery = countQuery.eq("order_status", sf);
 		if (pf) countQuery = countQuery.eq("payment_status", pf);
 
-		const [settingsRes, ordersRes, totalRes, statementsRes] = await Promise.all(
-			[
+		const [settingsRes, ordersRes, totalRes, salesRes, statementsRes] =
+			await Promise.all([
 				supabase.from("tiktok_shop_settings").select("*"),
 				orderQuery,
 				countQuery,
+				// Fetch ALL total_amount for total sales (independent of pagination)
+				supabase
+					.from("tiktok_shop_orders")
+					.select("total_amount"),
 				supabase
 					.from("tiktok_shop_statements")
 					.select("*")
 					.order("created_at", { ascending: false })
 					.limit(50),
-			],
-		);
+			]);
 		setSettings(settingsRes.data ?? []);
 		setOrders(ordersRes.data ?? []);
 		setOrderTotal(totalRes.count ?? 0);
 		setOrderPage(page);
 		setStatements(statementsRes.data ?? []);
+		const allAmounts = salesRes.data ?? [];
+		setTotalAllSales(
+			allAmounts.reduce((s, o) => s + Number(o.total_amount || 0), 0),
+		);
 		setLoading(false);
 	}
 
@@ -198,10 +206,6 @@ export default function TikTokDashboardPage() {
 		return new Date(shop.token_expires_at) < new Date();
 	}
 
-	const totalSales = orders.reduce(
-		(s, o) => s + Number(o.total_amount || 0),
-		0,
-	);
 	const totalSettlements = statements.reduce(
 		(s, st) => s + Number(st.total_amount || 0),
 		0,
@@ -230,10 +234,10 @@ export default function TikTokDashboardPage() {
 				<div className="stat-card">
 					<div className="stat-card-label">Total Orders (Synced)</div>
 					<div className="stat-card-value" style={{ color: "#cc7030" }}>
-						{orders.length}
+						{orderTotal}
 					</div>
 					<div className="stat-card-sub">
-						{formatRp(totalSales)} total sales
+						{formatRp(totalAllSales)} total sales
 					</div>
 				</div>
 				<div className="stat-card">
@@ -782,30 +786,30 @@ export default function TikTokDashboardPage() {
 								<option value="PAID">Paid</option>
 								<option value="CANCELLED">Cancelled</option>
 							</select>
-						<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-							{orderTotal} order
-						</span>
-						<select
-							value={String(orderPageSize)}
-							onChange={async (e) => {
-								const v = Number(e.target.value);
-								setOrderPageSize(v);
-								fetchData(0, filterStatus, filterPayment, v);
-							}}
-							style={{
-								padding: "0.35rem 0.6rem",
-								border: "1px solid #d1d5db",
-								borderRadius: "0.375rem",
-								fontSize: "0.8rem",
-								marginLeft: "auto",
-							}}
-						>
-							<option value="10">10</option>
-							<option value="25">25</option>
-							<option value="50">50</option>
-							<option value="100">100</option>
-						</select>
-					</div>
+							<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+								{orderTotal} order
+							</span>
+							<select
+								value={String(orderPageSize)}
+								onChange={async (e) => {
+									const v = Number(e.target.value);
+									setOrderPageSize(v);
+									fetchData(0, filterStatus, filterPayment, v);
+								}}
+								style={{
+									padding: "0.35rem 0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.375rem",
+									fontSize: "0.8rem",
+									marginLeft: "auto",
+								}}
+							>
+								<option value="10">10</option>
+								<option value="25">25</option>
+								<option value="50">50</option>
+								<option value="100">100</option>
+							</select>
+						</div>
 						<div className="data-table">
 							<table>
 								<thead>
@@ -872,15 +876,15 @@ export default function TikTokDashboardPage() {
 												{formatRp(Number(o.total_amount || 0))}
 											</td>
 											<td>{o.buyer_name || "-"}</td>
-										<td style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-											{o.order_date
-												? new Date(o.order_date).toLocaleDateString("id-ID", {
-														day: "numeric",
-														month: "short",
-														year: "numeric",
-												  })
-												: new Date(o.created_at).toLocaleDateString("id-ID")}
-										</td>
+											<td style={{ fontSize: "0.8rem", color: "#6b7280" }}>
+												{o.order_date
+													? new Date(o.order_date).toLocaleDateString("id-ID", {
+															day: "numeric",
+															month: "short",
+															year: "numeric",
+														})
+													: new Date(o.created_at).toLocaleDateString("id-ID")}
+											</td>
 										</tr>
 									))}
 								</tbody>
