@@ -110,7 +110,10 @@ export async function POST(req: NextRequest) {
 				await supabase.from("tiktok_shop_orders").insert({
 					tiktok_order_id: order.id,
 					order_status: order.status || order.order_status, // status: COMPLETED, etc.
-					payment_status: order.status === "COMPLETED" || order.status === "DELIVERED" ? "PAID" : order.status,
+					payment_status:
+						order.status === "COMPLETED" || order.status === "DELIVERED"
+							? "PAID"
+							: order.status,
 					total_amount: totalAmount,
 					shipping_amount: shippingFee,
 					platform_fee: payment.platform_discount

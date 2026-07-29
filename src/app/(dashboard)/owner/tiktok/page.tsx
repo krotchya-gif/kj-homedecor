@@ -13,6 +13,8 @@ import {
 	CheckCircle2,
 	Clock,
 	Info,
+	ChevronLeft,
+	ChevronRight,
 } from "lucide-react";
 
 const formatRp = (n: number) =>
@@ -23,10 +25,13 @@ const formatRp = (n: number) =>
 	}).format(n);
 
 export default function TikTokDashboardPage() {
-	const [settings, setSettings] = useState<any[]>([]);
-	const [orders, setOrders] = useState<any[]>([]);
-	const [statements, setStatements] = useState<any[]>([]);
-	const [loading, setLoading] = useState(true);
+const [settings, setSettings] = useState<any[]>([]);
+const [orders, setOrders] = useState<any[]>([]);
+const [statements, setStatements] = useState<any[]>([]);
+const [loading, setLoading] = useState(true);
+const [orderPage, setOrderPage] = useState(0);
+const [orderTotal, setOrderTotal] = useState(0);
+const ORDER_PAGE_SIZE = 25;
 	const [syncing, setSyncing] = useState<string | null>(null);
 	const [syncResult, setSyncResult] = useState<{
 		type: "success" | "error";
@@ -54,15 +59,20 @@ export default function TikTokDashboardPage() {
 		fetchData();
 	}, []);
 
-	async function fetchData() {
+	const orderPageCount = Math.ceil(orderTotal / ORDER_PAGE_SIZE);
+
+	async function fetchData(page = 0) {
 		setLoading(true);
-		const [settingsRes, ordersRes, statementsRes] = await Promise.all([
+		const [settingsRes, ordersRes, totalRes, statementsRes] = await Promise.all([
 			supabase.from("tiktok_shop_settings").select("*"),
 			supabase
 				.from("tiktok_shop_orders")
 				.select("*")
 				.order("created_at", { ascending: false })
-				.limit(50),
+				.range(page * ORDER_PAGE_SIZE, (page + 1) * ORDER_PAGE_SIZE - 1),
+			supabase
+				.from("tiktok_shop_orders")
+				.select("*", { count: "exact", head: true }),
 			supabase
 				.from("tiktok_shop_statements")
 				.select("*")
@@ -71,6 +81,8 @@ export default function TikTokDashboardPage() {
 		]);
 		setSettings(settingsRes.data ?? []);
 		setOrders(ordersRes.data ?? []);
+		setOrderTotal(totalRes.count ?? 0);
+		setOrderPage(page);
 		setStatements(statementsRes.data ?? []);
 		setLoading(false);
 	}
@@ -760,13 +772,88 @@ export default function TikTokDashboardPage() {
 										</td>
 									</tr>
 								))}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</div>
+						</tbody>
+					</table>
+				</div>
+			)}
 
-			{/* Statements Table */}
+			{/* Pagination */}
+			{orderTotal > ORDER_PAGE_SIZE && (
+				<div
+					style={{
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						gap: "0.5rem",
+						padding: "0.75rem",
+						borderTop: "1px solid #e5e7eb",
+					}}
+				>
+					<button
+						onClick={() => fetchData(orderPage - 1)}
+						disabled={orderPage === 0}
+						style={{
+							padding: "0.35rem 0.7rem",
+							border: "1px solid #d1d5db",
+							borderRadius: "0.375rem",
+							background:
+								orderPage === 0 ? "#f9fafb" : "#fff",
+							color:
+								orderPage === 0 ? "#d1d5db" : "#374151",
+							cursor:
+								orderPage === 0
+									? "not-allowed"
+									: "pointer",
+							display: "flex",
+							alignItems: "center",
+							gap: "0.25rem",
+							fontSize: "0.8rem",
+						}}
+					>
+						<ChevronLeft size={14} />
+						Prev
+					</button>
+					<span
+						style={{
+							fontSize: "0.8rem",
+							color: "#6b7280",
+						}}
+					>
+						{orderPage + 1} of {orderPageCount}
+					</span>
+					<button
+						onClick={() => fetchData(orderPage + 1)}
+						disabled={orderPage >= orderPageCount - 1}
+						style={{
+							padding: "0.35rem 0.7rem",
+							border: "1px solid #d1d5db",
+							borderRadius: "0.375rem",
+							background:
+								orderPage >= orderPageCount - 1
+									? "#f9fafb"
+									: "#fff",
+							color:
+								orderPage >= orderPageCount - 1
+									? "#d1d5db"
+									: "#374151",
+							cursor:
+								orderPage >= orderPageCount - 1
+									? "not-allowed"
+									: "pointer",
+							display: "flex",
+							alignItems: "center",
+							gap: "0.25rem",
+							fontSize: "0.8rem",
+						}}
+					>
+						Next
+						<ChevronRight size={14} />
+					</button>
+				</div>
+			)}
+		</div>
+
+		{/* Statements Table */}
 			<div
 				style={{
 					background: "#fff",
