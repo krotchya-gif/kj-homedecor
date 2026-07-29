@@ -1,4 +1,5 @@
 import { createClient } from "@/utils/supabase/server";
+import crypto from "crypto";
 
 export interface TikTokSettings {
 	id: string;
@@ -11,6 +12,52 @@ export interface TikTokSettings {
 	open_id?: string | null;
 	token_expires_at: string | null;
 	is_active: boolean;
+}
+
+/**
+ * Build a signed TikTok Shop API request URL with the required
+ * app_key, timestamp, and signature query parameters.
+ */
+export function signTikTokRequest(
+	path: string,
+	appKey: string,
+	appSecret: string,
+	body?: Record<string, unknown>,
+	extraQs?: Record<string, string>,
+): string {
+	const timestamp = Math.floor(Date.now() / 1000);
+
+	// Build sorted query params (excluding sign which we're generating)
+	const params: Record<string, string> = {
+		app_key: appKey,
+		timestamp: String(timestamp),
+		...extraQs,
+	};
+
+	const sortedKeys = Object.keys(params).sort();
+
+	// Step 2: concatenate {key}{value} in alphabetical order
+	const paramString = sortedKeys.map((k) => `${k}${params[k]}`).join("");
+
+	// Step 3: prepend pathname
+	let signString = `${path}${paramString}`;
+
+	// Step 4: append JSON body if present
+	if (body && Object.keys(body).length > 0) {
+		signString += JSON.stringify(body);
+	}
+
+	// Step 5: wrap with app_secret
+	signString = `${appSecret}${signString}${appSecret}`;
+
+	// Step 6: HMAC-SHA256
+	const hmac = crypto.createHmac("sha256", appSecret);
+	hmac.update(signString);
+	const sign = hmac.digest("hex");
+
+	// Build final URL
+	const qs = new URLSearchParams({ ...params, sign });
+	return `https://open-api.tiktokglobalshop.com${path}?${qs}`;
 }
 
 export async function getTikTokSettings(

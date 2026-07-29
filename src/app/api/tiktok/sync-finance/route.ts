@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { getTikTokSettings, getValidToken } from "@/lib/tiktok";
+import { getTikTokSettings, getValidToken, signTikTokRequest } from "@/lib/tiktok";
 
 export async function POST(req: NextRequest) {
 	const supabase = await createClient();
@@ -31,8 +31,7 @@ export async function POST(req: NextRequest) {
 	}
 
 	try {
-		// Call TikTok Shop Finance API to get statements/payments
-		// Use time range for filtering
+		// Call TikTok Shop Finance API with signed request
 		const now = Math.floor(Date.now() / 1000);
 		const timeGe = start_date
 			? Math.floor(new Date(start_date).getTime() / 1000)
@@ -41,15 +40,25 @@ export async function POST(req: NextRequest) {
 			? Math.floor(new Date(end_date).getTime() / 1000)
 			: now;
 
-		const paymentsRes = await fetch(
-			`https://open-api.tiktokglobalshop.com/finance/202309/payments?sort_field=create_time&create_time_ge=${timeGe}&create_time_lt=${timeLt}&page_size=100`,
+		const url = signTikTokRequest(
+			"/finance/202309/payments",
+			settings.app_key,
+			settings.app_secret,
+			undefined,
 			{
-				headers: {
-					"Content-Type": "application/json",
-					"x-tts-access-token": token,
-				},
+				sort_field: "create_time",
+				create_time_ge: String(timeGe),
+				create_time_lt: String(timeLt),
+				page_size: "100",
 			},
 		);
+
+		const paymentsRes = await fetch(url, {
+			headers: {
+				"Content-Type": "application/json",
+				"x-tts-access-token": token,
+			},
+		});
 
 		const paymentsData = await paymentsRes.json();
 

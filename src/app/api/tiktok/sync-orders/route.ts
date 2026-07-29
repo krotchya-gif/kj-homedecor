@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { getTikTokSettings, getValidToken } from "@/lib/tiktok";
+import { getTikTokSettings, getValidToken, signTikTokRequest } from "@/lib/tiktok";
 
 export async function POST(req: NextRequest) {
 	const supabase = await createClient();
@@ -31,32 +31,36 @@ export async function POST(req: NextRequest) {
 	}
 
 	try {
-		// Call TikTok Shop API to get orders
-		const orderListRes = await fetch(
-			"https://open-api.tiktokglobalshop.com/order/202309/orders/search",
-			{
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					"x-tts-access-token": token,
-				},
-				body: JSON.stringify({
-					page_size: 100,
-					...(start_date
-						? {
-								create_time_ge: Math.floor(
-									new Date(start_date).getTime() / 1000,
-								),
-							}
-						: {}),
-					...(end_date
-						? {
-								create_time_lt: Math.floor(new Date(end_date).getTime() / 1000),
-							}
-						: {}),
-				}),
-			},
+		// Call TikTok Shop API to get orders with signed request
+		const body: Record<string, unknown> = {
+			page_size: 100,
+		};
+		if (start_date) {
+			body.create_time_ge = Math.floor(
+				new Date(start_date).getTime() / 1000,
+			);
+		}
+		if (end_date) {
+			body.create_time_lt = Math.floor(
+				new Date(end_date).getTime() / 1000,
+			);
+		}
+
+		const url = signTikTokRequest(
+			"/order/202309/orders/search",
+			settings.app_key,
+			settings.app_secret,
+			body,
 		);
+
+		const orderListRes = await fetch(url, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				"x-tts-access-token": token,
+			},
+			body: JSON.stringify(body),
+		});
 
 		const orderData = await orderListRes.json();
 
