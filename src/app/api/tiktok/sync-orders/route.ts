@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
 
 				await supabase.from("tiktok_shop_orders").insert({
 					tiktok_order_id: order.id,
-					order_status: order.status || order.order_status, // status: COMPLETED, etc.
+					order_status: order.status || order.order_status,
 					payment_status:
 						order.status === "COMPLETED" || order.status === "DELIVERED"
 							? "PAID"
@@ -125,6 +125,9 @@ export async function POST(req: NextRequest) {
 					buyer_name: order.recipient_address?.name || order.buyer_user_name,
 					buyer_phone: order.recipient_address?.phone_number,
 					shipping_address: order.recipient_address?.full_address,
+					order_date: order.create_time
+						? new Date(order.create_time * 1000).toISOString()
+						: null,
 					order_data: order,
 				});
 				synced++;

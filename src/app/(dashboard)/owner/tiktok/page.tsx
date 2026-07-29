@@ -31,7 +31,7 @@ export default function TikTokDashboardPage() {
 	const [loading, setLoading] = useState(true);
 	const [orderPage, setOrderPage] = useState(0);
 	const [orderTotal, setOrderTotal] = useState(0);
-	const ORDER_PAGE_SIZE = 25;
+	const [orderPageSize, setOrderPageSize] = useState(25);
 	const [filterStatus, setFilterStatus] = useState("");
 	const [filterPayment, setFilterPayment] = useState("");
 	const [syncing, setSyncing] = useState<string | null>(null);
@@ -61,23 +61,25 @@ export default function TikTokDashboardPage() {
 		fetchData();
 	}, []);
 
-	const orderPageCount = Math.ceil(orderTotal / ORDER_PAGE_SIZE);
+	const orderPageCount = Math.ceil(orderTotal / orderPageSize);
 
 	async function fetchData(
 		page = 0,
 		statusFilter?: string,
 		paymentFilter?: string,
+		limit?: number,
 	) {
 		setLoading(true);
 		const sf = statusFilter ?? filterStatus;
 		const pf = paymentFilter ?? filterPayment;
+		const ps = limit ?? orderPageSize;
 
 		let orderQuery = supabase.from("tiktok_shop_orders").select("*");
 		if (sf) orderQuery = orderQuery.eq("order_status", sf);
 		if (pf) orderQuery = orderQuery.eq("payment_status", pf);
 		orderQuery = orderQuery
-			.order("created_at", { ascending: false })
-			.range(page * ORDER_PAGE_SIZE, (page + 1) * ORDER_PAGE_SIZE - 1);
+			.order("order_date", { ascending: false, nullsFirst: false })
+			.range(page * ps, (page + 1) * ps - 1);
 
 		let countQuery = supabase
 			.from("tiktok_shop_orders")
@@ -780,10 +782,30 @@ export default function TikTokDashboardPage() {
 								<option value="PAID">Paid</option>
 								<option value="CANCELLED">Cancelled</option>
 							</select>
-							<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-								{orderTotal} order
-							</span>
-						</div>
+						<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+							{orderTotal} order
+						</span>
+						<select
+							value={String(orderPageSize)}
+							onChange={async (e) => {
+								const v = Number(e.target.value);
+								setOrderPageSize(v);
+								fetchData(0, filterStatus, filterPayment, v);
+							}}
+							style={{
+								padding: "0.35rem 0.6rem",
+								border: "1px solid #d1d5db",
+								borderRadius: "0.375rem",
+								fontSize: "0.8rem",
+								marginLeft: "auto",
+							}}
+						>
+							<option value="10">10</option>
+							<option value="25">25</option>
+							<option value="50">50</option>
+							<option value="100">100</option>
+						</select>
+					</div>
 						<div className="data-table">
 							<table>
 								<thead>
@@ -793,7 +815,7 @@ export default function TikTokDashboardPage() {
 										<th>Payment</th>
 										<th>Total</th>
 										<th>Buyer</th>
-										<th>Created</th>
+										<th>Tanggal</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -850,9 +872,15 @@ export default function TikTokDashboardPage() {
 												{formatRp(Number(o.total_amount || 0))}
 											</td>
 											<td>{o.buyer_name || "-"}</td>
-											<td style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-												{new Date(o.created_at).toLocaleDateString("id-ID")}
-											</td>
+										<td style={{ fontSize: "0.8rem", color: "#6b7280" }}>
+											{o.order_date
+												? new Date(o.order_date).toLocaleDateString("id-ID", {
+														day: "numeric",
+														month: "short",
+														year: "numeric",
+												  })
+												: new Date(o.created_at).toLocaleDateString("id-ID")}
+										</td>
 										</tr>
 									))}
 								</tbody>
@@ -862,7 +890,7 @@ export default function TikTokDashboardPage() {
 				)}
 
 				{/* Pagination */}
-				{orderTotal > ORDER_PAGE_SIZE && (
+				{orderTotal > orderPageSize && (
 					<div
 						style={{
 							display: "flex",
@@ -1041,168 +1069,316 @@ export default function TikTokDashboardPage() {
 				)}
 			</div>
 			{showAddForm && (
-			<div
-				style={{
-					position: "fixed",
-					inset: 0,
-					background: "rgba(0,0,0,0.4)",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					zIndex: 1000,
-				}}
-				onClick={() => setShowAddForm(false)}
-			>
 				<div
 					style={{
-						background: "#fff",
-						borderRadius: "0.75rem",
-						padding: "1.5rem",
-						width: "90%",
-						maxWidth: 480,
-						boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+						position: "fixed",
+						inset: 0,
+						background: "rgba(0,0,0,0.4)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						zIndex: 1000,
 					}}
-					onClick={(e) => e.stopPropagation()}
+					onClick={() => setShowAddForm(false)}
 				>
-					<h3
+					<div
 						style={{
-							fontSize: "1rem",
-							fontWeight: "700",
-							margin: "0 0 1rem",
+							background: "#fff",
+							borderRadius: "0.75rem",
+							padding: "1.5rem",
+							width: "90%",
+							maxWidth: 480,
+							boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
 						}}
+						onClick={(e) => e.stopPropagation()}
 					>
-						{settings.length > 0
-							? "Add Another TikTok Shop"
-							: "Connect TikTok Shop"}
-					</h3>
+						<h3
+							style={{
+								fontSize: "1rem",
+								fontWeight: "700",
+								margin: "0 0 1rem",
+							}}
+						>
+							{settings.length > 0
+								? "Add Another TikTok Shop"
+								: "Connect TikTok Shop"}
+						</h3>
 
-					<form onSubmit={handleSave}>
-						<div style={{ marginBottom: "0.75rem" }}>
-							<label
-								style={{
-									display: "block",
-									fontSize: "0.8rem",
-									fontWeight: "600",
-									marginBottom: "0.3rem",
-								}}
-							>
-								Shop Name
-							</label>
-							<input
-								value={form.shop_name}
-								onChange={(e) =>
-									setForm((f) => ({ ...f, shop_name: e.target.value }))
-								}
-								placeholder="TikTok Shop Saya"
-								style={{
-									width: "100%",
-									padding: "0.6rem",
-									border: "1px solid #d1d5db",
-									borderRadius: "0.5rem",
-									fontSize: "0.85rem",
-								}}
-							/>
-						</div>
-						<div style={{ marginBottom: "0.75rem" }}>
-							<label
-								style={{
-									display: "block",
-									fontSize: "0.8rem",
-									fontWeight: "600",
-									marginBottom: "0.3rem",
-								}}
-							>
-								App Key *{" "}
-								<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-									(dari TikTok Partner Center)
-								</span>
-							</label>
-							<input
-								value={form.app_key}
-								required
-								onChange={(e) =>
-									setForm((f) => ({ ...f, app_key: e.target.value }))
-								}
-								placeholder="Your TikTok Shop App Key"
-								style={{
-									width: "100%",
-									padding: "0.6rem",
-									border: "1px solid #d1d5db",
-									borderRadius: "0.5rem",
-									fontSize: "0.85rem",
-								}}
-							/>
-						</div>
-						<div style={{ marginBottom: "0.75rem" }}>
-							<label
-								style={{
-									display: "block",
-									fontSize: "0.8rem",
-									fontWeight: "600",
-									marginBottom: "0.3rem",
-								}}
-							>
-								App Secret *{" "}
-								<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-									(dari TikTok Partner Center)
-								</span>
-							</label>
-							<input
-								value={form.app_secret}
-								required
-								onChange={(e) =>
-									setForm((f) => ({ ...f, app_secret: e.target.value }))
-								}
-								type="password"
-								placeholder="Your TikTok Shop App Secret"
-								style={{
-									width: "100%",
-									padding: "0.6rem",
-									border: "1px solid #d1d5db",
-									borderRadius: "0.5rem",
-									fontSize: "0.85rem",
-								}}
-							/>
-						</div>
-						<div style={{ marginBottom: "0.5rem" }}>
-							<label
+						<form onSubmit={handleSave}>
+							<div style={{ marginBottom: "0.75rem" }}>
+								<label
+									style={{
+										display: "block",
+										fontSize: "0.8rem",
+										fontWeight: "600",
+										marginBottom: "0.3rem",
+									}}
+								>
+									Shop Name
+								</label>
+								<input
+									value={form.shop_name}
+									onChange={(e) =>
+										setForm((f) => ({ ...f, shop_name: e.target.value }))
+									}
+									placeholder="TikTok Shop Saya"
+									style={{
+										width: "100%",
+										padding: "0.6rem",
+										border: "1px solid #d1d5db",
+										borderRadius: "0.5rem",
+										fontSize: "0.85rem",
+									}}
+								/>
+							</div>
+							<div style={{ marginBottom: "0.75rem" }}>
+								<label
+									style={{
+										display: "block",
+										fontSize: "0.8rem",
+										fontWeight: "600",
+										marginBottom: "0.3rem",
+									}}
+								>
+									App Key *{" "}
+									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
+										(dari TikTok Partner Center)
+									</span>
+								</label>
+								<input
+									value={form.app_key}
+									required
+									onChange={(e) =>
+										setForm((f) => ({ ...f, app_key: e.target.value }))
+									}
+									placeholder="Your TikTok Shop App Key"
+									style={{
+										width: "100%",
+										padding: "0.6rem",
+										border: "1px solid #d1d5db",
+										borderRadius: "0.5rem",
+										fontSize: "0.85rem",
+									}}
+								/>
+							</div>
+							<div style={{ marginBottom: "0.75rem" }}>
+								<label
+									style={{
+										display: "block",
+										fontSize: "0.8rem",
+										fontWeight: "600",
+										marginBottom: "0.3rem",
+									}}
+								>
+									App Secret *{" "}
+									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
+										(dari TikTok Partner Center)
+									</span>
+								</label>
+								<input
+									value={form.app_secret}
+									required
+									onChange={(e) =>
+										setForm((f) => ({ ...f, app_secret: e.target.value }))
+									}
+									type="password"
+									placeholder="Your TikTok Shop App Secret"
+									style={{
+										width: "100%",
+										padding: "0.6rem",
+										border: "1px solid #d1d5db",
+										borderRadius: "0.5rem",
+										fontSize: "0.85rem",
+									}}
+								/>
+							</div>
+							<div style={{ marginBottom: "0.5rem" }}>
+								<label
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "0.3rem",
+										fontSize: "0.8rem",
+										fontWeight: "600",
+										marginBottom: "0.3rem",
+									}}
+								>
+									Shop Cipher{" "}
+									<Info
+										size={12}
+										style={{ color: "#9ca3af", cursor: "help" }}
+										data-tip="Akan otomatis terisi setelah OAuth"
+									/>
+									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
+										(otomatis dari TikTok)
+									</span>
+								</label>
+								<input
+									value={form.shop_cipher}
+									onChange={(e) =>
+										setForm((f) => ({ ...f, shop_cipher: e.target.value }))
+									}
+									placeholder="Nanti otomatis terisi"
+									disabled
+									style={{
+										width: "100%",
+										padding: "0.6rem",
+										border: "1px solid #d1d5db",
+										borderRadius: "0.5rem",
+										fontSize: "0.85rem",
+										background: "#f9fafb",
+										color: "#9ca3af",
+									}}
+								/>
+							</div>
+							<div
 								style={{
 									display: "flex",
-									alignItems: "center",
-									gap: "0.3rem",
-									fontSize: "0.8rem",
-									fontWeight: "600",
-									marginBottom: "0.3rem",
+									gap: "0.5rem",
+									justifyContent: "flex-end",
 								}}
 							>
-								Shop Cipher{" "}
-								<Info
-									size={12}
-									style={{ color: "#9ca3af", cursor: "help" }}
-									data-tip="Akan otomatis terisi setelah OAuth"
-								/>
-								<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-									(otomatis dari TikTok)
-								</span>
-							</label>
-							<input
-								value={form.shop_cipher}
-								onChange={(e) =>
-									setForm((f) => ({ ...f, shop_cipher: e.target.value }))
-								}
-								placeholder="Nanti otomatis terisi"
-								disabled
+								<button
+									type="button"
+									onClick={() => setShowAddForm(false)}
+									style={{
+										padding: "0.5rem 1rem",
+										background: "#f3f4f6",
+										border: "1px solid #d1d5db",
+										borderRadius: "0.5rem",
+										fontSize: "0.85rem",
+										cursor: "pointer",
+									}}
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									disabled={saving}
+									style={{
+										padding: "0.5rem 1.25rem",
+										background: "#cc7030",
+										color: "#fff",
+										border: "none",
+										borderRadius: "0.5rem",
+										fontSize: "0.85rem",
+										fontWeight: "600",
+										cursor: saving ? "not-allowed" : "pointer",
+									}}
+								>
+									{saving ? "Menyimpan..." : "Save & Connect"}
+								</button>
+							</div>
+						</form>
+
+						<div
+							style={{
+								marginTop: "1rem",
+								padding: "0.75rem",
+								background: "#f0f9ff",
+								border: "1px solid #93c5fd",
+								borderRadius: "0.5rem",
+								fontSize: "0.75rem",
+								color: "#1e40af",
+							}}
+						>
+							<strong>Langkah-langkah:</strong>
+							<ol
 								style={{
-									width: "100%",
-									padding: "0.6rem",
-									border: "1px solid #d1d5db",
-									borderRadius: "0.5rem",
-									fontSize: "0.85rem",
-									background: "#f9fafb",
-									color: "#9ca3af",
+									margin: "0.3rem 0 0",
+									paddingLeft: "1rem",
+									lineHeight: 1.6,
 								}}
-							/>
+							>
+								<li>
+									Buka{" "}
+									<a
+										href="https://partner.tiktokshop.com"
+										target="_blank"
+										style={{ color: "#cc7030" }}
+										rel="noopener"
+									>
+										TikTok Partner Center
+									</a>
+								</li>
+								<li>Buat aplikasi → dapatkan App Key & App Secret</li>
+								<li>
+									Set redirect URL:{" "}
+									<code
+										style={{
+											background: "#e0e7ff",
+											padding: "0.1rem 0.3rem",
+											borderRadius: "0.25rem",
+										}}
+									>
+										https://kjhomedecor.com/api/tiktok/auth
+									</code>
+								</li>
+								<li>Isi App Key & Secret, klik "Save & Connect"</li>
+							</ol>
 						</div>
+					</div>
+				</div>
+			)}
+			{showReauthConfirm && (
+				<div
+					style={{
+						position: "fixed",
+						inset: 0,
+						background: "rgba(0,0,0,0.4)",
+						display: "flex",
+						alignItems: "center",
+						justifyContent: "center",
+						zIndex: 1000,
+					}}
+					onClick={() => setShowReauthConfirm(null)}
+				>
+					<div
+						style={{
+							background: "#fff",
+							borderRadius: "0.75rem",
+							padding: "1.5rem",
+							width: "90%",
+							maxWidth: 400,
+							boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+						}}
+						onClick={(e) => e.stopPropagation()}
+					>
+						<h3
+							style={{
+								fontSize: "1rem",
+								fontWeight: "700",
+								margin: "0 0 0.5rem",
+							}}
+						>
+							Re-authorize Shop?
+						</h3>
+						<p
+							style={{
+								fontSize: "0.85rem",
+								color: "#6b7280",
+								margin: "0 0 0.25rem",
+							}}
+						>
+							Ini akan membuka halaman OAuth TikTok untuk refresh token &
+							mendownload shop_cipher.
+						</p>
+						<p
+							style={{
+								fontSize: "0.8rem",
+								color: "#d97706",
+								margin: "0 0 1rem",
+								background: "#fffbeb",
+								padding: "0.5rem",
+								borderRadius: "0.375rem",
+							}}
+						>
+							<AlertCircle
+								size={12}
+								style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
+							/>
+							Pastikan IP server sudah di-whitelist di TikTok Partner Center.
+						</p>
 						<div
 							style={{
 								display: "flex",
@@ -1211,8 +1387,7 @@ export default function TikTokDashboardPage() {
 							}}
 						>
 							<button
-								type="button"
-								onClick={() => setShowAddForm(false)}
+								onClick={() => setShowReauthConfirm(null)}
 								style={{
 									padding: "0.5rem 1rem",
 									background: "#f3f4f6",
@@ -1222,11 +1397,11 @@ export default function TikTokDashboardPage() {
 									cursor: "pointer",
 								}}
 							>
-								Cancel
+								Batal
 							</button>
 							<button
-								type="submit"
-								disabled={saving}
+								onClick={() => handleReauthorize(showReauthConfirm)}
+								disabled={reauthLoading}
 								style={{
 									padding: "0.5rem 1.25rem",
 									background: "#cc7030",
@@ -1235,161 +1410,14 @@ export default function TikTokDashboardPage() {
 									borderRadius: "0.5rem",
 									fontSize: "0.85rem",
 									fontWeight: "600",
-									cursor: saving ? "not-allowed" : "pointer",
+									cursor: reauthLoading ? "not-allowed" : "pointer",
 								}}
 							>
-								{saving ? "Menyimpan..." : "Save & Connect"}
+								{reauthLoading ? "Loading..." : "Ya, Re-authorize"}
 							</button>
 						</div>
-					</form>
-
-					<div
-						style={{
-							marginTop: "1rem",
-							padding: "0.75rem",
-							background: "#f0f9ff",
-							border: "1px solid #93c5fd",
-							borderRadius: "0.5rem",
-							fontSize: "0.75rem",
-							color: "#1e40af",
-						}}
-					>
-						<strong>Langkah-langkah:</strong>
-						<ol
-							style={{
-								margin: "0.3rem 0 0",
-								paddingLeft: "1rem",
-								lineHeight: 1.6,
-							}}
-						>
-							<li>
-								Buka{" "}
-								<a
-									href="https://partner.tiktokshop.com"
-									target="_blank"
-									style={{ color: "#cc7030" }}
-									rel="noopener"
-								>
-									TikTok Partner Center
-								</a>
-							</li>
-							<li>Buat aplikasi → dapatkan App Key & App Secret</li>
-							<li>
-								Set redirect URL:{" "}
-								<code
-									style={{
-										background: "#e0e7ff",
-										padding: "0.1rem 0.3rem",
-										borderRadius: "0.25rem",
-									}}
-								>
-									https://kjhomedecor.com/api/tiktok/auth
-								</code>
-							</li>
-							<li>Isi App Key & Secret, klik "Save & Connect"</li>
-						</ol>
 					</div>
 				</div>
-			</div>
-			)}
-			{showReauthConfirm && (
-			<div
-				style={{
-					position: "fixed",
-					inset: 0,
-					background: "rgba(0,0,0,0.4)",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					zIndex: 1000,
-				}}
-				onClick={() => setShowReauthConfirm(null)}
-			>
-				<div
-					style={{
-						background: "#fff",
-						borderRadius: "0.75rem",
-						padding: "1.5rem",
-						width: "90%",
-						maxWidth: 400,
-						boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-					}}
-					onClick={(e) => e.stopPropagation()}
-				>
-					<h3
-						style={{
-							fontSize: "1rem",
-							fontWeight: "700",
-							margin: "0 0 0.5rem",
-						}}
-					>
-						Re-authorize Shop?
-					</h3>
-					<p
-						style={{
-							fontSize: "0.85rem",
-							color: "#6b7280",
-							margin: "0 0 0.25rem",
-						}}
-					>
-						Ini akan membuka halaman OAuth TikTok untuk refresh token &
-						mendownload shop_cipher.
-					</p>
-					<p
-						style={{
-							fontSize: "0.8rem",
-							color: "#d97706",
-							margin: "0 0 1rem",
-							background: "#fffbeb",
-							padding: "0.5rem",
-							borderRadius: "0.375rem",
-						}}
-					>
-						<AlertCircle
-							size={12}
-							style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
-						/>
-						Pastikan IP server sudah di-whitelist di TikTok Partner Center.
-					</p>
-					<div
-						style={{
-							display: "flex",
-							gap: "0.5rem",
-							justifyContent: "flex-end",
-						}}
-					>
-						<button
-							onClick={() => setShowReauthConfirm(null)}
-							style={{
-								padding: "0.5rem 1rem",
-								background: "#f3f4f6",
-								border: "1px solid #d1d5db",
-								borderRadius: "0.5rem",
-								fontSize: "0.85rem",
-								cursor: "pointer",
-							}}
-						>
-							Batal
-						</button>
-						<button
-							onClick={() => handleReauthorize(showReauthConfirm)}
-							disabled={reauthLoading}
-							style={{
-								padding: "0.5rem 1.25rem",
-								background: "#cc7030",
-								color: "#fff",
-								border: "none",
-								borderRadius: "0.5rem",
-								fontSize: "0.85rem",
-								fontWeight: "600",
-								cursor: reauthLoading ? "not-allowed" : "pointer",
-							}}
-						>
-							{reauthLoading ? "Loading..." : "Ya, Re-authorize"}
-						</button>
-					</div>
-				</div>
-			</div>
 			)}
 		</div>
 	);
