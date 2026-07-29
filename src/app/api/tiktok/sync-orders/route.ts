@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 			"/order/202309/orders/search",
 			settings.app_key,
 			settings.app_secret,
-			Object.keys(reqBody).length > 0 ? reqBody : undefined,
+			reqBody,
 			{ page_size: "100" },
 		);
 
@@ -61,8 +61,7 @@ export async function POST(req: NextRequest) {
 				"Content-Type": "application/json",
 				"x-tts-access-token": token,
 			},
-			body:
-				Object.keys(reqBody).length > 0 ? JSON.stringify(reqBody) : undefined,
+			body: JSON.stringify(reqBody),
 		});
 
 		const orderData = await orderListRes.json();

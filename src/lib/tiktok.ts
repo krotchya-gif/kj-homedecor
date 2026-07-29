@@ -42,8 +42,8 @@ export function signTikTokRequest(
 	// Step 3: prepend pathname
 	let signString = `${path}${paramString}`;
 
-	// Step 4: append JSON body if present
-	if (body && Object.keys(body).length > 0) {
+	// Step 4: append JSON body if present (always include even if empty, for consistent signing)
+	if (body !== undefined) {
 		signString += JSON.stringify(body);
 	}
 
