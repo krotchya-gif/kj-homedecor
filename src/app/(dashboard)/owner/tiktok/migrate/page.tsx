@@ -30,7 +30,10 @@ export default function RunMigrationPage() {
 			// Table doesn't exist yet, migration needed
 		}
 
-		setStatus((s) => [...s, existing ? "✅ Tables already exist" : "🔄 Migration needed, running..."]);
+		setStatus((s) => [
+			...s,
+			existing ? "✅ Tables already exist" : "🔄 Migration needed, running...",
+		]);
 
 		if (existing) {
 			setRunning(false);
