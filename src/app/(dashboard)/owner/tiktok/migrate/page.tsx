@@ -18,12 +18,24 @@ export default function RunMigrationPage() {
 		setRunning(true);
 
 		// Check if tables exist
-		const { data: existing } = await supabase
-			.from("tiktok_shop_settings")
-			.select("id")
-			.limit(1)
-			.maybeSingle()
-			.catch(() => null);
+		let existing = null;
+		try {
+			const result = await supabase
+				.from("tiktok_shop_settings")
+				.select("id")
+				.limit(1)
+				.maybeSingle();
+			existing = result.data;
+		} catch {
+			// Table doesn't exist yet, migration needed
+		}
+
+		setStatus((s) => [...s, existing ? "✅ Tables already exist" : "🔄 Migration needed, running..."]);
+
+		if (existing) {
+			setRunning(false);
+			return;
+		}
 
 		if (existing !== null) {
 			setStatus((s) => [...s, "✅ Tables already exist"]);
