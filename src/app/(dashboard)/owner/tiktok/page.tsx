@@ -25,15 +25,15 @@ const formatRp = (n: number) =>
 	}).format(n);
 
 export default function TikTokDashboardPage() {
-const [settings, setSettings] = useState<any[]>([]);
-const [orders, setOrders] = useState<any[]>([]);
-const [statements, setStatements] = useState<any[]>([]);
-const [loading, setLoading] = useState(true);
-const [orderPage, setOrderPage] = useState(0);
-const [orderTotal, setOrderTotal] = useState(0);
-const ORDER_PAGE_SIZE = 25;
-const [filterStatus, setFilterStatus] = useState("");
-const [filterPayment, setFilterPayment] = useState("");
+	const [settings, setSettings] = useState<any[]>([]);
+	const [orders, setOrders] = useState<any[]>([]);
+	const [statements, setStatements] = useState<any[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [orderPage, setOrderPage] = useState(0);
+	const [orderTotal, setOrderTotal] = useState(0);
+	const ORDER_PAGE_SIZE = 25;
+	const [filterStatus, setFilterStatus] = useState("");
+	const [filterPayment, setFilterPayment] = useState("");
 	const [syncing, setSyncing] = useState<string | null>(null);
 	const [syncResult, setSyncResult] = useState<{
 		type: "success" | "error";
@@ -223,7 +223,6 @@ const [filterPayment, setFilterPayment] = useState("");
 					Integrasi TikTok Shop — Order, Settlement, Rekonsiliasi
 				</p>
 			</div>
-
 			{/* Stats */}
 			<div className="stat-grid" style={{ marginBottom: "1.5rem" }}>
 				<div className="stat-card">
@@ -266,7 +265,6 @@ const [filterPayment, setFilterPayment] = useState("");
 					</div>
 				</div>
 			</div>
-
 			{/* Shop Management */}
 			{settings.length > 0 && (
 				<div
@@ -483,7 +481,6 @@ const [filterPayment, setFilterPayment] = useState("");
 					</div>
 				</div>
 			)}
-
 			{/* Sync Controls */}
 			<div
 				style={{
@@ -687,7 +684,6 @@ const [filterPayment, setFilterPayment] = useState("");
 					</div>
 				)}
 			</div>
-
 			{/* Orders Table */}
 			<div
 				style={{
@@ -734,130 +730,134 @@ const [filterPayment, setFilterPayment] = useState("");
 					</div>
 				) : (
 					<>
-					<div
-						style={{
-							padding: "0.75rem 1.25rem",
-							borderBottom: "1px solid #e5e7eb",
-							display: "flex",
-							gap: "0.75rem",
-							flexWrap: "wrap",
-							alignItems: "center",
-							background: "#fafafa",
-						}}
-					>
-						<select
-							value={filterStatus}
-							onChange={async (e) => {
-								const v = e.target.value;
-								setFilterStatus(v);
-								setOrderPage(0);
-								await fetchData(0, v, filterPayment);
-							}}
+						<div
 							style={{
-								padding: "0.35rem 0.6rem",
-								border: "1px solid #d1d5db",
-								borderRadius: "0.375rem",
-								fontSize: "0.8rem",
+								padding: "0.75rem 1.25rem",
+								borderBottom: "1px solid #e5e7eb",
+								display: "flex",
+								gap: "0.75rem",
+								flexWrap: "wrap",
+								alignItems: "center",
+								background: "#fafafa",
 							}}
 						>
-							<option value="">Status: Semua</option>
-							<option value="COMPLETED">Completed</option>
-							<option value="DELIVERED">Delivered</option>
-							<option value="CANCELLED">Cancelled</option>
-						</select>
-						<select
-							value={filterPayment}
-							onChange={async (e) => {
-								const v = e.target.value;
-								setFilterPayment(v);
-								setOrderPage(0);
-								await fetchData(0, filterStatus, v);
-							}}
-							style={{
-								padding: "0.35rem 0.6rem",
-								border: "1px solid #d1d5db",
-								borderRadius: "0.375rem",
-								fontSize: "0.8rem",
-							}}
-						>
-							<option value="">Payment: Semua</option>
-							<option value="PAID">Paid</option>
-							<option value="CANCELLED">Cancelled</option>
-						</select>
-						<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
-							{orderTotal} order
-						</span>
-					</div>
-					<div className="data-table">
-						<table>
-							<thead>
-								<tr>
-									<th>Order ID</th>
-									<th>Status</th>
-									<th>Payment</th>
-									<th>Total</th>
-									<th>Buyer</th>
-									<th>Created</th>
-								</tr>
-							</thead>
-							<tbody>
-								{orders.map((o) => (
-									<tr key={o.id}>
-										<td
-											style={{ fontSize: "0.75rem", fontFamily: "monospace" }}
-										>
-											{o.tiktok_order_id?.slice(0, 16)}...
-										</td>
-										<td>
-											<span
-												style={{
-													padding: "0.15rem 0.5rem",
-													borderRadius: "999px",
-													fontSize: "0.75rem",
-													fontWeight: "600",
-													background: ["DELIVERED", "COMPLETED"].includes(
-														o.order_status,
-													)
-														? "#f0fdf4"
-														: "#fef9c3",
-													color: ["DELIVERED", "COMPLETED"].includes(
-														o.order_status,
-													)
-														? "#166534"
-														: "#854d0e",
-												}}
-											>
-												{o.order_status || "-"}
-											</span>
-										</td>
-										<td>
-											<span
-												style={{
-													padding: "0.15rem 0.5rem",
-													borderRadius: "999px",
-													fontSize: "0.75rem",
-													fontWeight: "600",
-													background:
-														o.payment_status === "PAID" ? "#f0fdf4" : "#fef9c3",
-													color:
-														o.payment_status === "PAID" ? "#166534" : "#854d0e",
-												}}
-											>
-												{o.payment_status || "-"}
-											</span>
-										</td>
-										<td style={{ fontWeight: "700" }}>
-											{formatRp(Number(o.total_amount || 0))}
-										</td>
-										<td>{o.buyer_name || "-"}</td>
-										<td style={{ fontSize: "0.8rem", color: "#6b7280" }}>
-											{new Date(o.created_at).toLocaleDateString("id-ID")}
-										</td>
+							<select
+								value={filterStatus}
+								onChange={async (e) => {
+									const v = e.target.value;
+									setFilterStatus(v);
+									setOrderPage(0);
+									await fetchData(0, v, filterPayment);
+								}}
+								style={{
+									padding: "0.35rem 0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.375rem",
+									fontSize: "0.8rem",
+								}}
+							>
+								<option value="">Status: Semua</option>
+								<option value="COMPLETED">Completed</option>
+								<option value="DELIVERED">Delivered</option>
+								<option value="CANCELLED">Cancelled</option>
+							</select>
+							<select
+								value={filterPayment}
+								onChange={async (e) => {
+									const v = e.target.value;
+									setFilterPayment(v);
+									setOrderPage(0);
+									await fetchData(0, filterStatus, v);
+								}}
+								style={{
+									padding: "0.35rem 0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.375rem",
+									fontSize: "0.8rem",
+								}}
+							>
+								<option value="">Payment: Semua</option>
+								<option value="PAID">Paid</option>
+								<option value="CANCELLED">Cancelled</option>
+							</select>
+							<span style={{ fontSize: "0.75rem", color: "#9ca3af" }}>
+								{orderTotal} order
+							</span>
+						</div>
+						<div className="data-table">
+							<table>
+								<thead>
+									<tr>
+										<th>Order ID</th>
+										<th>Status</th>
+										<th>Payment</th>
+										<th>Total</th>
+										<th>Buyer</th>
+										<th>Created</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
+								</thead>
+								<tbody>
+									{orders.map((o) => (
+										<tr key={o.id}>
+											<td
+												style={{ fontSize: "0.75rem", fontFamily: "monospace" }}
+											>
+												{o.tiktok_order_id?.slice(0, 16)}...
+											</td>
+											<td>
+												<span
+													style={{
+														padding: "0.15rem 0.5rem",
+														borderRadius: "999px",
+														fontSize: "0.75rem",
+														fontWeight: "600",
+														background: ["DELIVERED", "COMPLETED"].includes(
+															o.order_status,
+														)
+															? "#f0fdf4"
+															: "#fef9c3",
+														color: ["DELIVERED", "COMPLETED"].includes(
+															o.order_status,
+														)
+															? "#166534"
+															: "#854d0e",
+													}}
+												>
+													{o.order_status || "-"}
+												</span>
+											</td>
+											<td>
+												<span
+													style={{
+														padding: "0.15rem 0.5rem",
+														borderRadius: "999px",
+														fontSize: "0.75rem",
+														fontWeight: "600",
+														background:
+															o.payment_status === "PAID"
+																? "#f0fdf4"
+																: "#fef9c3",
+														color:
+															o.payment_status === "PAID"
+																? "#166534"
+																: "#854d0e",
+													}}
+												>
+													{o.payment_status || "-"}
+												</span>
+											</td>
+											<td style={{ fontWeight: "700" }}>
+												{formatRp(Number(o.total_amount || 0))}
+											</td>
+											<td>{o.buyer_name || "-"}</td>
+											<td style={{ fontSize: "0.8rem", color: "#6b7280" }}>
+												{new Date(o.created_at).toLocaleDateString("id-ID")}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						</div>
 					</>
 				)}
 
@@ -924,7 +924,6 @@ const [filterPayment, setFilterPayment] = useState("");
 					</div>
 				)}
 			</div>
-
 			{/* Statements Table */}
 			<div
 				style={{
@@ -1041,319 +1040,169 @@ const [filterPayment, setFilterPayment] = useState("");
 					</div>
 				)}
 			</div>
-
-			{/* Add Shop Modal */}showAddForm && (
+			{showAddForm && (
+			<div
+				style={{
+					position: "fixed",
+					inset: 0,
+					background: "rgba(0,0,0,0.4)",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					zIndex: 1000,
+				}}
+				onClick={() => setShowAddForm(false)}
+			>
 				<div
 					style={{
-						position: "fixed",
-						inset: 0,
-						background: "rgba(0,0,0,0.4)",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						zIndex: 1000,
+						background: "#fff",
+						borderRadius: "0.75rem",
+						padding: "1.5rem",
+						width: "90%",
+						maxWidth: 480,
+						boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
 					}}
-					onClick={() => setShowAddForm(false)}
+					onClick={(e) => e.stopPropagation()}
 				>
-					<div
+					<h3
 						style={{
-							background: "#fff",
-							borderRadius: "0.75rem",
-							padding: "1.5rem",
-							width: "90%",
-							maxWidth: 480,
-							boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+							fontSize: "1rem",
+							fontWeight: "700",
+							margin: "0 0 1rem",
 						}}
-						onClick={(e) => e.stopPropagation()}
 					>
-						<h3
-							style={{
-								fontSize: "1rem",
-								fontWeight: "700",
-								margin: "0 0 1rem",
-							}}
-						>
-							{settings.length > 0
-								? "Add Another TikTok Shop"
-								: "Connect TikTok Shop"}
-						</h3>
+						{settings.length > 0
+							? "Add Another TikTok Shop"
+							: "Connect TikTok Shop"}
+					</h3>
 
-						<form onSubmit={handleSave}>
-							<div style={{ marginBottom: "0.75rem" }}>
-								<label
-									style={{
-										display: "block",
-										fontSize: "0.8rem",
-										fontWeight: "600",
-										marginBottom: "0.3rem",
-									}}
-								>
-									Shop Name
-								</label>
-								<input
-									value={form.shop_name}
-									onChange={(e) =>
-										setForm((f) => ({ ...f, shop_name: e.target.value }))
-									}
-									placeholder="TikTok Shop Saya"
-									style={{
-										width: "100%",
-										padding: "0.6rem",
-										border: "1px solid #d1d5db",
-										borderRadius: "0.5rem",
-										fontSize: "0.85rem",
-									}}
-								/>
-							</div>
-							<div style={{ marginBottom: "0.75rem" }}>
-								<label
-									style={{
-										display: "block",
-										fontSize: "0.8rem",
-										fontWeight: "600",
-										marginBottom: "0.3rem",
-									}}
-								>
-									App Key *{" "}
-									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-										(dari TikTok Partner Center)
-									</span>
-								</label>
-								<input
-									value={form.app_key}
-									required
-									onChange={(e) =>
-										setForm((f) => ({ ...f, app_key: e.target.value }))
-									}
-									placeholder="Your TikTok Shop App Key"
-									style={{
-										width: "100%",
-										padding: "0.6rem",
-										border: "1px solid #d1d5db",
-										borderRadius: "0.5rem",
-										fontSize: "0.85rem",
-									}}
-								/>
-							</div>
-							<div style={{ marginBottom: "0.75rem" }}>
-								<label
-									style={{
-										display: "block",
-										fontSize: "0.8rem",
-										fontWeight: "600",
-										marginBottom: "0.3rem",
-									}}
-								>
-									App Secret *{" "}
-									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-										(dari TikTok Partner Center)
-									</span>
-								</label>
-								<input
-									value={form.app_secret}
-									required
-									onChange={(e) =>
-										setForm((f) => ({ ...f, app_secret: e.target.value }))
-									}
-									type="password"
-									placeholder="Your TikTok Shop App Secret"
-									style={{
-										width: "100%",
-										padding: "0.6rem",
-										border: "1px solid #d1d5db",
-										borderRadius: "0.5rem",
-										fontSize: "0.85rem",
-									}}
-								/>
-							</div>
-							<div style={{ marginBottom: "0.5rem" }}>
-								<label
-									style={{
-										display: "flex",
-										alignItems: "center",
-										gap: "0.3rem",
-										fontSize: "0.8rem",
-										fontWeight: "600",
-										marginBottom: "0.3rem",
-									}}
-								>
-									Shop Cipher{" "}
-									<Info
-										size={12}
-										style={{ color: "#9ca3af", cursor: "help" }}
-										data-tip="Akan otomatis terisi setelah OAuth"
-									/>
-									<span style={{ fontWeight: "400", color: "#9ca3af" }}>
-										(otomatis dari TikTok)
-									</span>
-								</label>
-								<input
-									value={form.shop_cipher}
-									onChange={(e) =>
-										setForm((f) => ({ ...f, shop_cipher: e.target.value }))
-									}
-									placeholder="Nanti otomatis terisi"
-									disabled
-									style={{
-										width: "100%",
-										padding: "0.6rem",
-										border: "1px solid #d1d5db",
-										borderRadius: "0.5rem",
-										fontSize: "0.85rem",
-										background: "#f9fafb",
-										color: "#9ca3af",
-									}}
-								/>
-							</div>
-							<div
+					<form onSubmit={handleSave}>
+						<div style={{ marginBottom: "0.75rem" }}>
+							<label
+								style={{
+									display: "block",
+									fontSize: "0.8rem",
+									fontWeight: "600",
+									marginBottom: "0.3rem",
+								}}
+							>
+								Shop Name
+							</label>
+							<input
+								value={form.shop_name}
+								onChange={(e) =>
+									setForm((f) => ({ ...f, shop_name: e.target.value }))
+								}
+								placeholder="TikTok Shop Saya"
+								style={{
+									width: "100%",
+									padding: "0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.5rem",
+									fontSize: "0.85rem",
+								}}
+							/>
+						</div>
+						<div style={{ marginBottom: "0.75rem" }}>
+							<label
+								style={{
+									display: "block",
+									fontSize: "0.8rem",
+									fontWeight: "600",
+									marginBottom: "0.3rem",
+								}}
+							>
+								App Key *{" "}
+								<span style={{ fontWeight: "400", color: "#9ca3af" }}>
+									(dari TikTok Partner Center)
+								</span>
+							</label>
+							<input
+								value={form.app_key}
+								required
+								onChange={(e) =>
+									setForm((f) => ({ ...f, app_key: e.target.value }))
+								}
+								placeholder="Your TikTok Shop App Key"
+								style={{
+									width: "100%",
+									padding: "0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.5rem",
+									fontSize: "0.85rem",
+								}}
+							/>
+						</div>
+						<div style={{ marginBottom: "0.75rem" }}>
+							<label
+								style={{
+									display: "block",
+									fontSize: "0.8rem",
+									fontWeight: "600",
+									marginBottom: "0.3rem",
+								}}
+							>
+								App Secret *{" "}
+								<span style={{ fontWeight: "400", color: "#9ca3af" }}>
+									(dari TikTok Partner Center)
+								</span>
+							</label>
+							<input
+								value={form.app_secret}
+								required
+								onChange={(e) =>
+									setForm((f) => ({ ...f, app_secret: e.target.value }))
+								}
+								type="password"
+								placeholder="Your TikTok Shop App Secret"
+								style={{
+									width: "100%",
+									padding: "0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.5rem",
+									fontSize: "0.85rem",
+								}}
+							/>
+						</div>
+						<div style={{ marginBottom: "0.5rem" }}>
+							<label
 								style={{
 									display: "flex",
-									gap: "0.5rem",
-									justifyContent: "flex-end",
+									alignItems: "center",
+									gap: "0.3rem",
+									fontSize: "0.8rem",
+									fontWeight: "600",
+									marginBottom: "0.3rem",
 								}}
 							>
-								<button
-									type="button"
-									onClick={() => setShowAddForm(false)}
-									style={{
-										padding: "0.5rem 1rem",
-										background: "#f3f4f6",
-										border: "1px solid #d1d5db",
-										borderRadius: "0.5rem",
-										fontSize: "0.85rem",
-										cursor: "pointer",
-									}}
-								>
-									Cancel
-								</button>
-								<button
-									type="submit"
-									disabled={saving}
-									style={{
-										padding: "0.5rem 1.25rem",
-										background: "#cc7030",
-										color: "#fff",
-										border: "none",
-										borderRadius: "0.5rem",
-										fontSize: "0.85rem",
-										fontWeight: "600",
-										cursor: saving ? "not-allowed" : "pointer",
-									}}
-								>
-									{saving ? "Menyimpan..." : "Save & Connect"}
-								</button>
-							</div>
-						</form>
-
-						<div
-							style={{
-								marginTop: "1rem",
-								padding: "0.75rem",
-								background: "#f0f9ff",
-								border: "1px solid #93c5fd",
-								borderRadius: "0.5rem",
-								fontSize: "0.75rem",
-								color: "#1e40af",
-							}}
-						>
-							<strong>Langkah-langkah:</strong>
-							<ol
+								Shop Cipher{" "}
+								<Info
+									size={12}
+									style={{ color: "#9ca3af", cursor: "help" }}
+									data-tip="Akan otomatis terisi setelah OAuth"
+								/>
+								<span style={{ fontWeight: "400", color: "#9ca3af" }}>
+									(otomatis dari TikTok)
+								</span>
+							</label>
+							<input
+								value={form.shop_cipher}
+								onChange={(e) =>
+									setForm((f) => ({ ...f, shop_cipher: e.target.value }))
+								}
+								placeholder="Nanti otomatis terisi"
+								disabled
 								style={{
-									margin: "0.3rem 0 0",
-									paddingLeft: "1rem",
-									lineHeight: 1.6,
+									width: "100%",
+									padding: "0.6rem",
+									border: "1px solid #d1d5db",
+									borderRadius: "0.5rem",
+									fontSize: "0.85rem",
+									background: "#f9fafb",
+									color: "#9ca3af",
 								}}
-							>
-								<li>
-									Buka{" "}
-									<a
-										href="https://partner.tiktokshop.com"
-										target="_blank"
-										style={{ color: "#cc7030" }}
-										rel="noopener"
-									>
-										TikTok Partner Center
-									</a>
-								</li>
-								<li>Buat aplikasi → dapatkan App Key & App Secret</li>
-								<li>
-									Set redirect URL:{" "}
-									<code
-										style={{
-											background: "#e0e7ff",
-											padding: "0.1rem 0.3rem",
-											borderRadius: "0.25rem",
-										}}
-									>
-										https://kjhomedecor.com/api/tiktok/auth
-									</code>
-								</li>
-								<li>Isi App Key & Secret, klik "Save & Connect"</li>
-							</ol>
-						</div>
-					</div>
-				</div>
-			)
-
-			{/* Re-authorize Confirmation Modal */}showReauthConfirm && (
-				<div
-					style={{
-						position: "fixed",
-						inset: 0,
-						background: "rgba(0,0,0,0.4)",
-						display: "flex",
-						alignItems: "center",
-						justifyContent: "center",
-						zIndex: 1000,
-					}}
-					onClick={() => setShowReauthConfirm(null)}
-				>
-					<div
-						style={{
-							background: "#fff",
-							borderRadius: "0.75rem",
-							padding: "1.5rem",
-							width: "90%",
-							maxWidth: 400,
-							boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
-						}}
-						onClick={(e) => e.stopPropagation()}
-					>
-						<h3
-							style={{
-								fontSize: "1rem",
-								fontWeight: "700",
-								margin: "0 0 0.5rem",
-							}}
-						>
-							Re-authorize Shop?
-						</h3>
-						<p
-							style={{
-								fontSize: "0.85rem",
-								color: "#6b7280",
-								margin: "0 0 0.25rem",
-							}}
-						>
-							Ini akan membuka halaman OAuth TikTok untuk refresh token &
-							mendownload shop_cipher.
-						</p>
-						<p
-							style={{
-								fontSize: "0.8rem",
-								color: "#d97706",
-								margin: "0 0 1rem",
-								background: "#fffbeb",
-								padding: "0.5rem",
-								borderRadius: "0.375rem",
-							}}
-						>
-							<AlertCircle
-								size={12}
-								style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
 							/>
-							Pastikan IP server sudah di-whitelist di TikTok Partner Center.
-						</p>
+						</div>
 						<div
 							style={{
 								display: "flex",
@@ -1362,7 +1211,8 @@ const [filterPayment, setFilterPayment] = useState("");
 							}}
 						>
 							<button
-								onClick={() => setShowReauthConfirm(null)}
+								type="button"
+								onClick={() => setShowAddForm(false)}
 								style={{
 									padding: "0.5rem 1rem",
 									background: "#f3f4f6",
@@ -1372,11 +1222,11 @@ const [filterPayment, setFilterPayment] = useState("");
 									cursor: "pointer",
 								}}
 							>
-								Batal
+								Cancel
 							</button>
 							<button
-								onClick={() => handleReauthorize(showReauthConfirm)}
-								disabled={reauthLoading}
+								type="submit"
+								disabled={saving}
 								style={{
 									padding: "0.5rem 1.25rem",
 									background: "#cc7030",
@@ -1385,15 +1235,162 @@ const [filterPayment, setFilterPayment] = useState("");
 									borderRadius: "0.5rem",
 									fontSize: "0.85rem",
 									fontWeight: "600",
-									cursor: reauthLoading ? "not-allowed" : "pointer",
+									cursor: saving ? "not-allowed" : "pointer",
 								}}
 							>
-								{reauthLoading ? "Loading..." : "Ya, Re-authorize"}
+								{saving ? "Menyimpan..." : "Save & Connect"}
 							</button>
 						</div>
+					</form>
+
+					<div
+						style={{
+							marginTop: "1rem",
+							padding: "0.75rem",
+							background: "#f0f9ff",
+							border: "1px solid #93c5fd",
+							borderRadius: "0.5rem",
+							fontSize: "0.75rem",
+							color: "#1e40af",
+						}}
+					>
+						<strong>Langkah-langkah:</strong>
+						<ol
+							style={{
+								margin: "0.3rem 0 0",
+								paddingLeft: "1rem",
+								lineHeight: 1.6,
+							}}
+						>
+							<li>
+								Buka{" "}
+								<a
+									href="https://partner.tiktokshop.com"
+									target="_blank"
+									style={{ color: "#cc7030" }}
+									rel="noopener"
+								>
+									TikTok Partner Center
+								</a>
+							</li>
+							<li>Buat aplikasi → dapatkan App Key & App Secret</li>
+							<li>
+								Set redirect URL:{" "}
+								<code
+									style={{
+										background: "#e0e7ff",
+										padding: "0.1rem 0.3rem",
+										borderRadius: "0.25rem",
+									}}
+								>
+									https://kjhomedecor.com/api/tiktok/auth
+								</code>
+							</li>
+							<li>Isi App Key & Secret, klik "Save & Connect"</li>
+						</ol>
 					</div>
 				</div>
-			)
+			</div>
+			)}
+			{showReauthConfirm && (
+			<div
+				style={{
+					position: "fixed",
+					inset: 0,
+					background: "rgba(0,0,0,0.4)",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					zIndex: 1000,
+				}}
+				onClick={() => setShowReauthConfirm(null)}
+			>
+				<div
+					style={{
+						background: "#fff",
+						borderRadius: "0.75rem",
+						padding: "1.5rem",
+						width: "90%",
+						maxWidth: 400,
+						boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+					}}
+					onClick={(e) => e.stopPropagation()}
+				>
+					<h3
+						style={{
+							fontSize: "1rem",
+							fontWeight: "700",
+							margin: "0 0 0.5rem",
+						}}
+					>
+						Re-authorize Shop?
+					</h3>
+					<p
+						style={{
+							fontSize: "0.85rem",
+							color: "#6b7280",
+							margin: "0 0 0.25rem",
+						}}
+					>
+						Ini akan membuka halaman OAuth TikTok untuk refresh token &
+						mendownload shop_cipher.
+					</p>
+					<p
+						style={{
+							fontSize: "0.8rem",
+							color: "#d97706",
+							margin: "0 0 1rem",
+							background: "#fffbeb",
+							padding: "0.5rem",
+							borderRadius: "0.375rem",
+						}}
+					>
+						<AlertCircle
+							size={12}
+							style={{ verticalAlign: "middle", marginRight: "0.3rem" }}
+						/>
+						Pastikan IP server sudah di-whitelist di TikTok Partner Center.
+					</p>
+					<div
+						style={{
+							display: "flex",
+							gap: "0.5rem",
+							justifyContent: "flex-end",
+						}}
+					>
+						<button
+							onClick={() => setShowReauthConfirm(null)}
+							style={{
+								padding: "0.5rem 1rem",
+								background: "#f3f4f6",
+								border: "1px solid #d1d5db",
+								borderRadius: "0.5rem",
+								fontSize: "0.85rem",
+								cursor: "pointer",
+							}}
+						>
+							Batal
+						</button>
+						<button
+							onClick={() => handleReauthorize(showReauthConfirm)}
+							disabled={reauthLoading}
+							style={{
+								padding: "0.5rem 1.25rem",
+								background: "#cc7030",
+								color: "#fff",
+								border: "none",
+								borderRadius: "0.5rem",
+								fontSize: "0.85rem",
+								fontWeight: "600",
+								cursor: reauthLoading ? "not-allowed" : "pointer",
+							}}
+						>
+							{reauthLoading ? "Loading..." : "Ya, Re-authorize"}
+						</button>
+					</div>
+				</div>
+			</div>
+			)}
 		</div>
 	);
 }
