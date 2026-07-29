@@ -36,8 +36,10 @@ export async function POST(req: NextRequest) {
 
 	try {
 		// Call TikTok Shop API to get orders with signed request
-		// page_size goes in query params (required by TikTok API)
-		const reqBody: Record<string, unknown> = {};
+		// page_size must be in BOTH query string and body for correct signature
+		const reqBody: Record<string, unknown> = {
+			page_size: 100,
+		};
 		if (start_date) {
 			reqBody.create_time_ge = Math.floor(
 				new Date(start_date).getTime() / 1000,

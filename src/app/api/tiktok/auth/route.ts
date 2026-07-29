@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
@@ -9,6 +10,7 @@ export async function GET(req: NextRequest) {
 		const { searchParams } = new URL(req.url);
 		const code = searchParams.get("code");
 		const state = searchParams.get("state"); // shop_id passed during redirect
+		const shopCipherFromUrl = searchParams.get("shop_cipher"); // TikTok returns shop_cipher in redirect URL
 
 		const supabase = await createClient();
 		const {
@@ -46,21 +48,80 @@ export async function GET(req: NextRequest) {
 				const json = await res.json();
 
 				if (json.data?.access_token) {
+					const updateData: Record<string, unknown> = {
+						access_token: json.data.access_token,
+						refresh_token: json.data.refresh_token,
+						token_expires_at: json.data.access_token_expire_in
+							? new Date(
+									Date.now() + json.data.access_token_expire_in * 1000,
+								).toISOString()
+							: null,
+						seller_name: json.data.seller_name,
+						open_id: json.data.open_id,
+						is_active: true,
+					};
+
+					// shop_cipher: prefer from redirect URL, then token response, then authorization API
+					if (shopCipherFromUrl?.trim()) {
+						updateData.shop_cipher = shopCipherFromUrl.trim();
+					} else if (json.data.shop_cipher?.trim()) {
+						updateData.shop_cipher = json.data.shop_cipher.trim();
+					} else {
+						// Fallback: query authorization/shops API to get shop_cipher
+						// (GET endpoint, no shop_cipher needed)
+						try {
+							const ts = Math.floor(Date.now() / 1000);
+							const authParams = {
+								app_key: settings.app_key,
+								timestamp: String(ts),
+							};
+							const bannedKeys = [
+								"access_token",
+								"sign",
+								"app_secret",
+								"token",
+							];
+							const sortedKeys = Object.keys(authParams)
+								.filter((k) => !bannedKeys.includes(k))
+								.sort();
+							const authPath = "/authorization/202309/shops";
+							let input = sortedKeys
+								.map((k) => `${k}${authParams[k as keyof typeof authParams]}`)
+								.join("");
+							input = authPath + input;
+							const pt =
+								settings.app_secret + input + settings.app_secret;
+							const hmac = crypto.createHmac(
+								"sha256",
+								settings.app_secret,
+							);
+							hmac.update(pt);
+							const authSign = hmac.digest("hex");
+
+							const authQs = new URLSearchParams({
+								...authParams,
+								sign: authSign,
+							});
+							const authUrl = `https://open-api.tiktokglobalshop.com${authPath}?${authQs}`;
+
+							const authRes = await fetch(authUrl, {
+								headers: {
+									"x-tts-access-token": json.data.access_token,
+								},
+							});
+							const authJson = await authRes.json();
+
+							if (authJson.data?.shops?.[0]?.cipher) {
+								updateData.shop_cipher = authJson.data.shops[0].cipher;
+							}
+						} catch {
+							// authorization/shops API failed silently
+						}
+					}
+
 					await supabase
 						.from("tiktok_shop_settings")
-						.update({
-							access_token: json.data.access_token,
-							refresh_token: json.data.refresh_token,
-							token_expires_at: json.data.access_token_expire_in
-								? new Date(
-										Date.now() + json.data.access_token_expire_in * 1000,
-									).toISOString()
-								: null,
-							seller_name: json.data.seller_name,
-							open_id: json.data.open_id,
-							shop_cipher: json.data.shop_cipher?.trim() || undefined,
-							is_active: true,
-						})
+						.update(updateData)
 						.eq("id", state);
 				}
 

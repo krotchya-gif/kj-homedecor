@@ -28,13 +28,17 @@ export function signTikTokRequest(
 	const timestamp = Math.floor(Date.now() / 1000);
 
 	// Build sorted query params (excluding sign which we're generating)
+	// Exclude banned keys: access_token, sign, app_secret, token
+	const bannedKeys = ["access_token", "sign", "app_secret", "token"];
 	const params: Record<string, string> = {
 		app_key: appKey,
 		timestamp: String(timestamp),
 		...extraQs,
 	};
 
-	const sortedKeys = Object.keys(params).sort();
+	const sortedKeys = Object.keys(params)
+		.filter((k) => !bannedKeys.includes(k))
+		.sort();
 
 	// Step 2: concatenate {key}{value} in alphabetical order
 	const paramString = sortedKeys.map((k) => `${k}${params[k]}`).join("");
@@ -42,8 +46,8 @@ export function signTikTokRequest(
 	// Step 3: prepend pathname
 	let signString = `${path}${paramString}`;
 
-	// Step 4: append JSON body if present (always include even if empty, for consistent signing)
-	if (body !== undefined) {
+	// Step 4: append JSON body ONLY if it has keys (TikTok API requirement)
+	if (body !== undefined && Object.keys(body).length > 0) {
 		signString += JSON.stringify(body);
 	}
 
