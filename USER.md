@@ -14,7 +14,7 @@
 | `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` |
 | `cici.yunita124@gmail.com` | Cici Yunita | `owner` |
 
-> 🔑 `cici.yunita124@gmail.com` — password belum diset. Login via **Forgot Password** atau set password di Supabase Dashboard.
+> 🔑 `cici.yunita124@gmail.com` — password: kosongaja
 
 ## Role Access
 
