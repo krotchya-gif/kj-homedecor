@@ -36,21 +36,25 @@ export async function POST(req: NextRequest) {
 
 	try {
 		// Call TikTok Shop API to get orders with signed request
-		const body: Record<string, unknown> = {
-			page_size: 100,
-		};
+		// page_size goes in query params (required by TikTok API)
+		const reqBody: Record<string, unknown> = {};
 		if (start_date) {
-			body.create_time_ge = Math.floor(new Date(start_date).getTime() / 1000);
+			reqBody.create_time_ge = Math.floor(
+				new Date(start_date).getTime() / 1000,
+			);
 		}
 		if (end_date) {
-			body.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000);
+			reqBody.create_time_lt = Math.floor(
+				new Date(end_date).getTime() / 1000,
+			);
 		}
 
 		const url = signTikTokRequest(
 			"/order/202309/orders/search",
 			settings.app_key,
 			settings.app_secret,
-			body,
+			Object.keys(reqBody).length > 0 ? reqBody : undefined,
+			{ page_size: "100" },
 		);
 
 		const orderListRes = await fetch(url, {
@@ -59,7 +63,10 @@ export async function POST(req: NextRequest) {
 				"Content-Type": "application/json",
 				"x-tts-access-token": token,
 			},
-			body: JSON.stringify(body),
+			body:
+				Object.keys(reqBody).length > 0
+					? JSON.stringify(reqBody)
+					: undefined,
 		});
 
 		const orderData = await orderListRes.json();
