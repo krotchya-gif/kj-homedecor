@@ -38,10 +38,12 @@ export async function POST(req: NextRequest) {
 		// Call TikTok Shop Finance API - GetStatements
 		// NOTE: /finance/202309/payments is UNAVAILABLE for SEA (Indonesia)
 		// Use /finance/202309/statements instead — applicable for all regions
+		// Kalo tanggal dikosongin, sync dari 2023-07-01 (earliest data available)
+		const EARLIEST_DATA = Math.floor(new Date("2023-07-01").getTime() / 1000);
 		const now = Math.floor(Date.now() / 1000);
 		const statementTimeGe = start_date
 			? Math.floor(new Date(start_date).getTime() / 1000)
-			: now - 30 * 86400;
+			: EARLIEST_DATA;
 		const statementTimeLt = end_date
 			? Math.floor(new Date(end_date).getTime() / 1000)
 			: now;
