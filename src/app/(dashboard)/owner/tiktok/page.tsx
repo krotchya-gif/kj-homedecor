@@ -93,8 +93,11 @@ export default function TikTokDashboardPage() {
 				supabase.from("tiktok_shop_settings").select("*"),
 				orderQuery,
 				countQuery,
-				// Fetch ALL total_amount for total sales (independent of pagination)
-				supabase.from("tiktok_shop_orders").select("total_amount"),
+				// Fetch total_amount only for PAID orders (exclude CANCELLED)
+				supabase
+					.from("tiktok_shop_orders")
+					.select("total_amount")
+					.neq("payment_status", "CANCELLED"),
 				supabase
 					.from("tiktok_shop_statements")
 					.select("*")
