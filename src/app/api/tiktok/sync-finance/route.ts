@@ -126,8 +126,9 @@ export async function POST(req: NextRequest) {
 
 			let piutangId: string | null = null;
 
-			// Auto-create piutang if enabled (only for PAID statements)
-			if (auto_create_piutang && payStatus === "PAID") {
+			// Auto-create piutang if enabled (PAID / SETTLED statements)
+			const settleStatuses = ["PAID", "SETTLED", "COMPLETED"];
+			if (auto_create_piutang && settleStatuses.includes(payStatus)) {
 				const { data: piutang } = await supabase
 					.from("piutang")
 					.insert({
@@ -137,8 +138,10 @@ export async function POST(req: NextRequest) {
 							? new Date(stmtTime * 1000).toISOString().split("T")[0]
 							: new Date().toISOString().split("T")[0],
 						amount: Number(settleAmount),
+						remaining: Number(settleAmount),
 						channel: "tiktok",
 						description: `TikTok Shop settlement ${stmtId.slice(0, 8)}`,
+						status: "pending",
 					})
 					.select()
 					.single();

@@ -32,10 +32,13 @@ export default function TikTokDashboardPage() {
 	const [orderPage, setOrderPage] = useState(0);
 	const [orderTotal, setOrderTotal] = useState(0);
 	const [orderPageSize, setOrderPageSize] = useState(25);
-	const [salesByStatus, setSalesByStatus] = useState<Record<string, number>>({});
+	const [salesByStatus, setSalesByStatus] = useState<Record<string, number>>(
+		{},
+	);
 	const [filterStatus, setFilterStatus] = useState("");
 	const [filterPayment, setFilterPayment] = useState("");
 	const [syncing, setSyncing] = useState<string | null>(null);
+	const [monthlyStats, setMonthlyStats] = useState<{ month: string; total: number; count: number }[]>([]);
 	const [syncResult, setSyncResult] = useState<{
 		type: "success" | "error";
 		text: string;
@@ -88,7 +91,7 @@ export default function TikTokDashboardPage() {
 		if (sf) countQuery = countQuery.eq("order_status", sf);
 		if (pf) countQuery = countQuery.eq("payment_status", pf);
 
-		const [settingsRes, ordersRes, totalRes, salesGroupRes, statementsRes] =
+		const [settingsRes, ordersRes, totalRes, salesGroupRes, monthlyStatsRes, statementsRes] =
 			await Promise.all([
 				supabase.from("tiktok_shop_settings").select("*"),
 				orderQuery,
@@ -97,6 +100,10 @@ export default function TikTokDashboardPage() {
 				supabase
 					.from("tiktok_shop_orders")
 					.select("order_status, total_amount"),
+				// Monthly settlement stats
+				supabase
+					.from("tiktok_shop_statements")
+					.select("start_date, total_amount"),
 				supabase
 					.from("tiktok_shop_statements")
 					.select("*")
@@ -117,6 +124,22 @@ export default function TikTokDashboardPage() {
 			grouped[st] = (grouped[st] || 0) + Number(r.total_amount || 0);
 		}
 		setSalesByStatus(grouped);
+
+		// Compute monthly stats
+		const monthMap: Record<string, { total: number; count: number }> = {};
+		for (const r of monthlyStatsRes.data ?? []) {
+			if (!r.start_date) continue;
+			const month = r.start_date.slice(0, 7); // "YYYY-MM"
+			if (!monthMap[month]) monthMap[month] = { total: 0, count: 0 };
+			monthMap[month].total += Number(r.total_amount || 0);
+			monthMap[month].count++;
+		}
+		setMonthlyStats(
+			Object.entries(monthMap)
+				.sort(([a], [b]) => b.localeCompare(a))
+				.slice(0, 12)
+				.map(([month, val]) => ({ month, ...val })),
+		);
 		setLoading(false);
 	}
 
@@ -195,6 +218,25 @@ export default function TikTokDashboardPage() {
 		fetchData();
 	}
 
+	async function handleBackfill(mode: "piutang" | "orders") {
+		setSyncing(mode);
+		setSyncResult(null);
+
+		const res = await fetch(`/api/tiktok/${mode === "piutang" ? "create-piutang" : "sync-to-main-orders"}`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ shop_id: activeShop?.id }),
+		});
+		const json = await res.json();
+		if (json.error) {
+			setSyncResult({ type: "error", text: json.error });
+		} else {
+			setSyncResult({ type: "success", text: json.message || `${mode} selesai` });
+		}
+		setSyncing(null);
+		fetchData();
+	}
+
 	async function handleDelete(shopId: string) {
 		if (
 			!confirm(
@@ -241,15 +283,21 @@ export default function TikTokDashboardPage() {
 					<div className="stat-card-value" style={{ color: "#cc7030" }}>
 						{orderTotal}
 					</div>
-					<div className="stat-card-sub" style={{ fontSize: "0.75rem", lineHeight: 1.6 }}>
+					<div
+						className="stat-card-sub"
+						style={{ fontSize: "0.75rem", lineHeight: 1.6 }}
+					>
 						{Object.entries(salesByStatus).map(([status, total]) => (
 							<div key={status}>
-								<span style={{
-									color: status === "CANCELLED" ? "#ef4444" : "#16a34a",
-									fontWeight: 500,
-								}}>
+								<span
+									style={{
+										color: status === "CANCELLED" ? "#ef4444" : "#16a34a",
+										fontWeight: 500,
+									}}
+								>
 									{status}
-								</span>: {formatRp(total)}
+								</span>
+								: {formatRp(total)}
 							</div>
 						))}
 					</div>
@@ -261,6 +309,17 @@ export default function TikTokDashboardPage() {
 					</div>
 					<div className="stat-card-sub">
 						{formatRp(totalSettlements)} settled
+					</div>
+				</div>
+				<div className="stat-card">
+					<div className="stat-card-label">Settlement per Bulan</div>
+					<div style={{ fontSize: "0.7rem", lineHeight: 1.5, maxHeight: 160, overflowY: "auto" }}>
+						{monthlyStats.slice(0, 6).map((m) => (
+							<div key={m.month} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+								<span style={{ color: "#6b7280", fontWeight: 500 }}>{m.month}</span>
+								<span style={{ color: "#2563eb" }}>{formatRp(m.total)}</span>
+							</div>
+						))}
 					</div>
 				</div>
 				<div className="stat-card">
@@ -666,6 +725,68 @@ export default function TikTokDashboardPage() {
 							<DollarSign size={14} />
 						)}
 						Sync Finance (Settlement)
+					</button>
+					<button
+						onClick={() => handleBackfill("piutang")}
+						disabled={syncing !== null || !activeShop}
+						style={{
+							padding: "0.5rem 1rem",
+							background:
+								syncing === "piutang" || !activeShop ? "#e5e7eb" : "#fef3c7",
+							color:
+								syncing === "piutang" || !activeShop ? "#9ca3af" : "#92400e",
+							border: "1px solid #fde68a",
+							borderRadius: "0.5rem",
+							fontSize: "0.8rem",
+							fontWeight: "600",
+							cursor:
+								syncing !== null || !activeShop ? "not-allowed" : "pointer",
+							display: "flex",
+							alignItems: "center",
+							gap: "0.4rem",
+						}}
+						title={!activeShop ? "Tidak ada shop aktif" : undefined}
+					>
+						{syncing === "piutang" ? (
+							<Loader2
+								size={14}
+								style={{ animation: "spin 1s linear infinite" }}
+							/>
+						) : (
+							<DollarSign size={14} />
+						)}
+						Create Piutang
+					</button>
+					<button
+						onClick={() => handleBackfill("orders")}
+						disabled={syncing !== null || !activeShop}
+						style={{
+							padding: "0.5rem 1rem",
+							background:
+								syncing === "orders_backfill" || !activeShop ? "#e5e7eb" : "#dbeafe",
+							color:
+								syncing === "orders_backfill" || !activeShop ? "#9ca3af" : "#1e40af",
+							border: "1px solid #bfdbfe",
+							borderRadius: "0.5rem",
+							fontSize: "0.8rem",
+							fontWeight: "600",
+							cursor:
+								syncing !== null || !activeShop ? "not-allowed" : "pointer",
+							display: "flex",
+							alignItems: "center",
+							gap: "0.4rem",
+						}}
+						title={!activeShop ? "Tidak ada shop aktif" : undefined}
+					>
+						{syncing === "orders_backfill" ? (
+							<Loader2
+								size={14}
+								style={{ animation: "spin 1s linear infinite" }}
+							/>
+						) : (
+							<Link2 size={14} />
+						)}
+						Link to Main Orders
 					</button>
 				</div>
 
