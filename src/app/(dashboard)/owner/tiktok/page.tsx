@@ -32,7 +32,7 @@ export default function TikTokDashboardPage() {
 	const [orderPage, setOrderPage] = useState(0);
 	const [orderTotal, setOrderTotal] = useState(0);
 	const [orderPageSize, setOrderPageSize] = useState(25);
-	const [totalAllSales, setTotalAllSales] = useState(0);
+	const [salesByStatus, setSalesByStatus] = useState<Record<string, number>>({});
 	const [filterStatus, setFilterStatus] = useState("");
 	const [filterPayment, setFilterPayment] = useState("");
 	const [syncing, setSyncing] = useState<string | null>(null);
@@ -88,16 +88,15 @@ export default function TikTokDashboardPage() {
 		if (sf) countQuery = countQuery.eq("order_status", sf);
 		if (pf) countQuery = countQuery.eq("payment_status", pf);
 
-		const [settingsRes, ordersRes, totalRes, salesRes, statementsRes] =
+		const [settingsRes, ordersRes, totalRes, salesGroupRes, statementsRes] =
 			await Promise.all([
 				supabase.from("tiktok_shop_settings").select("*"),
 				orderQuery,
 				countQuery,
-				// Fetch total_amount only for PAID orders (exclude CANCELLED)
+				// Fetch total_amount grouped by order_status
 				supabase
 					.from("tiktok_shop_orders")
-					.select("total_amount")
-					.neq("payment_status", "CANCELLED"),
+					.select("order_status, total_amount"),
 				supabase
 					.from("tiktok_shop_statements")
 					.select("*")
@@ -109,10 +108,15 @@ export default function TikTokDashboardPage() {
 		setOrderTotal(totalRes.count ?? 0);
 		setOrderPage(page);
 		setStatements(statementsRes.data ?? []);
-		const allAmounts = salesRes.data ?? [];
-		setTotalAllSales(
-			allAmounts.reduce((s, o) => s + Number(o.total_amount || 0), 0),
-		);
+
+		// Group by order_status
+		const grouped: Record<string, number> = {};
+		const rows = salesGroupRes.data ?? [];
+		for (const r of rows) {
+			const st = r.order_status || "UNKNOWN";
+			grouped[st] = (grouped[st] || 0) + Number(r.total_amount || 0);
+		}
+		setSalesByStatus(grouped);
 		setLoading(false);
 	}
 
@@ -237,8 +241,17 @@ export default function TikTokDashboardPage() {
 					<div className="stat-card-value" style={{ color: "#cc7030" }}>
 						{orderTotal}
 					</div>
-					<div className="stat-card-sub">
-						{formatRp(totalAllSales)} total sales
+					<div className="stat-card-sub" style={{ fontSize: "0.75rem", lineHeight: 1.6 }}>
+						{Object.entries(salesByStatus).map(([status, total]) => (
+							<div key={status}>
+								<span style={{
+									color: status === "CANCELLED" ? "#ef4444" : "#16a34a",
+									fontWeight: 500,
+								}}>
+									{status}
+								</span>: {formatRp(total)}
+							</div>
+						))}
 					</div>
 				</div>
 				<div className="stat-card">
