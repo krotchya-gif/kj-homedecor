@@ -35,19 +35,21 @@ export async function POST(req: NextRequest) {
 	}
 
 	try {
-		// Call TikTok Shop Finance API with signed request
+		// Call TikTok Shop Finance API - GetStatements
+		// NOTE: /finance/202309/payments is UNAVAILABLE for SEA (Indonesia)
+		// Use /finance/202309/statements instead — applicable for all regions
 		const now = Math.floor(Date.now() / 1000);
-		const timeGe = start_date
+		const statementTimeGe = start_date
 			? Math.floor(new Date(start_date).getTime() / 1000)
 			: now - 30 * 86400;
-		const timeLt = end_date
+		const statementTimeLt = end_date
 			? Math.floor(new Date(end_date).getTime() / 1000)
 			: now;
 
 		const extraQs: Record<string, string> = {
-			sort_field: "create_time",
-			create_time_ge: String(timeGe),
-			create_time_lt: String(timeLt),
+			sort_field: "statement_time",
+			statement_time_ge: String(statementTimeGe),
+			statement_time_lt: String(statementTimeLt),
 			page_size: "100",
 		};
 		if (settings.shop_cipher) {
@@ -55,63 +57,86 @@ export async function POST(req: NextRequest) {
 		}
 
 		const url = signTikTokRequest(
-			"/finance/202309/payments",
+			"/finance/202309/statements",
 			settings.app_key,
 			settings.app_secret,
 			undefined,
 			extraQs,
 		);
 
-		const paymentsRes = await fetch(url, {
+		const statementsRes = await fetch(url, {
 			headers: {
 				"Content-Type": "application/json",
 				"x-tts-access-token": token,
 			},
 		});
 
-		const paymentsData = await paymentsRes.json();
+		const statementsData = await statementsRes.json();
+
+		// Debug: log raw API response (will show in server logs)
+		console.log(
+			"TikTok statements response:",
+			JSON.stringify(statementsData).slice(0, 2000),
+		);
 
 		// Check for TikTok API errors
-		if (paymentsData.code && paymentsData.code !== 0) {
+		if (statementsData.code && statementsData.code !== 0) {
 			return NextResponse.json(
 				{
-					error: `TikTok API error (${paymentsData.code}): ${paymentsData.message || "Unknown error"}`,
+					error: `TikTok API error (${statementsData.code}): ${statementsData.message || "Unknown error"}`,
 				},
 				{ status: 400 },
 			);
 		}
 
-		if (!paymentsData.data?.payments) {
-			return NextResponse.json({ synced: 0, message: "No payments found" });
+		const stmtList = statementsData.data?.statements;
+		if (!stmtList || stmtList.length === 0) {
+			return NextResponse.json({
+				synced: 0,
+				message: "No statements found",
+				debug: JSON.stringify(statementsData).slice(0, 1000),
+			});
 		}
 
 		let synced = 0;
 		let created_piutang = 0;
 
-		for (const payment of paymentsData.data.payments) {
+		for (const stmt of statementsData.data.statements) {
+			// Map TikTok snake_case fields to our schema
+			const stmtId = stmt.id;
+			const payStatus = stmt.payment_status || stmt.paymentStatus;
+			const stmtTime = stmt.statement_time || stmt.statementTime;
+			const payTime = stmt.payment_time || stmt.paymentTime;
+			const settleAmount =
+				stmt.settlement_amount ||
+				stmt.settlementAmount ||
+				stmt.revenue_amount ||
+				stmt.revenueAmount ||
+				"0";
+
 			const { data: existing } = await supabase
 				.from("tiktok_shop_statements")
 				.select("id")
-				.eq("statement_id", payment.id)
+				.eq("statement_id", stmtId)
 				.maybeSingle();
 
 			if (existing) continue;
 
 			let piutangId: string | null = null;
 
-			// Auto-create piutang if enabled
-			if (auto_create_piutang && payment.status === "SUCCESS") {
+			// Auto-create piutang if enabled (only for PAID statements)
+			if (auto_create_piutang && payStatus === "PAID") {
 				const { data: piutang } = await supabase
 					.from("piutang")
 					.insert({
-						customer_id: null, // TikTok Shop - no customer record
-						invoice_number: `TTK-${payment.id.slice(0, 8)}`,
-						invoice_date: new Date(payment.create_time * 1000)
-							.toISOString()
-							.split("T")[0],
-						amount: payment.total_amount,
+						customer_id: null,
+						invoice_number: `TTK-${stmtId.slice(0, 8)}`,
+						invoice_date: stmtTime
+							? new Date(stmtTime * 1000).toISOString().split("T")[0]
+							: new Date().toISOString().split("T")[0],
+						amount: Number(settleAmount),
 						channel: "tiktok",
-						description: `TikTok Shop settlement ${payment.id.slice(0, 8)}`,
+						description: `TikTok Shop settlement ${stmtId.slice(0, 8)}`,
 					})
 					.select()
 					.single();
@@ -123,19 +148,20 @@ export async function POST(req: NextRequest) {
 			}
 
 			await supabase.from("tiktok_shop_statements").insert({
-				statement_id: payment.id,
-				statement_type: payment.type || "SETTLEMENT",
-				total_amount: payment.total_amount,
-				status: payment.status,
-				currency: payment.currency || "IDR",
-				start_date: new Date(payment.create_time * 1000)
-					.toISOString()
-					.split("T")[0],
-				paid_at: payment.paid_time
-					? new Date(payment.paid_time * 1000).toISOString()
+				statement_id: stmtId,
+				statement_type: "SETTLEMENT",
+				total_amount: Number(settleAmount),
+				status: payStatus,
+				currency: stmt.currency || "IDR",
+				start_date: stmtTime
+					? new Date(stmtTime * 1000).toISOString().split("T")[0]
 					: null,
-				transaction_count: payment.transaction_count || 0,
-				statement_data: payment,
+				end_date: stmtTime
+					? new Date(stmtTime * 1000).toISOString().split("T")[0]
+					: null,
+				paid_at: payTime ? new Date(payTime * 1000).toISOString() : null,
+				transaction_count: 0,
+				statement_data: stmt,
 				is_synced: true,
 				piutang_id: piutangId,
 			});

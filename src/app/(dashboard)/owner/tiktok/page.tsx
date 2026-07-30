@@ -94,9 +94,7 @@ export default function TikTokDashboardPage() {
 				orderQuery,
 				countQuery,
 				// Fetch ALL total_amount for total sales (independent of pagination)
-				supabase
-					.from("tiktok_shop_orders")
-					.select("total_amount"),
+				supabase.from("tiktok_shop_orders").select("total_amount"),
 				supabase
 					.from("tiktok_shop_statements")
 					.select("*")

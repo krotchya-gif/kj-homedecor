@@ -30,9 +30,15 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({ error: "Shop not found" }, { status: 404 });
 	}
 
-	// Build OAuth URL
+	// Build OAuth URL with required scopes
 	const redirectUri = `${BASE_URL}/api/tiktok/auth`;
-	const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${settings.app_key}&state=${settings.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+	const scope = [
+		"seller.order.info",
+		"seller.finance.info",
+		"seller.authorization.info",
+		"seller.shop.info",
+	].join(",");
+	const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${settings.app_key}&state=${settings.id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
 
 	return NextResponse.json({
 		oauth_url: oauthUrl,

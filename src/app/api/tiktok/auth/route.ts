@@ -181,9 +181,15 @@ export async function POST(req: NextRequest) {
 		return NextResponse.json({ error: error.message }, { status: 500 });
 	}
 
-	// Build OAuth URL
+	// Build OAuth URL with required scopes
 	const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || "https://kjhomedecor.com"}/api/tiktok/auth`;
-	const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${app_key}&state=${data.id}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+	const scope = [
+		"seller.order.info",
+		"seller.finance.info",
+		"seller.authorization.info",
+		"seller.shop.info",
+	].join(",");
+	const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${app_key}&state=${data.id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
 
 	return NextResponse.json({ settings: data, oauth_url: oauthUrl });
 }
