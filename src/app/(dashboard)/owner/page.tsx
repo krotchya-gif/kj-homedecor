@@ -17,6 +17,7 @@ interface Order {
   total_amount: number
   source: string
   created_at: string
+  order_date?: string
   order_items?: Array<{ qty: number; price: number; product?: { name: string } }>
 }
 
@@ -41,19 +42,19 @@ export default function OwnerDashboard() {
 
     let filtered = (data as Order[]) ?? []
 
-    // Filter by selected month/year
+    // Filter by selected month/year (use real order_date, fallback ke created_at)
     filtered = filtered.filter(o => {
-      const d = new Date(o.created_at)
+      const d = new Date(o.order_date || o.created_at)
       return d.getFullYear() === period.year && d.getMonth() + 1 === period.month
     })
 
     setOrders(filtered)
     setInstallBookings(installData ?? [])
 
-    // Today's new orders for real-time count
+    // Today's new orders for real-time count (pakai order_date)
     const today = new Date()
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const todayOrders = (data as Order[])?.filter(o => new Date(o.created_at) >= todayStart) ?? []
+    const todayOrders = (data as Order[])?.filter(o => new Date(o.order_date || o.created_at) >= todayStart) ?? []
     setRealtimeOrders(todayOrders)
 
     setLoading(false)
@@ -109,14 +110,14 @@ export default function OwnerDashboard() {
     async function loadTrend() {
       const { data } = await supabase
         .from('orders')
-        .select('created_at, total_amount, payment_status')
-        .gte('created_at', `${period.year - 1}-01-01`)
-        .lte('created_at', `${period.year}-12-31`)
+        .select('order_date, created_at, total_amount, payment_status')
+        .or(`order_date.gte.${period.year - 1}-01-01,created_at.gte.${period.year - 1}-01-01`)
+        .or(`order_date.lte.${period.year}-12-31,created_at.lte.${period.year}-12-31`)
 
       const months: Record<string, number> = {}
-      ;(data ?? []).forEach((o: any) => {
-        if (o.payment_status === 'paid') {
-          const d = new Date(o.created_at)
+		;(data ?? []).forEach((o: any) => {
+		if (o.payment_status === 'paid') {
+			const d = new Date(o.order_date || o.created_at)
           const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
           months[key] = (months[key] ?? 0) + (o.total_amount ?? 0)
         }
