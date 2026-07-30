@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
 	const supabase = await createClient();
 	const {
 		data: { user },
@@ -15,12 +15,14 @@ export async function POST(req: NextRequest) {
 		const { data: tiktokOrders, error: fetchErr } = await supabase
 			.from("tiktok_shop_orders")
 			.select("*")
-			.in("payment_status", ["PAID"])
-			.not("order_status", "eq", "CANCELLED");
+			.eq("payment_status", "PAID")
+			.neq("order_status", "CANCELLED");
 
 		if (fetchErr) {
 			return NextResponse.json({ error: fetchErr.message }, { status: 500 });
 		}
+
+		console.log("tiktokOrders count:", tiktokOrders?.length);
 
 		let created = 0;
 		let skipped = 0;
@@ -54,7 +56,12 @@ export async function POST(req: NextRequest) {
 			});
 
 			if (insertErr) {
-				console.error("Failed to insert order:", insertErr, "tiktok_order:", to.tiktok_order_id);
+				console.error(
+					"Failed to insert order:",
+					insertErr,
+					"tiktok_order:",
+					to.tiktok_order_id,
+				);
 				continue;
 			}
 
