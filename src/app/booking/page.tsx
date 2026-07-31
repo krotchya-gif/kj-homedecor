@@ -127,7 +127,7 @@ export default function BookingPage() {
       <div
         style={{
           minHeight: '100vh',
-          background: '#fafafa',
+          background: 'var(--neutral-50)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -136,7 +136,7 @@ export default function BookingPage() {
       >
         <div
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             borderRadius: '1rem',
             padding: '2.5rem',
             maxWidth: 480,
@@ -159,10 +159,10 @@ export default function BookingPage() {
           >
             <CheckCircle size={32} style={{ color: '#22c55e' }} />
           </div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.75rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--neutral-800)', marginBottom: '0.75rem' }}>
             Booking Berhasil!
           </h1>
-          <p style={{ color: '#6b7280', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+          <p style={{ color: 'var(--neutral-600)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
             Terima kasih sudah booking. WhatsApp akan terbuka untuk konfirmasi. Tim kami akan menghubungi Anda untuk
             konfirmasi jadwal.
           </p>
@@ -186,8 +186,8 @@ export default function BookingPage() {
               rel="noopener noreferrer"
               style={{
                 padding: '0.75rem 1.5rem',
-                background: '#f3f4f6',
-                color: '#374151',
+                background: 'var(--neutral-100)',
+                color: 'var(--neutral-700)',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
                 textDecoration: 'none',
@@ -205,23 +205,25 @@ export default function BookingPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--neutral-50)' }}>
       {/* Simple Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '1rem 1.5rem' }}>
+      <div
+        style={{ background: 'var(--surface)', borderBottom: '1px solid var(--neutral-200)', padding: '1rem 1.5rem' }}
+      >
         <div style={{ maxWidth: 600, margin: '0 auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link href="/" style={{ fontSize: '0.875rem', color: '#6b7280', textDecoration: 'none' }}>
+          <Link href="/" style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', textDecoration: 'none' }}>
             ← Kembali
           </Link>
-          <span style={{ fontWeight: '600', color: '#1f2937' }}>Buat Janji</span>
+          <span style={{ fontWeight: '600', color: 'var(--neutral-800)' }}>Buat Janji</span>
         </div>
       </div>
 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '2rem 1.5rem' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.5rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--neutral-800)', marginBottom: '0.5rem' }}>
             Booking Survey & Pasang
           </h1>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--neutral-600)', fontSize: '0.9rem' }}>
             Isi form di bawah untuk menjadwalkan kunjungan. Tim kami akan menghubungi Anda untuk konfirmasi.
           </p>
         </div>
@@ -243,8 +245,11 @@ export default function BookingPage() {
                   background:
                     step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1)
                       ? 'var(--brand-500)'
-                      : '#e5e7eb',
-                  color: step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1) ? '#fff' : '#9ca3af',
+                      : 'var(--neutral-200)',
+                  color:
+                    step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1)
+                      ? '#fff'
+                      : 'var(--neutral-500)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -260,7 +265,7 @@ export default function BookingPage() {
                   color:
                     step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1)
                       ? 'var(--brand-500)'
-                      : '#9ca3af',
+                      : 'var(--neutral-500)',
                   fontWeight: step.n === 1 ? 600 : 400
                 }}
               >
@@ -272,7 +277,7 @@ export default function BookingPage() {
 
         {/* Calendar */}
         <div style={{ marginBottom: '1.5rem' }}>
-          <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+          <p style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
             Pilih Tanggal *
           </p>
           <BookingCalendar
@@ -312,7 +317,11 @@ export default function BookingPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <form
+          onSubmit={handleSubmit}
+          className="booking-form"
+          style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}
+        >
           {/* Name */}
           <div>
             <label
@@ -320,7 +329,7 @@ export default function BookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -337,7 +346,7 @@ export default function BookingPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--input-border)',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 outline: 'none'
@@ -352,7 +361,7 @@ export default function BookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -369,7 +378,7 @@ export default function BookingPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--input-border)',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 outline: 'none'
@@ -384,7 +393,7 @@ export default function BookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -398,10 +407,10 @@ export default function BookingPage() {
                     display: 'flex',
                     gap: '0.75rem',
                     padding: '1rem',
-                    border: `2px solid ${form.service_type === s.value ? 'var(--brand-500)' : '#e5e7eb'}`,
+                    border: `2px solid ${form.service_type === s.value ? 'var(--brand-500)' : 'var(--neutral-200)'}`,
                     borderRadius: '0.75rem',
                     cursor: 'pointer',
-                    background: form.service_type === s.value ? '#fff3e8' : '#fff',
+                    background: form.service_type === s.value ? 'var(--brand-50)' : 'var(--surface)',
                     transition: 'all 0.15s'
                   }}
                 >
@@ -414,12 +423,14 @@ export default function BookingPage() {
                     style={{ accentColor: 'var(--brand-500)', marginTop: 3 }}
                   />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ color: form.service_type === s.value ? 'var(--brand-500)' : '#6b7280' }}>
+                    <span style={{ color: form.service_type === s.value ? 'var(--brand-500)' : 'var(--neutral-600)' }}>
                       {s.icon}
                     </span>
                     <div>
-                      <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{s.label}</div>
-                      <div style={{ color: '#9ca3af', fontSize: '0.8rem' }}>{s.desc}</div>
+                      <div style={{ fontWeight: '600', color: 'var(--neutral-800)', fontSize: '0.9rem' }}>
+                        {s.label}
+                      </div>
+                      <div style={{ color: 'var(--neutral-500)', fontSize: '0.8rem' }}>{s.desc}</div>
                     </div>
                   </div>
                 </label>
@@ -435,7 +446,7 @@ export default function BookingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.375rem'
                 }}
               >
@@ -453,7 +464,7 @@ export default function BookingPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
@@ -473,7 +484,7 @@ export default function BookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -481,7 +492,9 @@ export default function BookingPage() {
               Jam yang Dipilih *
             </label>
             {!selectedDate ? (
-              <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic' }}>Pilih tanggal terlebih dahulu</p>
+              <p style={{ fontSize: '0.8rem', color: 'var(--neutral-500)', fontStyle: 'italic' }}>
+                Pilih tanggal terlebih dahulu
+              </p>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {TIME_SLOTS.map((time) => {
@@ -493,13 +506,19 @@ export default function BookingPage() {
                       onFocus={() => !occupied && setForm((prev) => ({ ...prev, time }))}
                       style={{
                         padding: '0.5rem 0.875rem',
-                        border: `2px solid ${form.time === time ? 'var(--brand-500)' : occupied ? '#e5e5e5' : '#e5e7eb'}`,
+                        border: `2px solid ${form.time === time ? 'var(--brand-500)' : occupied ? 'var(--neutral-200)' : 'var(--neutral-200)'}`,
                         borderRadius: '0.5rem',
                         cursor: occupied ? 'not-allowed' : 'pointer',
                         fontSize: '0.85rem',
                         fontWeight: form.time === time ? '600' : '400',
-                        color: form.time === time ? 'var(--brand-500)' : occupied ? '#d1d5db' : '#6b7280',
-                        background: form.time === time ? '#fff3e8' : occupied ? '#f9fafb' : '#fff',
+                        color:
+                          form.time === time
+                            ? 'var(--brand-500)'
+                            : occupied
+                              ? 'var(--neutral-300)'
+                              : 'var(--neutral-600)',
+                        background:
+                          form.time === time ? 'var(--brand-50)' : occupied ? 'var(--neutral-100)' : 'var(--surface)',
                         opacity: occupied ? 0.5 : 1,
                         textDecoration: occupied ? 'line-through' : 'none',
                         outline: 'none',
@@ -536,7 +555,7 @@ export default function BookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -552,7 +571,7 @@ export default function BookingPage() {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--input-border)',
                 borderRadius: '0.5rem',
                 fontSize: '0.9rem',
                 outline: 'none',
@@ -582,7 +601,7 @@ export default function BookingPage() {
                 !form.time ||
                 !form.service_type ||
                 (form.service_type === 'pasang' && !form.address)
-                  ? '#d1d5db'
+                  ? 'var(--neutral-300)'
                   : 'var(--brand-500)',
               color: '#fff',
               border: 'none',
@@ -620,12 +639,14 @@ export default function BookingPage() {
           style={{
             marginTop: '2rem',
             padding: '1.25rem',
-            background: '#f9fafb',
+            background: 'var(--neutral-100)',
             borderRadius: '0.75rem',
             textAlign: 'center'
           }}
         >
-          <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.75rem' }}>Lebih suka chat langsung?</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '0.75rem' }}>
+            Lebih suka chat langsung?
+          </p>
           <a
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya ingin booking')}`}
             target="_blank"

@@ -70,6 +70,10 @@
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.12);
   --shadow-float: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  /* Surface — card/input background (dark-aware, 2026-08-01) */
+  --surface: #ffffff;
+  --input-border: #d1d5db;
 }
 
 html, body {
@@ -100,6 +104,10 @@ html, body {
   /* Dark backgrounds */
   background-color: #0E0B0A;
   color: var(--neutral-900);
+
+  /* Surface dark */
+  --surface: var(--neutral-100);
+  --input-border: var(--neutral-300);
 }
 
 .dark body {
@@ -976,6 +984,30 @@ body {
 }
 .dark .modal-panel {
   background: var(--neutral-100);
+}
+
+/* Booking form — input & placeholder dark-aware (2026-08-01) */
+.booking-form input:not([type='hidden']):not([type='radio']),
+.booking-form textarea {
+  background: var(--surface);
+  border: 1px solid var(--input-border);
+  color: var(--neutral-800);
+}
+.booking-form input::placeholder,
+.booking-form textarea::placeholder {
+  color: var(--neutral-500);
+  opacity: 1;
+}
+.dark .booking-form input:not([type='hidden']):not([type='radio']),
+.dark .booking-form textarea {
+  background: var(--surface);
+  border-color: var(--input-border);
+  color: var(--neutral-800);
+}
+.dark .booking-form input::placeholder,
+.dark .booking-form textarea::placeholder {
+  color: var(--neutral-500);
+  opacity: 1;
 }
 
 .stat-card-label {
