@@ -177,7 +177,7 @@ export interface OrderItem {
   weight?: number
   ready: boolean
   created_at: string
-  product?: Product
+  product?: Product & { category?: { name: string } | null }
 }
 
 export interface ProductionJob {

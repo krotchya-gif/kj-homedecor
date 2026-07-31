@@ -857,16 +857,6 @@ body {
   background: #fee2e2;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
 /* ========== MODULE CARDS (Jubelio style) ========== */
 .module-grid {
   display: grid;
@@ -1302,8 +1292,8 @@ body {
 .text-muted { color: var(--neutral-500); }
 .font-serif { font-family: var(--font-serif); }
 
-.animate-fade-up { animation: fadeUp 0.6s ease both; }
-.animate-fade-in { animation: fadeIn 0.5s ease both; }
+.animate-fade-up { animation: fadeUp 0.3s ease both; }
+.animate-fade-in { animation: fadeIn 0.3s ease both; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }
@@ -1326,8 +1316,8 @@ body {
 }
 
 @keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(221,192,132,0.3); }
-  50% { box-shadow: 0 0 40px rgba(221,192,132,0.6); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244,168,87,0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(244,168,87,0); }
 }
 
 @keyframes bounceDown {
@@ -1337,17 +1327,12 @@ body {
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to   { transform: rotate(360deg); }
 }
 
 @keyframes floatY {
   0%, 100% { transform: translateY(0); }
   50%       { transform: translateY(-10px); }
-}
-
-@keyframes pulseGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(244,168,87,0.4); }
-  50%       { box-shadow: 0 0 0 10px rgba(244,168,87,0); }
 }
 
 @keyframes rotateSlow {

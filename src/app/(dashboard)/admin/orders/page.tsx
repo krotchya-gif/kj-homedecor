@@ -42,6 +42,8 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([])
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
@@ -79,26 +81,39 @@ export default function OrdersPage() {
     const from = (currentPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
+    const withCategory = filterCategory
+      ? '*, customer:customers(name, phone), order_items!inner(product:products!inner(category:categories!inner(name)))'
+      : '*, customer:customers(name, phone), order_items(product:products(category:categories(name)))'
+    const query = supabase.from('orders').select(withCategory, { count: 'exact' })
+    if (filterCategory) query.eq('order_items.product.category_id', filterCategory)
+
     const [ordersResult, countResult] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('*, customer:customers(name, phone)', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(from, to),
-      supabase.from('orders').select('id', { count: 'exact', head: true })
+      query.order('created_at', { ascending: false }).range(from, to),
+      filterCategory
+        ? Promise.resolve({ count: null })
+        : supabase.from('orders').select('id', { count: 'exact', head: true })
     ])
 
     setOrders((ordersResult.data as Order[]) ?? [])
-    setTotalCount(countResult.count ?? 0)
+    setTotalCount(filterCategory ? (ordersResult.count ?? 0) : (countResult.count ?? 0))
     setLoading(false)
   }
 
   useEffect(() => {
     fetchOrders()
-  }, [currentPage])
+  }, [currentPage, filterCategory])
   useEffect(() => {
     if (showForm) fetchCustomers()
   }, [showForm])
+  useEffect(() => {
+    supabase
+      .from('categories')
+      .select('id, name')
+      .order('name')
+      .then(({ data }) => {
+        if (data) setCategories(data)
+      })
+  }, [])
 
   const filtered = orders.filter((o) => {
     const matchSearch =
@@ -110,7 +125,11 @@ export default function OrdersPage() {
     if (filterStatus === 'ready_to_pack') matchStatus = o.status === 'ready' && o.classification === 'kirim'
     else if (filterStatus === 'ready_to_ship') matchStatus = o.status === 'packed'
     else if (filterStatus) matchStatus = o.status === filterStatus
-    return matchSearch && matchStatus
+
+    const itemCats = (o.order_items ?? []).map((i) => i.product?.category?.name).filter((n): n is string => Boolean(n))
+    const matchCategory =
+      !filterCategory || itemCats.includes(categories.find((c) => c.id === filterCategory)?.name ?? '')
+    return matchSearch && matchStatus && matchCategory
   })
 
   async function handleCreateOrder(e: React.FormEvent) {
@@ -265,6 +284,28 @@ export default function OrdersPage() {
           <option value="ready_to_pack">Siap Dikemas</option>
           <option value="ready_to_ship">Siap Kirim</option>
         </select>
+        <select
+          value={filterCategory}
+          onChange={(e) => {
+            setFilterCategory(e.target.value)
+            setCurrentPage(1)
+          }}
+          style={{
+            padding: '0.625rem 1rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            outline: 'none',
+            background: '#fff'
+          }}
+        >
+          <option value="">Semua Kategori</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
         <button
           onClick={() => {
             setForm({
@@ -331,7 +372,38 @@ export default function OrdersPage() {
                   <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280', fontWeight: '600' }}>
                     {o.order_number || o.id.slice(0, 8)}
                   </td>
-                  <td style={{ fontWeight: '500' }}>{(o.customer as { name: string } | null)?.name ?? '—'}</td>
+                  <td style={{ fontWeight: '500' }}>
+                    {(o.customer as { name: string } | null)?.name ?? '—'}
+                    {(() => {
+                      const cats = Array.from(
+                        new Set(
+                          (o.order_items ?? [])
+                            .map((i) => i.product?.category?.name)
+                            .filter((n): n is string => Boolean(n))
+                        )
+                      )
+                      if (!cats.length) return null
+                      return (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.3rem' }}>
+                          {cats.map((c) => (
+                            <span
+                              key={c}
+                              style={{
+                                padding: '0.1rem 0.45rem',
+                                borderRadius: '999px',
+                                fontSize: '0.68rem',
+                                fontWeight: '600',
+                                background: '#fef3c7',
+                                color: '#92400e'
+                              }}
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      )
+                    })()}
+                  </td>
                   <td>
                     <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{SOURCE_LABELS[o.source]}</span>
                   </td>
