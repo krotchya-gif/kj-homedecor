@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -212,29 +213,90 @@ export default function OwnerDashboard() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Owner Overview</h1>
-          <p className="page-subtitle">Laporan lengkap operasional KJ Homedecor</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          {/* Month picker */}
-          <div style={{ position: 'relative' }}>
+      <PageHeader
+        title="Owner Overview"
+        subtitle="Laporan lengkap operasional KJ Homedecor"
+        action={
+          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            {/* Month picker */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowMonthPicker(!showMonthPicker)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  background: '#fff',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: '600'
+                }}
+              >
+                {MONTHS_FULL[period.month - 1]} {period.year} <ChevronDown size={14} />
+              </button>
+              {showMonthPicker && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: '0.25rem',
+                    background: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 100,
+                    padding: '0.5rem',
+                    minWidth: 180
+                  }}
+                >
+                  <select
+                    value={period.month}
+                    onChange={(e) => setPeriod((p) => ({ ...p, month: Number(e.target.value) }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      marginBottom: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {MONTHS_FULL.map((m, i) => (
+                      <option key={i + 1} value={i + 1}>
+                        {m}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={period.year}
+                    onChange={(e) => setPeriod((p) => ({ ...p, year: Number(e.target.value) }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.8rem'
+                    }}
+                  >
+                    {[period.year - 1, period.year, period.year + 1].map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
             <button
-              onClick={() => setShowMonthPicker(!showMonthPicker)}
+              onClick={exportCSV}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
+                gap: '0.375rem',
                 padding: '0.5rem 1rem',
                 background: '#fff',
                 border: '1px solid #d1d5db',
@@ -244,81 +306,11 @@ export default function OwnerDashboard() {
                 fontWeight: '600'
               }}
             >
-              {MONTHS_FULL[period.month - 1]} {period.year} <ChevronDown size={14} />
+              <Download size={14} /> Export CSV
             </button>
-            {showMonthPicker && (
-              <div
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '100%',
-                  marginTop: '0.25rem',
-                  background: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  zIndex: 100,
-                  padding: '0.5rem',
-                  minWidth: 180
-                }}
-              >
-                <select
-                  value={period.month}
-                  onChange={(e) => setPeriod((p) => ({ ...p, month: Number(e.target.value) }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    marginBottom: '0.5rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {MONTHS_FULL.map((m, i) => (
-                    <option key={i + 1} value={i + 1}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={period.year}
-                  onChange={(e) => setPeriod((p) => ({ ...p, year: Number(e.target.value) }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {[period.year - 1, period.year, period.year + 1].map((y) => (
-                    <option key={y} value={y}>
-                      {y}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
           </div>
-          <button
-            onClick={exportCSV}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 1rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.5rem',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '600'
-            }}
-          >
-            <Download size={14} /> Export CSV
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>

@@ -18,7 +18,12 @@ export function PageHeader({ title, subtitle, action }: { title: string; subtitl
       >
         <div>
           <h1 className="page-title">{title}</h1>
-          {subtitle && <p className="page-subtitle">{subtitle}</p>}
+          {subtitle &&
+            (typeof subtitle === 'string' ? (
+              <p className="page-subtitle">{subtitle}</p>
+            ) : (
+              <div className="page-subtitle">{subtitle}</div>
+            ))}
         </div>
         {action}
       </div>

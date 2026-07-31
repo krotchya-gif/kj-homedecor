@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -270,59 +271,50 @@ export default function AdminReportsPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Laporan</h1>
-          <p className="page-subtitle">Laporan penjualan dan pipeline pesanan</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={exportCSV}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#fff',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Download size={16} /> Export CSV
-          </button>
-          <button
-            onClick={exportPDF}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#cc7030',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <FileDown size={16} /> Export PDF
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Laporan"
+        subtitle="Laporan penjualan dan pipeline pesanan"
+        action={
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={exportCSV}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#fff',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Download size={16} /> Export CSV
+            </button>
+            <button
+              onClick={exportPDF}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FileDown size={16} /> Export PDF
+            </button>
+          </div>
+        }
+      />
 
       {/* Period Filter */}
       <div
@@ -460,15 +452,7 @@ export default function AdminReportsPage() {
       )}
 
       {/* Pipeline Funnel */}
-      <div
-        style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.75rem',
-          padding: '1.25rem',
-          marginBottom: '1.5rem'
-        }}
-      >
+      <div className="section-card">
         <h2
           style={{
             fontSize: '0.95rem',

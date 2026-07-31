@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -132,61 +133,52 @@ export default function AdminSeoPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">SEO Settings</h1>
-          <p className="page-subtitle">Meta Pixel, GA4, meta tags, sitemap, dan robots.txt</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
-            onClick={() => window.open('/', '_blank')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#fff',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Eye size={16} /> Preview
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#cc7030',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.7 : 1
-            }}
-          >
-            <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="SEO Settings"
+        subtitle="Meta Pixel, GA4, meta tags, sitemap, dan robots.txt"
+        action={
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => window.open('/', '_blank')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#fff',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Eye size={16} /> Preview
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.7 : 1
+              }}
+            >
+              <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        }
+      />
 
       {uploadMsg && (
         <div

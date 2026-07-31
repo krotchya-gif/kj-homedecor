@@ -14,6 +14,7 @@ import {
   Tag,
   Eye
 } from 'lucide-react'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const REPORTS = [
   {
@@ -102,13 +103,7 @@ const COLOR_MAP: Record<string, string> = {
 export default function LaporanOwnerPage() {
   return (
     <div>
-      <div className="page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Eye size={20} className="text-gray-500" />
-          <h1 className="page-title">Laporan Keuangan</h1>
-        </div>
-        <p className="page-subtitle">Kelola dan download laporan keuangan perusahaan</p>
-      </div>
+      <PageHeader title="Laporan Keuangan" subtitle="Kelola dan download laporan keuangan perusahaan" />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
         {REPORTS.map((report) => (

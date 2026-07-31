@@ -168,21 +168,7 @@ export default function DateRangePicker({
     for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(viewYear, viewMonth, d))
 
     return (
-      <div
-        style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          zIndex: 50,
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.75rem',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-          padding: '1rem',
-          marginTop: '0.5rem',
-          width: '320px'
-        }}
-      >
+      <div className="section-card">
         {/* Month navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <button

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -161,12 +162,7 @@ export default function AdminShippingPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Pengiriman</h1>
-          <p className="page-subtitle">Kelola pesanan yang siap dikemas dan dikirim</p>
-        </div>
-      </div>
+      <PageHeader title="Pengiriman" subtitle="Kelola pesanan yang siap dikemas dan dikirim" />
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -235,16 +231,7 @@ export default function AdminShippingPage() {
       {loading ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
       ) : filtered.length === 0 ? (
-        <div
-          style={{
-            padding: '4rem',
-            textAlign: 'center',
-            color: '#9ca3af',
-            background: '#fff',
-            borderRadius: '0.75rem',
-            border: '1px solid #e5e7eb'
-          }}
-        >
+        <div className="section-card">
           <Truck size={40} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
           <p>Tidak ada pesanan</p>
         </div>

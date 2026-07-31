@@ -965,6 +965,19 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
+/* Section card — pengganti pola inline background:'#fff' (2026-07-31) */
+.section-card {
+  background: #fff;
+  border: 1px solid var(--neutral-200);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-card);
+}
+.dark .section-card {
+  background: var(--neutral-100);
+  border-color: var(--neutral-200);
+}
+
 .stat-card-label {
   font-size: 0.78rem;
   font-weight: 500;

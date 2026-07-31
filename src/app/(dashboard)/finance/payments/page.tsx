@@ -472,16 +472,7 @@ export default function FinancePaymentsPage() {
             </div>
           </div>
           {refundList.filter((r) => r.refund_status === 'pending').length === 0 ? (
-            <div
-              style={{
-                padding: '3rem',
-                textAlign: 'center',
-                color: '#9ca3af',
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.75rem'
-              }}
-            >
+            <div className="section-card">
               <p>Tidak ada refund yang menunggu proses</p>
             </div>
           ) : (
@@ -848,16 +839,7 @@ export default function FinancePaymentsPage() {
             </div>
           </div>
           {qcOrders.length === 0 ? (
-            <div
-              style={{
-                padding: '3rem',
-                textAlign: 'center',
-                color: '#9ca3af',
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.75rem'
-              }}
-            >
+            <div className="section-card">
               <CheckCircle2 size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
               <p>Tidak ada order yang menunggu approval</p>
             </div>

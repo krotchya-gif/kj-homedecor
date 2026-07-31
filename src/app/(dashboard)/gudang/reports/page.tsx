@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -156,59 +157,50 @@ export default function GudangReportsPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Laporan Gudang</h1>
-          <p className="page-subtitle">Riwayat pergerakan stok material</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={exportCSV}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#fff',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Download size={16} /> Export CSV
-          </button>
-          <button
-            onClick={exportPDF}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#cc7030',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <FileDown size={16} /> Export PDF
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Laporan Gudang"
+        subtitle="Riwayat pergerakan stok material"
+        action={
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={exportCSV}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#fff',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Download size={16} /> Export CSV
+            </button>
+            <button
+              onClick={exportPDF}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <FileDown size={16} /> Export PDF
+            </button>
+          </div>
+        }
+      />
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>

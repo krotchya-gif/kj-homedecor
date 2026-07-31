@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -117,30 +118,30 @@ export default function LaundryPayrollPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Laundry Payroll</h1>
-          <p className="page-subtitle">Akumulasi upah laundry staff per bulan</p>
-        </div>
-        <button
-          onClick={generatePayroll}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.625rem 1.25rem',
-            background: '#cc7030',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.875rem',
-            cursor: 'pointer'
-          }}
-        >
-          <Wallet size={16} /> Generate Payroll
-        </button>
-      </div>
+      <PageHeader
+        title="Laundry Payroll"
+        subtitle="Akumulasi upah laundry staff per bulan"
+        action={
+          <button
+            onClick={generatePayroll}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Wallet size={16} /> Generate Payroll
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>

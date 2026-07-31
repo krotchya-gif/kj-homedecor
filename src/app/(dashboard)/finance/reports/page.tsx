@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -164,39 +165,30 @@ export default function FinanceReportsPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Laporan Keuangan</h1>
-          <p className="page-subtitle">Laporan penjualan, platform breakdown & rekap pengupahan penjahit</p>
-        </div>
-        <button
-          onClick={exportPDF}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.625rem 1.25rem',
-            background: '#cc7030',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.875rem',
-            cursor: 'pointer'
-          }}
-        >
-          <FileDown size={16} /> Export PDF
-        </button>
-      </div>
+      <PageHeader
+        title="Laporan Keuangan"
+        subtitle="Laporan penjualan, platform breakdown & rekap pengupahan penjahit"
+        action={
+          <button
+            onClick={exportPDF}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: 'pointer'
+            }}
+          >
+            <FileDown size={16} /> Export PDF
+          </button>
+        }
+      />
 
       {/* Period picker */}
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem' }}>

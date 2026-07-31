@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -30,39 +31,30 @@ export default function CashMutationPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Mutasi Kas & Bank</h1>
-          <p className="page-subtitle">Perubahan saldo kas dan bank</p>
-        </div>
-        <button
-          onClick={downloadPDF}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.625rem 1.25rem',
-            background: '#cc7030',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.875rem',
-            cursor: 'pointer'
-          }}
-        >
-          <Download size={16} /> Download PDF
-        </button>
-      </div>
+      <PageHeader
+        title="Mutasi Kas & Bank"
+        subtitle="Perubahan saldo kas dan bank"
+        action={
+          <button
+            onClick={downloadPDF}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Download size={16} /> Download PDF
+          </button>
+        }
+      />
 
       <div className="data-table">
         {loading ? (

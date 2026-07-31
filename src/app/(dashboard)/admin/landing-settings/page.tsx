@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -373,61 +374,52 @@ export default function AdminLandingSettingsPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Landing Page Settings</h1>
-          <p className="page-subtitle">Edit hero section, WhatsApp, trust badges, social media, dan kontak</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button
-            onClick={() => window.open('/', '_blank')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#fff',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Eye size={16} /> Preview
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#cc7030',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.7 : 1
-            }}
-          >
-            <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Landing Page Settings"
+        subtitle="Edit hero section, WhatsApp, trust badges, social media, dan kontak"
+        action={
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              onClick={() => window.open('/', '_blank')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#fff',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Eye size={16} /> Preview
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                opacity: saving ? 0.7 : 1
+              }}
+            >
+              <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LEFT — Form */}

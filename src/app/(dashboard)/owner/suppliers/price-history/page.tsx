@@ -148,16 +148,7 @@ export default function MaterialHistoryPage() {
         {/* Right: Price history detail */}
         <div>
           {!selectedMaterial ? (
-            <div
-              style={{
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.75rem',
-                padding: '3rem',
-                textAlign: 'center',
-                color: '#9ca3af'
-              }}
-            >
+            <div className="section-card">
               <Package size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
               <p>Pilih material di sebelah kiri untuk melihat riwayat harganya</p>
             </div>
@@ -166,15 +157,7 @@ export default function MaterialHistoryPage() {
           ) : (
             <div>
               {/* Header */}
-              <div
-                style={{
-                  background: '#fff',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0.75rem',
-                  padding: '1.25rem',
-                  marginBottom: '1rem'
-                }}
-              >
+              <div className="section-card">
                 <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#1f2937', marginBottom: '0.375rem' }}>
                   {selectedMat?.name}
                 </div>

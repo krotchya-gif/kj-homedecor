@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -136,50 +137,50 @@ export default function AdminLaundryPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Laundry Orders</h1>
-          <p className="page-subtitle">Kelola pesanan laundry dari customer</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={() => setShowRateModal(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1rem',
-              background: '#f3f4f6',
-              color: '#374151',
-              border: '1px solid #d1d5db',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.8rem',
-              cursor: 'pointer'
-            }}
-          >
-            Rate: {rate ? fmt(rate.rate_per_kg) + '/kg' : '...'}
-          </button>
-          <button
-            onClick={() => setShowForm(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.625rem 1.25rem',
-              background: '#cc7030',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.875rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Plus size={16} /> Input Laundry
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Laundry Orders"
+        subtitle="Kelola pesanan laundry dari customer"
+        action={
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setShowRateModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1rem',
+                background: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              Rate: {rate ? fmt(rate.rate_per_kg) + '/kg' : '...'}
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={16} /> Input Laundry
+            </button>
+          </div>
+        }
+      />
 
       {/* Filters */}
       <div

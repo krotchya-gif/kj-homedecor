@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
+import { SectionCard } from '@/components/ui/SectionCard'
 
 const COLORS = ['#16a34a', '#f59e0b', '#ef4444', '#2563eb', '#9333ea']
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -187,7 +188,7 @@ export default function FinanceDashboard() {
         }}
       >
         {/* Monthly Revenue Bar Chart */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+        <SectionCard delay={0.1}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <TrendingUp size={16} color="#cc7030" />
             <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
@@ -214,10 +215,10 @@ export default function FinanceDashboard() {
               </BarChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </SectionCard>
 
         {/* Payment Status Pie Chart */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+        <SectionCard delay={0.16}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <PieChartIcon size={16} color="#2563eb" />
             <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
@@ -251,7 +252,7 @@ export default function FinanceDashboard() {
               </PieChart>
             </ResponsiveContainer>
           )}
-        </div>
+        </SectionCard>
       </div>
 
       {/* Navigation Modules */}

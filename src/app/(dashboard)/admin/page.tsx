@@ -35,6 +35,7 @@ import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
+import { SectionCard } from '@/components/ui/SectionCard'
 
 interface Order {
   id: string
@@ -449,9 +450,7 @@ export default function AdminDashboardPage() {
               marginBottom: '1.5rem'
             }}
           >
-            <div
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
-            >
+            <SectionCard delay={0.08}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <BarChart3 size={16} color="#cc7030" />
                 <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
@@ -481,12 +480,10 @@ export default function AdminDashboardPage() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </div>
+            </SectionCard>
 
             {/* Revenue by Source Bar Chart */}
-            <div
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
-            >
+            <SectionCard delay={0.14}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <TrendingUp size={16} color="#2563eb" />
                 <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Sumber</h3>
@@ -517,19 +514,11 @@ export default function AdminDashboardPage() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </div>
+            </SectionCard>
           </div>
 
           {/* 30-Day Order Trend */}
-          <div
-            style={{
-              background: '#fff',
-              border: '1px solid #e5e7eb',
-              borderRadius: '0.75rem',
-              padding: '1.25rem',
-              marginBottom: '1.5rem'
-            }}
-          >
+          <div className="section-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <TrendingUp size={16} color="#16a34a" />
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren 30 Hari</h3>

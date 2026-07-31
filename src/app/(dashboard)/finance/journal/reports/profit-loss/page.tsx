@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -36,39 +37,30 @@ export default function ProfitLossPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Laporan Laba Rugi</h1>
-          <p className="page-subtitle">Profit & Loss statement</p>
-        </div>
-        <button
-          onClick={downloadPDF}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.625rem 1.25rem',
-            background: '#cc7030',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.875rem',
-            cursor: 'pointer'
-          }}
-        >
-          <Download size={16} /> Download PDF
-        </button>
-      </div>
+      <PageHeader
+        title="Laporan Laba Rugi"
+        subtitle="Profit & Loss statement"
+        action={
+          <button
+            onClick={downloadPDF}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Download size={16} /> Download PDF
+          </button>
+        }
+      />
 
       <div
         className="chart-grid"

@@ -297,15 +297,7 @@ export default function TikTokDashboardPage() {
       </div>
       {/* Shop Management */}
       {settings.length > 0 && (
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0.75rem',
-            padding: '1rem 1.25rem',
-            marginBottom: '1.5rem'
-          }}
-        >
+        <div className="section-card">
           <div
             style={{
               display: 'flex',
@@ -502,15 +494,7 @@ export default function TikTokDashboardPage() {
         </div>
       )}
       {/* Sync Controls */}
-      <div
-        style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.75rem',
-          padding: '1rem 1.25rem',
-          marginBottom: '1.5rem'
-        }}
-      >
+      <div className="section-card">
         <div
           style={{
             display: 'flex',

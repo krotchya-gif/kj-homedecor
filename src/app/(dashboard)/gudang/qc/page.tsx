@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -209,19 +210,21 @@ export default function GudangQCPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">QC Per-Item & Verifikasi Retur</h1>
-        <p className="page-subtitle">
-          <strong>QC Per-Item</strong> untuk ceklist barang per item dari order yang sudah <strong>Siap (ready)</strong>
-          .<strong> Retur Customer</strong> untuk verifikasi barang yang diretur.
-          <br />
-          <span style={{ color: '#ef4444', fontWeight: '600' }}>⚠️ Bukan</span> untuk QC jahitan penjahit — itu di{' '}
-          <a href="/gudang/steam" style={{ color: '#cc7030', fontWeight: '600' }}>
-            Steam & QC Jahitan
-          </a>
-          .
-        </p>
-      </div>
+      <PageHeader
+        title="QC Per-Item & Verifikasi Retur"
+        subtitle={
+          <>
+            <strong>QC Per-Item</strong> untuk ceklist barang per item dari order yang sudah{' '}
+            <strong>Siap (ready)</strong>.<strong> Retur Customer</strong> untuk verifikasi barang yang diretur.
+            <br />
+            <span style={{ color: '#ef4444', fontWeight: '600' }}>⚠️ Bukan</span> untuk QC jahitan penjahit — itu di{' '}
+            <a href="/gudang/steam" style={{ color: '#cc7030', fontWeight: '600' }}>
+              Steam & QC Jahitan
+            </a>
+            .
+          </>
+        }
+      />
 
       {/* Tab switcher */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>

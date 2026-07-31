@@ -36,13 +36,15 @@ export function MotionReveal({
   className,
   delay = 0,
   y = 12,
-  as = 'div'
+  as = 'div',
+  style
 }: {
   children: ReactNode
   className?: string
   delay?: number
   y?: number
   as?: 'div' | 'section' | 'li'
+  style?: React.CSSProperties
 }) {
   const reduce = useReducedMotion()
   const Comp = motion[as]
@@ -52,6 +54,7 @@ export function MotionReveal({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay, ease: EASE }}
       className={className}
+      style={style}
     >
       {children}
     </Comp>

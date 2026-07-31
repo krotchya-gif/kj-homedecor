@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -267,21 +268,7 @@ export default function AdminBookingPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Booking & Pemasangan</h1>
-          <p className="page-subtitle">Kelola semua booking dari customer dan manual</p>
-        </div>
-      </div>
+      <PageHeader title="Booking & Pemasangan" subtitle="Kelola semua booking dari customer dan manual" />
 
       {/* V3: Banner info auto-create integration */}
       <div
@@ -401,16 +388,7 @@ export default function AdminBookingPage() {
       {loading ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
       ) : filteredBookings.length === 0 ? (
-        <div
-          style={{
-            padding: '4rem',
-            textAlign: 'center',
-            color: '#9ca3af',
-            background: '#fff',
-            borderRadius: '0.75rem',
-            border: '1px solid #e5e7eb'
-          }}
-        >
+        <div className="section-card">
           <CalendarIcon size={40} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
           <p>Tidak ada booking</p>
         </div>

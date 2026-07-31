@@ -744,15 +744,7 @@ export default function GudangStockOpnamePage() {
           </div>
 
           {approveSession.status !== 'approved' && (
-            <div
-              style={{
-                marginTop: '1.25rem',
-                background: '#fff',
-                border: '1px solid #e5e7eb',
-                borderRadius: '0.75rem',
-                padding: '1.25rem'
-              }}
-            >
+            <div className="section-card">
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', margin: '0 0 0.75rem' }}>Approval</h3>
               <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 1rem' }}>
                 Dengan menyetujui, selisih (+/−) akan langsung di-adjust ke <strong>stock_gudang</strong> dan dicatat di

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -52,32 +53,13 @@ export default function BukuBesarPage() {
   return (
     <div>
       <BackButton href="/finance/laporan" />
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Buku Besar</h1>
-          <p className="page-subtitle">General ledger per akun</p>
-        </div>
-        <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
-      </div>
+      <PageHeader
+        title="Buku Besar"
+        subtitle="General ledger per akun"
+        action={<ReportPDFButton onClick={downloadPDF} label="Download PDF" />}
+      />
 
-      <div
-        style={{
-          background: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.75rem',
-          padding: '1rem',
-          marginBottom: '1.5rem'
-        }}
-      >
+      <div className="section-card">
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}

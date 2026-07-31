@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -87,58 +88,40 @@ export default function BannersPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Banner & Hero</h1>
-          <p className="page-subtitle">Kelola banner dan hero image di landing page</p>
-        </div>
-        <button
-          onClick={() => {
-            setUploadedUrl('')
-            setShowForm(true)
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.625rem 1.25rem',
-            background: '#cc7030',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.875rem',
-            cursor: 'pointer'
-          }}
-        >
-          <Plus size={16} /> Tambah Banner
-        </button>
-      </div>
+      <PageHeader
+        title="Banner & Hero"
+        subtitle="Kelola banner dan hero image di landing page"
+        action={
+          <button
+            onClick={() => {
+              setUploadedUrl('')
+              setShowForm(true)
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={16} /> Tambah Banner
+          </button>
+        }
+      />
 
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
           <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
         </div>
       ) : banners.length === 0 ? (
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0.75rem',
-            padding: '3rem',
-            textAlign: 'center',
-            color: '#9ca3af'
-          }}
-        >
+        <div className="section-card">
           <ImageIcon size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
           <p>Belum ada banner</p>
         </div>

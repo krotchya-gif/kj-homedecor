@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -124,54 +125,36 @@ export default function AdminPortfolioPage() {
 
   return (
     <div>
-      <div
-        className="page-header"
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}
-      >
-        <div>
-          <h1 className="page-title">Portofolio</h1>
-          <p className="page-subtitle">Blog dan galeri inspirasi produk</p>
-        </div>
-        <button
-          onClick={openCreate}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            padding: '0.625rem 1.25rem',
-            background: '#cc7030',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '0.5rem',
-            fontWeight: '600',
-            fontSize: '0.875rem',
-            cursor: 'pointer'
-          }}
-        >
-          <Plus size={16} /> Buat Post Baru
-        </button>
-      </div>
+      <PageHeader
+        title="Portofolio"
+        subtitle="Blog dan galeri inspirasi produk"
+        action={
+          <button
+            onClick={openCreate}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              cursor: 'pointer'
+            }}
+          >
+            <Plus size={16} /> Buat Post Baru
+          </button>
+        }
+      />
 
       {/* Posts Grid */}
       {loading ? (
         <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
       ) : posts.length === 0 ? (
-        <div
-          style={{
-            background: '#fff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '0.75rem',
-            padding: '3rem',
-            textAlign: 'center',
-            color: '#9ca3af'
-          }}
-        >
+        <div className="section-card">
           <ImageIcon size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
           <p>Belum ada post portofolio</p>
         </div>
