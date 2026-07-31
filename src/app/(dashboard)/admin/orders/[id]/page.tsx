@@ -758,7 +758,7 @@ export default function OrderDetailPage() {
           >
             {order.order_number || `#${id.slice(0, 8)}`}
           </p>
-          <p style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#9ca3af', marginTop: '0.1rem' }}>{id}</p>
+          <p style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#9ca3af', marginTop: '0.1rem' }}>{id}</p>
         </div>
         {nextStatus &&
           !['done', 'returned', 'cancelled'].includes(order.status) &&
@@ -945,7 +945,7 @@ export default function OrderDetailPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: current ? '#fff' : done ? '#16a34a' : '#9ca3af',
-                      fontSize: '0.7rem',
+                      fontSize: '0.75rem',
                       fontWeight: '700',
                       cursor: hasPhotos ? 'pointer' : 'default',
                       position: 'relative'
@@ -1030,7 +1030,7 @@ export default function OrderDetailPage() {
         </div>
         {order.status !== 'done' && (
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Status Saat Ini</div>
+            <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Status Saat Ini</div>
             <div style={{ fontWeight: '700', color: '#cc7030' }}>
               {STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}
             </div>
@@ -1096,7 +1096,7 @@ export default function OrderDetailPage() {
                   ...PAYMENT_COLORS[order.payment_status],
                   padding: '0.15rem 0.6rem',
                   borderRadius: '999px',
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: '600'
                 }}
               >
@@ -1131,7 +1131,7 @@ export default function OrderDetailPage() {
                 color: '#fff',
                 border: 'none',
                 borderRadius: '0.375rem',
-                fontSize: '0.72rem',
+                fontSize: '0.75rem',
                 fontWeight: '600',
                 cursor: 'pointer'
               }}
@@ -1200,7 +1200,7 @@ export default function OrderDetailPage() {
                       <td>
                         <span
                           style={{
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '999px',
@@ -1214,7 +1214,7 @@ export default function OrderDetailPage() {
                       <td style={{ fontWeight: '500' }}>{prod?.name ?? '—'}</td>
                       <td style={{ color: '#6b7280', fontSize: '0.8rem' }}>{item.size ?? '—'}</td>
                       <td>{item.qty}</td>
-                      <td style={{ fontSize: '0.72rem', color: '#6b7280', maxWidth: 180 }}>
+                      <td style={{ fontSize: '0.75rem', color: '#6b7280', maxWidth: 180 }}>
                         {item.item_type === 'gorden' && (
                           <>
                             {Number(item.meter_gorden ?? 0) > 0 && (
@@ -1668,7 +1668,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -1696,7 +1696,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -1764,7 +1764,7 @@ export default function OrderDetailPage() {
                                 padding: '0.375rem 0.75rem',
                                 borderRadius: '9999px',
                                 cursor: 'pointer',
-                                fontSize: '0.72rem',
+                                fontSize: '0.75rem',
                                 fontWeight: '500',
                                 background: itemForm.smokring_color === c ? '#cc7030' : '#fff',
                                 color: itemForm.smokring_color === c ? '#fff' : '#374151',
@@ -2028,7 +2028,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -2055,7 +2055,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -2125,7 +2125,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -2153,7 +2153,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -2184,7 +2184,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -2212,7 +2212,7 @@ export default function OrderDetailPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.25rem'
@@ -2238,7 +2238,7 @@ export default function OrderDetailPage() {
                       </div>
                     </div>
                     {itemForm.kg && laundryRate > 0 && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: '#16a34a' }}>
+                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#16a34a' }}>
                         Estimasi harga: {fmt(Number(itemForm.kg) * laundryRate)} ({itemForm.kg}kg × {fmt(laundryRate)}
                         /kg)
                       </div>
@@ -2247,7 +2247,7 @@ export default function OrderDetailPage() {
                       <label
                         style={{
                           display: 'block',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           color: '#6b7280',
                           marginBottom: '0.25rem'
@@ -2320,7 +2320,7 @@ export default function OrderDetailPage() {
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}
         >
           <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Riwayat Aktivitas</h2>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Semua aksi dicatat &bull; Admin bisa pantau</span>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Semua aksi dicatat &bull; Admin bisa pantau</span>
         </div>
         {orderLogs.length === 0 ? (
           <div
@@ -2372,7 +2372,7 @@ export default function OrderDetailPage() {
                       {log.staff && (
                         <span
                           style={{
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             color: '#6b7280',
                             background: '#f3f4f6',
                             padding: '0.1rem 0.5rem',
@@ -2386,7 +2386,7 @@ export default function OrderDetailPage() {
                     {log.notes && (
                       <div style={{ fontSize: '0.78rem', color: '#6b7280', marginBottom: '0.25rem' }}>{log.notes}</div>
                     )}
-                    <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                       {new Date(log.created_at).toLocaleString('id-ID', {
                         day: 'numeric',
                         month: 'short',
@@ -3018,7 +3018,7 @@ export default function OrderDetailPage() {
                     outline: 'none'
                   }}
                 />
-                <div style={{ marginTop: '0.5rem', fontSize: '0.72rem', color: '#6b7280' }}>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
                   Sisa: {fmt(order.total_amount - order.dp_amount - order.lunas_amount)}
                 </div>
               </div>

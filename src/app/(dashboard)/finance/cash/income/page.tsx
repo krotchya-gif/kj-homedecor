@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -97,10 +98,7 @@ export default function IncomePage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pemasukan</h1>
-        <p className="page-subtitle">Catat pemasukan non-order (jual aset, refund, dll)</p>
-      </div>
+      <PageHeader title="Pemasukan" subtitle="Catat pemasukan non-order (jual aset, refund, dll)" />
 
       <div
         style={{

@@ -420,7 +420,7 @@ export default function GudangQCPage() {
                             color: '#92400e',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '999px',
-                            fontSize: '0.7rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             marginTop: '0.375rem'
                           }}
@@ -482,7 +482,7 @@ export default function GudangQCPage() {
                             style={{
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600',
                               background: r.condition === 'good' ? '#d1fae5' : '#fef2f2',
                               color: r.condition === 'good' ? '#065f46' : '#991b1b'
@@ -851,7 +851,7 @@ export default function GudangQCPage() {
                           background: '#ef4444',
                           color: '#fff',
                           border: 'none',
-                          fontSize: '0.7rem',
+                          fontSize: '0.75rem',
                           cursor: 'pointer'
                         }}
                       >
@@ -880,7 +880,7 @@ export default function GudangQCPage() {
                     )}
                   </label>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                   Wajib upload minimal 2 foto sebagai bukti dokumentasi return.
                 </div>
               </div>

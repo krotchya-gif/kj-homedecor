@@ -95,7 +95,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   color: '#92400e',
                   padding: '0.2rem 0.6rem',
                   borderRadius: '999px',
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: '600'
                 }}
               >

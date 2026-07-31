@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -43,10 +44,7 @@ export default function PenjahitHistoryPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Riwayat Pekerjaan</h1>
-        <p className="page-subtitle">Semua job yang sudah selesai dikerjakan</p>
-      </div>
+      <PageHeader title="Riwayat Pekerjaan" subtitle="Semua job yang sudah selesai dikerjakan" />
 
       <div className="data-table">
         {loading ? (

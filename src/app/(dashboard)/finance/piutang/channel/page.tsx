@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -40,10 +41,7 @@ export default function ChannelPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Piutang Channel</h1>
-        <p className="page-subtitle">Piutang per marketplace channel</p>
-      </div>
+      <PageHeader title="Piutang Channel" subtitle="Piutang per marketplace channel" />
 
       <div className="data-table">
         {loading ? (

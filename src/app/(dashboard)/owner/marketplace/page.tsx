@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -77,10 +78,7 @@ export default function OwnerMarketplacePage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Marketplace</h1>
-        <p className="page-subtitle">Performa penjualan per platform</p>
-      </div>
+      <PageHeader title="Marketplace" subtitle="Performa penjualan per platform" />
 
       {/* Period Filter */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -190,7 +188,7 @@ export default function OwnerMarketplacePage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '0.7rem',
+                            fontSize: '0.75rem',
                             fontWeight: '700'
                           }}
                         >

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import Link from 'next/link'
 import { FileText, RotateCcw, RefreshCw, DollarSign, Users } from 'lucide-react'
@@ -44,10 +45,7 @@ const SUB_MODULES = [
 export default function PiutangPage() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">PIUTANG</h1>
-        <p className="page-subtitle">Accounts Receivable - Faktur, Retur, dan Pembayaran</p>
-      </div>
+      <PageHeader title="PIUTANG" subtitle="Accounts Receivable - Faktur, Retur, dan Pembayaran" />
       <div className="module-grid">
         {SUB_MODULES.map((m) => (
           <Link key={m.href} href={m.href} className="module-card">

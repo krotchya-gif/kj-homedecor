@@ -273,7 +273,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                         background: 'rgba(255,255,255,0.95)',
                         padding: '0.25rem 0.625rem',
                         borderRadius: '999px',
-                        fontSize: '0.7rem',
+                        fontSize: '0.75rem',
                         fontWeight: '600',
                         color: 'var(--brand-500)'
                       }}

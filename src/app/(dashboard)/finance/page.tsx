@@ -1,10 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { DollarSign, BarChart3, WashingMachine, Loader2, TrendingUp, PieChart as PieChartIcon } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatCard } from '@/components/ui/StatCard'
+import { MotionStagger } from '@/components/ui/Motion'
 
 const COLORS = ['#16a34a', '#f59e0b', '#ef4444', '#2563eb', '#9333ea']
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -45,6 +49,7 @@ interface Order {
 }
 
 export default function FinanceDashboard() {
+  const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -128,66 +133,49 @@ export default function FinanceDashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard Finance</h1>
-        <p className="page-subtitle">Kelola pembayaran, laporan keuangan dan payroll laundry</p>
-      </div>
+      <PageHeader title="Dashboard Finance" subtitle="Kelola pembayaran, laporan keuangan dan payroll laundry" />
 
-      {/* Stat Summary */}
-      <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
-        <div className="stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Piutang</div>
-              <div className="stat-card-value" style={{ color: '#16a34a' }}>
-                {formatRp(piutangTotal)}
-              </div>
-              <div className="stat-card-sub">{piutangOrders.length} pesanan belum lunas</div>
-            </div>
-            <div style={{ background: '#f0fdf4', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <DollarSign size={20} style={{ color: '#16a34a' }} />
-            </div>
-          </div>
-        </div>
+      {/* Stat Summary — motion stagger + StatCard (2026-07-31) */}
+      <MotionStagger className="stat-grid" style={{ marginBottom: '1.5rem' }}>
+        <StatCard
+          label="Total Piutang"
+          value={formatRp(piutangTotal)}
+          sub={`${piutangOrders.length} pesanan belum lunas`}
+          icon={DollarSign}
+          accent="#16a34a"
+          iconBg="#f0fdf4"
+          delay={0}
+        />
 
-        <div className="stat-card" style={{ borderLeft: '4px solid #2563eb' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Pesanan</div>
-              <div className="stat-card-value" style={{ color: '#2563eb' }}>
-                {orders.length}
-              </div>
-              <div className="stat-card-sub">Semua status</div>
-            </div>
-            <div style={{ background: '#eff6ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <BarChart3 size={20} style={{ color: '#2563eb' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Total Pesanan"
+          value={orders.length}
+          sub="Semua status"
+          icon={BarChart3}
+          accent="#2563eb"
+          iconBg="#eff6ff"
+          delay={0.05}
+        />
 
-        {/* Butuh Verifikasi Bayar — pipeline baru: order status='ready' menunggu Finance approve ke payment_ok */}
+        {/* Butuh Verifikasi Bayar — pipeline: order baru menunggu Finance approve ke payment_ok */}
         {needsVerification.length > 0 && (
-          <Link href="/finance/payments" style={{ textDecoration: 'none' }}>
-            <div className="stat-card" style={{ borderLeft: '4px solid #dc2626', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div className="stat-card-label">Butuh Verifikasi Bayar</div>
-                  <div className="stat-card-value" style={{ color: '#dc2626' }}>
-                    {needsVerification.length}
-                  </div>
-                  <div className="stat-card-sub" style={{ color: '#991b1b' }}>
-                    {needsVerificationPaid.length} siap approve ·{' '}
-                    {needsVerification.length - needsVerificationPaid.length} belum lunas
-                  </div>
-                </div>
-                <div style={{ background: '#fef2f2', borderRadius: '0.5rem', padding: '0.5rem' }}>
-                  <DollarSign size={20} style={{ color: '#dc2626' }} />
-                </div>
-              </div>
-            </div>
-          </Link>
+          <StatCard
+            label="Butuh Verifikasi Bayar"
+            value={needsVerification.length}
+            sub={
+              <span style={{ color: '#991b1b' }}>
+                {needsVerificationPaid.length} siap approve · {needsVerification.length - needsVerificationPaid.length}{' '}
+                belum lunas
+              </span>
+            }
+            icon={DollarSign}
+            accent="#dc2626"
+            iconBg="#fef2f2"
+            delay={0.1}
+            onClick={() => router.push('/finance/payments')}
+          />
         )}
-      </div>
+      </MotionStagger>
 
       {/* Charts */}
       <div

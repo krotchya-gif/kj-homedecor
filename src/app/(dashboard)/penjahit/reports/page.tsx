@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -76,10 +77,7 @@ export default function PenjahitReportsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Rekap Bulanan</h1>
-        <p className="page-subtitle">Total meter pengerjaan dan estimasi upah</p>
-      </div>
+      <PageHeader title="Rekap Bulanan" subtitle="Total meter pengerjaan dan estimasi upah" />
 
       {/* Month picker */}
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1.5rem' }}>

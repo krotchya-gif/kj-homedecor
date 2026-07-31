@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -155,10 +156,7 @@ export default function StaffPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Manajemen Staff</h1>
-        <p className="page-subtitle">Kelola akun staff — hanya Admin yang dapat melakukan ini</p>
-      </div>
+      <PageHeader title="Manajemen Staff" subtitle="Kelola akun staff — hanya Admin yang dapat melakukan ini" />
 
       {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 items-start">

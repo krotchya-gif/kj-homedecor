@@ -248,7 +248,7 @@ export default function BookingPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   fontWeight: 700
                 }}
               >
@@ -256,7 +256,7 @@ export default function BookingPage() {
               </div>
               <span
                 style={{
-                  fontSize: '0.72rem',
+                  fontSize: '0.75rem',
                   color:
                     step.n <= (form.service_type ? 4 : form.date ? 3 : form.time ? 4 : 1)
                       ? 'var(--brand-500)'

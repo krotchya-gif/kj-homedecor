@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -68,10 +69,10 @@ export default function MaterialHistoryPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Riwayat Harga Material</h1>
-        <p className="page-subtitle">Track naik/turun harga material per supplier untuk negotiation & budgeting</p>
-      </div>
+      <PageHeader
+        title="Riwayat Harga Material"
+        subtitle="Track naik/turun harga material per supplier untuk negotiation & budgeting"
+      />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '1.5rem', alignItems: 'start' }}>
         {/* Left: Material list */}
@@ -182,7 +183,7 @@ export default function MaterialHistoryPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: '0.2rem' }}>HARGA TERKINI</div>
+                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.2rem' }}>HARGA TERKINI</div>
                     <div style={{ fontWeight: '800', fontSize: '1.5rem', color: '#cc7030' }}>
                       {formatRp(latestPrice)}
                     </div>
@@ -195,7 +196,7 @@ export default function MaterialHistoryPage() {
                         <TrendingDown size={20} color="#059669" />
                       )}
                       <div>
-                        <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
                         <div style={{ fontWeight: '700', color: trend.direction === 'up' ? '#dc2626' : '#059669' }}>
                           {trend.direction === 'up' ? '+' : ''}
                           {formatRp(trend.diff)} ({trend.pct.toFixed(1)}%)
@@ -207,7 +208,7 @@ export default function MaterialHistoryPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
                       <Minus size={20} />
                       <div>
-                        <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
                         <div style={{ fontWeight: '700' }}>Tidak berubah</div>
                       </div>
                     </div>

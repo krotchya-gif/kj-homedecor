@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -30,10 +31,7 @@ export default function PaymentPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pembayaran Piutang</h1>
-        <p className="page-subtitle">Riwayat pembayaran piutang</p>
-      </div>
+      <PageHeader title="Pembayaran Piutang" subtitle="Riwayat pembayaran piutang" />
 
       <div className="data-table">
         {loading ? (

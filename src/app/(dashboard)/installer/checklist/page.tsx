@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -132,10 +133,7 @@ export default function InstallerChecklistPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Checklist Pemasangan</h1>
-        <p className="page-subtitle">Selesaikan checklist untuk setiap pekerjaan pemasangan</p>
-      </div>
+      <PageHeader title="Checklist Pemasangan" subtitle="Selesaikan checklist untuk setiap pekerjaan pemasangan" />
 
       {/* Booking Selector */}
       <div style={{ marginBottom: '1.5rem' }}>
@@ -283,7 +281,7 @@ export default function InstallerChecklistPage() {
                         color: '#fff',
                         border: 'none',
                         borderRadius: '50%',
-                        fontSize: '0.7rem',
+                        fontSize: '0.75rem',
                         cursor: 'pointer'
                       }}
                     >

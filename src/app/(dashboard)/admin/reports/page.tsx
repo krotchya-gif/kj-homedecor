@@ -387,7 +387,7 @@ export default function AdminReportsPage() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.15rem',
-                    fontSize: '0.72rem',
+                    fontSize: '0.75rem',
                     fontWeight: '600',
                     padding: '0.15rem 0.4rem',
                     borderRadius: '999px',
@@ -414,7 +414,7 @@ export default function AdminReportsPage() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.15rem',
-                    fontSize: '0.72rem',
+                    fontSize: '0.75rem',
                     fontWeight: '600',
                     padding: '0.15rem 0.4rem',
                     borderRadius: '999px',
@@ -441,7 +441,7 @@ export default function AdminReportsPage() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.15rem',
-                    fontSize: '0.72rem',
+                    fontSize: '0.75rem',
                     fontWeight: '600',
                     padding: '0.15rem 0.4rem',
                     borderRadius: '999px',
@@ -505,7 +505,7 @@ export default function AdminReportsPage() {
                     background: STATUS_COLORS[status],
                     borderRadius: '0.5rem 0.5rem 0 0',
                     color: '#fff',
-                    fontSize: '0.72rem',
+                    fontSize: '0.75rem',
                     fontWeight: '600'
                   }}
                 >
@@ -683,7 +683,7 @@ export default function AdminReportsPage() {
                             background: i < 3 ? '#cc7030' : '#e5e7eb',
                             color: i < 3 ? '#fff' : '#6b7280',
                             borderRadius: '50%',
-                            fontSize: '0.7rem',
+                            fontSize: '0.75rem',
                             fontWeight: '700',
                             marginRight: '0.5rem'
                           }}

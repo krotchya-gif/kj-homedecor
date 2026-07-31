@@ -8,6 +8,7 @@ import type { Order } from '@/types'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 const PAGE_SIZE = 20
 const formatRp = (n: number) =>
@@ -212,10 +213,7 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pesanan</h1>
-        <p className="page-subtitle">Inbox semua pesanan — Kirim & Pasang</p>
-      </div>
+      <PageHeader title="Pesanan" subtitle="Inbox semua pesanan — Kirim & Pasang" />
 
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>

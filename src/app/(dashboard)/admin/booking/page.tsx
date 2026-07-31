@@ -488,7 +488,7 @@ export default function AdminBookingPage() {
                         gap: '0.25rem',
                         padding: '0.2rem 0.6rem',
                         borderRadius: '999px',
-                        fontSize: '0.72rem',
+                        fontSize: '0.75rem',
                         fontWeight: '600',
                         background: booking.type === 'pasang' ? '#e0e7ff' : '#f0fdf4',
                         color: booking.type === 'pasang' ? '#3730a3' : '#166534'
@@ -502,7 +502,7 @@ export default function AdminBookingPage() {
                       style={{
                         padding: '0.2rem 0.6rem',
                         borderRadius: '999px',
-                        fontSize: '0.72rem',
+                        fontSize: '0.75rem',
                         fontWeight: '600',
                         background: statusInfo.bg,
                         color: statusInfo.color
@@ -513,7 +513,7 @@ export default function AdminBookingPage() {
 
                     {/* Source badge */}
                     {booking.source && (
-                      <span style={{ fontSize: '0.7rem', color: '#9ca3af' }}>dari {booking.source}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>dari {booking.source}</span>
                     )}
                   </div>
 

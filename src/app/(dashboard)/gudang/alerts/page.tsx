@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -37,10 +38,7 @@ export default function GudangAlertsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Monitor Stok & Alerts</h1>
-        <p className="page-subtitle">Material di bawah minimum — buat Purchase Request (PR)</p>
-      </div>
+      <PageHeader title="Monitor Stok & Alerts" subtitle="Material di bawah minimum — buat Purchase Request (PR)" />
 
       <div className="data-table">
         {loading ? (

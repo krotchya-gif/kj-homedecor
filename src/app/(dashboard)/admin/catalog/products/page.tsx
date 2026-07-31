@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -330,10 +331,7 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Produk</h1>
-        <p className="page-subtitle">Kelola katalog produk KJ Homedecor</p>
-      </div>
+      <PageHeader title="Produk" subtitle="Kelola katalog produk KJ Homedecor" />
 
       {/* Tabs */}
       <div
@@ -543,7 +541,7 @@ export default function ProductsPage() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: '#9ca3af',
-                            fontSize: '0.7rem'
+                            fontSize: '0.75rem'
                           }}
                         >
                           📷
@@ -567,7 +565,7 @@ export default function ProductsPage() {
                           color: '#92400e',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600'
                         }}
                       >
@@ -581,7 +579,7 @@ export default function ProductsPage() {
                           color: '#3730a3',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           marginLeft: '0.25rem'
                         }}
@@ -596,7 +594,7 @@ export default function ProductsPage() {
                           color: '#6b7280',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           marginLeft: '0.25rem'
                         }}
@@ -1005,7 +1003,7 @@ export default function ProductsPage() {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Panjang (cm)</label>
+                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Panjang (cm)</label>
                     <input
                       type="number"
                       placeholder="P"
@@ -1022,7 +1020,7 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Lebar (cm)</label>
+                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Lebar (cm)</label>
                     <input
                       type="number"
                       placeholder="L"
@@ -1039,7 +1037,7 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Tinggi (cm)</label>
+                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tinggi (cm)</label>
                     <input
                       type="number"
                       placeholder="T"
@@ -1056,7 +1054,7 @@ export default function ProductsPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.7rem', color: '#6b7280' }}>Berat (kg)</label>
+                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Berat (kg)</label>
                     <input
                       type="number"
                       placeholder="Kg"
@@ -1137,7 +1135,7 @@ export default function ProductsPage() {
                       justifyContent: 'center',
                       cursor: 'pointer',
                       color: '#9ca3af',
-                      fontSize: '0.7rem',
+                      fontSize: '0.75rem',
                       textAlign: 'center'
                     }}
                   >
@@ -1167,7 +1165,7 @@ export default function ProductsPage() {
                     />
                   </label>
                 </div>
-                <p style={{ fontSize: '0.7rem', color: '#9ca3af' }}>PNG, JPG, WebP — maks 5MB per foto</p>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>PNG, JPG, WebP — maks 5MB per foto</p>
               </div>
 
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>

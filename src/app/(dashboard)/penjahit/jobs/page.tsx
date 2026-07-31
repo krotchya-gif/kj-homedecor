@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -124,10 +125,7 @@ export default function PenjahitJobsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Job Queue</h1>
-        <p className="page-subtitle">Daftar pekerjaan yang harus dikerjakan hari ini</p>
-      </div>
+      <PageHeader title="Job Queue" subtitle="Daftar pekerjaan yang harus dikerjakan hari ini" />
 
       {jobs.length === 0 && !loading ? (
         <div
@@ -295,7 +293,7 @@ export default function PenjahitJobsPage() {
                           <label
                             style={{
                               display: 'block',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600',
                               color: '#6b7280',
                               marginBottom: '0.2rem'
@@ -343,7 +341,7 @@ export default function PenjahitJobsPage() {
                           <label
                             style={{
                               display: 'block',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600',
                               color: '#6b7280',
                               marginBottom: '0.2rem'
@@ -377,7 +375,7 @@ export default function PenjahitJobsPage() {
                         <label
                           style={{
                             display: 'block',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             color: '#6b7280',
                             marginBottom: '0.2rem'

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -58,10 +59,7 @@ export default function ReturHutangPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Retur Hutang</h1>
-        <p className="page-subtitle">Daftar retur pembelian dari supplier</p>
-      </div>
+      <PageHeader title="Retur Hutang" subtitle="Daftar retur pembelian dari supplier" />
 
       <div style={{ position: 'relative', marginBottom: '1.25rem', maxWidth: 320 }}>
         <Search
@@ -145,7 +143,7 @@ export default function ReturHutangPage() {
                         style={{
                           padding: '0.15rem 0.5rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           background: sc.bg,
                           color: sc.text,

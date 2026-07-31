@@ -8,6 +8,9 @@ import { createSimpleJournal } from '@/utils/journal/create'
 import { useToast } from '@/components/ui/Toast'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatCard } from '@/components/ui/StatCard'
+import { MotionStagger } from '@/components/ui/Motion'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -340,10 +343,10 @@ export default function FinancePaymentsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Payment Tracking</h1>
-        <p className="page-subtitle">DP/Lunas tracking — Payment Gate aktif sebelum order bisa dikirim</p>
-      </div>
+      <PageHeader
+        title="Payment Tracking"
+        subtitle="DP/Lunas tracking — Payment Gate aktif sebelum order bisa dikirim"
+      />
 
       <div
         style={{
@@ -365,7 +368,7 @@ export default function FinancePaymentsPage() {
         </div>
       </div>
 
-      <div className="stat-grid" style={{ marginBottom: '1.25rem' }}>
+      <MotionStagger className="stat-grid" style={{ marginBottom: '1.25rem' }}>
         {[
           {
             label: 'Belum Bayar',
@@ -394,15 +397,10 @@ export default function FinancePaymentsPage() {
             ),
             color: '#cc7030'
           }
-        ].map((s) => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-card-label">{s.label}</div>
-            <div className="stat-card-value" style={{ color: s.color, fontSize: '1.5rem' }}>
-              {s.val}
-            </div>
-          </div>
+        ].map((s, i) => (
+          <StatCard key={s.label} label={s.label} value={s.val} accent={s.color} delay={i * 0.05} />
         ))}
-      </div>
+      </MotionStagger>
 
       <div
         style={{
@@ -523,7 +521,7 @@ export default function FinancePaymentsPage() {
                               color: '#92400e',
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600'
                             }}
                           >
@@ -666,7 +664,7 @@ export default function FinancePaymentsPage() {
                               ...pc,
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600'
                             }}
                           >
@@ -903,7 +901,7 @@ export default function FinancePaymentsPage() {
                               color: PAYMENT_COLORS[o?.payment_status ?? 'pending'].text,
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600'
                             }}
                           >
@@ -917,7 +915,7 @@ export default function FinancePaymentsPage() {
                               color: '#065f46',
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600'
                             }}
                           >

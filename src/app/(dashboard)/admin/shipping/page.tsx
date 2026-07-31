@@ -80,14 +80,12 @@ export default function AdminShippingPage() {
       .from('orders')
       .update({ status: 'packed', packed_at: new Date().toISOString(), packed_by: user?.id ?? null })
       .eq('id', orderId)
-    await supabase
-      .from('order_logs')
-      .insert({
-        order_id: orderId,
-        action: 'packed',
-        notes: 'Marked as packed from shipping page',
-        staff_id: user?.id ?? null
-      })
+    await supabase.from('order_logs').insert({
+      order_id: orderId,
+      action: 'packed',
+      notes: 'Marked as packed from shipping page',
+      staff_id: user?.id ?? null
+    })
     loadOrders()
   }
 
@@ -273,7 +271,7 @@ export default function AdminShippingPage() {
                   </span>
                   <span
                     className={STATUS_COLORS[order.status]}
-                    style={{ padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}
+                    style={{ padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '600' }}
                   >
                     {STATUS_LABELS[order.status]}
                   </span>
@@ -534,7 +532,7 @@ export default function AdminShippingPage() {
                         style={{ display: 'none' }}
                       />
                       {uploadingShippedPhoto ? (
-                        <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
+                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Upload...</span>
                       ) : (
                         <>
                           <Camera size={18} style={{ color: '#9ca3af' }} />

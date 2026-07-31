@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -239,10 +240,7 @@ export default function TikTokDashboardPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">TikTok Shop</h1>
-        <p className="page-subtitle">Integrasi TikTok Shop — Order, Settlement, Rekonsiliasi</p>
-      </div>
+      <PageHeader title="TikTok Shop" subtitle="Integrasi TikTok Shop — Order, Settlement, Rekonsiliasi" />
       {/* Stats */}
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
         <div className="stat-card">
@@ -275,7 +273,7 @@ export default function TikTokDashboardPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Settlement per Bulan</div>
-          <div style={{ fontSize: '0.7rem', lineHeight: 1.5, maxHeight: 160, overflowY: 'auto' }}>
+          <div style={{ fontSize: '0.75rem', lineHeight: 1.5, maxHeight: 160, overflowY: 'auto' }}>
             {monthlyStats.slice(0, 6).map((m) => (
               <div key={m.month} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
                 <span style={{ color: '#6b7280', fontWeight: 500 }}>{m.month}</span>
@@ -406,7 +404,7 @@ export default function TikTokDashboardPage() {
                         {expired && (
                           <span
                             style={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.75rem',
                               color: '#ef4444',
                               fontWeight: '500',
                               background: '#fef2f2',
@@ -423,7 +421,7 @@ export default function TikTokDashboardPage() {
                         {missingCipher && (
                           <span
                             style={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.75rem',
                               color: '#d97706',
                               fontWeight: '500',
                               background: '#fffbeb',
@@ -440,7 +438,7 @@ export default function TikTokDashboardPage() {
                         {s.shop_cipher && !expired && (
                           <span
                             style={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.75rem',
                               color: '#16a34a',
                               fontWeight: '500',
                               background: '#f0fdf4',

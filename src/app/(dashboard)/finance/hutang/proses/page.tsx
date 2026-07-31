@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -109,10 +110,7 @@ export default function ProsesReturPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Proses Retur Hutang</h1>
-        <p className="page-subtitle">Proses retur pembelian supplier</p>
-      </div>
+      <PageHeader title="Proses Retur Hutang" subtitle="Proses retur pembelian supplier" />
 
       <div style={{ position: 'relative', marginBottom: '1.25rem', maxWidth: 320 }}>
         <Search
@@ -192,7 +190,7 @@ export default function ProsesReturPage() {
                             color: '#fff',
                             border: 'none',
                             borderRadius: '0.375rem',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             cursor: 'pointer'
                           }}
@@ -200,7 +198,7 @@ export default function ProsesReturPage() {
                           Retur
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>—</span>
+                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>—</span>
                       )}
                     </td>
                   </tr>

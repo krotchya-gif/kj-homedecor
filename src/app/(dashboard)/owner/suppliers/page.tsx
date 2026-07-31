@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -209,10 +210,7 @@ export default function SuppliersPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Supplier</h1>
-        <p className="page-subtitle">Database supplier + Purchase Orders</p>
-      </div>
+      <PageHeader title="Supplier" subtitle="Database supplier + Purchase Orders" />
 
       {/* Tab Switcher */}
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
@@ -469,7 +467,7 @@ export default function SuppliersPage() {
                             style={{
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600',
                               background: sc.bg,
                               color: sc.text
@@ -489,7 +487,7 @@ export default function SuppliersPage() {
                                   color: '#fff',
                                   border: 'none',
                                   borderRadius: '0.375rem',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: '600',
                                   cursor: 'pointer'
                                 }}
@@ -506,7 +504,7 @@ export default function SuppliersPage() {
                                   color: '#fff',
                                   border: 'none',
                                   borderRadius: '0.375rem',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: '600',
                                   cursor: 'pointer'
                                 }}
@@ -523,7 +521,7 @@ export default function SuppliersPage() {
                                   color: '#fff',
                                   border: 'none',
                                   borderRadius: '0.375rem',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: '600',
                                   cursor: 'pointer'
                                 }}
@@ -532,7 +530,7 @@ export default function SuppliersPage() {
                               </button>
                             )}
                             {po.status === 'paid' && (
-                              <span style={{ fontSize: '0.72rem', color: '#22c55e', fontWeight: '600' }}>✓ Lunas</span>
+                              <span style={{ fontSize: '0.75rem', color: '#22c55e', fontWeight: '600' }}>✓ Lunas</span>
                             )}
                           </div>
                         </td>

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import Link from 'next/link'
 import { Book, FolderOpen, GitBranch, ArrowLeftRight } from 'lucide-react'
@@ -37,10 +38,7 @@ const SUB_MODULES = [
 export default function AccountsPage() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">AKUN</h1>
-        <p className="page-subtitle">Chart of Accounts dan Kategori Akun</p>
-      </div>
+      <PageHeader title="AKUN" subtitle="Chart of Accounts dan Kategori Akun" />
       <div className="module-grid">
         {SUB_MODULES.map((m) => (
           <Link key={m.href} href={m.href} className="module-card">

@@ -179,7 +179,7 @@ export default function CatalogPage() {
                   <div style={{ padding: '1rem' }}>
                     <div
                       style={{
-                        fontSize: '0.72rem',
+                        fontSize: '0.75rem',
                         fontWeight: '600',
                         textTransform: 'uppercase',
                         letterSpacing: '0.06em',

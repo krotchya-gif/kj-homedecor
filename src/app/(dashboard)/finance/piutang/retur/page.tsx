@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -41,10 +42,7 @@ export default function ReturPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Retur Piutang</h1>
-        <p className="page-subtitle">Daftar retur piutang pelanggan</p>
-      </div>
+      <PageHeader title="Retur Piutang" subtitle="Daftar retur piutang pelanggan" />
 
       <div className="data-table">
         {loading ? (
@@ -77,7 +75,7 @@ export default function ReturPage() {
                       style={{
                         padding: '0.15rem 0.5rem',
                         borderRadius: '999px',
-                        fontSize: '0.72rem',
+                        fontSize: '0.75rem',
                         fontWeight: '600',
                         background: '#fef3c7',
                         color: '#92400e'

@@ -128,7 +128,7 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
       {description && isValid && (
         <p
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: '#9ca3af',
             marginTop: '0.25rem'
           }}
@@ -139,7 +139,7 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
       {!isValid && (
         <p
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: '#ef4444',
             marginTop: '0.25rem'
           }}

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { Package, Tag, ImageIcon, Plus } from 'lucide-react'
 
 const CATALOG_MODULES = [
@@ -28,10 +29,7 @@ const CATALOG_MODULES = [
 export default function CatalogPage() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Katalog</h1>
-        <p className="page-subtitle">Kelola produk, kategori, dan tampilan landing page</p>
-      </div>
+      <PageHeader title="Katalog" subtitle="Kelola produk, kategori, dan tampilan landing page" />
       <div className="module-grid">
         {CATALOG_MODULES.map((mod) => (
           <Link key={mod.href} href={mod.href} className="module-card">

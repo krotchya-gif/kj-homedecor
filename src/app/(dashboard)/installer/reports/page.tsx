@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -79,10 +80,7 @@ export default function InstallerReportsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Laporan Instalasi</h1>
-        <p className="page-subtitle">Riwayat dan statistik pekerjaan pemasangan selesai</p>
-      </div>
+      <PageHeader title="Laporan Instalasi" subtitle="Riwayat dan statistik pekerjaan pemasangan selesai" />
 
       {/* Stats */}
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
@@ -159,7 +157,7 @@ export default function InstallerReportsPage() {
                             })
                           : '—'}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{b.scheduled_date}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{b.scheduled_date}</div>
                     </td>
                     <td>
                       <div style={{ fontWeight: '500' }}>{b.order?.customer?.name ?? '—'}</div>
@@ -182,7 +180,7 @@ export default function InstallerReportsPage() {
                           <span style={{ color: '#9ca3af' }}> +{productNames.length - 2}</span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                         {items.length} item • {items.reduce((sum: number, i: any) => sum + (i.meter_gorden ?? 0), 0)}m
                         gorden
                       </div>

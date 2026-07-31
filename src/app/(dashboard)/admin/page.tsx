@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import {
   Package,
@@ -32,6 +32,9 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatCard } from '@/components/ui/StatCard'
+import { MotionStagger } from '@/components/ui/Motion'
 
 interface Order {
   id: string
@@ -115,6 +118,7 @@ const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function AdminDashboardPage() {
+  const router = useRouter()
   const [data, setData] = useState<StatData | null>(null)
   const [installBookings, setInstallBookings] = useState<InstallBooking[]>([])
   const [loading, setLoading] = useState(true)
@@ -321,180 +325,117 @@ export default function AdminDashboardPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard Admin</h1>
-        <p className="page-subtitle">Selamat datang di KJ Homedecor Management System</p>
-      </div>
+      <PageHeader title="Dashboard Admin" subtitle="Selamat datang di KJ Homedecor Management System" />
 
-      {/* Stat Cards — Improved */}
-      <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
+      {/* Stat Cards — motion stagger + StatCard component (2026-07-31) */}
+      <MotionStagger className="stat-grid" style={{ marginBottom: '1.5rem' }}>
         {/* Real-time Hari Ini */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Real-time Hari Ini</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#16a34a' }}>
-                  {todayOrderCount}
-                </div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>pesanan baru</span>
-              </div>
-              <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>
-                {formatRp(todayRevenue)} omzet
-              </div>
-            </div>
-            <div style={{ background: '#d1fae5', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Activity size={20} style={{ color: '#16a34a' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Real-time Hari Ini"
+          value={todayOrderCount}
+          suffix="pesanan baru"
+          sub={<span style={{ color: '#059669', fontWeight: '600' }}>{formatRp(todayRevenue)} omzet</span>}
+          icon={Activity}
+          accent="#16a34a"
+          iconBg="#d1fae5"
+          delay={0}
+        />
 
         {/* Produksi Aktif */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #06b6d4' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Produksi Aktif</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#06b6d4' }}>
-                  {inProduction}
-                </div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang diproduksi</span>
-              </div>
-              <div className="stat-card-sub">Gudang sedang kerjakan</div>
-            </div>
-            <div style={{ background: '#cffafe', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Wrench size={20} style={{ color: '#06b6d4' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Produksi Aktif"
+          value={inProduction}
+          suffix="sedang diproduksi"
+          sub="Gudang sedang kerjakan"
+          icon={Wrench}
+          accent="#06b6d4"
+          iconBg="#cffafe"
+          delay={0.05}
+        />
 
         {/* Instalasi Aktif */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Instalasi Aktif</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#8b5cf6' }}>
-                  {activeInstalls}
-                </div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang pasang</span>
-              </div>
-              <div className="stat-card-sub">
-                {scheduledInstalls} terjadwal · {revisionInstalls} revisi
-              </div>
-            </div>
-            <div style={{ background: '#f5f3ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Calendar size={20} style={{ color: '#8b5cf6' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Instalasi Aktif"
+          value={activeInstalls}
+          suffix="sedang pasang"
+          sub={`${scheduledInstalls} terjadwal · ${revisionInstalls} revisi`}
+          icon={Calendar}
+          accent="#8b5cf6"
+          iconBg="#f5f3ff"
+          delay={0.1}
+        />
 
         {/* PR Pending */}
         {pendingPRs.length > 0 && (
-          <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div className="stat-card-label">PR Pending</div>
-                <div className="stat-card-value" style={{ color: '#f59e0b' }}>
-                  {pendingPRs.length}
-                </div>
-                <div className="stat-card-sub">Perlu approve</div>
-              </div>
-              <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
-                <AlertCircle size={20} style={{ color: '#f59e0b' }} />
-              </div>
-            </div>
-          </div>
+          <StatCard
+            label="PR Pending"
+            value={pendingPRs.length}
+            sub="Perlu approve"
+            icon={AlertCircle}
+            accent="#f59e0b"
+            iconBg="#fef3c7"
+            delay={0.15}
+          />
         )}
 
         {/* Total Orders */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Pesanan</div>
-              <div className="stat-card-value" style={{ color: '#3b82f6' }}>
-                {totalOrders}
-              </div>
-              <div className="stat-card-sub" style={{ color: '#f59e0b' }}>
-                {newOrders} pesanan baru
-              </div>
-            </div>
-            <div style={{ background: '#eff6ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <ShoppingCart size={20} style={{ color: '#3b82f6' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Total Pesanan"
+          value={totalOrders}
+          sub={<span style={{ color: '#f59e0b' }}>{newOrders} pesanan baru</span>}
+          icon={ShoppingCart}
+          accent="#3b82f6"
+          iconBg="#eff6ff"
+          delay={0.2}
+        />
 
         {/* Pending Payment */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Menunggu Bayar</div>
-              <div className="stat-card-value" style={{ color: '#ef4444' }}>
-                {pendingPayment}
-              </div>
-              <div className="stat-card-sub">Perlu konfirmasi Finance</div>
-            </div>
-            <div style={{ background: '#fef2f2', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Clock size={20} style={{ color: '#ef4444' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Menunggu Bayar"
+          value={pendingPayment}
+          sub="Perlu konfirmasi Finance"
+          icon={Clock}
+          accent="#ef4444"
+          iconBg="#fef2f2"
+          delay={0.25}
+        />
 
         {/* Paid but Not Sorted — alert for Admin */}
         {paidNotSorted > 0 && (
-          <Link href="/admin/orders" style={{ textDecoration: 'none' }}>
-            <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div className="stat-card-label">Sudah Bayar Belum Disortir</div>
-                  <div className="stat-card-value" style={{ color: '#f59e0b' }}>
-                    {paidNotSorted}
-                  </div>
-                  <div className="stat-card-sub" style={{ color: '#92400e' }}>
-                    ⚠️ Perlu sortir Admin
-                  </div>
-                </div>
-                <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
-                  <AlertCircle size={20} style={{ color: '#f59e0b' }} />
-                </div>
-              </div>
-            </div>
-          </Link>
+          <StatCard
+            label="Sudah Bayar Belum Disortir"
+            value={paidNotSorted}
+            sub={<span style={{ color: '#92400e' }}>⚠️ Perlu sortir Admin</span>}
+            icon={AlertCircle}
+            accent="#f59e0b"
+            iconBg="#fef3c7"
+            delay={0.3}
+            onClick={() => router.push('/admin/orders')}
+          />
         )}
 
         {/* Done Orders */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #22c55e' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Selesai</div>
-              <div className="stat-card-value" style={{ color: '#22c55e' }}>
-                {doneOrders}
-              </div>
-              <div className="stat-card-sub">Pesanan completed</div>
-            </div>
-            <div style={{ background: '#f0fdf4', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <CheckCheck size={20} style={{ color: '#22c55e' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Selesai"
+          value={doneOrders}
+          sub="Pesanan completed"
+          icon={CheckCheck}
+          accent="#22c55e"
+          iconBg="#f0fdf4"
+          delay={0.35}
+        />
 
         {/* Total Customers */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #ec4899' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Pelanggan</div>
-              <div className="stat-card-value" style={{ color: '#ec4899' }}>
-                {totalCustomers}
-              </div>
-              <div className="stat-card-sub">Terdaftar</div>
-            </div>
-            <div style={{ background: '#fdf2f8', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Users size={20} style={{ color: '#ec4899' }} />
-            </div>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          label="Total Pelanggan"
+          value={totalCustomers}
+          sub="Terdaftar"
+          icon={Users}
+          accent="#ec4899"
+          iconBg="#fdf2f8"
+          delay={0.4}
+        />
+      </MotionStagger>
 
       {/* Charts Section */}
       {!loading && data && (
@@ -704,7 +645,7 @@ export default function AdminDashboardPage() {
       <div style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Progress Pesanan</h2>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
+          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
         </div>
         {!data?.ordersWithLogs || data.ordersWithLogs.length === 0 ? (
           <div
@@ -801,7 +742,7 @@ export default function AdminDashboardPage() {
                         <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1f2937', lineHeight: 1.2 }}>
                           {order.order_number || `#${order.id.slice(0, 8)}`}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
                           {order.customer?.name ?? '—'} · {dateStr}
                         </div>
                       </div>
@@ -874,7 +815,7 @@ export default function AdminDashboardPage() {
                   {/* Activity Timeline */}
                   <div style={{ padding: '0.5rem 1rem', minHeight: 80 }}>
                     {order.recentLogs.length === 0 ? (
-                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', padding: '0.5rem 0' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', padding: '0.5rem 0' }}>
                         Belum ada aktivitas
                       </div>
                     ) : (
@@ -897,7 +838,7 @@ export default function AdminDashboardPage() {
                               </span>
                               <span
                                 style={{
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   color: '#6b7280',
                                   flex: 1,
                                   overflow: 'hidden',
@@ -953,7 +894,7 @@ export default function AdminDashboardPage() {
                   >
                     <a
                       href={`/admin/orders/${order.id}`}
-                      style={{ fontSize: '0.72rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}
+                      style={{ fontSize: '0.75rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}
                     >
                       Lihat Detail →
                     </a>

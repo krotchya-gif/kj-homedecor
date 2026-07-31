@@ -187,7 +187,7 @@ export default function ThemePresetCard({ selectedPreset, onSelectPreset }: Them
                 </div>
                 <div
                   style={{
-                    fontSize: '0.72rem',
+                    fontSize: '0.75rem',
                     color: '#6b7280',
                     lineHeight: 1.4
                   }}
@@ -205,7 +205,7 @@ export default function ThemePresetCard({ selectedPreset, onSelectPreset }: Them
         {/* Info text */}
         <p
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: '#9ca3af',
             marginTop: '0.5rem',
             lineHeight: 1.5

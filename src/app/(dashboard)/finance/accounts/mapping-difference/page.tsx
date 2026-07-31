@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -93,10 +94,7 @@ export default function MappingDifferencePage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pemetaan Akun Selisih</h1>
-        <p className="page-subtitle">Mapping untuk selisih kurs dan selisih harga</p>
-      </div>
+      <PageHeader title="Pemetaan Akun Selisih" subtitle="Mapping untuk selisih kurs dan selisih harga" />
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
         <button

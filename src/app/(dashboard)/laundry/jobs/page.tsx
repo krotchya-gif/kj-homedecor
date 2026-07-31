@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -94,10 +95,7 @@ export default function LaundryJobsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Laundry Jobs</h1>
-        <p className="page-subtitle">Pesanan laundry yang di-assign ke Anda</p>
-      </div>
+      <PageHeader title="Laundry Jobs" subtitle="Pesanan laundry yang di-assign ke Anda" />
 
       {loading ? (
         <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>

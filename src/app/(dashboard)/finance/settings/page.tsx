@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -78,10 +79,7 @@ export default function FinanceSettingsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pengaturan Keuangan</h1>
-        <p className="page-subtitle">Input saldo awal dan pengaturan akun keuangan</p>
-      </div>
+      <PageHeader title="Pengaturan Keuangan" subtitle="Input saldo awal dan pengaturan akun keuangan" />
 
       <div
         style={{
@@ -223,7 +221,7 @@ export default function FinanceSettingsPage() {
                 >
                   <div
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.75rem',
                       textTransform: 'uppercase',
                       color: '#92400e',
                       fontWeight: '600',
@@ -251,7 +249,7 @@ export default function FinanceSettingsPage() {
                 >
                   <div
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.75rem',
                       textTransform: 'uppercase',
                       color: '#1e40af',
                       fontWeight: '600',
@@ -306,7 +304,7 @@ export default function FinanceSettingsPage() {
                 >
                   <div
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.75rem',
                       textTransform: 'uppercase',
                       color: '#065f46',
                       fontWeight: '600',
@@ -334,7 +332,7 @@ export default function FinanceSettingsPage() {
                 >
                   <div
                     style={{
-                      fontSize: '0.72rem',
+                      fontSize: '0.75rem',
                       textTransform: 'uppercase',
                       color: '#9d174d',
                       fontWeight: '600',

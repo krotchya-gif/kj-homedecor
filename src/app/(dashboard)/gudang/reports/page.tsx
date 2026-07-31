@@ -341,7 +341,7 @@ export default function GudangReportsPage() {
                         style={{
                           padding: '0.2rem 0.6rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           background: m.type === 'in' ? '#d1fae5' : m.type === 'out' ? '#fee2e2' : '#e0e7ff',
                           color: m.type === 'in' ? '#065f46' : m.type === 'out' ? '#991b1b' : '#3730a3'

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -80,10 +81,7 @@ export default function CashMutationPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Mutasi Kas & Bank</h1>
-        <p className="page-subtitle">Riwayat transaksi per akun kas/bank/e-wallet</p>
-      </div>
+      <PageHeader title="Mutasi Kas & Bank" subtitle="Riwayat transaksi per akun kas/bank/e-wallet" />
 
       <div
         style={{
@@ -152,7 +150,7 @@ export default function CashMutationPage() {
         >
           <div
             style={{
-              fontSize: '0.72rem',
+              fontSize: '0.75rem',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
               color: '#9ca3af',
@@ -201,7 +199,7 @@ export default function CashMutationPage() {
                     {j.entry?.entry_date ? new Date(j.entry.entry_date).toLocaleDateString('id-ID') : '—'}
                   </td>
                   <td style={{ fontWeight: '500' }}>{j.entry?.description ?? '—'}</td>
-                  <td style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{j.entry?.reference_type ?? '—'}</td>
+                  <td style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{j.entry?.reference_type ?? '—'}</td>
                   <td
                     style={{
                       fontWeight: '600',

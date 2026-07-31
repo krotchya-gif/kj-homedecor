@@ -282,7 +282,7 @@ export default function AdminPortfolioPage() {
                     alignItems: 'center'
                   }}
                 >
-                  <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                     {new Date(post.created_at).toLocaleDateString('id-ID', {
                       day: 'numeric',
                       month: 'short',
@@ -484,7 +484,7 @@ export default function AdminPortfolioPage() {
                           color: '#fff',
                           border: 'none',
                           borderRadius: '50%',
-                          fontSize: '0.7rem',
+                          fontSize: '0.75rem',
                           cursor: 'pointer'
                         }}
                       >

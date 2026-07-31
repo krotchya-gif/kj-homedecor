@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -133,10 +134,7 @@ export default function CustomersPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pelanggan</h1>
-        <p className="page-subtitle">Database pelanggan KJ Homedecor</p>
-      </div>
+      <PageHeader title="Pelanggan" subtitle="Database pelanggan KJ Homedecor" />
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>

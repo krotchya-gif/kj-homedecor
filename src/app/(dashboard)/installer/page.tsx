@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { PageHeader } from '@/components/ui/PageHeader'
 import { Calendar, CheckCircle2, BarChart3 } from 'lucide-react'
 
 const MODULES = [
@@ -28,10 +29,7 @@ const MODULES = [
 export default function InstallerDashboard() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard Installer</h1>
-        <p className="page-subtitle">Jadwal pemasangan dan checklist pekerjaan</p>
-      </div>
+      <PageHeader title="Dashboard Installer" subtitle="Jadwal pemasangan dan checklist pekerjaan" />
       <div className="module-grid">
         {MODULES.map((m) => (
           <Link key={m.href} href={m.href} className="module-card">

@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -122,10 +123,7 @@ export default function FakturPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Faktur Piutang</h1>
-        <p className="page-subtitle">Daftar faktur piutang pelanggan</p>
-      </div>
+      <PageHeader title="Faktur Piutang" subtitle="Daftar faktur piutang pelanggan" />
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
@@ -215,7 +213,7 @@ export default function FakturPage() {
                         style={{
                           padding: '0.15rem 0.5rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           background: sc.bg,
                           color: sc.text,

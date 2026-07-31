@@ -251,7 +251,7 @@ export default function AdminSeoPage() {
                     outline: 'none'
                   }}
                 />
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                   Facebook Pixel ID untuk tracking konversi
                 </p>
               </div>
@@ -282,7 +282,7 @@ export default function AdminSeoPage() {
                     outline: 'none'
                   }}
                 />
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                   GA4 Measurement ID untuk analytics
                 </p>
               </div>
@@ -335,7 +335,7 @@ export default function AdminSeoPage() {
                   outline: 'none'
                 }}
               />
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                 {form.seo_title.length}/60 karakter
               </p>
             </div>
@@ -367,7 +367,7 @@ export default function AdminSeoPage() {
                   resize: 'vertical'
                 }}
               />
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                 {form.seo_description.length}/160 karakter
               </p>
             </div>
@@ -397,7 +397,7 @@ export default function AdminSeoPage() {
                   outline: 'none'
                 }}
               />
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>Pisahkan dengan koma</p>
+              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>Pisahkan dengan koma</p>
             </div>
             <div>
               <label
@@ -426,7 +426,7 @@ export default function AdminSeoPage() {
                   outline: 'none'
                 }}
               />
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                 Gambar untuk Open Graph (Facebook/WhatsApp share). Disarankan 1200x630px
               </p>
             </div>
@@ -516,7 +516,7 @@ export default function AdminSeoPage() {
                   <Search size={15} /> Lihat Current
                 </a>
               </div>
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.4rem' }}>
+              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.4rem' }}>
                 Upload file sitemap.xml yang sudah di-generate (misal dari sitemapgenerator.org)
               </p>
             </div>
@@ -586,7 +586,7 @@ export default function AdminSeoPage() {
                   <Search size={15} /> Lihat Current
                 </a>
               </div>
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.4rem' }}>
+              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.4rem' }}>
                 Upload file robots.txt untuk mengatur crawler access
               </p>
             </div>

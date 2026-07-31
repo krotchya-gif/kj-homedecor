@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -100,10 +101,7 @@ export default function OwnerProductsPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Top Produk</h1>
-        <p className="page-subtitle">Produk terlaris berdasarkan revenue dan quantity</p>
-      </div>
+      <PageHeader title="Top Produk" subtitle="Produk terlaris berdasarkan revenue dan quantity" />
 
       {/* Search */}
       <div style={{ marginBottom: '1rem', maxWidth: 320 }}>
@@ -181,7 +179,7 @@ export default function OwnerProductsPage() {
                             borderRadius: '50%',
                             background: i < 3 ? '#cc7030' : '#e5e7eb',
                             color: i < 3 ? '#fff' : '#6b7280',
-                            fontSize: '0.7rem',
+                            fontSize: '0.75rem',
                             fontWeight: '700'
                           }}
                         >
@@ -248,7 +246,7 @@ export default function OwnerProductsPage() {
                           style={{
                             padding: '0.2rem 0.6rem',
                             borderRadius: '999px',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             background: (p.stock_toko ?? 0) > 0 ? '#d1fae5' : '#fee2e2',
                             color: (p.stock_toko ?? 0) > 0 ? '#065f46' : '#991b1b'

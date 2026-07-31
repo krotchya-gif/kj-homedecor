@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -52,10 +53,7 @@ export default function GudangLemburPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Lembur</h1>
-        <p className="page-subtitle">Catat jam lembur staff per hari</p>
-      </div>
+      <PageHeader title="Lembur" subtitle="Catat jam lembur staff per hari" />
 
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <div className="stat-card" style={{ flex: '0 0 auto', minWidth: 180 }}>

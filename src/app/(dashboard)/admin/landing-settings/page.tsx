@@ -465,7 +465,7 @@ export default function AdminLandingSettingsPage() {
                   }}
                   placeholder="Percantik Ruanganmu&#10;dengan Gorden Premium"
                 />
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                   Gunakan newline untuk breakline
                 </p>
               </div>
@@ -581,7 +581,7 @@ export default function AdminLandingSettingsPage() {
                       }}
                       placeholder="/uploads/banners/xxx.jpg"
                     />
-                    <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                       URL gambar atau upload file baru
                     </p>
                   </div>
@@ -662,7 +662,7 @@ export default function AdminLandingSettingsPage() {
                       }}
                       placeholder="/uploads/videos/xxx.mp4"
                     />
-                    <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                       Video akan di-scrub saat scroll. Maks 100MB. Kosongkan untuk fallback /kj.mp4
                     </p>
                   </div>
@@ -779,7 +779,7 @@ export default function AdminLandingSettingsPage() {
                   }}
                   placeholder="Halo KJ Homedecor, saya ingin konsultasi"
                 />
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                   Pesan pre-fill saat klik WhatsApp CTA
                 </p>
               </div>
@@ -1070,7 +1070,7 @@ export default function AdminLandingSettingsPage() {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.2rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.2rem' }}>
                       Shopee
                     </label>
                     <input
@@ -1089,7 +1089,7 @@ export default function AdminLandingSettingsPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.72rem', color: '#6b7280', marginBottom: '0.2rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.2rem' }}>
                       Tokopedia
                     </label>
                     <input

@@ -14,6 +14,9 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatCard } from '@/components/ui/StatCard'
+import { MotionStagger } from '@/components/ui/Motion'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   waiting: { bg: '#fef2f2', text: '#991b1b' },
@@ -201,28 +204,20 @@ export default function GudangProductionPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Proses Pesanan</h1>
-        <p className="page-subtitle">
-          Queue produksi dari penjahit — tracking status jahit per order. Order dari Admin (status: production) akan
-          muncul di sini untuk di-assign penjahit.
-        </p>
-      </div>
+      <PageHeader
+        title="Proses Pesanan"
+        subtitle="Queue produksi dari penjahit — tracking status jahit per order. Order dari Admin (status: production) akan muncul di sini untuk di-assign penjahit."
+      />
 
-      <div className="stat-grid" style={{ marginBottom: '1.25rem' }}>
+      <MotionStagger className="stat-grid" style={{ marginBottom: '1.25rem' }}>
         {[
           { label: 'Menunggu', val: jobs.filter((j) => j.status === 'waiting').length, color: '#ef4444' },
           { label: 'Dikerjakan', val: jobs.filter((j) => j.status === 'in_progress').length, color: '#f59e0b' },
           { label: 'Selesai', val: jobs.filter((j) => j.status === 'done').length, color: '#22c55e' }
-        ].map((s) => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-card-label">{s.label}</div>
-            <div className="stat-card-value" style={{ color: s.color }}>
-              {s.val}
-            </div>
-          </div>
+        ].map((s, i) => (
+          <StatCard key={s.label} label={s.label} value={s.val} accent={s.color} delay={i * 0.05} />
         ))}
-      </div>
+      </MotionStagger>
 
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
         {['', 'waiting', 'in_progress', 'done'].map((s) => (
@@ -319,7 +314,7 @@ export default function GudangProductionPage() {
                               ...sc,
                               padding: '0.2rem 0.6rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600'
                             }}
                           >
@@ -343,7 +338,7 @@ export default function GudangProductionPage() {
                                 color: hasInsufficient ? '#dc2626' : '#16a34a',
                                 border: 'none',
                                 borderRadius: '999px',
-                                fontSize: '0.7rem',
+                                fontSize: '0.75rem',
                                 fontWeight: '600',
                                 cursor: 'pointer',
                                 marginRight: '0.375rem'
@@ -364,7 +359,7 @@ export default function GudangProductionPage() {
                                   color: '#3730a3',
                                   border: 'none',
                                   borderRadius: '0.375rem',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: '600',
                                   cursor: 'pointer'
                                 }}
@@ -390,7 +385,7 @@ export default function GudangProductionPage() {
                                   color: '#92400e',
                                   border: 'none',
                                   borderRadius: '0.375rem',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: '600',
                                   cursor: 'pointer'
                                 }}
@@ -407,7 +402,7 @@ export default function GudangProductionPage() {
                                   color: '#065f46',
                                   border: 'none',
                                   borderRadius: '0.375rem',
-                                  fontSize: '0.72rem',
+                                  fontSize: '0.75rem',
                                   fontWeight: '600',
                                   cursor: 'pointer'
                                 }}
@@ -467,11 +462,11 @@ export default function GudangProductionPage() {
                                   </td>
                                   <td>
                                     {insufficient ? (
-                                      <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '0.72rem' }}>
+                                      <span style={{ color: '#dc2626', fontWeight: '700', fontSize: '0.75rem' }}>
                                         ⚠️ Kurang {m.qty_needed - m.stock_gudang} {m.unit}
                                       </span>
                                     ) : (
-                                      <span style={{ color: '#16a34a', fontWeight: '600', fontSize: '0.72rem' }}>
+                                      <span style={{ color: '#16a34a', fontWeight: '600', fontSize: '0.75rem' }}>
                                         ✅ Cukup
                                       </span>
                                     )}

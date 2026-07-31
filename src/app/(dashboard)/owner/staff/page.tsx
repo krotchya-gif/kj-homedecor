@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -69,10 +70,7 @@ export default function OwnerStaffPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Manajemen Staff</h1>
-        <p className="page-subtitle">Semua akun staff dan peran mereka</p>
-      </div>
+      <PageHeader title="Manajemen Staff" subtitle="Semua akun staff dan peran mereka" />
 
       {/* Stats */}
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
@@ -169,7 +167,7 @@ export default function OwnerStaffPage() {
                         style={{
                           padding: '0.2rem 0.6rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           background: s.role === 'owner' ? '#f3e8ff' : s.role === 'admin' ? '#fff3e8' : '#e0e7ff',
                           color: s.role === 'owner' ? '#7c3aed' : s.role === 'admin' ? '#cc7030' : '#3730a3'
@@ -184,7 +182,7 @@ export default function OwnerStaffPage() {
                         style={{
                           padding: '0.2rem 0.6rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600',
                           background: STATUS_COLORS[s.status] ?? '#f3f4f6',
                           color: s.status === 'active' ? '#065f46' : '#991b1b'

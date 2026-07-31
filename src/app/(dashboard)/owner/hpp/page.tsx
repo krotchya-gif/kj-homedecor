@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -114,10 +115,7 @@ export default function HPPPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">HPP Calculator</h1>
-        <p className="page-subtitle">Hitung Harga Pokok Produksi dari BOM + production cost + markup</p>
-      </div>
+      <PageHeader title="HPP Calculator" subtitle="Hitung Harga Pokok Produksi dari BOM + production cost + markup" />
 
       <div
         style={{
@@ -200,7 +198,7 @@ export default function HPPPage() {
                 </div>
               )}
               {!searchProduct && !selectedProduct && (
-                <div style={{ marginTop: '0.25rem', fontSize: '0.72rem', color: '#9ca3af' }}>
+                <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af' }}>
                   Ketik untuk mencari produk
                 </div>
               )}
@@ -277,7 +275,7 @@ export default function HPPPage() {
                     />
                     <span style={{ fontWeight: '700', fontSize: '0.875rem' }}>{opt.label}</span>
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{opt.desc}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{opt.desc}</div>
                 </label>
               ))}
             </div>
@@ -321,7 +319,7 @@ export default function HPPPage() {
                   background: '#fff'
                 }}
               />
-              <div style={{ fontSize: '0.72rem', color: '#7c3aed', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginTop: '0.25rem' }}>
                 Gunakan nilai ini sebagai HPP, bukan dari BOM.
               </div>
             </div>
@@ -431,7 +429,7 @@ export default function HPPPage() {
                   <label
                     style={{
                       display: 'block',
-                      fontSize: '0.72rem',
+                      fontSize: '0.75rem',
                       fontWeight: '600',
                       color: '#6b7280',
                       marginBottom: '0.25rem'
@@ -464,7 +462,7 @@ export default function HPPPage() {
                   <label
                     style={{
                       display: 'block',
-                      fontSize: '0.72rem',
+                      fontSize: '0.75rem',
                       fontWeight: '600',
                       color: '#6b7280',
                       marginBottom: '0.25rem'
@@ -554,7 +552,7 @@ export default function HPPPage() {
                     outline: 'none'
                   }}
                 />
-                <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
                   Upah jahit, ongkos pasang, dll.
                 </div>
               </div>

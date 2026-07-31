@@ -12,6 +12,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 interface SteamJob {
   id: string
@@ -286,17 +287,19 @@ export default function GudangSteamPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Steam & QC Jahitan Penjahit</h1>
-        <p className="page-subtitle">
-          QC jahitan penjahit setelah mereka submit laporan produksi. <strong>Bukan</strong> untuk QC per-item pesanan
-          (lihat{' '}
-          <a href="/gudang/qc" style={{ color: '#cc7030' }}>
-            QC Per-Item & Retur
-          </a>
-          ).
-        </p>
-      </div>
+      <PageHeader
+        title="Steam & QC Jahitan Penjahit"
+        subtitle={
+          <>
+            QC jahitan penjahit setelah mereka submit laporan produksi. <strong>Bukan</strong> untuk QC per-item pesanan
+            (lihat{' '}
+            <a href="/gudang/qc" style={{ color: '#cc7030' }}>
+              QC Per-Item & Retur
+            </a>
+            ).
+          </>
+        }
+      />
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
@@ -857,7 +860,7 @@ export default function GudangSteamPage() {
                   style={{ display: 'none' }}
                 />
                 {uploadingSteamPhoto ? (
-                  <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Upload...</span>
                 ) : (
                   <>
                     <Camera size={18} style={{ color: '#9ca3af' }} />
@@ -1000,7 +1003,7 @@ export default function GudangSteamPage() {
                   style={{ display: 'none' }}
                 />
                 {uploadingSteamPhoto ? (
-                  <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Upload...</span>
                 ) : (
                   <>
                     <Camera size={18} style={{ color: '#9ca3af' }} />

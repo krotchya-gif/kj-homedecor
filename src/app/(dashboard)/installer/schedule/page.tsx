@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -126,10 +127,7 @@ export default function InstallerSchedulePage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Jadwal Pemasangan</h1>
-        <p className="page-subtitle">Daftar booking pemasangan yang di-assign ke kamu</p>
-      </div>
+      <PageHeader title="Jadwal Pemasangan" subtitle="Daftar booking pemasangan yang di-assign ke kamu" />
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
         {(['upcoming', 'done'] as const).map((t) => (
@@ -227,7 +225,7 @@ export default function InstallerSchedulePage() {
                           ...sc,
                           padding: '0.2rem 0.6rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600'
                         }}
                       >
@@ -247,7 +245,7 @@ export default function InstallerSchedulePage() {
                           color: b.type === 'pasang' ? '#3730a3' : '#166534',
                           padding: '0.2rem 0.6rem',
                           borderRadius: '999px',
-                          fontSize: '0.72rem',
+                          fontSize: '0.75rem',
                           fontWeight: '600'
                         }}
                       >
@@ -512,7 +510,7 @@ export default function InstallerSchedulePage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: '#9ca3af',
-                      fontSize: '0.7rem',
+                      fontSize: '0.75rem',
                       textAlign: 'center',
                       flexDirection: 'column',
                       gap: '0.2rem'

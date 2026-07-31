@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -94,10 +95,7 @@ export default function MappingPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pemetaan Akun</h1>
-        <p className="page-subtitle">Mapping untuk jurnal otomatis per transaksi</p>
-      </div>
+      <PageHeader title="Pemetaan Akun" subtitle="Mapping untuk jurnal otomatis per transaksi" />
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
         <button

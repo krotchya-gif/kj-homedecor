@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -96,10 +97,7 @@ export default function ExpensePage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pengeluaran</h1>
-        <p className="page-subtitle">Catat biaya operasional harian</p>
-      </div>
+      <PageHeader title="Pengeluaran" subtitle="Catat biaya operasional harian" />
 
       <div
         style={{

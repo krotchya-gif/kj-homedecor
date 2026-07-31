@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import Link from 'next/link'
 import { FileText, ExternalLink } from 'lucide-react'
@@ -16,10 +17,7 @@ const SUB_MODULES = [
 export default function JournalPage() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">JURNAL</h1>
-        <p className="page-subtitle">Input dan kelola jurnal manual</p>
-      </div>
+      <PageHeader title="JURNAL" subtitle="Input dan kelola jurnal manual" />
 
       <div style={{ marginBottom: '2rem' }}>
         <h2

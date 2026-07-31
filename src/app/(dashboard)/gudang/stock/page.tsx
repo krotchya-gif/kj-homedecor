@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -141,17 +142,15 @@ export default function GudangStockPage() {
           .from('materials')
           .update({ [field]: (matAny?.[field] ?? 0) + qty })
           .eq('id', mutasiItem)
-        await supabase
-          .from('inventory_movements')
-          .insert({
-            material_id: mutasiItem,
-            type: 'in',
-            qty,
-            to_location: mutasiLocation,
-            reason,
-            notes: mutasiNotes || null,
-            created_by: user?.id ?? null
-          })
+        await supabase.from('inventory_movements').insert({
+          material_id: mutasiItem,
+          type: 'in',
+          qty,
+          to_location: mutasiLocation,
+          reason,
+          notes: mutasiNotes || null,
+          created_by: user?.id ?? null
+        })
       } else {
         const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', mutasiItem).single()
         const prodAny = prod as any
@@ -159,17 +158,15 @@ export default function GudangStockPage() {
           .from('products')
           .update({ stock_toko: (prodAny?.stock_toko ?? 0) + qty })
           .eq('id', mutasiItem)
-        await supabase
-          .from('inventory_movements')
-          .insert({
-            product_id: mutasiItem,
-            type: 'in',
-            qty,
-            to_location: 'toko',
-            reason,
-            notes: mutasiNotes || null,
-            created_by: user?.id ?? null
-          })
+        await supabase.from('inventory_movements').insert({
+          product_id: mutasiItem,
+          type: 'in',
+          qty,
+          to_location: 'toko',
+          reason,
+          notes: mutasiNotes || null,
+          created_by: user?.id ?? null
+        })
       }
       setMutasiSuccess(true)
       setTimeout(() => setMutasiSuccess(false), 2500)
@@ -207,34 +204,30 @@ export default function GudangStockPage() {
         .from('materials')
         .update({ [field]: newVal })
         .eq('id', itemId)
-      await supabase
-        .from('inventory_movements')
-        .insert({
-          material_id: itemId,
-          type: direction === 'add' ? 'in' : 'out',
-          qty,
-          from_location: direction === 'reduce' ? (location ?? 'gudang') : null,
-          to_location: direction === 'add' ? (location ?? 'gudang') : null,
-          reason,
-          created_by: user?.id ?? null
-        })
+      await supabase.from('inventory_movements').insert({
+        material_id: itemId,
+        type: direction === 'add' ? 'in' : 'out',
+        qty,
+        from_location: direction === 'reduce' ? (location ?? 'gudang') : null,
+        to_location: direction === 'add' ? (location ?? 'gudang') : null,
+        reason,
+        created_by: user?.id ?? null
+      })
     } else {
       const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', itemId).single()
       const prodAny = prod as any
       const newVal =
         direction === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
       await supabase.from('products').update({ stock_toko: newVal }).eq('id', itemId)
-      await supabase
-        .from('inventory_movements')
-        .insert({
-          product_id: itemId,
-          type: direction === 'add' ? 'in' : 'out',
-          qty,
-          from_location: direction === 'reduce' ? 'toko' : null,
-          to_location: direction === 'add' ? 'toko' : null,
-          reason,
-          created_by: user?.id ?? null
-        })
+      await supabase.from('inventory_movements').insert({
+        product_id: itemId,
+        type: direction === 'add' ? 'in' : 'out',
+        qty,
+        from_location: direction === 'reduce' ? 'toko' : null,
+        to_location: direction === 'add' ? 'toko' : null,
+        reason,
+        created_by: user?.id ?? null
+      })
     }
     load()
   }
@@ -272,36 +265,32 @@ export default function GudangStockPage() {
           .from('materials')
           .update({ [field]: newVal })
           .eq('id', editItem.id)
-        await supabase
-          .from('inventory_movements')
-          .insert({
-            material_id: editItem.id,
-            type: editMode === 'add' ? 'in' : 'out',
-            qty,
-            from_location: editMode === 'reduce' ? editLocation : null,
-            to_location: editMode === 'add' ? editLocation : null,
-            reason,
-            notes: editNotes || null,
-            created_by: user?.id ?? null
-          })
+        await supabase.from('inventory_movements').insert({
+          material_id: editItem.id,
+          type: editMode === 'add' ? 'in' : 'out',
+          qty,
+          from_location: editMode === 'reduce' ? editLocation : null,
+          to_location: editMode === 'add' ? editLocation : null,
+          reason,
+          notes: editNotes || null,
+          created_by: user?.id ?? null
+        })
       } else {
         const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', editItem.id).single()
         const prodAny = prod as any
         const newVal =
           editMode === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
         await supabase.from('products').update({ stock_toko: newVal }).eq('id', editItem.id)
-        await supabase
-          .from('inventory_movements')
-          .insert({
-            product_id: editItem.id,
-            type: editMode === 'add' ? 'in' : 'out',
-            qty,
-            from_location: editMode === 'reduce' ? 'toko' : null,
-            to_location: editMode === 'add' ? 'toko' : null,
-            reason,
-            notes: editNotes || null,
-            created_by: user?.id ?? null
-          })
+        await supabase.from('inventory_movements').insert({
+          product_id: editItem.id,
+          type: editMode === 'add' ? 'in' : 'out',
+          qty,
+          from_location: editMode === 'reduce' ? 'toko' : null,
+          to_location: editMode === 'add' ? 'toko' : null,
+          reason,
+          notes: editNotes || null,
+          created_by: user?.id ?? null
+        })
       }
       setEditItem(null)
       load()
@@ -336,10 +325,7 @@ export default function GudangStockPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Posisi Stok</h1>
-        <p className="page-subtitle">Stok Gudang vs Stok Toko — terpisah, tidak double-count</p>
-      </div>
+      <PageHeader title="Posisi Stok" subtitle="Stok Gudang vs Stok Toko — terpisah, tidak double-count" />
 
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
         {(['materials', 'products', 'mutasi', 'edit', 'delivery'] as const).map((t) => (
@@ -433,7 +419,7 @@ export default function GudangStockPage() {
                               color: '#dc2626',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '600'
                             }}
                           >
@@ -628,7 +614,7 @@ export default function GudangStockPage() {
                         }}
                       >
                         <div style={{ fontWeight: '500' }}>{it.name}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                           {mutasiTarget === 'material'
                             ? `Gudang: ${it.stock_gudang} | Toko: ${it.stock_toko}`
                             : `Stok Toko: ${it.stock_toko}`}
@@ -1285,7 +1271,7 @@ export default function GudangStockPage() {
                               color: '#fff',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '999px',
-                              fontSize: '0.72rem',
+                              fontSize: '0.75rem',
                               fontWeight: '700'
                             }}
                           >

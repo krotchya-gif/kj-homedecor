@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -103,10 +104,7 @@ export default function CashPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">KAS & BANK</h1>
-        <p className="page-subtitle">Pengelolaan kas dan rekening bank</p>
-      </div>
+      <PageHeader title="KAS & BANK" subtitle="Pengelolaan kas dan rekening bank" />
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>

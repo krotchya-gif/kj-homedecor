@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import Link from 'next/link'
 import {
@@ -101,10 +102,7 @@ const COLOR_MAP: Record<string, string> = {
 export default function LaporanKeuanganPage() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Laporan Keuangan</h1>
-        <p className="page-subtitle">Kelola dan download laporan keuangan perusahaan</p>
-      </div>
+      <PageHeader title="Laporan Keuangan" subtitle="Kelola dan download laporan keuangan perusahaan" />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
         {REPORTS.map((report) => (

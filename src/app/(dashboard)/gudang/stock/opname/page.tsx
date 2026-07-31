@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -211,10 +212,7 @@ export default function GudangStockOpnamePage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Stock Opname</h1>
-        <p className="page-subtitle">Hitung fisik vs sistem — selisih jadi adjustment</p>
-      </div>
+      <PageHeader title="Stock Opname" subtitle="Hitung fisik vs sistem — selisih jadi adjustment" />
 
       {/* Tab switcher */}
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
@@ -374,7 +372,7 @@ export default function GudangStockOpnamePage() {
                           style={{
                             padding: '0.2rem 0.6rem',
                             borderRadius: '999px',
-                            fontSize: '0.72rem',
+                            fontSize: '0.75rem',
                             fontWeight: '600',
                             background:
                               s.status === 'open' ? '#fff7ed' : s.status === 'submitted' ? '#e0e7ff' : '#d1fae5',
