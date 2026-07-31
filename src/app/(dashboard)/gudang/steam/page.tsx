@@ -176,9 +176,9 @@ export default function GudangSteamPage() {
       staff_id: user?.id ?? null
     })
 
-    // Pipeline baru: auto-advance dihapus. Gudang/Admin harus klik manual di order detail
-    // untuk transisi steam → ready. Ini untuk konsistensi — payment_ok sekarang di antara
-    // ready dan packed, jadi Gudang perlu acknowledge 'ready' stage eksplisit.
+    // 2026-07-31: steam → ready dilakukan manual di order detail (Gudang/Admin klik "Lanjut").
+    // payment_ok sudah dipindah ke DEPAN (new→payment_ok, approve finance sebelum produksi),
+    // jadi setelah QC pass tinggal ready → packed → shipped tanpa gate finance lagi.
 
     setPassSaving(false)
     setShowPassDialog(null)

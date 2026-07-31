@@ -59,14 +59,15 @@ const fmt = (n: number) =>
 // Owner = escape hatch (bisa semua stage). Admin TIDAK escape hatch — hanya di sortir (awal) dan shipping (akhir).
 // Source of truth: matrix di Pipeline V2 docs
 const ROLE_NEXT_ALLOWED: Record<string, string[]> = {
-  // Admin: sortir order (awal) + shipping akhir
-  admin: ['new', 'sorted', 'packed', 'shipped'],
+  // Admin: sortir order (awal) + shipping akhir + escape hatch pembayaran
+  admin: ['new', 'payment_ok', 'sorted', 'packed', 'shipped'],
   // Owner: escape hatch — semua stage
-  owner: ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'shipped', 'done'],
-  // Gudang: produksi + QC jahitan + packing (setelah finance verify)
-  gudang: ['production', 'steam', 'ready', 'packed'],
-  // Finance: verify lunas + packing
-  finance: ['ready', 'payment_ok', 'packed'],
+  owner: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'shipped', 'done'],
+  // Gudang: sortir (setelah approve finance) + produksi + QC jahitan + packing
+  // 2026-07-31: payment_ok→sorted (sortir) & ready→packed (packing) pindah ke gudang
+  gudang: ['payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed'],
+  // Finance: approve pembayaran di DEPAN (new → payment_ok, verifikasi DP/lunas sebelum produksi)
+  finance: ['new'],
   // Installer: shipping akhir
   installer: ['packed', 'shipped']
   // Penjahit: TIDAK boleh klik "Lanjut" di order detail (mereka kerjakan via /penjahit/jobs)
@@ -255,7 +256,9 @@ export default function OrderDetailPage() {
 
   async function updateStatus(newStatus: string, photoUrls: string[] = []) {
     if (!order) return
-    // Pipeline baru: payment gate sebelum packed/shipped/done (Finance sudah verify via payment_ok)
+    // Payment gate: packed/shipped/done tetap wajib lunas.
+    // 2026-07-31: finance approve di DEPAN (new→payment_ok = verifikasi DP/lunas sudah masuk),
+    // lunas penuh tetap wajib sebelum packed/dikirim.
     if (['packed', 'shipped', 'done'].includes(newStatus) && order.payment_status !== 'paid') {
       alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu (status Cek Bayar).')
       return
@@ -501,7 +504,7 @@ export default function OrderDetailPage() {
       const {
         data: { user }
       } = await supabase.auth.getUser()
-      const { data: laund } = await supabase
+      const { data: laund, error: laundErr } = await supabase
         .from('laundry_orders')
         .insert({
           order_id: id,
@@ -516,9 +519,14 @@ export default function OrderDetailPage() {
         })
         .select('id')
         .single()
+      if (laundErr) {
+        alert('Gagal buat laundry order: ' + laundErr.message)
+        setSavingItem(false)
+        return
+      }
 
       const price = Number(itemForm.kg) * laundryRate
-      await supabase.from('order_items').insert({
+      const { error: itemErr } = await supabase.from('order_items').insert({
         order_id: id,
         product_id: null,
         item_type: 'laundry',
@@ -527,6 +535,11 @@ export default function OrderDetailPage() {
         price,
         meter: Number(itemForm.meter_laundry) || null
       })
+      if (itemErr) {
+        alert('Gagal tambah item laundry: ' + itemErr.message)
+        setSavingItem(false)
+        return
+      }
     } else {
       const prod = products.find((p) => p.id === itemForm.product_id)
       let finalPrice = Number(itemForm.price) || prod?.price || 0
@@ -537,7 +550,7 @@ export default function OrderDetailPage() {
         finalPrice = (prod?.price || 0) * meter
       }
 
-      await supabase.from('order_items').insert({
+      const { error: itemErr } = await supabase.from('order_items').insert({
         order_id: id,
         product_id: itemForm.product_id || null,
         item_type: itemType,
@@ -557,12 +570,36 @@ export default function OrderDetailPage() {
         dimension_t: itemType === 'perabot' ? (itemForm.dimension_t ? Number(itemForm.dimension_t) : null) : null,
         weight: itemType === 'perabot' ? (itemForm.weight ? Number(itemForm.weight) : null) : null
       })
+      if (itemErr) {
+        alert('Gagal tambah item: ' + itemErr.message)
+        setSavingItem(false)
+        return
+      }
     }
 
     // recalc total
-    const newItems = await supabase.from('order_items').select('price,qty').eq('order_id', id)
-    const total = (newItems.data ?? []).reduce((s, i) => s + i.price * i.qty, 0)
-    await supabase.from('orders').update({ total_amount: total }).eq('id', id)
+    const { data: newItems, error: totalErr } = await supabase
+      .from('order_items')
+      .select('price,qty')
+      .eq('order_id', id)
+    if (totalErr) {
+      alert('Item tersimpan, tapi gagal hitung ulang total: ' + totalErr.message)
+      load()
+      setSavingItem(false)
+      setShowItemForm(false)
+      resetForm()
+      return
+    }
+    const total = (newItems ?? []).reduce((s, i) => s + i.price * i.qty, 0)
+    const { error: updateErr } = await supabase.from('orders').update({ total_amount: total }).eq('id', id)
+    if (updateErr) {
+      alert('Item tersimpan, tapi gagal update total order: ' + updateErr.message)
+      load()
+      setSavingItem(false)
+      setShowItemForm(false)
+      resetForm()
+      return
+    }
 
     setSavingItem(false)
     setShowItemForm(false)

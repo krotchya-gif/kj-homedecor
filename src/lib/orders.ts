@@ -14,8 +14,8 @@ import type { OrderClassification, OrderStatus } from '@/types'
  */
 
 export const ORDER_STAGES_BY_CLASSIFICATION: Record<OrderClassification, readonly OrderStatus[]> = {
-  kirim: ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'shipped', 'done'],
-  pasang: ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'scheduled', 'installing', 'done']
+  kirim: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'shipped', 'done'],
+  pasang: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'scheduled', 'installing', 'done']
 }
 
 /**
@@ -55,6 +55,7 @@ export function isPhotoRequired(stage: OrderStatus): boolean {
  * Mis. "Input Resi" untuk kirim packed->shipped, "Jadwalkan Pasang" untuk pasang packed->scheduled.
  */
 export function getNextStageButtonLabel(currentStage: OrderStatus, classification: OrderClassification): string {
+  if (currentStage === 'new') return 'Approve Pembayaran' // 2026-07-31: new → payment_ok (finance/admin)
   if (currentStage === 'packed' && classification === 'kirim') return 'Input Resi'
   if (currentStage === 'packed' && classification === 'pasang') return 'Jadwalkan Pasang'
   if (currentStage === 'ready') return 'QC Pass'

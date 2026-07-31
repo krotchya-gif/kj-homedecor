@@ -45,7 +45,9 @@ export async function POST(_req: NextRequest) {
         source: 'tiktok',
         customer_id: null,
         classification: 'kirim',
-        status: to.order_status === 'COMPLETED' ? 'done' : 'payment_ok',
+        // 2026-07-31 Opsi A: e-commerce auto-skip cek bayar — pembayaran platform sudah terverifikasi.
+        // Masuk langsung 'sorted' (siap sortir gudang), bukan lewat payment_ok.
+        status: to.order_status === 'COMPLETED' ? 'done' : 'sorted',
         total_amount: Number(to.total_amount || 0),
         dp_amount: 0,
         lunas_amount: Number(to.total_amount || 0),

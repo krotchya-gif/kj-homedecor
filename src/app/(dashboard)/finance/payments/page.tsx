@@ -193,12 +193,15 @@ export default function FinancePaymentsPage() {
     }
 
     const paidSum = freshOrder.dp_amount + freshOrder.lunas_amount
-    if (paidSum < freshOrder.total_amount) {
-      toast('error', `Gagal Approve — Sisa pembayaran ${fmt(freshOrder.total_amount - paidSum)}, order belum lunas!`)
+    // 2026-07-31 Opsi A: approve di DEPAN — finance verifikasi pembayaran (DP/lunas) SUDAH MASUK
+    // sebelum produksi. Cukup ada pembayaran tercatat & diverifikasi; lunas penuh tetap
+    // wajib sebelum packed (payment gate di API route).
+    if (paidSum <= 0) {
+      toast('error', 'Gagal Approve — Belum ada pembayaran tercatat (DP/lunas). Catat pembayaran dulu.')
       return
     }
-    if (freshOrder.payment_status !== 'paid') {
-      toast('error', `Gagal Approve — payment_status belum 'paid' (saat ini: ${freshOrder.payment_status}).`)
+    if (freshOrder.payment_status === 'pending') {
+      toast('error', `Gagal Approve — payment_status masih 'pending'. Catat DP/lunas dulu sebelum approve.`)
       return
     }
     const verifiedPayment = await getVerifiedPayment(freshOrder.id)
@@ -207,20 +210,18 @@ export default function FinancePaymentsPage() {
       return
     }
 
-    // ALUR V2 YANG SEBENARNYA: Finance 1 klik Approve = langsung 2 tahap
-    //   ready -> payment_ok -> packed
-    // Karena Finance TIDAK perlu submit bukti lagi (berbeda dengan Gudang/Penjahit/Installer
-    // yang perlu detail pesanan untuk lanjut). Finance cukup konfirmasi lunas, sisanya
-    // adalah auto-advance ke Gudang untuk packing.
+    // ALUR BARU (Opsi A, 2026-07-31): Finance 1 klik Approve di order 'new'
+    //   new -> payment_ok
+    // Verifikasi pembayaran (DP/lunas) sudah masuk → lanjut Gudang sortir.
+    // TIDAK auto-advance ke packed lagi — packed adalah gate lunas (payment gate API).
 
-    if (freshOrder.status === 'ready') {
-      // Auto-advance: ready -> payment_ok (Finance verify) -> packed (lanjut Gudang)
-      // Step 1: ready -> payment_ok
+    if (freshOrder.status === 'new') {
+      // new -> payment_ok (Finance verify pembayaran masuk, lanjut Gudang sortir)
       const { error: step1Err } = await supabase
         .from('orders')
         .update({ status: 'payment_ok' })
         .eq('id', freshOrder.id)
-        .eq('status', 'ready')
+        .eq('status', 'new')
       if (step1Err) {
         toast('error', 'Gagal update ke Cek Bayar: ' + step1Err.message)
         return
@@ -228,43 +229,20 @@ export default function FinancePaymentsPage() {
       await supabase.from('order_logs').insert({
         order_id: freshOrder.id,
         action: 'payment_verified',
-        notes: `Payment verified oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}. Status: ready → payment_ok`,
+        notes: `Payment verified oleh ${currentUser?.name ?? 'Finance'} — pembayaran (DP/lunas) sudah masuk Rp${paidSum.toLocaleString('id-ID')}. Status: Baru → Cek Bayar. Lanjut Gudang sortir.`,
         staff_id: currentUser?.id
       })
-
-      // Step 2: payment_ok -> packed (Finance tidak perlu submit bukti lagi,
-      // auto-advance ke Gudang untuk packing)
-      const { error: step2Err } = await supabase
-        .from('orders')
-        .update({ status: 'packed' })
-        .eq('id', freshOrder.id)
-        .eq('status', 'payment_ok')
-      if (step2Err) {
-        toast('error', 'Gagal auto-advance ke Dikemas: ' + step2Err.message)
-        return
-      }
-      await supabase.from('order_logs').insert({
-        order_id: freshOrder.id,
-        action: 'packed',
-        notes: `Auto-advance ke Dikemas (siap untuk packing oleh Gudang) — order sudah lunas, tidak perlu detail submission di Finance. Status: payment_ok → packed`,
-        staff_id: currentUser?.id
-      })
-      toast(
-        'success',
-        '✅ Order berhasil diapprove! Status: Siap → Cek Bayar → Dikemas. Lanjut Gudang untuk input resi.'
-      )
+      toast('success', '✅ Pembayaran diverifikasi! Status: Baru → Cek Bayar. Lanjut Gudang untuk sortir.')
     } else if (freshOrder.status === 'payment_ok') {
-      // Order sudah di-approve sampai Cek Bayar, lanjut ke packed
-      const { error: step2Err } = await supabase
-        .from('orders')
-        .update({ status: 'packed' })
-        .eq('id', freshOrder.id)
-        .eq('status', 'payment_ok')
-      if (step2Err) {
-        toast('error', 'Gagal auto-advance ke Dikemas: ' + step2Err.message)
-        return
-      }
-      toast('success', '✅ Lanjut ke Dikemas.')
+      // Sudah di Cek Bayar — gudang yang lanjut ke sortir
+      toast('info', 'Order sudah di Cek Bayar. Gudang bisa lanjut ke "Sudah Sortir" di halaman order.')
+      load()
+      return
+    } else if (freshOrder.status === 'ready') {
+      // 2026-07-31: ready → packed langsung (tanpa finance lagi) — gudang/admin yang lanjutkan
+      toast('info', 'Order sudah Siap. Gudang/Admin lanjut ke "Dikemas" di halaman order.')
+      load()
+      return
     } else if (freshOrder.status === 'packed') {
       toast('info', 'Order sudah di Dikemas. Gudang tinggal input resi (di /admin/shipping).')
       load()
@@ -664,7 +642,10 @@ export default function FinancePaymentsPage() {
                     const sisa = o.total_amount - o.dp_amount - o.lunas_amount
                     const paidSum = o.dp_amount + o.lunas_amount
                     const pc = PAYMENT_COLORS[o.payment_status]
-                    const canApprove = o.payment_status === 'paid' && o.status === 'ready'
+                    // 2026-07-31 Opsi A: finance approve di DEPAN — order 'new' yang sudah ada pembayaran
+                    // (DP/lunas tercatat & diverifikasi) bisa di-approve. Lunas penuh bukan syarat di sini
+                    // (gate lunas tetap di packed).
+                    const canApprove = o.payment_status !== 'pending' && o.status === 'new'
                     return (
                       <tr key={o.id}>
                         <td style={{ fontWeight: '500' }}>{o.customer?.name ?? '—'}</td>
@@ -703,7 +684,7 @@ export default function FinancePaymentsPage() {
                             <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
                               {(STATUS_LABELS as Record<string, string>)[o.status]}
                             </span>
-                            {o.status === 'sorted' && o.payment_status === 'paid' && (
+                            {o.status === 'new' && o.payment_status !== 'pending' && (
                               <span
                                 style={{
                                   fontSize: '0.65rem',

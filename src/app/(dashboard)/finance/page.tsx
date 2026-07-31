@@ -96,9 +96,9 @@ export default function FinanceDashboard() {
   const piutangOrders = orders.filter((o) => o.payment_status !== 'paid' && o.payment_status !== 'cancelled')
   const piutangTotal = piutangOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
 
-  // Orders waiting for Finance verification (pipeline baru: status='ready' adalah trigger)
-  // Finance approve → status='payment_ok' (gate ke packing)
-  const needsVerification = orders.filter((o) => o.status === 'ready')
+  // Orders waiting for Finance verification (2026-07-31: gate di DEPAN — status='new' menunggu Finance approve ke payment_ok)
+  // Finance approve → status='payment_ok' (verifikasi DP/bukti transfer sebelum produksi, anti transfer palsu)
+  const needsVerification = orders.filter((o) => o.status === 'new')
   const needsVerificationPaid = needsVerification.filter((o) => o.payment_status === 'paid')
 
   // Piutang aging buckets (based on days since created)

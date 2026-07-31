@@ -55,7 +55,7 @@ const MONTHS = [
   'Desember'
 ]
 
-const STATUS_ORDER = ['new', 'sorted', 'payment_ok', 'production', 'ready', 'done']
+const STATUS_ORDER = ['new', 'payment_ok', 'sorted', 'production', 'ready', 'done']
 
 const STATUS_COLORS: Record<string, string> = {
   new: '#3b82f6',
