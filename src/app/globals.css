@@ -2539,6 +2539,30 @@ body {
   }
 }
 
+/* Magic UI AnimatedThemeToggler — View Transitions API theme switch */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-magicui-theme-vt='active']::view-transition-group(root) {
+  animation-duration: var(--magicui-theme-toggle-vt-duration);
+}
+
+/* Haptic feedback global tombol (band 150ms; inline transition menang) */
+button:not(:disabled) {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
 /* Responsive: konten dashboard — padding menyusut di layar kecil */
 @media (max-width: 768px) {
   .dashboard-content {
