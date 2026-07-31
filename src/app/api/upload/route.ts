@@ -5,8 +5,16 @@ import path from 'path'
 import { z } from 'zod'
 
 const FolderSchema = z.enum([
-  'products', 'banners', 'portfolio', 'evidence', 'documents',
-  'videos', 'order_progress', 'returns', 'qc', 'install',
+  'products',
+  'banners',
+  'portfolio',
+  'evidence',
+  'documents',
+  'videos',
+  'order_progress',
+  'returns',
+  'qc',
+  'install'
 ])
 
 const ALLOWED_TYPES = {
@@ -19,26 +27,28 @@ const ALLOWED_TYPES = {
   order_progress: ['image/jpeg', 'image/png', 'image/webp'],
   returns: ['image/jpeg', 'image/png', 'image/webp'],
   qc: ['image/jpeg', 'image/png', 'image/webp'],
-  install: ['image/jpeg', 'image/png', 'image/webp'],
+  install: ['image/jpeg', 'image/png', 'image/webp']
 }
 
 const MAX_SIZES = {
-  products: 5 * 1024 * 1024,    // 5MB
-  banners: 5 * 1024 * 1024,       // 5MB
-  portfolio: 2 * 1024 * 1024,     // 2MB
-  evidence: 2 * 1024 * 1024,      // 2MB
-  documents: 5 * 1024 * 1024,    // 5MB
-  videos: 100 * 1024 * 1024,     // 100MB
-  order_progress: 2 * 1024 * 1024,  // 2MB
-  returns: 2 * 1024 * 1024,        // 2MB
-  qc: 2 * 1024 * 1024,            // 2MB
-  install: 2 * 1024 * 1024,       // 2MB
+  products: 5 * 1024 * 1024, // 5MB
+  banners: 5 * 1024 * 1024, // 5MB
+  portfolio: 2 * 1024 * 1024, // 2MB
+  evidence: 2 * 1024 * 1024, // 2MB
+  documents: 5 * 1024 * 1024, // 5MB
+  videos: 100 * 1024 * 1024, // 100MB
+  order_progress: 2 * 1024 * 1024, // 2MB
+  returns: 2 * 1024 * 1024, // 2MB
+  qc: 2 * 1024 * 1024, // 2MB
+  install: 2 * 1024 * 1024 // 2MB
 }
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
     const formData = await request.formData()
@@ -97,7 +107,7 @@ export async function POST(request: NextRequest) {
       url,
       filename,
       size: file.size,
-      type: file.type,
+      type: file.type
     })
   } catch (error) {
     console.error('Upload error:', error)

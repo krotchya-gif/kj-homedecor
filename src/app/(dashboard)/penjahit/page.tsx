@@ -2,9 +2,27 @@ import Link from 'next/link'
 import { Scissors, BarChart3, Calendar } from 'lucide-react'
 
 const MODULES = [
-  { title: 'Job Queue', desc: 'Daftar pekerjaan yang menunggu', href: '/penjahit/jobs', icon: <Scissors size={20} />, color: 'orange' },
-  { title: 'Rekap Bulanan', desc: 'Total meter dan estimasi upah', href: '/penjahit/reports', icon: <BarChart3 size={20} />, color: 'green' },
-  { title: 'Riwayat', desc: 'Job yang sudah selesai', href: '/penjahit/history', icon: <Calendar size={20} />, color: 'blue' },
+  {
+    title: 'Job Queue',
+    desc: 'Daftar pekerjaan yang menunggu',
+    href: '/penjahit/jobs',
+    icon: <Scissors size={20} />,
+    color: 'orange'
+  },
+  {
+    title: 'Rekap Bulanan',
+    desc: 'Total meter dan estimasi upah',
+    href: '/penjahit/reports',
+    icon: <BarChart3 size={20} />,
+    color: 'green'
+  },
+  {
+    title: 'Riwayat',
+    desc: 'Job yang sudah selesai',
+    href: '/penjahit/history',
+    icon: <Calendar size={20} />,
+    color: 'blue'
+  }
 ]
 
 export default function PenjahitDashboard() {

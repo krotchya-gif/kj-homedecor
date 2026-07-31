@@ -1,36 +1,36 @@
-import type { Metadata, Viewport } from "next";
-import "./globals.css";
-import { ThemeProvider } from "next-themes";
-import SeoScripts from "@/components/SeoScripts";
-import Providers from "@/components/Providers";
-import FontLoader from "@/components/FontLoader";
+import type { Metadata, Viewport } from 'next'
+import './globals.css'
+import { ThemeProvider } from 'next-themes'
+import SeoScripts from '@/components/SeoScripts'
+import Providers from '@/components/Providers'
+import FontLoader from '@/components/FontLoader'
 
 export const viewport: Viewport = {
-  themeColor: "#DDC0B4",
+  themeColor: '#DDC0B4'
 }
 
 export const metadata: Metadata = {
-  title: "KJ Homedecor — Gorden & Curtain Premium",
+  title: 'KJ Homedecor — Gorden & Curtain Premium',
   description:
-    "Spesialis gorden, curtain, roman blind, dan vitras premium. Pemasangan profesional ke seluruh Jabodetabek. Hub. kami untuk konsultasi gratis.",
-  keywords: "gorden, curtain, roman blind, vitras, home decor, interior, Jakarta",
-  manifest: "/manifest.json",
+    'Spesialis gorden, curtain, roman blind, dan vitras premium. Pemasangan profesional ke seluruh Jabodetabek. Hub. kami untuk konsultasi gratis.',
+  keywords: 'gorden, curtain, roman blind, vitras, home decor, interior, Jakarta',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "KJ Homedecor",
+    statusBarStyle: 'default',
+    title: 'KJ Homedecor'
   },
   openGraph: {
-    title: "KJ Homedecor — Gorden & Curtain Premium",
-    description: "Spesialis gorden, curtain, roman blind, dan vitras premium.",
-    type: "website",
-  },
-};
+    title: 'KJ Homedecor — Gorden & Curtain Premium',
+    description: 'Spesialis gorden, curtain, roman blind, dan vitras premium.',
+    type: 'website'
+  }
+}
 
 export default function RootLayout({
-  children,
+  children
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="id" className="h-full" suppressHydrationWarning>
@@ -57,5 +57,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
+  )
 }

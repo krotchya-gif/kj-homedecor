@@ -22,7 +22,9 @@ export default function HeroParticles() {
     if (!canvas) return
 
     const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setIsVisible(true) },
+      ([entry]) => {
+        if (entry.isIntersecting) setIsVisible(true)
+      },
       { threshold: 0.01 }
     )
     observer.observe(canvas)
@@ -56,7 +58,7 @@ export default function HeroParticles() {
         vy: -(Math.random() * 0.4 + 0.1),
         size: Math.random() * 2.5 + 0.5,
         opacity: Math.random() * 0.45 + 0.1,
-        color: colors[Math.floor(Math.random() * colors.length)],
+        color: colors[Math.floor(Math.random() * colors.length)]
       })
     }
 
@@ -108,7 +110,7 @@ export default function HeroParticles() {
           width: '100%',
           height: '100%',
           pointerEvents: 'none',
-          zIndex: 1,
+          zIndex: 1
         }}
       />
     )
@@ -123,7 +125,7 @@ export default function HeroParticles() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: 1,
+        zIndex: 1
       }}
     />
   )

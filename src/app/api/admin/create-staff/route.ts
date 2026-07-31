@@ -8,8 +8,8 @@ const CreateStaffSchema = z.object({
   email: z.string().email('Email tidak valid'),
   password: z.string().min(6, 'Password minimal 6 karakter').max(100),
   role: z.enum(['admin', 'gudang', 'penjahit', 'finance', 'installer', 'owner'], {
-    message: 'Role tidak valid',
-  }),
+    message: 'Role tidak valid'
+  })
 })
 
 export async function POST(request: NextRequest) {
@@ -25,23 +25,23 @@ export async function POST(request: NextRequest) {
 
     // Use service role to create user
     const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          getAll() { return cookieStore.getAll() },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
-            } catch {}
-          },
+    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
         },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+          } catch {}
+        }
       }
-    )
+    })
 
     // Verify requester is admin
-    const { data: { user: requester } } = await supabase.auth.getUser()
+    const {
+      data: { user: requester }
+    } = await supabase.auth.getUser()
     if (requester) {
       const { data: requesterData } = await supabase.from('users').select('role').eq('id', requester.id).single()
       if (requesterData?.role !== 'admin' && requesterData?.role !== 'owner') {
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: true
     })
 
     if (authError) {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       id: authData.user!.id,
       name,
       role,
-      status: 'active',
+      status: 'active'
     })
 
     if (dbError) {

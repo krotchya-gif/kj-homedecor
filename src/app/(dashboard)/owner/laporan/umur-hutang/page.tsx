@@ -29,7 +29,9 @@ export default function UmurHutangPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function getBucket(days: number): string {
     if (days < 30) return '< 30 hari'
@@ -40,14 +42,16 @@ export default function UmurHutangPage() {
 
   const today = new Date()
 
-  const enriched = hutang.map(h => {
+  const enriched = hutang.map((h) => {
     const days = Math.floor((today.getTime() - new Date(h.invoice_date).getTime()) / (1000 * 60 * 60 * 24))
     const bucket = getBucket(days)
     return { ...h, days, bucket }
   })
 
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
-  enriched.forEach(h => { buckets[h.bucket] += h.amount ?? 0 })
+  enriched.forEach((h) => {
+    buckets[h.bucket] += h.amount ?? 0
+  })
 
   const bucketData = Object.entries(buckets).map(([bucket, amount]) => ({ bucket, amount }))
   const totalHutang = Object.values(buckets).reduce((s, v) => s + v, 0)
@@ -66,20 +70,20 @@ export default function UmurHutangPage() {
       startY: 40,
       head: [['Supplier', 'Invoice', 'Tanggal', 'Amount', 'Bucket']],
       headStyles: { fillColor: [220, 38, 38] },
-      body: enriched.map(h => [
+      body: enriched.map((h) => [
         h.supplier?.name ?? '—',
         h.invoice_number ?? h.id.slice(0, 8),
         new Date(h.invoice_date).toLocaleDateString('id-ID'),
         formatRp(h.amount ?? 0),
-        h.bucket,
+        h.bucket
       ]),
       columnStyles: {
         0: { cellWidth: 45 },
         1: { cellWidth: 35 },
         2: { cellWidth: 30 },
         3: { cellWidth: 40, halign: 'right' },
-        4: { cellWidth: 30 },
-      },
+        4: { cellWidth: 30 }
+      }
     })
 
     const finalY = (doc as any).lastAutoTable.finalY + 10
@@ -87,13 +91,13 @@ export default function UmurHutangPage() {
       startY: finalY,
       head: [['Bucket', 'Total Amount']],
       headStyles: { fillColor: [220, 38, 38] },
-      body: bucketData.map(d => [d.bucket, formatRp(d.amount)]),
+      body: bucketData.map((d) => [d.bucket, formatRp(d.amount)]),
       foot: [['TOTAL', formatRp(totalHutang)]],
       footStyles: { fillColor: [254, 242, 242], textColor: [153, 27, 27], fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 80 },
-        1: { cellWidth: 60, halign: 'right' },
-      },
+        1: { cellWidth: 60, halign: 'right' }
+      }
     })
 
     doc.save(`owner-umur-hutang-${startDate}-${endDate}.pdf`)
@@ -102,7 +106,16 @@ export default function UmurHutangPage() {
   return (
     <div>
       <BackButton href="/owner/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Umur Hutang</h1>
           <p className="page-subtitle">Umur hutang per pemasok - Tampilan Owner (Read Only)</p>
@@ -110,7 +123,15 @@ export default function UmurHutangPage() {
         <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          padding: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -136,28 +157,35 @@ export default function UmurHutangPage() {
               </tr>
             </thead>
             <tbody>
-              {enriched.map(h => {
+              {enriched.map((h) => {
                 const bucketColors: Record<string, string> = {
                   '< 30 hari': '#16a34a',
                   '30-60 hari': '#ca8a04',
                   '60-90 hari': '#ea580c',
-                  '> 90 hari': '#dc2626',
+                  '> 90 hari': '#dc2626'
                 }
                 return (
                   <tr key={h.id}>
                     <td style={{ fontWeight: '600' }}>{h.supplier?.name ?? '—'}</td>
-                    <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>{h.invoice_number ?? h.id.slice(0, 8)}</td>
+                    <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>
+                      {h.invoice_number ?? h.id.slice(0, 8)}
+                    </td>
                     <td style={{ color: '#6b7280' }}>{new Date(h.invoice_date).toLocaleDateString('id-ID')}</td>
-                    <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(h.amount ?? 0)}</td>
+                    <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
+                      {formatRp(h.amount ?? 0)}
+                    </td>
                     <td>
-                      <span style={{
-                        padding: '0.25rem 0.625rem',
-                        borderRadius: '9999px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        background: h.days < 30 ? '#dcfce7' : h.days < 60 ? '#fef9c3' : h.days < 90 ? '#ffedd5' : '#fee2e2',
-                        color: h.days < 30 ? '#166534' : h.days < 60 ? '#854d0e' : h.days < 90 ? '#9a3412' : '#991b1b',
-                      }}>
+                      <span
+                        style={{
+                          padding: '0.25rem 0.625rem',
+                          borderRadius: '9999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          background:
+                            h.days < 30 ? '#dcfce7' : h.days < 60 ? '#fef9c3' : h.days < 90 ? '#ffedd5' : '#fee2e2',
+                          color: h.days < 30 ? '#166534' : h.days < 60 ? '#854d0e' : h.days < 90 ? '#9a3412' : '#991b1b'
+                        }}
+                      >
                         {h.bucket}
                       </span>
                     </td>
@@ -170,20 +198,35 @@ export default function UmurHutangPage() {
       </div>
 
       {!loading && enriched.length > 0 && (
-        <div style={{ marginTop: '1.5rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>Ringkasan per Bucket</h3>
+        <div
+          style={{
+            marginTop: '1.5rem',
+            background: '#fff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '0.875rem',
+            padding: '1.5rem'
+          }}
+        >
+          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>
+            Ringkasan per Bucket
+          </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-            {bucketData.map(d => {
-              const colors: Record<string, { bg: string, text: string }> = {
+            {bucketData.map((d) => {
+              const colors: Record<string, { bg: string; text: string }> = {
                 '< 30 hari': { bg: '#dcfce7', text: '#166534' },
                 '30-60 hari': { bg: '#fef9c3', text: '#854d0e' },
                 '60-90 hari': { bg: '#ffedd5', text: '#9a3412' },
-                '> 90 hari': { bg: '#fee2e2', text: '#991b1b' },
+                '> 90 hari': { bg: '#fee2e2', text: '#991b1b' }
               }
               const c = colors[d.bucket]
               return (
-                <div key={d.bucket} style={{ background: c.bg, borderRadius: '0.75rem', padding: '1rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: c.text, marginBottom: '0.25rem' }}>{d.bucket}</div>
+                <div
+                  key={d.bucket}
+                  style={{ background: c.bg, borderRadius: '0.75rem', padding: '1rem', textAlign: 'center' }}
+                >
+                  <div style={{ fontSize: '0.75rem', fontWeight: '600', color: c.text, marginBottom: '0.25rem' }}>
+                    {d.bucket}
+                  </div>
                   <div style={{ fontSize: '1.1rem', fontWeight: '800', color: c.text }}>{formatRp(d.amount)}</div>
                 </div>
               )

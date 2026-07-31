@@ -34,7 +34,9 @@ export default function ChannelPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
     <div>

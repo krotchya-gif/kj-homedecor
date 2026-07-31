@@ -21,7 +21,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const body = await request.json()
 
   // 1. Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
@@ -35,12 +37,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Panggil RPC — handles status update + orders.status cascade + order_logs insert
-    const { data: rpcResult, error: rpcErr } = await supabase
-      .rpc('advance_install_booking_status', {
-        p_booking_id: id,
-        p_new_status: body.status,
-        p_staff_id: user.id,
-      })
+    const { data: rpcResult, error: rpcErr } = await supabase.rpc('advance_install_booking_status', {
+      p_booking_id: id,
+      p_new_status: body.status,
+      p_staff_id: user.id
+    })
 
     if (rpcErr) {
       console.error('advance_install_booking_status RPC failed:', rpcErr)
@@ -57,10 +58,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     delete otherFields.actual_date
 
     if (Object.keys(otherFields).length > 0) {
-      const { error: updateErr } = await supabase
-        .from('install_bookings')
-        .update(otherFields)
-        .eq('id', id)
+      const { error: updateErr } = await supabase.from('install_bookings').update(otherFields).eq('id', id)
       if (updateErr) {
         console.warn('Failed to update other install_bookings fields:', updateErr)
       }

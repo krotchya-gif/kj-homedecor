@@ -73,12 +73,12 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       String(item.qty),
       item.size ?? '—',
       fmt(item.price),
-      fmt((item.price ?? 0) * (item.qty ?? 1)),
+      fmt((item.price ?? 0) * (item.qty ?? 1))
     ]),
     foot: [
       ['', '', '', 'DP Dibayar:', fmt(order.dp_amount ?? 0)],
       ['', '', '', 'Sisa Bayar:', fmt((order.total_amount ?? 0) - (order.dp_amount ?? 0) - (order.lunas_amount ?? 0))],
-      ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)],
+      ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
     ],
     theme: 'striped',
     headStyles: { fillColor: [204, 112, 48], textColor: 255 },
@@ -89,8 +89,8 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       2: { cellWidth: 15 },
       3: { cellWidth: 35 },
       4: { cellWidth: 35, halign: 'right' },
-      5: { cellWidth: 35, halign: 'right' },
-    },
+      5: { cellWidth: 35, halign: 'right' }
+    }
   })
 
   // Footer note
@@ -174,7 +174,7 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
       String(item.qty),
       item.size ?? '—',
       item.meter_gorden ? `${(Number(item.meter_gorden) * 0.4).toFixed(2)} kg` : '—',
-      item.ready ? '✅ Siap' : '⏳ Proses',
+      item.ready ? '✅ Siap' : '⏳ Proses'
     ]),
     theme: 'striped',
     headStyles: { fillColor: [30, 64, 175], textColor: 255 },
@@ -184,8 +184,8 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
       2: { cellWidth: 15 },
       3: { cellWidth: 40 },
       4: { cellWidth: 30, halign: 'center' },
-      5: { cellWidth: 30, halign: 'center' },
-    },
+      5: { cellWidth: 30, halign: 'center' }
+    }
   })
 
   const finalY = (doc as any).lastAutoTable.finalY + 10

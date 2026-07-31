@@ -1,99 +1,78 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/middleware";
+import { type NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/utils/supabase/middleware'
 
-const DASHBOARD_ROUTES = [
-  "/admin",
-  "/gudang",
-  "/penjahit",
-  "/finance",
-  "/installer",
-  "/owner",
-];
+const DASHBOARD_ROUTES = ['/admin', '/gudang', '/penjahit', '/finance', '/installer', '/owner']
 
-const PUBLIC_ROUTES = ["/", "/login"];
+const PUBLIC_ROUTES = ['/', '/login']
 
 export async function middleware(request: NextRequest) {
-  const { supabase, supabaseResponse } = createClient(request);
+  const { supabase, supabaseResponse } = createClient(request)
 
   // Refresh session
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { user }
+  } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname;
+  const pathname = request.nextUrl.pathname
 
-  const isDashboardRoute = DASHBOARD_ROUTES.some((route) =>
-    pathname.startsWith(route)
-  );
+  const isDashboardRoute = DASHBOARD_ROUTES.some((route) => pathname.startsWith(route))
 
   // Not logged in → redirect to login
   if (!user && isDashboardRoute) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Logged in → don't show login page
-  if (user && pathname === "/login") {
-    const { data: staffData } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+  if (user && pathname === '/login') {
+    const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
 
-    const role = staffData?.role ?? "admin";
+    const role = staffData?.role ?? 'admin'
     const dashboards: Record<string, string> = {
-      admin: "/admin",
-      gudang: "/gudang",
-      penjahit: "/penjahit",
-      finance: "/finance",
-      installer: "/installer",
-      owner: "/owner",
-    };
+      admin: '/admin',
+      gudang: '/gudang',
+      penjahit: '/penjahit',
+      finance: '/finance',
+      installer: '/installer',
+      owner: '/owner'
+    }
 
-    return NextResponse.redirect(
-      new URL(dashboards[role] ?? "/admin", request.url)
-    );
+    return NextResponse.redirect(new URL(dashboards[role] ?? '/admin', request.url))
   }
 
   // Role-based access control for dashboard routes
   if (user && isDashboardRoute) {
-    const { data: staffData } = await supabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
 
-    const userRole = staffData?.role ?? "admin";
+    const userRole = staffData?.role ?? 'admin'
 
     // Map dashboard paths to allowed roles
     const ROLE_DASHBOARD_MAP: Record<string, string[]> = {
-      "/admin": ["admin", "owner"],
-      "/finance": ["finance", "owner"],
-      "/gudang": ["gudang", "owner"],
-      "/penjahit": ["penjahit", "owner"],
-      "/installer": ["installer", "owner"],
-      "/owner": ["owner"],
-    };
+      '/admin': ['admin', 'owner'],
+      '/finance': ['finance', 'owner'],
+      '/gudang': ['gudang', 'owner'],
+      '/penjahit': ['penjahit', 'owner'],
+      '/installer': ['installer', 'owner'],
+      '/owner': ['owner']
+    }
 
-    const allowedRoles = ROLE_DASHBOARD_MAP[pathname];
+    const allowedRoles = ROLE_DASHBOARD_MAP[pathname]
     if (allowedRoles && !allowedRoles.includes(userRole)) {
       // Redirect to user's own dashboard
       const dashboards: Record<string, string> = {
-        admin: "/admin",
-        gudang: "/gudang",
-        penjahit: "/penjahit",
-        finance: "/finance",
-        installer: "/installer",
-        owner: "/owner",
-      };
-      return NextResponse.redirect(
-        new URL(dashboards[userRole] ?? "/login", request.url)
-      );
+        admin: '/admin',
+        gudang: '/gudang',
+        penjahit: '/penjahit',
+        finance: '/finance',
+        installer: '/installer',
+        owner: '/owner'
+      }
+      return NextResponse.redirect(new URL(dashboards[userRole] ?? '/login', request.url))
     }
   }
 
-  return supabaseResponse;
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/).*)"],
-};
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/).*)']
+}

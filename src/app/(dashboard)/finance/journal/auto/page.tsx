@@ -21,7 +21,9 @@ export default function AutoJournalPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
     <div>

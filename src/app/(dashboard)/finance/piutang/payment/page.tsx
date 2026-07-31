@@ -24,7 +24,9 @@ export default function PaymentPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
     <div>

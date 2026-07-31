@@ -15,15 +15,14 @@ export default function LedgerPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
-      .from('accounts')
-      .select('*')
-      .order('code')
+    const { data } = await supabase.from('accounts').select('*').order('code')
     setAccounts(data ?? [])
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function downloadPDF() {
     alert('PDF download - implement dengan jspdf atau @react-pdf/renderer')
@@ -31,12 +30,36 @@ export default function LedgerPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Buku Besar</h1>
           <p className="page-subtitle">General ledger per akun</p>
         </div>
-        <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={downloadPDF}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Download size={16} /> Download PDF
         </button>
       </div>
@@ -60,12 +83,14 @@ export default function LedgerPage() {
               </tr>
             </thead>
             <tbody>
-              {accounts.map(a => (
+              {accounts.map((a) => (
                 <tr key={a.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{a.code}</td>
                   <td style={{ fontWeight: '500' }}>{a.name}</td>
                   <td style={{ textTransform: 'capitalize', color: '#6b7280' }}>{a.type}</td>
-                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(a.balance ?? 0)}</td>
+                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
+                    {formatRp(a.balance ?? 0)}
+                  </td>
                 </tr>
               ))}
             </tbody>

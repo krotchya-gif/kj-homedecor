@@ -9,17 +9,19 @@ export function exportToCSV<T extends Record<string, unknown>>(
   rows: T[],
   columns: { key: keyof T; label: string }[]
 ): void {
-  const headers = columns.map(c => c.label)
-  const csvRows = rows.map(row =>
-    columns.map(col => {
-      const val = row[col.key]
-      const str = val == null ? '' : String(val)
-      // Escape fields that contain comma, quote, or newline
-      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-        return `"${str.replace(/"/g, '""')}"`
-      }
-      return str
-    }).join(',')
+  const headers = columns.map((c) => c.label)
+  const csvRows = rows.map((row) =>
+    columns
+      .map((col) => {
+        const val = row[col.key]
+        const str = val == null ? '' : String(val)
+        // Escape fields that contain comma, quote, or newline
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`
+        }
+        return str
+      })
+      .join(',')
   )
   const csv = [headers.join(','), ...csvRows].join('\n')
   downloadCSV(csv, `export-${Date.now()}.csv`)
@@ -29,7 +31,7 @@ export function exportToCSV<T extends Record<string, unknown>>(
  * Generate a blank CSV template with column headers
  */
 export function generateCSVTemplate(columns: { key: string; label: string }[]): void {
-  const headers = columns.map(c => c.label)
+  const headers = columns.map((c) => c.label)
   const csv = headers.join(',')
   downloadCSV(csv, `template-${Date.now()}.csv`)
 }
@@ -96,8 +98,8 @@ export function autoDetectMapping(
   const mapping = new Map<string, number | null>()
 
   for (const col of dbColumns) {
-    const allNames = [col.label, ...(col.aliases ?? [])].map(n => n.toLowerCase().trim())
-    const idx = csvHeaders.findIndex(h => allNames.includes(h.toLowerCase().trim()))
+    const allNames = [col.label, ...(col.aliases ?? [])].map((n) => n.toLowerCase().trim())
+    const idx = csvHeaders.findIndex((h) => allNames.includes(h.toLowerCase().trim()))
     mapping.set(col.key, idx >= 0 ? idx : null)
   }
 

@@ -24,7 +24,9 @@ export default function COGSChronologyPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function downloadPDF() {
     alert('PDF download - implement dengan jspdf atau @react-pdf/renderer')
@@ -32,12 +34,36 @@ export default function COGSChronologyPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Kronologi HPP</h1>
           <p className="page-subtitle">Harga pokok produksi per order</p>
         </div>
-        <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={downloadPDF}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Download size={16} /> Download PDF
         </button>
       </div>
@@ -60,11 +86,13 @@ export default function COGSChronologyPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
+              {orders.map((o) => (
                 <tr key={o.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{o.order_number ?? o.id.slice(0, 8)}</td>
                   <td style={{ color: '#6b7280' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
-                  <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>{formatRp(o.total_amount ?? 0)}</td>
+                  <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>
+                    {formatRp(o.total_amount ?? 0)}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -12,15 +12,25 @@ interface BookingCalendarProps {
 
 const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 const MONTHS = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember'
 ]
 
 export default function BookingCalendar({
   selectedDate,
   onDateSelect,
   occupiedDates,
-  occupiedSlots,
+  occupiedSlots
 }: BookingCalendarProps) {
   const today = new Date()
   const [currentMonth, setCurrentMonth] = useState(today.getMonth())
@@ -29,18 +39,18 @@ export default function BookingCalendar({
   function prevMonth() {
     if (currentMonth === 0) {
       setCurrentMonth(11)
-      setCurrentYear(y => y - 1)
+      setCurrentYear((y) => y - 1)
     } else {
-      setCurrentMonth(m => m - 1)
+      setCurrentMonth((m) => m - 1)
     }
   }
 
   function nextMonth() {
     if (currentMonth === 11) {
       setCurrentMonth(0)
-      setCurrentYear(y => y + 1)
+      setCurrentYear((y) => y + 1)
     } else {
-      setCurrentMonth(m => m + 1)
+      setCurrentMonth((m) => m + 1)
     }
   }
 
@@ -89,8 +99,10 @@ export default function BookingCalendar({
       </div>
 
       <div className="cal-grid">
-        {DAYS.map(d => (
-          <div key={d} className="cal-day-header">{d}</div>
+        {DAYS.map((d) => (
+          <div key={d} className="cal-day-header">
+            {d}
+          </div>
         ))}
         {cells.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} className="cal-cell cal-cell-empty" />
@@ -111,23 +123,29 @@ export default function BookingCalendar({
                 isToday ? 'cal-today' : '',
                 isSelected ? 'cal-selected' : '',
                 isPast ? 'cal-past' : '',
-                level !== 'none' ? `cal-occupied-${level}` : '',
-              ].filter(Boolean).join(' ')}
+                level !== 'none' ? `cal-occupied-${level}` : ''
+              ]
+                .filter(Boolean)
+                .join(' ')}
               title={level !== 'none' ? `Terbooking ${occupiedSlots?.size || ''} slot` : 'Tersedia'}
             >
               {day}
-              {level !== 'none' && (
-                <span className={`cal-dot cal-dot-${level}`} />
-              )}
+              {level !== 'none' && <span className={`cal-dot cal-dot-${level}`} />}
             </button>
           )
         })}
       </div>
 
       <div className="cal-legend">
-        <span className="cal-legend-item"><span className="cal-dot cal-dot-low" /> Sebagian</span>
-        <span className="cal-legend-item"><span className="cal-dot cal-dot-medium" /> Sibuk</span>
-        <span className="cal-legend-item"><span className="cal-dot cal-dot-high" /> Penuh</span>
+        <span className="cal-legend-item">
+          <span className="cal-dot cal-dot-low" /> Sebagian
+        </span>
+        <span className="cal-legend-item">
+          <span className="cal-dot cal-dot-medium" /> Sibuk
+        </span>
+        <span className="cal-legend-item">
+          <span className="cal-dot cal-dot-high" /> Penuh
+        </span>
       </div>
     </div>
   )

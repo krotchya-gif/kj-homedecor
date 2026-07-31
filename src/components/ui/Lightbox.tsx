@@ -1,8 +1,8 @@
-"use client"
+'use client'
 
-import * as React from "react"
-import { XIcon, ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import * as React from 'react'
+import { XIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface LightboxProps {
   photos: string[]
@@ -19,31 +19,28 @@ export function Lightbox({ photos, currentIndex, onClose, onNext, onPrev }: Ligh
 
   const handleKeyDown = React.useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-      if (e.key === "ArrowRight" && onNext) onNext()
-      if (e.key === "ArrowLeft" && onPrev) onPrev()
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight' && onNext) onNext()
+      if (e.key === 'ArrowLeft' && onPrev) onPrev()
     },
     [onClose, onNext, onPrev]
   )
 
   React.useEffect(() => {
-    document.addEventListener("keydown", handleKeyDown)
-    return () => document.removeEventListener("keydown", handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
 
   // Prevent body scroll
   React.useEffect(() => {
-    document.body.style.overflow = "hidden"
+    document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = ""
+      document.body.style.overflow = ''
     }
   }, [])
 
   return (
-    <div
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90"
-      onClick={handleBackdropClick}
-    >
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90" onClick={handleBackdropClick}>
       {/* Close button */}
       <Button
         variant="ghost"
@@ -117,7 +114,7 @@ export function LightboxGallery({ photos, onPhotoClick, columns = 4, thumbSize =
   const sizeClasses = {
     sm: 'w-12 h-12',
     md: 'w-16 h-16',
-    lg: 'w-20 h-20',
+    lg: 'w-20 h-20'
   }
 
   return (
@@ -128,11 +125,7 @@ export function LightboxGallery({ photos, onPhotoClick, columns = 4, thumbSize =
           className={`relative ${sizeClasses[thumbSize]} overflow-hidden rounded border bg-muted hover:opacity-80 transition-opacity flex-shrink-0`}
           onClick={() => onPhotoClick?.(i)}
         >
-          <img
-            src={photo}
-            alt={`Photo ${i + 1}`}
-            className="size-full object-cover"
-          />
+          <img src={photo} alt={`Photo ${i + 1}`} className="size-full object-cover" />
           {i === 3 && extraCount > 0 && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white font-medium text-xs">
               +{extraCount}

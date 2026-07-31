@@ -27,7 +27,7 @@ import {
   CreditCard,
   ArrowLeftRight,
   LandPlot,
-  FileText,
+  FileText
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -38,7 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
+  DialogFooter
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
@@ -61,7 +61,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={18} /> },
     { label: 'Laundry', href: '/admin/laundry', icon: <WashingMachine size={18} /> },
     { label: 'Landing', href: '/admin/landing-settings', icon: <Settings size={18} /> },
-    { label: 'SEO', href: '/admin/seo', icon: <Search size={18} /> },
+    { label: 'SEO', href: '/admin/seo', icon: <Search size={18} /> }
   ],
   gudang: [
     { label: 'Dashboard', href: '/gudang', icon: <LayoutDashboard size={18} /> },
@@ -70,13 +70,13 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'QC Per-Item & Retur', href: '/gudang/qc', icon: <Wrench size={18} /> },
     { label: 'Posisi Stok', href: '/gudang/stock', icon: <Package size={18} /> },
     { label: 'Alerts', href: '/gudang/alerts', icon: <Calendar size={18} /> },
-    { label: 'Lembur', href: '/gudang/lembur', icon: <Calendar size={18} /> },
+    { label: 'Lembur', href: '/gudang/lembur', icon: <Calendar size={18} /> }
   ],
   penjahit: [
     { label: 'Dashboard', href: '/penjahit', icon: <LayoutDashboard size={18} /> },
     { label: 'Job Queue', href: '/penjahit/jobs', icon: <Scissors size={18} /> },
     { label: 'Rekap', href: '/penjahit/reports', icon: <BarChart3 size={18} /> },
-    { label: 'Riwayat', href: '/penjahit/history', icon: <BarChart3 size={18} /> },
+    { label: 'Riwayat', href: '/penjahit/history', icon: <BarChart3 size={18} /> }
   ],
   finance: [
     { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={18} /> },
@@ -88,11 +88,11 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Jurnal', href: '/finance/journal', icon: <FileText size={18} /> },
     { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
     { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> },
-    { label: 'Laporan Keuangan', href: '/finance/laporan', icon: <BarChart3 size={18} /> },
+    { label: 'Laporan Keuangan', href: '/finance/laporan', icon: <BarChart3 size={18} /> }
   ],
   installer: [
     { label: 'Jadwal', href: '/installer', icon: <Calendar size={18} /> },
-    { label: 'Laporan', href: '/installer/reports', icon: <BarChart3 size={18} /> },
+    { label: 'Laporan', href: '/installer/reports', icon: <BarChart3 size={18} /> }
   ],
   owner: [
     { label: 'Overview', href: '/owner', icon: <Eye size={18} /> },
@@ -106,8 +106,8 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Staff', href: '/owner/staff', icon: <Users size={18} /> },
     { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingCart size={18} /> },
     { label: 'Top Produk', href: '/owner/products', icon: <Package size={18} /> },
-    { label: 'Laporan Keuangan', href: '/owner/laporan', icon: <BarChart3 size={18} /> },
-  ],
+    { label: 'Laporan Keuangan', href: '/owner/laporan', icon: <BarChart3 size={18} /> }
+  ]
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -116,7 +116,7 @@ const ROLE_LABELS: Record<string, string> = {
   penjahit: 'Penjahit',
   finance: 'Finance',
   installer: 'Installer',
-  owner: 'Owner',
+  owner: 'Owner'
 }
 
 interface DashboardTopNavProps {
@@ -156,11 +156,7 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
     <>
       <nav className="topnav">
         {/* Mobile menu button */}
-        <button
-          className="hamburger-btn"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
+        <button className="hamburger-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle menu">
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
@@ -171,21 +167,14 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
 
         {/* Right side: desktop toggle button */}
         <div className="topnav-right">
-          <button
-            onClick={onMenuClick}
-            className="desktop-sidebar-btn"
-            title="Buka menu"
-          >
+          <button onClick={onMenuClick} className="desktop-sidebar-btn" title="Buka menu">
             <Menu size={18} />
           </button>
         </div>
 
         {/* Close user dropdown on outside click */}
         {mobileMenuOpen && (
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 99 }}
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setMobileMenuOpen(false)} />
         )}
       </nav>
 
@@ -213,10 +202,7 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
             </div>
             <div className="mobile-nav-items">
               {navItems.map((item) => {
-                const isActive =
-                  item.href === `/${role}`
-                    ? pathname === item.href
-                    : pathname.startsWith(item.href)
+                const isActive = item.href === `/${role}` ? pathname === item.href : pathname.startsWith(item.href)
                 return (
                   <Link
                     key={item.href}
@@ -234,7 +220,10 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
               <ThemeToggle />
               <button
                 className="mobile-logout-btn"
-                onClick={() => { setMobileMenuOpen(false); setLogoutOpen(true) }}
+                onClick={() => {
+                  setMobileMenuOpen(false)
+                  setLogoutOpen(true)
+                }}
               >
                 <LogOut size={16} />
                 <span>Keluar</span>
@@ -249,12 +238,12 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Konfirmasi Keluar</DialogTitle>
-            <DialogDescription>
-              Apakah Anda yakin ingin keluar dari dashboard?
-            </DialogDescription>
+            <DialogDescription>Apakah Anda yakin ingin keluar dari dashboard?</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLogoutOpen(false)}>Batal</Button>
+            <Button variant="outline" onClick={() => setLogoutOpen(false)}>
+              Batal
+            </Button>
             <Button onClick={handleLogout}>Ya, Keluar</Button>
           </DialogFooter>
         </DialogContent>

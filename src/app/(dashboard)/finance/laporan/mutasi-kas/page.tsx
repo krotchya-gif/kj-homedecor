@@ -21,15 +21,14 @@ export default function MutasiKasPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
-      .from('cash_accounts')
-      .select('*, account:accounts(code, name)')
-      .order('bank_name')
+    const { data } = await supabase.from('cash_accounts').select('*, account:accounts(code, name)').order('bank_name')
     setCashAccounts(data ?? [])
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   const totalBalance = cashAccounts.reduce((s, c) => s + (c.balance ?? 0), 0)
 
@@ -47,11 +46,11 @@ export default function MutasiKasPage() {
       startY: 40,
       head: [['Kode', 'Bank', 'No. Rekening', 'Saldo']],
       headStyles: { fillColor: [20, 184, 166] },
-      body: cashAccounts.map(c => [
+      body: cashAccounts.map((c) => [
         c.account?.code ?? '—',
         c.bank_name ?? '—',
         c.account_number ?? '—',
-        formatRp(c.balance ?? 0),
+        formatRp(c.balance ?? 0)
       ]),
       foot: [['', '', 'TOTAL', formatRp(totalBalance)]],
       footStyles: { fillColor: [240, 253, 250], textColor: [19, 78, 74], fontStyle: 'bold' },
@@ -59,8 +58,8 @@ export default function MutasiKasPage() {
         0: { cellWidth: 25, fontStyle: 'bold' },
         1: { cellWidth: 60 },
         2: { cellWidth: 45 },
-        3: { cellWidth: 50, halign: 'right' },
-      },
+        3: { cellWidth: 50, halign: 'right' }
+      }
     })
 
     doc.save(`mutasi-kas-${startDate}-${endDate}.pdf`)
@@ -69,7 +68,16 @@ export default function MutasiKasPage() {
   return (
     <div>
       <BackButton href="/finance/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Mutasi Kas & Bank</h1>
           <p className="page-subtitle">Perubahan saldo kas dan bank</p>
@@ -77,7 +85,15 @@ export default function MutasiKasPage() {
         <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          padding: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -102,16 +118,20 @@ export default function MutasiKasPage() {
               </tr>
             </thead>
             <tbody>
-              {cashAccounts.map(c => (
+              {cashAccounts.map((c) => (
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{c.account?.code ?? '—'}</td>
                   <td style={{ fontWeight: '500' }}>{c.bank_name ?? '—'}</td>
                   <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>{c.account_number ?? '—'}</td>
-                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(c.balance ?? 0)}</td>
+                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
+                    {formatRp(c.balance ?? 0)}
+                  </td>
                 </tr>
               ))}
               <tr style={{ borderTop: '2px solid #e5e7eb' }}>
-                <td colSpan={3} style={{ fontWeight: '800' }}>TOTAL</td>
+                <td colSpan={3} style={{ fontWeight: '800' }}>
+                  TOTAL
+                </td>
                 <td style={{ fontWeight: '800', textAlign: 'right', color: '#16a34a' }}>{formatRp(totalBalance)}</td>
               </tr>
             </tbody>

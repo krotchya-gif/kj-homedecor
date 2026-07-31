@@ -23,7 +23,7 @@ interface Asset {
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   active: { bg: '#d1fae5', text: '#065f46' },
   disposed: { bg: '#fef3c7', text: '#92400e' },
-  sold: { bg: '#dbeafe', text: '#1e40af' },
+  sold: { bg: '#dbeafe', text: '#1e40af' }
 }
 
 export default function AssetsPage() {
@@ -34,8 +34,14 @@ export default function AssetsPage() {
   const [editItem, setEditItem] = useState<Asset | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    code: '', name: '', category: '', location: '', purchase_date: '', purchase_value: '',
-    depreciation_rate: '', current_value: '',
+    code: '',
+    name: '',
+    category: '',
+    location: '',
+    purchase_date: '',
+    purchase_value: '',
+    depreciation_rate: '',
+    current_value: ''
   })
 
   const supabase = createClient()
@@ -47,26 +53,43 @@ export default function AssetsPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-  const filtered = assets.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.code?.toLowerCase().includes(search.toLowerCase()) ||
-    a.category?.toLowerCase().includes(search.toLowerCase())
+  const filtered = assets.filter(
+    (a) =>
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      a.code?.toLowerCase().includes(search.toLowerCase()) ||
+      a.category?.toLowerCase().includes(search.toLowerCase())
   )
 
   function openAdd() {
     setEditItem(null)
-    setForm({ code: '', name: '', category: '', location: '', purchase_date: '', purchase_value: '', depreciation_rate: '', current_value: '' })
+    setForm({
+      code: '',
+      name: '',
+      category: '',
+      location: '',
+      purchase_date: '',
+      purchase_value: '',
+      depreciation_rate: '',
+      current_value: ''
+    })
     setShowForm(true)
   }
 
   function openEdit(a: Asset) {
     setEditItem(a)
     setForm({
-      code: a.code ?? '', name: a.name, category: a.category ?? '', location: a.location ?? '',
-      purchase_date: a.purchase_date ?? '', purchase_value: String(a.purchase_value ?? 0),
-      depreciation_rate: String(a.depreciation_rate ?? 0), current_value: String(a.current_value ?? 0),
+      code: a.code ?? '',
+      name: a.name,
+      category: a.category ?? '',
+      location: a.location ?? '',
+      purchase_date: a.purchase_date ?? '',
+      purchase_value: String(a.purchase_value ?? 0),
+      depreciation_rate: String(a.depreciation_rate ?? 0),
+      current_value: String(a.current_value ?? 0)
     })
     setShowForm(true)
   }
@@ -75,11 +98,14 @@ export default function AssetsPage() {
     e.preventDefault()
     setSaving(true)
     const payload = {
-      code: form.code || null, name: form.name, category: form.category || null,
-      location: form.location || null, purchase_date: form.purchase_date || null,
+      code: form.code || null,
+      name: form.name,
+      category: form.category || null,
+      location: form.location || null,
+      purchase_date: form.purchase_date || null,
       purchase_value: Number(form.purchase_value) || 0,
       depreciation_rate: Number(form.depreciation_rate) || 0,
-      current_value: Number(form.current_value) || 0,
+      current_value: Number(form.current_value) || 0
     }
     if (editItem) {
       await supabase.from('assets').update(payload).eq('id', editItem.id)
@@ -106,11 +132,47 @@ export default function AssetsPage() {
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-          <input type="text" placeholder="Cari aset..." value={search} onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#9ca3af'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Cari aset..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
+          />
         </div>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={openAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Plus size={16} /> Tambah Aset
         </button>
       </div>
@@ -145,16 +207,50 @@ export default function AssetsPage() {
                     <td style={{ fontWeight: '500' }}>{a.name}</td>
                     <td style={{ color: '#6b7280' }}>{a.category ?? '—'}</td>
                     <td style={{ color: '#6b7280' }}>{a.location ?? '—'}</td>
-                    <td style={{ fontWeight: '600', color: '#cc7030', textAlign: 'right' }}>{formatRp(a.current_value ?? 0)}</td>
+                    <td style={{ fontWeight: '600', color: '#cc7030', textAlign: 'right' }}>
+                      {formatRp(a.current_value ?? 0)}
+                    </td>
                     <td>
-                      <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', background: sc.bg, color: sc.text, textTransform: 'capitalize' }}>
+                      <span
+                        style={{
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          background: sc.bg,
+                          color: sc.text,
+                          textTransform: 'capitalize'
+                        }}
+                      >
                         {a.status}
                       </span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={() => openEdit(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}><Pencil size={15} /></button>
-                        <button onClick={() => handleDelete(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.25rem' }}><Trash2 size={15} /></button>
+                        <button
+                          onClick={() => openEdit(a)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#6b7280',
+                            padding: '0.25rem'
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(a.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#dc2626',
+                            padding: '0.25rem'
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -166,60 +262,286 @@ export default function AssetsPage() {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 520, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>{editItem ? 'Edit Aset' : 'Tambah Aset'}</h2>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowForm(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '0.875rem',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 520,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+              {editItem ? 'Edit Aset' : 'Tambah Aset'}
+            </h2>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Kode Aset</label>
-                  <input type="text" value={form.code} onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Kode Aset
+                  </label>
+                  <input
+                    type="text"
+                    value={form.code}
+                    onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Kategori</label>
-                  <input type="text" placeholder="Contoh: Kendaraan, Elektronik" value={form.category} onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Kategori
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Kendaraan, Elektronik"
+                    value={form.category}
+                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Aset *</label>
-                <input required type="text" placeholder="Nama aset" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Nama Aset *
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Nama aset"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Lokasi</label>
-                <input type="text" placeholder="Lokasi aset" value={form.location} onChange={(e) => setForm(f => ({ ...f, location: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Lokasi
+                </label>
+                <input
+                  type="text"
+                  placeholder="Lokasi aset"
+                  value={form.location}
+                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Tgl Pembelian</label>
-                  <input type="date" value={form.purchase_date} onChange={(e) => setForm(f => ({ ...f, purchase_date: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Tgl Pembelian
+                  </label>
+                  <input
+                    type="date"
+                    value={form.purchase_date}
+                    onChange={(e) => setForm((f) => ({ ...f, purchase_date: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nilai Perolehan</label>
-                  <input type="number" placeholder="0" value={form.purchase_value} onChange={(e) => setForm(f => ({ ...f, purchase_value: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Nilai Perolehan
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={form.purchase_value}
+                    onChange={(e) => setForm((f) => ({ ...f, purchase_value: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Rate Penyusutan (%)</label>
-                  <input type="number" placeholder="0" value={form.depreciation_rate} onChange={(e) => setForm(f => ({ ...f, depreciation_rate: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Rate Penyusutan (%)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={form.depreciation_rate}
+                    onChange={(e) => setForm((f) => ({ ...f, depreciation_rate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nilai Buku</label>
-                  <input type="number" placeholder="0" value={form.current_value} onChange={(e) => setForm(f => ({ ...f, current_value: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Nilai Buku
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={form.current_value}
+                    onChange={(e) => setForm((f) => ({ ...f, current_value: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: '#cc7030',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
                   {saving ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>

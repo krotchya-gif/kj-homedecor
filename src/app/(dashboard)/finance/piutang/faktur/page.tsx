@@ -27,7 +27,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e' },
   partial: { bg: '#dbeafe', text: '#1e40af' },
   paid: { bg: '#d1fae5', text: '#065f46' },
-  cancelled: { bg: '#f3f4f6', text: '#6b7280' },
+  cancelled: { bg: '#f3f4f6', text: '#6b7280' }
 }
 
 export default function FakturPage() {
@@ -39,7 +39,13 @@ export default function FakturPage() {
   const [editItem, setEditItem] = useState<Piutang | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    customer_id: '', channel: '', invoice_number: '', invoice_date: '', amount: '', order_id: '', notes: '',
+    customer_id: '',
+    channel: '',
+    invoice_number: '',
+    invoice_date: '',
+    amount: '',
+    order_id: '',
+    notes: ''
   })
 
   const supabase = createClient()
@@ -56,11 +62,14 @@ export default function FakturPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
-  const filtered = piutang.filter(p =>
-    p.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
-    p.customer?.name?.toLowerCase().includes(search.toLowerCase())
+  const filtered = piutang.filter(
+    (p) =>
+      p.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
+      p.customer?.name?.toLowerCase().includes(search.toLowerCase())
   )
 
   function openAdd() {
@@ -78,7 +87,7 @@ export default function FakturPage() {
       invoice_date: p.invoice_date ?? '',
       amount: String(p.amount ?? 0),
       order_id: p.order_id ?? '',
-      notes: p.notes ?? '',
+      notes: p.notes ?? ''
     })
     setShowForm(true)
   }
@@ -93,7 +102,7 @@ export default function FakturPage() {
       invoice_date: form.invoice_date || null,
       amount: Number(form.amount) || 0,
       order_id: form.order_id || null,
-      notes: form.notes || null,
+      notes: form.notes || null
     }
     if (editItem) {
       await supabase.from('piutang').update(payload).eq('id', editItem.id)
@@ -120,11 +129,47 @@ export default function FakturPage() {
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-          <input type="text" placeholder="Cari invoice atau customer..." value={search} onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#9ca3af'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Cari invoice atau customer..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
+          />
         </div>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={openAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Plus size={16} /> Tambah Faktur
         </button>
       </div>
@@ -166,14 +211,46 @@ export default function FakturPage() {
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{formatRp(p.return_amount ?? 0)}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030', textAlign: 'right' }}>{formatRp(sisa)}</td>
                     <td>
-                      <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', background: sc.bg, color: sc.text, textTransform: 'capitalize' }}>
+                      <span
+                        style={{
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          background: sc.bg,
+                          color: sc.text,
+                          textTransform: 'capitalize'
+                        }}
+                      >
                         {p.status}
                       </span>
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={() => openEdit(p)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}><Pencil size={15} /></button>
-                        <button onClick={() => handleDelete(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.25rem' }}><Trash2 size={15} /></button>
+                        <button
+                          onClick={() => openEdit(p)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#6b7280',
+                            padding: '0.25rem'
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#dc2626',
+                            padding: '0.25rem'
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -185,24 +262,95 @@ export default function FakturPage() {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 520, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>{editItem ? 'Edit Faktur' : 'Tambah Faktur'}</h2>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowForm(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '0.875rem',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 520,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+              {editItem ? 'Edit Faktur' : 'Tambah Faktur'}
+            </h2>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Customer *</label>
-                <select required value={form.customer_id} onChange={(e) => setForm(f => ({ ...f, customer_id: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Customer *
+                </label>
+                <select
+                  required
+                  value={form.customer_id}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_id: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    background: '#fff'
+                  }}
+                >
                   <option value="">— Pilih Customer —</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Channel</label>
-                  <select value={form.channel} onChange={(e) => setForm(f => ({ ...f, channel: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Channel
+                  </label>
+                  <select
+                    value={form.channel}
+                    onChange={(e) => setForm((f) => ({ ...f, channel: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      background: '#fff'
+                    }}
+                  >
                     <option value="">— Pilih —</option>
                     <option value="offline">Offline</option>
                     <option value="shopee">Shopee</option>
@@ -212,37 +360,172 @@ export default function FakturPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>No. Invoice</label>
-                  <input type="text" value={form.invoice_number} onChange={(e) => setForm(f => ({ ...f, invoice_number: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    No. Invoice
+                  </label>
+                  <input
+                    type="text"
+                    value={form.invoice_number}
+                    onChange={(e) => setForm((f) => ({ ...f, invoice_number: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Tanggal</label>
-                  <input type="date" value={form.invoice_date} onChange={(e) => setForm(f => ({ ...f, invoice_date: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Tanggal
+                  </label>
+                  <input
+                    type="date"
+                    value={form.invoice_date}
+                    onChange={(e) => setForm((f) => ({ ...f, invoice_date: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Jumlah (Rp) *</label>
-                  <input type="number" required placeholder="0" value={form.amount} onChange={(e) => setForm(f => ({ ...f, amount: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Jumlah (Rp) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="0"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Order ID (opsional)</label>
-                <input type="text" value={form.order_id} onChange={(e) => setForm(f => ({ ...f, order_id: e.target.value }))}
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Order ID (opsional)
+                </label>
+                <input
+                  type="text"
+                  value={form.order_id}
+                  onChange={(e) => setForm((f) => ({ ...f, order_id: e.target.value }))}
                   placeholder="Link ke order jika ada"
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Catatan</label>
-                <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Catatan
+                </label>
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+                />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: '#cc7030',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
                   {saving ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>

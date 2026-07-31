@@ -18,7 +18,7 @@ const IMPORT_COLUMNS = [
   { key: 'stock_gudang', label: 'Stok Gudang' },
   { key: 'stock_toko', label: 'Stok Toko' },
   { key: 'min_stock_level', label: 'Min Stok', aliases: ['minimum'] },
-  { key: 'supplier_name', label: 'Supplier', aliases: ['nama_supplier', 'vendor'] },
+  { key: 'supplier_name', label: 'Supplier', aliases: ['nama_supplier', 'vendor'] }
 ]
 
 const EXPORT_COLUMNS = [
@@ -27,7 +27,7 @@ const EXPORT_COLUMNS = [
   { key: 'cost_per_unit', label: 'Harga' },
   { key: 'stock_gudang', label: 'Stok Gudang' },
   { key: 'stock_toko', label: 'Stok Toko' },
-  { key: 'min_stock_level', label: 'Min Stok' },
+  { key: 'min_stock_level', label: 'Min Stok' }
 ]
 
 const formatRp = (n: number) =>
@@ -44,7 +44,12 @@ export default function MaterialsPage() {
   const [importModalOpen, setImportModalOpen] = useState(false)
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([])
   const [form, setForm] = useState({
-    name: '', unit: 'meter', cost_per_unit: '', stock_gudang: '', stock_toko: '', min_stock_level: '',
+    name: '',
+    unit: 'meter',
+    cost_per_unit: '',
+    stock_gudang: '',
+    stock_toko: '',
+    min_stock_level: ''
   })
 
   const supabase = createClient()
@@ -55,8 +60,12 @@ export default function MaterialsPage() {
     const to = from + PAGE_SIZE - 1
 
     const [dataResult, countResult] = await Promise.all([
-      supabase.from('materials').select('*, supplier:suppliers(name)', { count: 'exact' }).order('name').range(from, to),
-      supabase.from('materials').select('id', { count: 'exact', head: true }),
+      supabase
+        .from('materials')
+        .select('*, supplier:suppliers(name)', { count: 'exact' })
+        .order('name')
+        .range(from, to),
+      supabase.from('materials').select('id', { count: 'exact', head: true })
     ])
 
     setMaterials((dataResult.data as Material[]) ?? [])
@@ -66,12 +75,15 @@ export default function MaterialsPage() {
 
   useEffect(() => {
     fetchMaterials()
-    supabase.from('suppliers').select('id, name').then(({ data }) => setSuppliers(data ?? []))
+    supabase
+      .from('suppliers')
+      .select('id, name')
+      .then(({ data }) => setSuppliers(data ?? []))
   }, [currentPage])
 
   function getSupplierId(name: string): string | null {
     if (!name) return null
-    const s = suppliers.find(s => s.name.toLowerCase() === name.toLowerCase())
+    const s = suppliers.find((s) => s.name.toLowerCase() === name.toLowerCase())
     return s?.id ?? null
   }
 
@@ -108,7 +120,7 @@ export default function MaterialsPage() {
           stock_gudang: Number(row.stock_gudang) || 0,
           stock_toko: Number(row.stock_toko) || 0,
           min_stock_level: Number(row.min_stock_level) || 0,
-          supplier_id: supplierId,
+          supplier_id: supplierId
         })
         if (error) errors.push(`Row ${i + 1}: ${error.message}`)
         else inserted++
@@ -129,7 +141,7 @@ export default function MaterialsPage() {
       cost_per_unit: Number(form.cost_per_unit),
       stock_gudang: Number(form.stock_gudang) || 0,
       stock_toko: Number(form.stock_toko) || 0,
-      min_stock_level: Number(form.min_stock_level) || 0,
+      min_stock_level: Number(form.min_stock_level) || 0
     })
     setSaving(false)
     setShowForm(false)
@@ -146,26 +158,110 @@ export default function MaterialsPage() {
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-          <input type="text" placeholder="Cari material..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#9ca3af'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Cari material..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
+          />
         </div>
-        <button onClick={handleDownloadTemplate} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+        <button
+          onClick={handleDownloadTemplate}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: '#fff',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer'
+          }}
+        >
           <Download size={14} /> Template
         </button>
-        <button onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+        <button
+          onClick={handleExport}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: '#fff',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer'
+          }}
+        >
           <Download size={14} /> Export
         </button>
-        <button onClick={() => setImportModalOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer' }}>
+        <button
+          onClick={() => setImportModalOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1rem',
+            background: '#fff',
+            color: '#374151',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            cursor: 'pointer'
+          }}
+        >
           <Upload size={14} /> Import
         </button>
-        <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={() => setShowForm(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: 600,
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Plus size={16} /> Tambah
         </button>
       </div>
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '1.5rem' }}><TableSkeleton rows={8} cols={6} /></div>
+          <div style={{ padding: '1.5rem' }}>
+            <TableSkeleton rows={8} cols={6} />
+          </div>
         ) : filtered.length === 0 ? (
           <EmptyState icon="📦" title="Belum ada material" description="Tambah material baru dengan tombol di atas." />
         ) : (
@@ -194,11 +290,34 @@ export default function MaterialsPage() {
                     <td>{m.min_stock_level}</td>
                     <td>
                       {isLow ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', background: '#fef2f2', color: '#dc2626', padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.2rem',
+                            background: '#fef2f2',
+                            color: '#dc2626',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                            fontWeight: '600'
+                          }}
+                        >
                           <AlertTriangle size={10} /> Stok Rendah
                         </span>
                       ) : (
-                        <span style={{ background: '#f0fdf4', color: '#166534', padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>OK</span>
+                        <span
+                          style={{
+                            background: '#f0fdf4',
+                            color: '#166534',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          OK
+                        </span>
                       )}
                     </td>
                   </tr>
@@ -210,22 +329,53 @@ export default function MaterialsPage() {
       </div>
 
       {!loading && filtered.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1rem', padding: '0.75rem 0', borderTop: '1px solid #e5e7eb' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '1rem',
+            padding: '0.75rem 0',
+            borderTop: '1px solid #e5e7eb'
+          }}
+        >
           <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
             Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} material
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage === 1 ? '#9ca3af' : '#374151' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '0.4rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                background: '#fff',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                fontSize: '0.8rem',
+                color: currentPage === 1 ? '#9ca3af' : '#374151'
+              }}
             >
               <ChevronLeft size={14} /> Sebelumnya
             </button>
             <button
-              onClick={() => setCurrentPage(p => p + 1)}
+              onClick={() => setCurrentPage((p) => p + 1)}
               disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', background: '#fff', cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer', fontSize: '0.8rem', color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                padding: '0.4rem 0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.375rem',
+                background: '#fff',
+                cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
+                fontSize: '0.8rem',
+                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151'
+              }}
             >
               Selanjutnya <ChevronRight size={14} />
             </button>
@@ -234,18 +384,87 @@ export default function MaterialsPage() {
       )}
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }} onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 480, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowForm(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '0.875rem',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 480,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Tambah Material</h2>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Material *</label>
-                <input required type="text" placeholder="Kain Atlas 59-1" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Nama Material *
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Kain Atlas 59-1"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Satuan</label>
-                  <select value={form.unit} onChange={(e) => setForm(f => ({ ...f, unit: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Satuan
+                  </label>
+                  <select
+                    value={form.unit}
+                    onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      background: '#fff'
+                    }}
+                  >
                     <option value="meter">Meter</option>
                     <option value="pcs">Pcs</option>
                     <option value="set">Set</option>
@@ -254,25 +473,100 @@ export default function MaterialsPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Harga/Satuan (Rp)</label>
-                  <input type="number" placeholder="0" value={form.cost_per_unit} onChange={(e) => setForm(f => ({ ...f, cost_per_unit: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Harga/Satuan (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={form.cost_per_unit}
+                    onChange={(e) => setForm((f) => ({ ...f, cost_per_unit: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                 {[
                   { label: 'Stok Gudang', id: 'stock_gudang' },
                   { label: 'Stok Toko', id: 'stock_toko' },
-                  { label: 'Min. Stok', id: 'min_stock_level' },
+                  { label: 'Min. Stok', id: 'min_stock_level' }
                 ].map((f) => (
                   <div key={f.id}>
-                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>{f.label}</label>
-                    <input type="number" placeholder="0" value={(form as Record<string, string>)[f.id]} onChange={(e) => setForm(prev => ({ ...prev, [f.id]: e.target.value }))} style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        color: '#374151',
+                        marginBottom: '0.3rem'
+                      }}
+                    >
+                      {f.label}
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={(form as Record<string, string>)[f.id]}
+                      onChange={(e) => setForm((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        outline: 'none'
+                      }}
+                    />
                   </div>
                 ))}
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>{saving ? 'Menyimpan...' : 'Simpan'}</button>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: '#cc7030',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  {saving ? 'Menyimpan...' : 'Simpan'}
+                </button>
               </div>
             </form>
           </div>

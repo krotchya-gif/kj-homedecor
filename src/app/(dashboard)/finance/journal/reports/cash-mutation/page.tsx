@@ -15,15 +15,14 @@ export default function CashMutationPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
-      .from('cash_accounts')
-      .select('*, account:accounts(code, name)')
-      .order('bank_name')
+    const { data } = await supabase.from('cash_accounts').select('*, account:accounts(code, name)').order('bank_name')
     setCashAccounts(data ?? [])
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function downloadPDF() {
     alert('PDF download - implement dengan jspdf atau @react-pdf/renderer')
@@ -31,12 +30,36 @@ export default function CashMutationPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Mutasi Kas & Bank</h1>
           <p className="page-subtitle">Perubahan saldo kas dan bank</p>
         </div>
-        <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={downloadPDF}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Download size={16} /> Download PDF
         </button>
       </div>
@@ -60,12 +83,14 @@ export default function CashMutationPage() {
               </tr>
             </thead>
             <tbody>
-              {cashAccounts.map(c => (
+              {cashAccounts.map((c) => (
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{c.account?.code ?? '—'}</td>
                   <td style={{ fontWeight: '500' }}>{c.bank_name ?? '—'}</td>
                   <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>{c.account_number ?? '—'}</td>
-                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(c.balance ?? 0)}</td>
+                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
+                    {formatRp(c.balance ?? 0)}
+                  </td>
                 </tr>
               ))}
             </tbody>

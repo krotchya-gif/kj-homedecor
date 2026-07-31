@@ -31,14 +31,13 @@ export default function OwnerProductsPage() {
 
   const supabase = createClient()
 
-  useEffect(() => { loadProducts() }, [])
+  useEffect(() => {
+    loadProducts()
+  }, [])
 
   async function loadProducts() {
     setLoading(true)
-    const { data } = await supabase
-      .from('products')
-      .select('*, category:categories(name)')
-      .order('name')
+    const { data } = await supabase.from('products').select('*, category:categories(name)').order('name')
     setProducts(data ?? [])
     setLoading(false)
   }
@@ -56,7 +55,7 @@ export default function OwnerProductsPage() {
           name: item.product?.name ?? 'Unknown',
           sku: item.product?.sku ?? '',
           total_qty: 0,
-          total_revenue: 0,
+          total_revenue: 0
         }
       }
       stats[item.product_id].total_qty += item.qty ?? 1
@@ -67,16 +66,22 @@ export default function OwnerProductsPage() {
   }
 
   const [stats, setStats] = useState<ProductStats[]>([])
-  useEffect(() => { getProductStats().then(setStats) }, [])
+  useEffect(() => {
+    getProductStats().then(setStats)
+  }, [])
 
-  const filtered = products.filter(p =>
-    !search ||
-    p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(search.toLowerCase())
+  const filtered = products.filter(
+    (p) =>
+      !search ||
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(search.toLowerCase())
   )
 
   const filteredStats = search
-    ? stats.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()) || s.sku?.toLowerCase().includes(search.toLowerCase()))
+    ? stats.filter(
+        (s) =>
+          s.name?.toLowerCase().includes(search.toLowerCase()) || s.sku?.toLowerCase().includes(search.toLowerCase())
+      )
     : stats
 
   // Pagination for "All Products"
@@ -86,9 +91,12 @@ export default function OwnerProductsPage() {
   const paginatedProducts = filtered.slice(startIndex, endIndex)
 
   // Reset to page 1 when search changes
-  useEffect(() => { setCurrentPage(1) }, [search])
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search])
 
-  const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+  const formatRp = (n: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
   return (
     <div>
@@ -100,13 +108,29 @@ export default function OwnerProductsPage() {
       {/* Search */}
       <div style={{ marginBottom: '1rem', maxWidth: 320 }}>
         <div style={{ position: 'relative' }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#9ca3af'
+            }}
+          />
           <input
             type="text"
             placeholder="Cari produk..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
           />
         </div>
       </div>
@@ -118,9 +142,19 @@ export default function OwnerProductsPage() {
       ) : (
         <>
           {/* Top Products by Revenue */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              overflow: 'hidden',
+              marginBottom: '1.5rem'
+            }}
+          >
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Top 10 Produk (Revenue)</h2>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                Top 10 Produk (Revenue)
+              </h2>
             </div>
             <div className="data-table">
               <table>
@@ -137,13 +171,20 @@ export default function OwnerProductsPage() {
                   {filteredStats.slice(0, 10).map((p, i) => (
                     <tr key={p.id}>
                       <td>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          width: 22, height: 22, borderRadius: '50%',
-                          background: i < 3 ? '#cc7030' : '#e5e7eb',
-                          color: i < 3 ? '#fff' : '#6b7280',
-                          fontSize: '0.7rem', fontWeight: '700'
-                        }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            background: i < 3 ? '#cc7030' : '#e5e7eb',
+                            color: i < 3 ? '#fff' : '#6b7280',
+                            fontSize: '0.7rem',
+                            fontWeight: '700'
+                          }}
+                        >
                           {i + 1}
                         </span>
                       </td>
@@ -167,7 +208,18 @@ export default function OwnerProductsPage() {
 
           {/* All Products with Pagination */}
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div
+              style={{
+                padding: '1rem 1.25rem',
+                borderBottom: '1px solid #e5e7eb',
+                background: '#f9fafb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
               <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Semua Produk</h2>
               <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
                 Menampilkan {startIndex + 1}–{Math.min(endIndex, filtered.length)} dari {filtered.length}
@@ -185,18 +237,23 @@ export default function OwnerProductsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedProducts.map(p => (
+                  {paginatedProducts.map((p) => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: '600' }}>{p.name}</td>
                       <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
                       <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{p.category?.name ?? '—'}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
                       <td>
-                        <span style={{
-                          padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600',
-                          background: (p.stock_toko ?? 0) > 0 ? '#d1fae5' : '#fee2e2',
-                          color: (p.stock_toko ?? 0) > 0 ? '#065f46' : '#991b1b',
-                        }}>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '999px',
+                            fontSize: '0.72rem',
+                            fontWeight: '600',
+                            background: (p.stock_toko ?? 0) > 0 ? '#d1fae5' : '#fee2e2',
+                            color: (p.stock_toko ?? 0) > 0 ? '#065f46' : '#991b1b'
+                          }}
+                        >
                           {(p.stock_toko ?? 0).toLocaleString()}
                         </span>
                       </td>
@@ -216,15 +273,31 @@ export default function OwnerProductsPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <div
+                style={{
+                  padding: '1rem',
+                  borderTop: '1px solid #e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.5rem 0.875rem',
                     background: currentPage === 1 ? '#f3f4f6' : '#fff',
-                    border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    fontSize: '0.82rem', color: currentPage === 1 ? '#9ca3af' : '#374151', fontWeight: '600',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    fontSize: '0.82rem',
+                    color: currentPage === 1 ? '#9ca3af' : '#374151',
+                    fontWeight: '600',
                     opacity: currentPage === 1 ? 0.5 : 1
                   }}
                 >
@@ -234,13 +307,20 @@ export default function OwnerProductsPage() {
                   Halaman {currentPage} dari {totalPages}
                 </span>
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.875rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '0.5rem 0.875rem',
                     background: currentPage === totalPages ? '#f3f4f6' : '#fff',
-                    border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    fontSize: '0.82rem', color: currentPage === totalPages ? '#9ca3af' : '#374151', fontWeight: '600',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    fontSize: '0.82rem',
+                    color: currentPage === totalPages ? '#9ca3af' : '#374151',
+                    fontWeight: '600',
                     opacity: currentPage === totalPages ? 0.5 : 1
                   }}
                 >

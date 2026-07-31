@@ -27,24 +27,14 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
     { href: '#products', label: 'Produk' },
     { href: '#categories', label: 'Kategori' },
     { href: '#portfolio', label: 'Portofolio' },
-    { href: '#contact', label: 'Kontak' },
+    { href: '#contact', label: 'Kontak' }
   ]
 
-  const navBg = scrolled
-    ? isDark ? 'rgba(10,10,10,0.94)' : 'rgba(255,255,255,0.94)'
-    : 'transparent'
-  const navBorder = scrolled
-    ? isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'
-    : 'transparent'
-  const navShadow = scrolled
-    ? isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.07)'
-    : 'none'
-  const linkColor = scrolled
-    ? isDark ? '#a1a1aa' : '#4b4b4b'
-    : 'rgba(255,255,255,0.88)'
-  const linkHoverBg = scrolled
-    ? isDark ? 'rgba(249,115,22,0.1)' : '#fdf3e8'
-    : 'rgba(255,255,255,0.12)'
+  const navBg = scrolled ? (isDark ? 'rgba(10,10,10,0.94)' : 'rgba(255,255,255,0.94)') : 'transparent'
+  const navBorder = scrolled ? (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)') : 'transparent'
+  const navShadow = scrolled ? (isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.07)') : 'none'
+  const linkColor = scrolled ? (isDark ? '#a1a1aa' : '#4b4b4b') : 'rgba(255,255,255,0.88)'
+  const linkHoverBg = scrolled ? (isDark ? 'rgba(249,115,22,0.1)' : '#fdf3e8') : 'rgba(255,255,255,0.12)'
   const linkHoverColor = isDark ? '#DDC0B4' : '#C9A98C'
 
   return (
@@ -65,7 +55,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
           background: navBg,
           backdropFilter: scrolled ? 'blur(16px) saturate(180%)' : 'none',
           borderBottom: `1px solid ${navBorder}`,
-          boxShadow: navShadow,
+          boxShadow: navShadow
         }}
       >
         {/* Brand */}
@@ -75,10 +65,15 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             display: 'flex',
             alignItems: 'center',
             textDecoration: 'none',
-            flexShrink: 0,
+            flexShrink: 0
           }}
         >
-          <img src="/kjlogo.png" alt="KJ Homedecor" style={{ height: '38px', width: 'auto' }} suppressHydrationWarning />
+          <img
+            src="/kjlogo.png"
+            alt="KJ Homedecor"
+            style={{ height: '38px', width: 'auto' }}
+            suppressHydrationWarning
+          />
         </Link>
 
         {/* Desktop links */}
@@ -94,7 +89,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
                 fontWeight: 500,
                 textDecoration: 'none',
                 transition: 'all 0.2s',
-                color: linkColor,
+                color: linkColor
               }}
               onMouseEnter={(e) => {
                 const t = e.currentTarget
@@ -135,14 +130,12 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               color: '#fff',
               border: scrolled ? 'none' : '1px solid rgba(255,255,255,0.35)',
               backdropFilter: scrolled ? 'none' : 'blur(8px)',
-              boxShadow: scrolled ? '0 4px 14px rgba(221,192,132,0.35)' : 'none',
+              boxShadow: scrolled ? '0 4px 14px rgba(221,192,132,0.35)' : 'none'
             }}
             onMouseEnter={(e) => {
               const t = e.currentTarget
               t.style.transform = 'translateY(-1px)'
-              t.style.boxShadow = scrolled
-                ? '0 6px 20px rgba(204,112,48,0.45)'
-                : '0 4px 16px rgba(0,0,0,0.15)'
+              t.style.boxShadow = scrolled ? '0 6px 20px rgba(204,112,48,0.45)' : '0 4px 16px rgba(0,0,0,0.15)'
             }}
             onMouseLeave={(e) => {
               const t = e.currentTarget
@@ -164,7 +157,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               padding: '0.4rem',
               borderRadius: '0.375rem',
               color: linkColor,
-              display: 'none',
+              display: 'none'
             }}
             aria-label="Menu"
           >
@@ -181,7 +174,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             inset: 0,
             zIndex: 190,
             background: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(4px)',
+            backdropFilter: 'blur(4px)'
           }}
           onClick={() => setMenuOpen(false)}
         />
@@ -203,7 +196,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
           padding: '5rem 1.5rem 2rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.5rem',
+          gap: '0.5rem'
         }}
       >
         {navLinks.map((l) => (
@@ -220,7 +213,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               color: isDark ? '#a1a1aa' : '#374151',
               textDecoration: 'none',
               transition: 'all 0.15s',
-              display: 'block',
+              display: 'block'
             }}
             onMouseEnter={(e) => {
               const t = e.currentTarget
@@ -252,7 +245,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               color: '#fff',
               fontSize: '0.95rem',
               fontWeight: 600,
-              textDecoration: 'none',
+              textDecoration: 'none'
             }}
           >
             <MessageCircle size={18} /> Chat WhatsApp

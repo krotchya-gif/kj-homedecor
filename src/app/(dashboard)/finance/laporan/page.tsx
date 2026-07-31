@@ -11,7 +11,7 @@ import {
   BarChart3,
   DollarSign,
   CreditCard,
-  Tag,
+  Tag
 } from 'lucide-react'
 
 const REPORTS = [
@@ -20,71 +20,71 @@ const REPORTS = [
     desc: 'Laporan posisi keuangan (Aset, Liabilitas, Ekuitas)',
     href: '/finance/laporan/neraca',
     icon: <FileText size={24} />,
-    color: 'orange',
+    color: 'orange'
   },
   {
     title: 'Laba Rugi',
     desc: 'Profit & Loss statement',
     href: '/finance/laporan/laba-rugi',
     icon: <TrendingUp size={24} />,
-    color: 'green',
+    color: 'green'
   },
   {
     title: 'Buku Besar',
     desc: 'General ledger per akun',
     href: '/finance/laporan/buku-besar',
     icon: <BookOpen size={24} />,
-    color: 'blue',
+    color: 'blue'
   },
   {
     title: 'Daftar Jurnal',
     desc: 'Journal entries list',
     href: '/finance/laporan/daftar-jurnal',
     icon: <List size={24} />,
-    color: 'purple',
+    color: 'purple'
   },
   {
     title: 'Mutasi Kas & Bank',
     desc: 'Perubahan saldo kas dan bank',
     href: '/finance/laporan/mutasi-kas',
     icon: <LandPlot size={24} />,
-    color: 'teal',
+    color: 'teal'
   },
   {
     title: 'Kronologi HPP',
     desc: 'Harga pokok penjualan per periode',
     href: '/finance/laporan/kronologi-hpp',
     icon: <Clock size={24} />,
-    color: 'orange',
+    color: 'orange'
   },
   {
     title: 'Neraca Saldo',
     desc: 'Daftar aktivitas akun (debit-kredit)',
     href: '/finance/laporan/neraca-saldo',
     icon: <BarChart3 size={24} />,
-    color: 'indigo',
+    color: 'indigo'
   },
   {
     title: 'Performa Per Tag',
     desc: 'Ringkasan laba rugi per tag/marketplace',
     href: '/finance/laporan/performa-tag',
     icon: <Tag size={24} />,
-    color: 'pink',
+    color: 'pink'
   },
   {
     title: 'Umur Piutang',
     desc: 'Umur piutang per pelanggan',
     href: '/finance/laporan/umur-piutang',
     icon: <DollarSign size={24} />,
-    color: 'green',
+    color: 'green'
   },
   {
     title: 'Umur Hutang',
     desc: 'Umur hutang per pemasok',
     href: '/finance/laporan/umur-hutang',
     icon: <CreditCard size={24} />,
-    color: 'red',
-  },
+    color: 'red'
+  }
 ]
 
 const COLOR_MAP: Record<string, string> = {
@@ -95,7 +95,7 @@ const COLOR_MAP: Record<string, string> = {
   teal: 'bg-teal-50 border-teal-200 text-teal-600',
   indigo: 'bg-indigo-50 border-indigo-200 text-indigo-600',
   pink: 'bg-pink-50 border-pink-200 text-pink-600',
-  red: 'bg-red-50 border-red-200 text-red-600',
+  red: 'bg-red-50 border-red-200 text-red-600'
 }
 
 export default function LaporanKeuanganPage() {
@@ -118,7 +118,7 @@ export default function LaporanKeuanganPage() {
               padding: '1.25rem',
               textDecoration: 'none',
               color: 'inherit',
-              transition: 'box-shadow 0.15s',
+              transition: 'box-shadow 0.15s'
             }}
             className="hover:shadow-md"
           >

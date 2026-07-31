@@ -32,7 +32,9 @@ export default function PerformaTagPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [startDate, endDate])
+  useEffect(() => {
+    fetchData()
+  }, [startDate, endDate])
 
   // Group by source_tag
   const tagStats = orders.reduce((acc: any, o) => {
@@ -43,11 +45,13 @@ export default function PerformaTagPage() {
     return acc
   }, {})
 
-  const tagData = Object.entries(tagStats).map(([tag, stats]: [string, any]) => ({
-    tag,
-    count: stats.count,
-    total: stats.total,
-  })).sort((a, b) => b.total - a.total)
+  const tagData = Object.entries(tagStats)
+    .map(([tag, stats]: [string, any]) => ({
+      tag,
+      count: stats.count,
+      total: stats.total
+    }))
+    .sort((a, b) => b.total - a.total)
 
   const grandTotal = tagData.reduce((s, d) => s + d.total, 0)
   const grandCount = tagData.reduce((s, d) => s + d.count, 0)
@@ -66,14 +70,14 @@ export default function PerformaTagPage() {
       startY: 40,
       head: [['Tag/Platform', 'Jumlah Order', 'Total Revenue']],
       headStyles: { fillColor: [236, 72, 153] },
-      body: tagData.map(d => [d.tag, d.count.toString(), formatRp(d.total)]),
+      body: tagData.map((d) => [d.tag, d.count.toString(), formatRp(d.total)]),
       foot: [['TOTAL', grandCount.toString(), formatRp(grandTotal)]],
       footStyles: { fillColor: [253, 242, 252], textColor: [131, 24, 67], fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 40, halign: 'center' },
-        2: { cellWidth: 50, halign: 'right' },
-      },
+        2: { cellWidth: 50, halign: 'right' }
+      }
     })
 
     doc.save(`performa-tag-${startDate}-${endDate}.pdf`)
@@ -82,7 +86,16 @@ export default function PerformaTagPage() {
   return (
     <div>
       <BackButton href="/finance/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Performa Per Tag</h1>
           <p className="page-subtitle">Ringkasan laba rugi per tag/marketplace</p>
@@ -90,7 +103,15 @@ export default function PerformaTagPage() {
         <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          padding: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -114,7 +135,7 @@ export default function PerformaTagPage() {
               </tr>
             </thead>
             <tbody>
-              {tagData.map(d => (
+              {tagData.map((d) => (
                 <tr key={d.tag}>
                   <td style={{ fontWeight: '600' }}>{d.tag}</td>
                   <td style={{ textAlign: 'right', color: '#6b7280' }}>{d.count}</td>

@@ -32,7 +32,9 @@ export default function KronologiHPPPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [startDate, endDate])
+  useEffect(() => {
+    fetchData()
+  }, [startDate, endDate])
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -48,18 +50,18 @@ export default function KronologiHPPPage() {
       startY: 40,
       head: [['Order ID', 'Tanggal', 'Total', 'Status']],
       headStyles: { fillColor: [217, 119, 6] },
-      body: orders.map(o => [
-        o.order_number ?? (o.id ?? "N/A").slice(0, 8),
+      body: orders.map((o) => [
+        o.order_number ?? (o.id ?? 'N/A').slice(0, 8),
         new Date(o.created_at).toLocaleDateString('id-ID'),
         formatRp(o.total_amount ?? 0),
-        o.payment_status ?? '—',
+        o.payment_status ?? '—'
       ]),
       columnStyles: {
         0: { cellWidth: 35, fontStyle: 'bold' },
         1: { cellWidth: 35 },
         2: { cellWidth: 45, halign: 'right' },
-        3: { cellWidth: 45 },
-      },
+        3: { cellWidth: 45 }
+      }
     })
 
     doc.save(`owner-kronologi-hpp-${startDate}-${endDate}.pdf`)
@@ -68,7 +70,16 @@ export default function KronologiHPPPage() {
   return (
     <div>
       <BackButton href="/owner/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Kronologi HPP</h1>
           <p className="page-subtitle">Harga pokok penjualan per periode - Tampilan Owner (Read Only)</p>
@@ -76,7 +87,15 @@ export default function KronologiHPPPage() {
         <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          padding: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -101,20 +120,36 @@ export default function KronologiHPPPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
+              {orders.map((o) => (
                 <tr key={o.id}>
-                  <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{o.order_number ?? (o.id ?? "N/A").slice(0, 8)}</td>
+                  <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>
+                    {o.order_number ?? (o.id ?? 'N/A').slice(0, 8)}
+                  </td>
                   <td style={{ color: '#6b7280' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
-                  <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>{formatRp(o.total_amount ?? 0)}</td>
+                  <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>
+                    {formatRp(o.total_amount ?? 0)}
+                  </td>
                   <td>
-                    <span style={{
-                      padding: '0.25rem 0.625rem',
-                      borderRadius: '9999px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      background: o.payment_status === 'paid' ? '#dcfce7' : o.payment_status === 'pending' ? '#fef9c3' : '#f3f4f6',
-                      color: o.payment_status === 'paid' ? '#166534' : o.payment_status === 'pending' ? '#854d0e' : '#6b7280',
-                    }}>
+                    <span
+                      style={{
+                        padding: '0.25rem 0.625rem',
+                        borderRadius: '9999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        background:
+                          o.payment_status === 'paid'
+                            ? '#dcfce7'
+                            : o.payment_status === 'pending'
+                              ? '#fef9c3'
+                              : '#f3f4f6',
+                        color:
+                          o.payment_status === 'paid'
+                            ? '#166534'
+                            : o.payment_status === 'pending'
+                              ? '#854d0e'
+                              : '#6b7280'
+                      }}
+                    >
                       {o.payment_status ?? '—'}
                     </span>
                   </td>

@@ -25,8 +25,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       secondary: '#C9A98C',
       accent: '#f4a857',
       background: '#FAF5EE',
-      text: '#2B2321',
-    },
+      text: '#2B2321'
+    }
   },
   {
     id: 'modern',
@@ -37,8 +37,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       secondary: '#374151',
       accent: '#3b82f6',
       background: '#f9fafb',
-      text: '#111827',
-    },
+      text: '#111827'
+    }
   },
   {
     id: 'gold',
@@ -49,8 +49,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       secondary: '#c5a572',
       accent: '#ffd700',
       background: '#fffef7',
-      text: '#3d2f1f',
-    },
+      text: '#3d2f1f'
+    }
   },
   {
     id: 'green',
@@ -61,8 +61,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       secondary: '#22c55e',
       accent: '#86efac',
       background: '#f0fdf4',
-      text: '#14532d',
-    },
+      text: '#14532d'
+    }
   },
   {
     id: 'purple',
@@ -73,9 +73,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       secondary: '#9333ea',
       accent: '#c084fc',
       background: '#faf5ff',
-      text: '#581c87',
-    },
-  },
+      text: '#581c87'
+    }
+  }
 ]
 
 interface ThemePresetCardProps {
@@ -83,24 +83,21 @@ interface ThemePresetCardProps {
   onSelectPreset: (preset: ThemePreset) => void
 }
 
-export default function ThemePresetCard({
-  selectedPreset,
-  onSelectPreset,
-}: ThemePresetCardProps) {
+export default function ThemePresetCard({ selectedPreset, onSelectPreset }: ThemePresetCardProps) {
   return (
     <div
       style={{
         background: '#fff',
         border: '1px solid #e5e7eb',
         borderRadius: '0.75rem',
-        overflow: 'hidden',
+        overflow: 'hidden'
       }}
     >
       <div
         style={{
           padding: '1rem 1.25rem',
           borderBottom: '1px solid #e5e7eb',
-          background: '#f9fafb',
+          background: '#f9fafb'
         }}
       >
         <h2
@@ -111,7 +108,7 @@ export default function ThemePresetCard({
             margin: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.5rem'
           }}
         >
           <Palette size={14} /> Theme Preset
@@ -122,7 +119,7 @@ export default function ThemePresetCard({
           padding: '1.25rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '0.75rem',
+          gap: '0.75rem'
         }}
       >
         {THEME_PRESETS.map((preset) => {
@@ -143,7 +140,7 @@ export default function ThemePresetCard({
                 cursor: 'pointer',
                 transition: 'all 0.15s',
                 textAlign: 'left',
-                width: '100%',
+                width: '100%'
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
@@ -160,18 +157,20 @@ export default function ThemePresetCard({
             >
               {/* Color swatches */}
               <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
-                {Object.values(preset.colors).slice(0, 3).map((color, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: '0.25rem',
-                      background: color,
-                      border: '1px solid rgba(0,0,0,0.1)',
-                    }}
-                  />
-                ))}
+                {Object.values(preset.colors)
+                  .slice(0, 3)
+                  .map((color, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: '0.25rem',
+                        background: color,
+                        border: '1px solid rgba(0,0,0,0.1)'
+                      }}
+                    />
+                  ))}
               </div>
 
               {/* Text */}
@@ -181,7 +180,7 @@ export default function ThemePresetCard({
                     fontSize: '0.85rem',
                     fontWeight: '600',
                     color: '#374151',
-                    marginBottom: '0.125rem',
+                    marginBottom: '0.125rem'
                   }}
                 >
                   {preset.name}
@@ -190,7 +189,7 @@ export default function ThemePresetCard({
                   style={{
                     fontSize: '0.72rem',
                     color: '#6b7280',
-                    lineHeight: 1.4,
+                    lineHeight: 1.4
                   }}
                 >
                   {preset.description}
@@ -198,12 +197,7 @@ export default function ThemePresetCard({
               </div>
 
               {/* Check icon */}
-              {isSelected && (
-                <Check
-                  size={18}
-                  style={{ color: '#cc7030', flexShrink: 0 }}
-                />
-              )}
+              {isSelected && <Check size={18} style={{ color: '#cc7030', flexShrink: 0 }} />}
             </button>
           )
         })}
@@ -214,11 +208,10 @@ export default function ThemePresetCard({
             fontSize: '0.72rem',
             color: '#9ca3af',
             marginTop: '0.5rem',
-            lineHeight: 1.5,
+            lineHeight: 1.5
           }}
         >
-          💡 Select a preset to auto-fill all color fields. You can customize
-          individual colors after applying a preset.
+          💡 Select a preset to auto-fill all color fields. You can customize individual colors after applying a preset.
         </p>
       </div>
     </div>

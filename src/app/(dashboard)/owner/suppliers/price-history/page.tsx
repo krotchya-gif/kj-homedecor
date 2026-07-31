@@ -19,13 +19,15 @@ export default function MaterialHistoryPage() {
 
   const supabase = createClient()
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   async function load() {
     setLoading(true)
     const [matsRes, suplRes] = await Promise.all([
       supabase.from('materials').select('*, supplier:suppliers(id,name)').order('name'),
-      supabase.from('suppliers').select('id,name').order('name'),
+      supabase.from('suppliers').select('id,name').order('name')
     ])
     setMaterials(matsRes.data ?? [])
     setSuppliers(suplRes.data ?? [])
@@ -43,12 +45,13 @@ export default function MaterialHistoryPage() {
     setHistory(data ?? [])
   }
 
-  const filteredMaterials = materials.filter(m =>
-    m.name.toLowerCase().includes(search.toLowerCase()) ||
-    m.supplier?.name?.toLowerCase().includes(search.toLowerCase())
+  const filteredMaterials = materials.filter(
+    (m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.supplier?.name?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const selectedMat = materials.find(m => m.id === selectedMaterial)
+  const selectedMat = materials.find((m) => m.id === selectedMaterial)
   const latestPrice = selectedMat?.cost_per_unit
 
   // Compute trend
@@ -75,13 +78,29 @@ export default function MaterialHistoryPage() {
         <div>
           <div style={{ marginBottom: '1rem' }}>
             <div style={{ position: 'relative' }}>
-              <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+              <Search
+                size={15}
+                style={{
+                  position: 'absolute',
+                  left: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af'
+                }}
+              />
               <input
                 type="text"
                 placeholder="Cari material atau supplier..."
                 value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 1rem 0.625rem 2.25rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
               />
             </div>
           </div>
@@ -90,7 +109,11 @@ export default function MaterialHistoryPage() {
             {loading ? (
               <TableSkeleton rows={8} cols={3} />
             ) : filteredMaterials.length === 0 ? (
-              <EmptyState icon="📦" title="Tidak ada material" description="Tidak ada material yang cocok dengan pencarian." />
+              <EmptyState
+                icon="📦"
+                title="Tidak ada material"
+                description="Tidak ada material yang cocok dengan pencarian."
+              />
             ) : (
               <table>
                 <thead>
@@ -101,13 +124,13 @@ export default function MaterialHistoryPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredMaterials.map(m => (
+                  {filteredMaterials.map((m) => (
                     <tr
                       key={m.id}
                       onClick={() => loadHistory(m.id)}
                       style={{
                         cursor: 'pointer',
-                        background: selectedMaterial === m.id ? '#fff7ed' : 'transparent',
+                        background: selectedMaterial === m.id ? '#fff7ed' : 'transparent'
                       }}
                     >
                       <td style={{ fontWeight: selectedMaterial === m.id ? '700' : '500' }}>{m.name}</td>
@@ -124,7 +147,16 @@ export default function MaterialHistoryPage() {
         {/* Right: Price history detail */}
         <div>
           {!selectedMaterial ? (
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+            <div
+              style={{
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.75rem',
+                padding: '3rem',
+                textAlign: 'center',
+                color: '#9ca3af'
+              }}
+            >
               <Package size={32} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
               <p>Pilih material di sebelah kiri untuk melihat riwayat harganya</p>
             </div>
@@ -133,7 +165,15 @@ export default function MaterialHistoryPage() {
           ) : (
             <div>
               {/* Header */}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  background: '#fff',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.75rem',
+                  padding: '1.25rem',
+                  marginBottom: '1rem'
+                }}
+              >
                 <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#1f2937', marginBottom: '0.375rem' }}>
                   {selectedMat?.name}
                 </div>
@@ -143,15 +183,22 @@ export default function MaterialHistoryPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginBottom: '0.2rem' }}>HARGA TERKINI</div>
-                    <div style={{ fontWeight: '800', fontSize: '1.5rem', color: '#cc7030' }}>{formatRp(latestPrice)}</div>
+                    <div style={{ fontWeight: '800', fontSize: '1.5rem', color: '#cc7030' }}>
+                      {formatRp(latestPrice)}
+                    </div>
                   </div>
                   {trend.direction !== 'same' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {trend.direction === 'up' ? <TrendingUp size={20} color="#dc2626" /> : <TrendingDown size={20} color="#059669" />}
+                      {trend.direction === 'up' ? (
+                        <TrendingUp size={20} color="#dc2626" />
+                      ) : (
+                        <TrendingDown size={20} color="#059669" />
+                      )}
                       <div>
                         <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
                         <div style={{ fontWeight: '700', color: trend.direction === 'up' ? '#dc2626' : '#059669' }}>
-                          {trend.direction === 'up' ? '+' : ''}{formatRp(trend.diff)} ({trend.pct.toFixed(1)}%)
+                          {trend.direction === 'up' ? '+' : ''}
+                          {formatRp(trend.diff)} ({trend.pct.toFixed(1)}%)
                         </div>
                       </div>
                     </div>
@@ -169,16 +216,21 @@ export default function MaterialHistoryPage() {
               </div>
 
               {/* History table */}
-              <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+              <div
+                style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
+              >
                 <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Riwayat Perubahan Harga</h3>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                    Riwayat Perubahan Harga
+                  </h3>
                 </div>
                 {history.length === 0 ? (
                   <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
                     <Calendar size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
                     <p>Belum ada data riwayat harga untuk material ini.</p>
                     <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                      Jalankan migration <code>033_material_price_history.sql</code> di Supabase, lalu riwayat harga akan tercatat otomatis setiap kali harga material berubah.
+                      Jalankan migration <code>033_material_price_history.sql</code> di Supabase, lalu riwayat harga
+                      akan tercatat otomatis setiap kali harga material berubah.
                     </p>
                   </div>
                 ) : (
@@ -195,9 +247,23 @@ export default function MaterialHistoryPage() {
                       {history.map((h, i) => (
                         <tr key={h.id}>
                           <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                            {new Date(h.recorded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {new Date(h.recorded_at).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
                             {i === 0 && (
-                              <span style={{ marginLeft: '0.5rem', background: '#fef3c7', color: '#92400e', padding: '0.1rem 0.4rem', borderRadius: '999px', fontSize: '0.65rem', fontWeight: '700' }}>
+                              <span
+                                style={{
+                                  marginLeft: '0.5rem',
+                                  background: '#fef3c7',
+                                  color: '#92400e',
+                                  padding: '0.1rem 0.4rem',
+                                  borderRadius: '999px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: '700'
+                                }}
+                              >
                                 Terkini
                               </span>
                             )}

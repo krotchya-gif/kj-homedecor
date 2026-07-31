@@ -17,10 +17,7 @@ export async function POST(request: Request) {
     }
 
     // Compute expected signature: HMAC-SHA256(callbackKey, rawBody)
-    const expectedSig = crypto
-      .createHmac('sha256', callbackKey)
-      .update(rawBody, 'utf8')
-      .digest('hex')
+    const expectedSig = crypto.createHmac('sha256', callbackKey).update(rawBody, 'utf8').digest('hex')
 
     if (xenditSignature !== expectedSig) {
       return NextResponse.json({ data: null, error: { message: 'Invalid signature' } }, { status: 401 })
@@ -56,14 +53,15 @@ export async function POST(request: Request) {
               amount,
               date: new Date().toISOString(),
               notes: `Xendit ${type} — ${id}`,
-              xendit_payment_id: id, // unique dedup key
+              xendit_payment_id: id // unique dedup key
             })
             .select('id')
             .single()
 
           // Unique violation = duplicate webhook delivery, idempotent success
           if (insertError) {
-            if (insertError.code === '23505') { // unique_violation
+            if (insertError.code === '23505') {
+              // unique_violation
               console.log(`Xendit webhook: payment ${id} already processed (idempotent)`)
               return NextResponse.json({ data: { success: true, idempotent: true }, error: null })
             }
@@ -77,10 +75,13 @@ export async function POST(request: Request) {
 
           // Webhook hanya update payment info (lunas_amount + payment_status).
           // Status pipeline TIDAK di-auto-advance — Admin/Finance yang atur manual.
-          await supabase.from('orders').update({
-            lunas_amount: newLunas,
-            payment_status: isFullyPaid ? 'paid' : 'partial',
-          }).eq('id', order.id)
+          await supabase
+            .from('orders')
+            .update({
+              lunas_amount: newLunas,
+              payment_status: isFullyPaid ? 'paid' : 'partial'
+            })
+            .eq('id', order.id)
         }
       }
 

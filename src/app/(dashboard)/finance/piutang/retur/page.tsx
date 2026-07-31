@@ -14,7 +14,7 @@ interface Retur {
   return_date: string
   reason: string
   status: string
-  piutang?: { customer: { name: string }, invoice_number: string, amount: number }
+  piutang?: { customer: { name: string }; invoice_number: string; amount: number }
 }
 
 export default function ReturPage() {
@@ -35,7 +35,9 @@ export default function ReturPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
     <div>
@@ -67,9 +69,20 @@ export default function ReturPage() {
                 <tr key={r.id}>
                   <td style={{ fontWeight: '500' }}>{r.piutang?.customer?.name ?? '—'}</td>
                   <td style={{ fontFamily: 'monospace' }}>{r.piutang?.invoice_number ?? '—'}</td>
-                  <td style={{ fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>{formatRp(r.return_amount ?? 0)}</td>
+                  <td style={{ fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>
+                    {formatRp(r.return_amount ?? 0)}
+                  </td>
                   <td>
-                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', background: '#fef3c7', color: '#92400e' }}>
+                    <span
+                      style={{
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '999px',
+                        fontSize: '0.72rem',
+                        fontWeight: '600',
+                        background: '#fef3c7',
+                        color: '#92400e'
+                      }}
+                    >
                       Retur
                     </span>
                   </td>

@@ -42,46 +42,94 @@ export default async function ProductDetailPage({ params }: PageProps) {
   return (
     <div style={{ background: '#fafafa', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       {/* Navbar */}
-      <nav style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '0.75rem 1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: '#374151', textDecoration: 'none', fontSize: '0.875rem' }}>
+      <nav
+        style={{
+          background: '#fff',
+          borderBottom: '1px solid #e5e7eb',
+          padding: '0.75rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem'
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            color: '#374151',
+            textDecoration: 'none',
+            fontSize: '0.875rem'
+          }}
+        >
           <ArrowLeft size={16} />
           Kembali
         </Link>
         <span style={{ color: '#d1d5db' }}>|</span>
-        <Link href="/#products" style={{ fontSize: '0.8rem', color: '#9ca3af', textDecoration: 'none' }}>Produk</Link>
+        <Link href="/#products" style={{ fontSize: '0.8rem', color: '#9ca3af', textDecoration: 'none' }}>
+          Produk
+        </Link>
         <span style={{ color: '#d1d5db' }}>|</span>
         <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{p.category?.name ?? 'Produk'}</span>
       </nav>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2.5rem', alignItems: 'start' }}>
-
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
+            gap: '2.5rem',
+            alignItems: 'start'
+          }}
+        >
           {/* Image Gallery */}
           <ProductImageGallery images={images} productName={p.name} />
 
           {/* Product Info */}
           <div>
             <div style={{ marginBottom: '0.5rem' }}>
-              <span style={{ background: '#fef3c7', color: '#92400e', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>
+              <span
+                style={{
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '999px',
+                  fontSize: '0.72rem',
+                  fontWeight: '600'
+                }}
+              >
                 {p.category?.name ?? 'Produk'}
               </span>
             </div>
-            <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: '700', color: '#1f2937', marginBottom: '0.75rem', lineHeight: 1.3 }}>
+            <h1
+              style={{
+                fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+                fontWeight: '700',
+                color: '#1f2937',
+                marginBottom: '0.75rem',
+                lineHeight: 1.3
+              }}
+            >
               {p.name}
             </h1>
 
-            {p.sku && (
-              <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '1rem' }}>
-                SKU: {p.sku}
-              </div>
-            )}
+            {p.sku && <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '1rem' }}>SKU: {p.sku}</div>}
 
             <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1.5rem' }}>
               {formatRp(p.price)}
             </div>
 
             {/* Stock info */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', fontSize: '0.85rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+                fontSize: '0.85rem'
+              }}
+            >
               {p.stock_toko > 0 ? (
                 <>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
@@ -102,7 +150,21 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 href={whatsAppUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.875rem 1.5rem', background: '#22c55e', color: '#fff', borderRadius: '0.5rem', fontWeight: '700', textDecoration: 'none', fontSize: '0.95rem', minWidth: 200 }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1.5rem',
+                  background: '#22c55e',
+                  color: '#fff',
+                  borderRadius: '0.5rem',
+                  fontWeight: '700',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                  minWidth: 200
+                }}
               >
                 <MessageCircle size={18} /> Pesan via WhatsApp
               </a>
@@ -110,21 +172,56 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya ingin booking survey ukur')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.875rem 1.5rem', background: '#fff', color: 'var(--brand-500)', border: '2px solid var(--brand-500)', borderRadius: '0.5rem', fontWeight: '700', textDecoration: 'none', fontSize: '0.95rem', minWidth: 200 }}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 1.5rem',
+                  background: '#fff',
+                  color: 'var(--brand-500)',
+                  border: '2px solid var(--brand-500)',
+                  borderRadius: '0.5rem',
+                  fontWeight: '700',
+                  textDecoration: 'none',
+                  fontSize: '0.95rem',
+                  minWidth: 200
+                }}
               >
                 📅 Booking Survey Gratis
               </a>
             </div>
 
             {/* Trust badges */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#f9fafb', borderRadius: '0.75rem', padding: '1rem 1.25rem', border: '1px solid #e5e7eb', marginBottom: '1.5rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
+                background: '#f9fafb',
+                borderRadius: '0.75rem',
+                padding: '1rem 1.25rem',
+                border: '1px solid #e5e7eb',
+                marginBottom: '1.5rem'
+              }}
+            >
               {[
                 { icon: <Shield size={15} />, text: 'Garansi quality 1 tahun' },
                 { icon: <Truck size={15} />, text: 'Pasang profesional se-Jabodetabek' },
                 { icon: <Star size={15} />, text: '500+ pelanggan puas' },
-                { icon: <Phone size={15} />, text: 'Konsultasi gratis via WhatsApp' },
+                { icon: <Phone size={15} />, text: 'Konsultasi gratis via WhatsApp' }
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', fontSize: '0.85rem', color: '#374151' }}>
+                <div
+                  key={i}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.625rem',
+                    fontSize: '0.85rem',
+                    color: '#374151'
+                  }}
+                >
                   <span style={{ color: 'var(--brand-500)' }}>{item.icon}</span>
                   {item.text}
                 </div>
@@ -140,19 +237,47 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {/* Description */}
             {(p as any).description && (
-              <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>Deskripsi</div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{(p as any).description}</div>
+              <div
+                style={{
+                  marginTop: '1.5rem',
+                  padding: '1rem',
+                  background: '#f9fafb',
+                  borderRadius: '0.75rem',
+                  border: '1px solid #e5e7eb'
+                }}
+              >
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Deskripsi
+                </div>
+                <div style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {(p as any).description}
+                </div>
               </div>
             )}
           </div>
-
         </div>
 
         {/* Related products placeholder */}
         <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #e5e7eb' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#374151', marginBottom: '1.25rem' }}>Produk Lainnya</h2>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', color: '#374151', textDecoration: 'none', fontSize: '0.875rem', fontWeight: '600' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#374151', marginBottom: '1.25rem' }}>
+            Produk Lainnya
+          </h2>
+          <Link
+            href="/"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              color: '#374151',
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+              fontWeight: '600'
+            }}
+          >
             <ArrowLeft size={14} /> Kembali ke Katalog
           </Link>
         </div>

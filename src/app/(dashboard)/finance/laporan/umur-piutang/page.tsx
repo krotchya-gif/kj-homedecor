@@ -30,7 +30,9 @@ export default function UmurPiutangPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function getBucket(days: number): string {
     if (days < 30) return '< 30 hari'
@@ -42,7 +44,7 @@ export default function UmurPiutangPage() {
   const today = new Date()
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
 
-  orders.forEach(o => {
+  orders.forEach((o) => {
     const days = Math.floor((today.getTime() - new Date(o.created_at).getTime()) / (1000 * 60 * 60 * 24))
     const bucket = getBucket(days)
     buckets[bucket] += o.total_amount ?? 0
@@ -65,25 +67,34 @@ export default function UmurPiutangPage() {
       startY: 40,
       head: [['Bucket', 'Total Amount']],
       headStyles: { fillColor: [34, 197, 94] },
-      body: bucketData.map(d => [d.bucket, formatRp(d.amount)]),
+      body: bucketData.map((d) => [d.bucket, formatRp(d.amount)]),
       foot: [['TOTAL', formatRp(totalUnpaid)]],
       footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 80 },
-        1: { cellWidth: 60, halign: 'right' },
-      },
+        1: { cellWidth: 60, halign: 'right' }
+      }
     })
 
     doc.save(`umur-piutang-${startDate}-${endDate}.pdf`)
   }
 
   // Simple bar chart using divs
-  const maxAmount = Math.max(...bucketData.map(d => d.amount), 1)
+  const maxAmount = Math.max(...bucketData.map((d) => d.amount), 1)
 
   return (
     <div>
       <BackButton href="/finance/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Umur Piutang</h1>
           <p className="page-subtitle">Umur piutang per pelanggan</p>
@@ -91,7 +102,15 @@ export default function UmurPiutangPage() {
         <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          padding: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -105,25 +124,45 @@ export default function UmurPiutangPage() {
       ) : (
         <>
           {/* Bar chart */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', padding: '1.5rem', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>Distribusi Umur Piutang</h3>
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.875rem',
+              padding: '1.5rem',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>
+              Distribusi Umur Piutang
+            </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {bucketData.map(d => {
+              {bucketData.map((d) => {
                 const pct = (d.amount / maxAmount) * 100
                 const colors: Record<string, string> = {
                   '< 30 hari': '#22c55e',
                   '30-60 hari': '#eab308',
                   '60-90 hari': '#f97316',
-                  '> 90 hari': '#ef4444',
+                  '> 90 hari': '#ef4444'
                 }
                 return (
                   <div key={d.bucket}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151' }}>{d.bucket}</span>
-                      <span style={{ fontSize: '0.8rem', fontWeight: '700', color: colors[d.bucket] }}>{formatRp(d.amount)}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '700', color: colors[d.bucket] }}>
+                        {formatRp(d.amount)}
+                      </span>
                     </div>
                     <div style={{ background: '#f3f4f6', borderRadius: '9999px', height: '12px', overflow: 'hidden' }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: colors[d.bucket], borderRadius: '9999px', transition: 'width 0.3s' }} />
+                      <div
+                        style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: colors[d.bucket],
+                          borderRadius: '9999px',
+                          transition: 'width 0.3s'
+                        }}
+                      />
                     </div>
                   </div>
                 )
@@ -141,12 +180,12 @@ export default function UmurPiutangPage() {
                 </tr>
               </thead>
               <tbody>
-                {bucketData.map(d => {
+                {bucketData.map((d) => {
                   const colors: Record<string, string> = {
                     '< 30 hari': '#16a34a',
                     '30-60 hari': '#ca8a04',
                     '60-90 hari': '#ea580c',
-                    '> 90 hari': '#dc2626',
+                    '> 90 hari': '#dc2626'
                   }
                   return (
                     <tr key={d.bucket}>

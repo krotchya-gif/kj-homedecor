@@ -27,7 +27,9 @@ interface CreateJournalOptions {
  */
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body: CreateJournalOptions = await request.json()
@@ -43,10 +45,13 @@ export async function POST(request: Request) {
     const totalDebit = lines.reduce((s, l) => s + (l.debit ?? 0), 0)
     const totalCredit = lines.reduce((s, l) => s + (l.credit ?? 0), 0)
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
-      return NextResponse.json({
-        data: null,
-        error: { message: `Journal not balanced — debit ${totalDebit}, credit ${totalCredit}` },
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          data: null,
+          error: { message: `Journal not balanced — debit ${totalDebit}, credit ${totalCredit}` }
+        },
+        { status: 400 }
+      )
     }
 
     // Create journal entry
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
         reference_id: reference_id ?? null,
         total_debit: totalDebit,
         total_credit: totalCredit,
-        is_auto,
+        is_auto
       })
       .select()
       .single()
@@ -69,12 +74,12 @@ export async function POST(request: Request) {
     }
 
     // Create journal lines
-    const linesToInsert = lines.map(l => ({
+    const linesToInsert = lines.map((l) => ({
       entry_id: entry.id,
       account_id: l.account_id,
       debit: l.debit ?? 0,
       credit: l.credit ?? 0,
-      description: l.description ?? null,
+      description: l.description ?? null
     }))
 
     const { error: linesError } = await supabase.from('journal_lines').insert(linesToInsert)
@@ -96,7 +101,9 @@ export async function POST(request: Request) {
  */
 export async function GET(request: Request) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)

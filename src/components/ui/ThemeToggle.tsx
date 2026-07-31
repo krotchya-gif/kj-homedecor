@@ -13,9 +13,7 @@ export default function ThemeToggle() {
   }, [])
 
   if (!mounted) {
-    return (
-      <div className="w-9 h-9" suppressHydrationWarning />
-    )
+    return <div className="w-9 h-9" suppressHydrationWarning />
   }
 
   return (

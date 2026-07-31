@@ -1,36 +1,36 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import Script from "next/script";
-import { createClient } from "@/utils/supabase/client";
+import { useEffect, useState } from 'react'
+import Script from 'next/script'
+import { createClient } from '@/utils/supabase/client'
 
 export default function SeoScripts() {
-	const [pixelId, setPixelId] = useState("");
-	const [ga4Id, setGa4Id] = useState("");
+  const [pixelId, setPixelId] = useState('')
+  const [ga4Id, setGa4Id] = useState('')
 
-	useEffect(() => {
-		const supabase = createClient();
-		supabase
-			.from("landing_settings")
-			.select("seo_pixel_id, seo_ga4_id")
-			.eq("id", "hero")
-			.single()
-			.then(({ data }) => {
-				if (data) {
-					setPixelId((data as any).seo_pixel_id ?? "");
-					setGa4Id((data as any).seo_ga4_id ?? "");
-				}
-			});
-	}, []);
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('landing_settings')
+      .select('seo_pixel_id, seo_ga4_id')
+      .eq('id', 'hero')
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setPixelId((data as any).seo_pixel_id ?? '')
+          setGa4Id((data as any).seo_ga4_id ?? '')
+        }
+      })
+  }, [])
 
-	return (
-		<>
-			{pixelId && (
-				<Script
-					id="fb-pixel"
-					strategy="afterInteractive"
-					dangerouslySetInnerHTML={{
-						__html: `
+  return (
+    <>
+      {pixelId && (
+        <Script
+          id="fb-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
               !function(f,b,e,v,n,t,s)
               {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
               n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -41,24 +41,24 @@ export default function SeoScripts() {
               'https://connect.facebook.net/en_US/fbevents.js');
               fbq('init', '${pixelId}');
               fbq('track', 'PageView');
-            `,
-					}}
-				/>
-			)}
-			{ga4Id && (
-				<Script
-					id="ga4-init"
-					strategy="afterInteractive"
-					dangerouslySetInnerHTML={{
-						__html: `
+            `
+          }}
+        />
+      )}
+      {ga4Id && (
+        <Script
+          id="ga4-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', '${ga4Id}');
-            `,
-					}}
-				/>
-			)}
-		</>
-	);
+            `
+          }}
+        />
+      )}
+    </>
+  )
 }

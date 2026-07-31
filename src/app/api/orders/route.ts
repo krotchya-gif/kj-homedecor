@@ -12,19 +12,24 @@ const CreateOrderSchema = z.object({
   total_amount: z.number().min(0).optional(),
   dp_amount: z.number().min(0).optional(),
   customer_id: z.string().uuid().optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional()
 })
 
 export async function GET(request: Request) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const source = searchParams.get('source')
 
-  let query = supabase.from('orders').select('*, customer:customers(name, phone, address), order_items(count)').order('created_at', { ascending: false })
+  let query = supabase
+    .from('orders')
+    .select('*, customer:customers(name, phone, address), order_items(count)')
+    .order('created_at', { ascending: false })
 
   if (status) query = query.eq('status', status)
   if (source) query = query.eq('source', source)
@@ -36,7 +41,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body = await request.json()
@@ -63,8 +70,8 @@ export async function POST(request: Request) {
         transaction_type: 'order_created',
         reference_type: 'order',
         reference_id: order.id,
-        description: `Order baru ${orderNumber ?? order.id.slice(0,8)} — ${data.customer_id ?? ''}`,
-        amount: data.total_amount,
+        description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} — ${data.customer_id ?? ''}`,
+        amount: data.total_amount
       })
     } catch (e) {
       console.warn('Failed to create journal entry for order:', e)

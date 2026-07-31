@@ -8,22 +8,50 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const COLORS = ['#16a34a', '#f59e0b', '#ef4444', '#2563eb', '#9333ea']
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+const formatRp = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 const MODULES = [
-  { title: 'Pembayaran', desc: 'Tracking DP/Lunas dan approval gate', href: '/finance/payments', icon: <DollarSign size={20} />, color: 'green' },
-  { title: 'Laporan', desc: 'Laporan keuangan dan pengupahan', href: '/finance/reports', icon: <BarChart3 size={20} />, color: 'teal' },
-  { title: 'Laundry Gaji', desc: 'Gaji staff laundry per periode', href: '/finance/laundry-payroll', icon: <WashingMachine size={20} />, color: 'blue' },
+  {
+    title: 'Pembayaran',
+    desc: 'Tracking DP/Lunas dan approval gate',
+    href: '/finance/payments',
+    icon: <DollarSign size={20} />,
+    color: 'green'
+  },
+  {
+    title: 'Laporan',
+    desc: 'Laporan keuangan dan pengupahan',
+    href: '/finance/reports',
+    icon: <BarChart3 size={20} />,
+    color: 'teal'
+  },
+  {
+    title: 'Laundry Gaji',
+    desc: 'Gaji staff laundry per periode',
+    href: '/finance/laundry-payroll',
+    icon: <WashingMachine size={20} />,
+    color: 'blue'
+  }
 ]
 
-interface Order { id: string; status: string; payment_status: string; total_amount: number; created_at: string; source: string }
+interface Order {
+  id: string
+  status: string
+  payment_status: string
+  total_amount: number
+  created_at: string
+  source: string
+}
 
 export default function FinanceDashboard() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  useEffect(() => { loadOrders() }, [])
+  useEffect(() => {
+    loadOrders()
+  }, [])
 
   async function loadOrders() {
     setLoading(true)
@@ -39,7 +67,9 @@ export default function FinanceDashboard() {
 
   // Monthly revenue (12 months)
   const monthlyRevenue: Record<string, number> = {}
-  MONTHS_SHORT.forEach((m) => { monthlyRevenue[m] = 0 })
+  MONTHS_SHORT.forEach((m) => {
+    monthlyRevenue[m] = 0
+  })
   orders.forEach((o) => {
     if (o.payment_status === 'paid') {
       const d = new Date(o.created_at)
@@ -85,7 +115,7 @@ export default function FinanceDashboard() {
     { bucket: '<30 hari', amount: aging['<30'] },
     { bucket: '30-60 hari', amount: aging['30-60'] },
     { bucket: '60-90 hari', amount: aging['60-90'] },
-    { bucket: '>90 hari', amount: aging['>90'] },
+    { bucket: '>90 hari', amount: aging['>90'] }
   ]
 
   if (loading) {
@@ -109,7 +139,9 @@ export default function FinanceDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Total Piutang</div>
-              <div className="stat-card-value" style={{ color: '#16a34a' }}>{formatRp(piutangTotal)}</div>
+              <div className="stat-card-value" style={{ color: '#16a34a' }}>
+                {formatRp(piutangTotal)}
+              </div>
               <div className="stat-card-sub">{piutangOrders.length} pesanan belum lunas</div>
             </div>
             <div style={{ background: '#f0fdf4', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -122,7 +154,9 @@ export default function FinanceDashboard() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Total Pesanan</div>
-              <div className="stat-card-value" style={{ color: '#2563eb' }}>{orders.length}</div>
+              <div className="stat-card-value" style={{ color: '#2563eb' }}>
+                {orders.length}
+              </div>
               <div className="stat-card-sub">Semua status</div>
             </div>
             <div style={{ background: '#eff6ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -138,9 +172,12 @@ export default function FinanceDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div className="stat-card-label">Butuh Verifikasi Bayar</div>
-                  <div className="stat-card-value" style={{ color: '#dc2626' }}>{needsVerification.length}</div>
+                  <div className="stat-card-value" style={{ color: '#dc2626' }}>
+                    {needsVerification.length}
+                  </div>
                   <div className="stat-card-sub" style={{ color: '#991b1b' }}>
-                    {needsVerificationPaid.length} siap approve · {needsVerification.length - needsVerificationPaid.length} belum lunas
+                    {needsVerificationPaid.length} siap approve ·{' '}
+                    {needsVerification.length - needsVerificationPaid.length} belum lunas
                   </div>
                 </div>
                 <div style={{ background: '#fef2f2', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -153,22 +190,37 @@ export default function FinanceDashboard() {
       </div>
 
       {/* Charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '1.5rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         {/* Monthly Revenue Bar Chart */}
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <TrendingUp size={16} color="#cc7030" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Bulan ({currentYear})</h3>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+              Omzet per Bulan ({currentYear})
+            </h3>
           </div>
           {monthlyData.every((m) => m.revenue === 0) ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+            <div
+              style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}
+            >
+              Tidak ada data
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
+                <YAxis
+                  tick={{ fontSize: 11 }}
+                  tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
+                />
                 <Tooltip formatter={(v) => formatRp(v as number)} />
                 <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -180,15 +232,32 @@ export default function FinanceDashboard() {
         <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <PieChartIcon size={16} color="#2563eb" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Distribusi Status Bayar</h3>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+              Distribusi Status Bayar
+            </h3>
           </div>
           {paymentStatusData.length === 0 ? (
-            <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+            <div
+              style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}
+            >
+              Tidak ada data
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={paymentStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
-                  {paymentStatusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                <Pie
+                  data={paymentStatusData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                  labelLine={false}
+                >
+                  {paymentStatusData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
                 </Pie>
                 <Tooltip />
               </PieChart>

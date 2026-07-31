@@ -6,9 +6,9 @@ import { WashingMachine, CheckCircle2, Clock, PackageCheck } from 'lucide-react'
 import type { LaundryOrder } from '@/types'
 
 const STATUS_CONFIG = {
-  pending:    { label: 'Pending',    bg: '#fef3c7', text: '#92400e', icon: Clock },
-  in_progress: { label: 'Diproses',   bg: '#dbeafe', text: '#1e40af', icon: WashingMachine },
-  done:       { label: 'Selesai',    bg: '#d1fae5', text: '#065f46', icon: CheckCircle2 },
+  pending: { label: 'Pending', bg: '#fef3c7', text: '#92400e', icon: Clock },
+  in_progress: { label: 'Diproses', bg: '#dbeafe', text: '#1e40af', icon: WashingMachine },
+  done: { label: 'Selesai', bg: '#d1fae5', text: '#065f46', icon: CheckCircle2 }
 }
 
 export default function LaundryJobsPage() {
@@ -21,7 +21,9 @@ export default function LaundryJobsPage() {
 
   async function load() {
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
     const { data } = await supabase
       .from('laundry_orders')
       .select('*')
@@ -43,12 +45,21 @@ export default function LaundryJobsPage() {
     setUnassigned((data as LaundryOrder[]) ?? [])
   }
 
-  useEffect(() => { load() }, [])
-  useEffect(() => { loadUnassigned() }, [])
+  useEffect(() => {
+    load()
+  }, [])
+  useEffect(() => {
+    loadUnassigned()
+  }, [])
 
   async function selfAssign(id: string) {
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('laundry_orders').update({ assigned_to: user?.id ?? null }).eq('id', id)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    await supabase
+      .from('laundry_orders')
+      .update({ assigned_to: user?.id ?? null })
+      .eq('id', id)
     await loadUnassigned()
     load()
   }
@@ -63,20 +74,23 @@ export default function LaundryJobsPage() {
   async function completeWork(id: string) {
     if (!completedKg.trim()) return
     setSaving(id)
-    await supabase.from('laundry_orders').update({
-      status: 'done',
-      kg: Number(completedKg) || undefined,
-      completed_at: new Date().toISOString(),
-    }).eq('id', id)
+    await supabase
+      .from('laundry_orders')
+      .update({
+        status: 'done',
+        kg: Number(completedKg) || undefined,
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', id)
     setSaving(null)
     setShowDoneModal(null)
     setCompletedKg('')
     load()
   }
 
-  const pending = orders.filter(o => o.status === 'pending')
-  const inProgress = orders.filter(o => o.status === 'in_progress')
-  const done = orders.filter(o => o.status === 'done')
+  const pending = orders.filter((o) => o.status === 'pending')
+  const inProgress = orders.filter((o) => o.status === 'in_progress')
+  const done = orders.filter((o) => o.status === 'done')
 
   return (
     <div>
@@ -89,22 +103,50 @@ export default function LaundryJobsPage() {
         <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
           {/* Unassigned — self assign */}
           {unassigned.length > 0 && (
             <div>
               <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#7c3aed', marginBottom: '0.75rem' }}>
                 📋 Ambil Pesanan ({unassigned.length})
               </h3>
-              <div style={{ padding: '1rem', background: '#f5f3ff', border: '2px dashed #c4b5fd', borderRadius: '0.75rem' }}>
-                {unassigned.map(o => (
-                  <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #e9d5ff' }}>
+              <div
+                style={{
+                  padding: '1rem',
+                  background: '#f5f3ff',
+                  border: '2px dashed #c4b5fd',
+                  borderRadius: '0.75rem'
+                }}
+              >
+                {unassigned.map((o) => (
+                  <div
+                    key={o.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '0.75rem 0',
+                      borderBottom: '1px solid #e9d5ff'
+                    }}
+                  >
                     <div>
                       <div style={{ fontWeight: '600', color: '#1f2937' }}>{o.customer_name}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>{o.kg} kg{o.meter ? ` • ${o.meter}m` : ''}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                        {o.kg} kg{o.meter ? ` • ${o.meter}m` : ''}
+                      </div>
                     </div>
-                    <button onClick={() => selfAssign(o.id)}
-                      style={{ padding: '0.5rem 1rem', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    <button
+                      onClick={() => selfAssign(o.id)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        background: '#7c3aed',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '0.5rem',
+                        fontWeight: '600',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer'
+                      }}
+                    >
                       Ambil
                     </button>
                   </div>
@@ -119,18 +161,45 @@ export default function LaundryJobsPage() {
               ⏳ Pesanan Baru ({pending.length})
             </h3>
             {pending.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
+              <div
+                style={{
+                  padding: '2rem',
+                  textAlign: 'center',
+                  color: '#9ca3af',
+                  background: '#f9fafb',
+                  borderRadius: '0.75rem',
+                  border: '1px solid #e5e7eb'
+                }}
+              >
                 Tidak ada pesanan baru
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {pending.map(o => {
+                {pending.map((o) => {
                   const sc = STATUS_CONFIG[o.status]
                   return (
-                    <div key={o.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div
+                      key={o.id}
+                      style={{
+                        background: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '0.75rem',
+                        padding: '1.25rem'
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          flexWrap: 'wrap',
+                          gap: '0.75rem'
+                        }}
+                      >
                         <div>
-                          <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>{o.customer_name}</div>
+                          <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                            {o.customer_name}
+                          </div>
                           <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
                             {o.kg} kg{o.meter ? ` • ${o.meter}m` : ''} • {o.description || '—'}
                           </div>
@@ -142,7 +211,17 @@ export default function LaundryJobsPage() {
                           <button
                             onClick={() => startWork(o.id)}
                             disabled={saving === o.id}
-                            style={{ padding: '0.5rem 1rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
+                            style={{
+                              padding: '0.5rem 1rem',
+                              background: '#3b82f6',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '0.5rem',
+                              fontWeight: '600',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
                             {saving === o.id ? '...' : '▶ Mulai'}
                           </button>
                         </div>
@@ -160,24 +239,64 @@ export default function LaundryJobsPage() {
               🧺 Sedang Diproses ({inProgress.length})
             </h3>
             {inProgress.length === 0 ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#eff6ff', borderRadius: '0.75rem', border: '1px solid #bfdbfe' }}>
+              <div
+                style={{
+                  padding: '2rem',
+                  textAlign: 'center',
+                  color: '#9ca3af',
+                  background: '#eff6ff',
+                  borderRadius: '0.75rem',
+                  border: '1px solid #bfdbfe'
+                }}
+              >
                 Tidak ada yang sedang diproses
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {inProgress.map(o => (
-                  <div key={o.id} style={{ background: '#fff', border: '1px solid #bfdbfe', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                {inProgress.map((o) => (
+                  <div
+                    key={o.id}
+                    style={{
+                      background: '#fff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '0.75rem',
+                      padding: '1.25rem'
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                        flexWrap: 'wrap',
+                        gap: '0.75rem'
+                      }}
+                    >
                       <div>
-                        <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>{o.customer_name}</div>
+                        <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                          {o.customer_name}
+                        </div>
                         <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
                           {o.kg} kg{o.meter ? ` • ${o.meter}m` : ''} • {o.description || '—'}
                         </div>
                       </div>
                       <button
-                        onClick={() => { setShowDoneModal(o); setCompletedKg(String(o.kg)) }}
+                        onClick={() => {
+                          setShowDoneModal(o)
+                          setCompletedKg(String(o.kg))
+                        }}
                         disabled={saving === o.id}
-                        style={{ padding: '0.5rem 1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#16a34a',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '0.5rem',
+                          fontWeight: '600',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer'
+                        }}
+                      >
                         {saving === o.id ? '...' : '✓ Selesai'}
                       </button>
                     </div>
@@ -194,13 +313,24 @@ export default function LaundryJobsPage() {
                 ✅ Selesai ({done.length})
               </h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {done.map(o => (
-                  <div key={o.id} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                {done.map((o) => (
+                  <div
+                    key={o.id}
+                    style={{
+                      background: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      borderRadius: '0.75rem',
+                      padding: '1.25rem'
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: '600', color: '#166534', marginBottom: '0.25rem' }}>{o.customer_name}</div>
+                        <div style={{ fontWeight: '600', color: '#166534', marginBottom: '0.25rem' }}>
+                          {o.customer_name}
+                        </div>
                         <div style={{ fontSize: '0.8rem', color: '#16a34a' }}>
-                          {o.kg} kg • Selesai: {o.completed_at ? new Date(o.completed_at).toLocaleDateString('id-ID') : '-'}
+                          {o.kg} kg • Selesai:{' '}
+                          {o.completed_at ? new Date(o.completed_at).toLocaleDateString('id-ID') : '-'}
                         </div>
                       </div>
                       <PackageCheck size={20} color="#16a34a" />
@@ -215,25 +345,98 @@ export default function LaundryJobsPage() {
 
       {/* Done Confirmation Modal */}
       {showDoneModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={e => { if (e.target === e.currentTarget) { setShowDoneModal(null); setCompletedKg('') } }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 400, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDoneModal(null)
+              setCompletedKg('')
+            }
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '0.875rem',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 400,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Konfirmasi Selesai</h2>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
               Berat aktual untuk <strong>{showDoneModal.customer_name}</strong>:
             </p>
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Berat Final (kg)</label>
-              <input type="number" step="0.01" min="0" value={completedKg}
-                onChange={e => setCompletedKg(e.target.value)}
-                style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Berat Final (kg)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={completedKg}
+                onChange={(e) => setCompletedKg(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
             </div>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={() => { setShowDoneModal(null); setCompletedKg('') }}
-                style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-              <button onClick={() => completeWork(showDoneModal.id)}
+              <button
+                onClick={() => {
+                  setShowDoneModal(null)
+                  setCompletedKg('')
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={() => completeWork(showDoneModal.id)}
                 disabled={saving === showDoneModal.id || !completedKg.trim()}
-                style={{ flex: 1, padding: '0.75rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600' }}>
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: '#16a34a',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
                 {saving === showDoneModal.id ? 'Menyimpan...' : '✓ Selesai'}
               </button>
             </div>

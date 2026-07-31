@@ -11,11 +11,11 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   ready: ['payment_ok', 'cancelled'],
   packed: ['shipped', 'scheduled', 'cancelled'], // V3: 'scheduled' untuk alur pasang
   shipped: ['done'],
-  scheduled: ['installing', 'cancelled'],         // V3: alur pasang
-  installing: ['done', 'cancelled'],                // V3: alur pasang
+  scheduled: ['installing', 'cancelled'], // V3: alur pasang
+  installing: ['done', 'cancelled'], // V3: alur pasang
   done: [],
   returned: [],
-  cancelled: [],
+  cancelled: []
 }
 
 // Role-based permissions for status transitions
@@ -28,14 +28,10 @@ const ROLE_STATUS_PERMISSIONS: Record<string, string[]> = {
   finance: ['ready->payment_ok', 'payment_ok->packed'],
   admin: ['packed->scheduled'], // V3: admin bisa input jadwal pasang
   gudang: ['production->steam', 'steam->production'],
-  installer: ['packed->shipped', 'scheduled->installing', 'installing->done'],
+  installer: ['packed->shipped', 'scheduled->installing', 'installing->done']
 }
 
-function isStatusTransitionAllowed(
-  fromStatus: string,
-  toStatus: string,
-  userRole: string
-): boolean {
+function isStatusTransitionAllowed(fromStatus: string, toStatus: string, userRole: string): boolean {
   // Admin can do all transitions (except cancel which is always allowed)
   if (userRole === 'admin' || userRole === 'owner') return true
 
@@ -57,7 +53,9 @@ function isStatusTransitionAllowed(
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { data, error } = await supabase
@@ -74,22 +72,26 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   // Get requester role
-  const { data: requester } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
 
   const userRole = requester?.role ?? 'admin'
   const body = await request.json()
 
   // Validate status transition if status is being changed
   if (body.status) {
-    const { data: current } = await supabase.from('orders').select('status, payment_status, total_amount, dp_amount, lunas_amount, classification, customer_id, scheduled_installation_date').eq('id', id).single()
+    const { data: current } = await supabase
+      .from('orders')
+      .select(
+        'status, payment_status, total_amount, dp_amount, lunas_amount, classification, customer_id, scheduled_installation_date'
+      )
+      .eq('id', id)
+      .single()
 
     if (!current) {
       return NextResponse.json({ data: null, error: { message: 'Order not found' } }, { status: 404 })
@@ -100,7 +102,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
     if (photoEvidence.length === 0) {
       return NextResponse.json(
-        { data: null, error: { message: 'Wajib upload minimal 1 foto bukti pengerjaan (accountability). Field: photo_urls atau progress_photos.' } },
+        {
+          data: null,
+          error: {
+            message:
+              'Wajib upload minimal 1 foto bukti pengerjaan (accountability). Field: photo_urls atau progress_photos.'
+          }
+        },
         { status: 400 }
       )
     }
@@ -108,7 +116,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Check role-based permission for this transition
     if (!isStatusTransitionAllowed(current.status, body.status, userRole)) {
       return NextResponse.json(
-        { data: null, error: { message: `Role "${userRole}" tidak memiliki permission untuk mengubah status dari "${current.status}" ke "${body.status}"` } },
+        {
+          data: null,
+          error: {
+            message: `Role "${userRole}" tidak memiliki permission untuk mengubah status dari "${current.status}" ke "${body.status}"`
+          }
+        },
         { status: 403 }
       )
     }
@@ -116,7 +129,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const allowed = VALID_STATUS_TRANSITIONS[current.status] ?? []
     if (!allowed.includes(body.status)) {
       return NextResponse.json(
-        { data: null, error: { message: `Invalid status transition from "${current.status}" to "${body.status}". Allowed: ${allowed.join(', ') || 'none'}` } },
+        {
+          data: null,
+          error: {
+            message: `Invalid status transition from "${current.status}" to "${body.status}". Allowed: ${allowed.join(', ') || 'none'}`
+          }
+        },
         { status: 400 }
       )
     }
@@ -148,21 +166,25 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           .from('order_items')
           .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
           .eq('order_id', id)
-        const totalMeterGorden    = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_gorden ?? i.meter ?? 0), 0)
-        const totalMeterVitras    = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
-        const totalMeterRoman     = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
-        const totalMeterKupuKupu  = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0), 0)
+        const totalMeterGorden = (orderItems ?? []).reduce(
+          (s: number, i: any) => s + Number(i.meter_gorden ?? i.meter ?? 0),
+          0
+        )
+        const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
+        const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+        const totalMeterKupuKupu = (orderItems ?? []).reduce(
+          (s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0),
+          0
+        )
 
-        const { error: jobErr } = await supabase
-          .from('production_jobs')
-          .insert({
-            order_id: id,
-            meter_gorden: totalMeterGorden,
-            meter_vitras: totalMeterVitras,
-            meter_roman: totalMeterRoman,
-            meter_kupu_kupu: totalMeterKupuKupu,
-            status: 'waiting',
-          })
+        const { error: jobErr } = await supabase.from('production_jobs').insert({
+          order_id: id,
+          meter_gorden: totalMeterGorden,
+          meter_vitras: totalMeterVitras,
+          meter_roman: totalMeterRoman,
+          meter_kupu_kupu: totalMeterKupuKupu,
+          status: 'waiting'
+        })
 
         if (jobErr) {
           return NextResponse.json(
@@ -202,7 +224,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         .eq('order_id', id)
         .order('revision_round', { ascending: false })
         .limit(1)
-      const nextRound = ((priorRevisions?.[0]?.revision_round ?? -1)) + 1
+      const nextRound = (priorRevisions?.[0]?.revision_round ?? -1) + 1
 
       // Create new production_job for re-do
       const { data: newJob, error: newJobErr } = await supabase
@@ -213,7 +235,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           status: 'waiting',
           revision_of: latestSteamJob?.production_job_id ?? null,
           revision_round: nextRound,
-          revision_reason: latestSteamJob?.fail_reason ?? 'Steam QC revision',
+          revision_reason: latestSteamJob?.fail_reason ?? 'Steam QC revision'
         })
         .select('id')
         .single()
@@ -226,12 +248,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
 
       // Log the revision re-queue
-      const { data: { user: authUser } } = await supabase.auth.getUser()
+      const {
+        data: { user: authUser }
+      } = await supabase.auth.getUser()
       await supabase.from('order_logs').insert({
         order_id: id,
         action: 'steam_revision_requeue',
         notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${latestSteamJob?.fail_reason ?? 'n/a'}. Job revisi: ${newJob.id.slice(0, 8)}`,
-        staff_id: authUser?.id ?? null,
+        staff_id: authUser?.id ?? null
       })
     }
 
@@ -241,7 +265,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (body.status === 'scheduled' && current.status === 'packed') {
       if (current.classification !== 'pasang') {
         return NextResponse.json(
-          { data: null, error: { message: `Hanya order classification='pasang' yang bisa ke status 'scheduled'. Order ini classification='${current.classification}'.` } },
+          {
+            data: null,
+            error: {
+              message: `Hanya order classification='pasang' yang bisa ke status 'scheduled'. Order ini classification='${current.classification}'.`
+            }
+          },
           { status: 400 }
         )
       }
@@ -277,7 +306,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             address: defaultAddress,
             scheduled_date: current.scheduled_installation_date ?? null,
             scheduled_time: null,
-            notes: 'Auto-created oleh sistem saat order masuk stage scheduled. Silakan Admin assign installer & tanggal.',
+            notes:
+              'Auto-created oleh sistem saat order masuk stage scheduled. Silakan Admin assign installer & tanggal.'
           })
           .select('id')
           .single()
@@ -290,12 +320,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }
 
         // Log ke order_logs
-        const { data: { user: authUserBooking } } = await supabase.auth.getUser()
+        const {
+          data: { user: authUserBooking }
+        } = await supabase.auth.getUser()
         await supabase.from('order_logs').insert({
           order_id: id,
           action: 'install_started',
           notes: `Order masuk stage 'scheduled' → install_bookings auto-created (id: ${newBooking.id.slice(0, 8)}, status: pending). Admin perlu assign installer + tanggal.`,
-          staff_id: authUserBooking?.id ?? null,
+          staff_id: authUserBooking?.id ?? null
         })
       }
     }
@@ -309,20 +341,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   // RBAC: only admin/owner can hard-delete. Other roles should use 'cancelled' status instead.
-  const { data: requester } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
   const userRole = requester?.role ?? 'admin'
 
   if (userRole !== 'admin' && userRole !== 'owner') {
     return NextResponse.json(
-      { data: null, error: { message: `Role "${userRole}" tidak punya permission untuk hard-delete order. Gunakan status 'cancelled' sebagai gantinya.` } },
+      {
+        data: null,
+        error: {
+          message: `Role "${userRole}" tidak punya permission untuk hard-delete order. Gunakan status 'cancelled' sebagai gantinya.`
+        }
+      },
       { status: 403 }
     )
   }
@@ -332,7 +367,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     order_id: id,
     action: 'order_deleted',
     notes: `Order dihapus oleh ${userRole} (${user.id})`,
-    staff_id: user.id,
+    staff_id: user.id
   })
 
   const { error } = await supabase.from('orders').delete().eq('id', id)

@@ -18,11 +18,16 @@ const COLORS = ['#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#f59e0b'
 export default function OwnerMarketplacePage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<{ month: number; year: number }>({ month: new Date().getMonth() + 1, year: new Date().getFullYear() })
+  const [period, setPeriod] = useState<{ month: number; year: number }>({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear()
+  })
 
   const supabase = createClient()
 
-  useEffect(() => { loadOrders() }, [period])
+  useEffect(() => {
+    loadOrders()
+  }, [period])
 
   async function loadOrders() {
     setLoading(true)
@@ -36,11 +41,24 @@ export default function OwnerMarketplacePage() {
     setLoading(false)
   }
 
-  const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+  const MONTHS = [
+    'Januari',
+    'Februari',
+    'Maret',
+    'April',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
+    'September',
+    'Oktober',
+    'November',
+    'Desember'
+  ]
 
   // Breakdown
   const sourceStats: Record<string, { count: number; revenue: number }> = {}
-  orders.forEach(o => {
+  orders.forEach((o) => {
     const src = o.source ?? 'offline'
     if (!sourceStats[src]) sourceStats[src] = { count: 0, revenue: 0 }
     sourceStats[src].count++
@@ -54,7 +72,8 @@ export default function OwnerMarketplacePage() {
   const totalRevenue = Object.values(sourceStats).reduce((s, v) => s + v.revenue, 0)
   const totalOrders = orders.length
 
-  const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+  const formatRp = (n: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
   return (
     <div>
@@ -67,17 +86,39 @@ export default function OwnerMarketplacePage() {
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <select
           value={period.month}
-          onChange={e => setPeriod(p => ({ ...p, month: Number(e.target.value) }))}
-          style={{ padding: '0.625rem 1rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}
+          onChange={(e) => setPeriod((p) => ({ ...p, month: Number(e.target.value) }))}
+          style={{
+            padding: '0.625rem 1rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            outline: 'none',
+            background: '#fff'
+          }}
         >
-          {MONTHS.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+          {MONTHS.map((m, i) => (
+            <option key={i + 1} value={i + 1}>
+              {m}
+            </option>
+          ))}
         </select>
         <select
           value={period.year}
-          onChange={e => setPeriod(p => ({ ...p, year: Number(e.target.value) }))}
-          style={{ padding: '0.625rem 1rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}
+          onChange={(e) => setPeriod((p) => ({ ...p, year: Number(e.target.value) }))}
+          style={{
+            padding: '0.625rem 1rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            outline: 'none',
+            background: '#fff'
+          }}
         >
-          {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+          {[2024, 2025, 2026].map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -85,7 +126,9 @@ export default function OwnerMarketplacePage() {
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
         <div className="stat-card">
           <div className="stat-card-label">Total Revenue</div>
-          <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
+          <div className="stat-card-value" style={{ color: '#cc7030' }}>
+            {formatRp(totalRevenue)}
+          </div>
           <div className="stat-card-sub">{totalOrders} pesanan</div>
         </div>
         <div className="stat-card">
@@ -95,8 +138,12 @@ export default function OwnerMarketplacePage() {
         </div>
         {topSources.slice(0, 3).map((src, i) => (
           <div key={src.source} className="stat-card">
-            <div className="stat-card-label">{SOURCE_LABELS[src.source as keyof typeof SOURCE_LABELS] ?? src.source}</div>
-            <div className="stat-card-value" style={{ color: COLORS[i % COLORS.length] }}>{formatRp(src.revenue)}</div>
+            <div className="stat-card-label">
+              {SOURCE_LABELS[src.source as keyof typeof SOURCE_LABELS] ?? src.source}
+            </div>
+            <div className="stat-card-value" style={{ color: COLORS[i % COLORS.length] }}>
+              {formatRp(src.revenue)}
+            </div>
             <div className="stat-card-sub">{src.count} pesanan</div>
           </div>
         ))}
@@ -133,12 +180,20 @@ export default function OwnerMarketplacePage() {
                   <tr key={src.source}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{
-                          width: 28, height: 28, borderRadius: '0.375rem',
-                          background: COLORS[i % COLORS.length],
-                          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.7rem', fontWeight: '700'
-                        }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: '0.375rem',
+                            background: COLORS[i % COLORS.length],
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.7rem',
+                            fontWeight: '700'
+                          }}
+                        >
                           {i + 1}
                         </div>
                         <span style={{ fontWeight: '600' }}>
@@ -149,7 +204,15 @@ export default function OwnerMarketplacePage() {
                     <td style={{ color: '#6b7280' }}>{src.count}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030' }}>{formatRp(src.revenue)}</td>
                     <td>
-                      <span style={{ background: '#f3f4f6', padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '600' }}>
+                      <span
+                        style={{
+                          background: '#f3f4f6',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}
+                      >
                         {totalRevenue > 0 ? ((src.revenue / totalRevenue) * 100).toFixed(1) : 0}%
                       </span>
                     </td>

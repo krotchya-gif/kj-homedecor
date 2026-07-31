@@ -41,7 +41,9 @@ export default function InstallerReportsPage() {
 
   async function loadBookings() {
     setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
 
     let dateFilter: string | undefined
     const now = new Date()
@@ -54,7 +56,9 @@ export default function InstallerReportsPage() {
 
     let query = supabase
       .from('install_bookings')
-      .select('*, order:orders(id, total_amount, customer:customers(name, phone), order_items:order_items(qty, product:products(name), meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu))')
+      .select(
+        '*, order:orders(id, total_amount, customer:customers(name, phone), order_items:order_items(qty, product:products(name), meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu))'
+      )
       .eq('installer_id', user?.id ?? '')
       .eq('status', 'done')
       .order('actual_date', { ascending: false })
@@ -63,7 +67,7 @@ export default function InstallerReportsPage() {
     let filtered = data ?? []
 
     if (dateFilter) {
-      filtered = filtered.filter(b => b.actual_date?.startsWith(dateFilter!))
+      filtered = filtered.filter((b) => b.actual_date?.startsWith(dateFilter!))
     }
 
     setBookings(filtered)
@@ -89,14 +93,16 @@ export default function InstallerReportsPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Nilai Order</div>
-          <div className="stat-card-value" style={{ color: '#cc7030' }}>{formatRp(totalRevenue)}</div>
+          <div className="stat-card-value" style={{ color: '#cc7030' }}>
+            {formatRp(totalRevenue)}
+          </div>
           <div className="stat-card-sub">Total nilai pesanan</div>
         </div>
       </div>
 
       {/* Period Filter */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-        {(['all', 'this_month', 'last_month'] as const).map(p => (
+        {(['all', 'this_month', 'last_month'] as const).map((p) => (
           <button
             key={p}
             onClick={() => setPeriod(p)}
@@ -109,7 +115,7 @@ export default function InstallerReportsPage() {
               color: period === p ? '#fff' : '#374151',
               fontSize: '0.8rem',
               fontWeight: '600',
-              cursor: 'pointer',
+              cursor: 'pointer'
             }}
           >
             {p === 'all' ? 'Semua' : p === 'this_month' ? 'Bulan Ini' : 'Bulan Lalu'}
@@ -138,18 +144,22 @@ export default function InstallerReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {bookings.map(b => {
+              {bookings.map((b) => {
                 const items = b.order?.order_items ?? []
                 const productNames = items.map((i: any) => i.product?.name ?? 'Produk').filter(Boolean)
                 return (
                   <tr key={b.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>
-                        {b.actual_date ? new Date(b.actual_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                        {b.actual_date
+                          ? new Date(b.actual_date).toLocaleDateString('id-ID', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })
+                          : '—'}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
-                        {b.scheduled_date}
-                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{b.scheduled_date}</div>
                     </td>
                     <td>
                       <div style={{ fontWeight: '500' }}>{b.order?.customer?.name ?? '—'}</div>
@@ -164,22 +174,20 @@ export default function InstallerReportsPage() {
                         </a>
                       )}
                     </td>
-                    <td style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                      {b.address || '—'}
-                    </td>
+                    <td style={{ fontSize: '0.85rem', color: '#6b7280' }}>{b.address || '—'}</td>
                     <td>
                       <div style={{ fontSize: '0.8rem' }}>
                         {productNames.length > 0 ? productNames.slice(0, 2).join(', ') : '—'}
-                        {productNames.length > 2 && <span style={{ color: '#9ca3af' }}> +{productNames.length - 2}</span>}
+                        {productNames.length > 2 && (
+                          <span style={{ color: '#9ca3af' }}> +{productNames.length - 2}</span>
+                        )}
                       </div>
                       <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: '0.25rem' }}>
-                        {items.length} item •{' '}
-                        {items.reduce((sum: number, i: any) => sum + (i.meter_gorden ?? 0), 0)}m gorden
+                        {items.length} item • {items.reduce((sum: number, i: any) => sum + (i.meter_gorden ?? 0), 0)}m
+                        gorden
                       </div>
                     </td>
-                    <td style={{ fontWeight: '600', color: '#cc7030' }}>
-                      {formatRp(b.order?.total_amount ?? 0)}
-                    </td>
+                    <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(b.order?.total_amount ?? 0)}</td>
                   </tr>
                 )
               })}

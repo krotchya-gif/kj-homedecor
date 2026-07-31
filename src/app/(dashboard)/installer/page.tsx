@@ -2,9 +2,27 @@ import Link from 'next/link'
 import { Calendar, CheckCircle2, BarChart3 } from 'lucide-react'
 
 const MODULES = [
-  { title: 'Jadwal', desc: 'Jadwal pemasangan yang ditugaskan', href: '/installer/schedule', icon: <Calendar size={20} />, color: 'blue' },
-  { title: 'Checklist', desc: 'Checklist pemasangan per job', href: '/installer/checklist', icon: <CheckCircle2 size={20} />, color: 'green' },
-  { title: 'Laporan', desc: 'Riwayat instalasi selesai', href: '/installer/reports', icon: <BarChart3 size={20} />, color: 'orange' },
+  {
+    title: 'Jadwal',
+    desc: 'Jadwal pemasangan yang ditugaskan',
+    href: '/installer/schedule',
+    icon: <Calendar size={20} />,
+    color: 'blue'
+  },
+  {
+    title: 'Checklist',
+    desc: 'Checklist pemasangan per job',
+    href: '/installer/checklist',
+    icon: <CheckCircle2 size={20} />,
+    color: 'green'
+  },
+  {
+    title: 'Laporan',
+    desc: 'Riwayat instalasi selesai',
+    href: '/installer/reports',
+    icon: <BarChart3 size={20} />,
+    color: 'orange'
+  }
 ]
 
 export default function InstallerDashboard() {

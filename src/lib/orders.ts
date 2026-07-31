@@ -14,29 +14,8 @@ import type { OrderClassification, OrderStatus } from '@/types'
  */
 
 export const ORDER_STAGES_BY_CLASSIFICATION: Record<OrderClassification, readonly OrderStatus[]> = {
-  kirim: [
-    'new',
-    'sorted',
-    'production',
-    'steam',
-    'ready',
-    'payment_ok',
-    'packed',
-    'shipped',
-    'done',
-  ],
-  pasang: [
-    'new',
-    'sorted',
-    'production',
-    'steam',
-    'ready',
-    'payment_ok',
-    'packed',
-    'scheduled',
-    'installing',
-    'done',
-  ],
+  kirim: ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'shipped', 'done'],
+  pasang: ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'scheduled', 'installing', 'done']
 }
 
 /**
@@ -47,20 +26,17 @@ export const ORDER_STAGES_BY_CLASSIFICATION: Record<OrderClassification, readonl
  * accountability + audit trail yang lebih kuat.
  */
 export const PHOTO_REQUIRED_STAGES: readonly OrderStatus[] = [
-  'sorted',     // foto barang pesanan
-  'steam',      // foto hasil QC jahitan
-  'shipped',    // foto + resi (kirim flow)
-  'scheduled',  // foto jadwal + alamat pasang (pasang flow)
+  'sorted', // foto barang pesanan
+  'steam', // foto hasil QC jahitan
+  'shipped', // foto + resi (kirim flow)
+  'scheduled' // foto jadwal + alamat pasang (pasang flow)
 ] as const
 
 /**
  * Get the next stage in pipeline for given classification.
  * Returns null if currentStage is the last stage.
  */
-export function getNextStage(
-  currentStage: OrderStatus,
-  classification: OrderClassification
-): OrderStatus | null {
+export function getNextStage(currentStage: OrderStatus, classification: OrderClassification): OrderStatus | null {
   const stages = ORDER_STAGES_BY_CLASSIFICATION[classification]
   const idx = stages.indexOf(currentStage)
   if (idx === -1 || idx === stages.length - 1) return null
@@ -78,10 +54,7 @@ export function isPhotoRequired(stage: OrderStatus): boolean {
  * Get human-readable label untuk next stage button.
  * Mis. "Input Resi" untuk kirim packed->shipped, "Jadwalkan Pasang" untuk pasang packed->scheduled.
  */
-export function getNextStageButtonLabel(
-  currentStage: OrderStatus,
-  classification: OrderClassification
-): string {
+export function getNextStageButtonLabel(currentStage: OrderStatus, classification: OrderClassification): string {
   if (currentStage === 'packed' && classification === 'kirim') return 'Input Resi'
   if (currentStage === 'packed' && classification === 'pasang') return 'Jadwalkan Pasang'
   if (currentStage === 'ready') return 'QC Pass'

@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
+  DialogFooter
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 
@@ -36,9 +36,12 @@ interface LaundryRecord {
   date: string
 }
 
-const fmt = (n: number) => new Intl.NumberFormat('id-ID', {
-  style: 'currency', currency: 'IDR', maximumFractionDigits: 0
-}).format(n)
+const fmt = (n: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(n)
 
 export default function GudangSteamPage() {
   const [tab, setTab] = useState<'laundry' | 'steam'>('laundry')
@@ -54,7 +57,7 @@ export default function GudangSteamPage() {
     kg: '',
     meter: '',
     description: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: new Date().toISOString().slice(0, 10)
   })
 
   // Steam QC state
@@ -70,10 +73,7 @@ export default function GudangSteamPage() {
   const [steamFailPhoto, setSteamFailPhoto] = useState<string | null>(null)
   const [uploadingSteamPhoto, setUploadingSteamPhoto] = useState(false)
 
-  async function handleSteamPhotoUpload(
-    e: React.ChangeEvent<HTMLInputElement>,
-    target: 'pass' | 'fail'
-  ) {
+  async function handleSteamPhotoUpload(e: React.ChangeEvent<HTMLInputElement>, target: 'pass' | 'fail') {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingSteamPhoto(true)
@@ -92,10 +92,7 @@ export default function GudangSteamPage() {
 
   async function loadLaundry() {
     setLaundryLoading(true)
-    const { data } = await supabase
-      .from('laundry_records')
-      .select('*')
-      .order('date', { ascending: false })
+    const { data } = await supabase.from('laundry_records').select('*').order('date', { ascending: false })
     setLaundryRecords((data as LaundryRecord[]) ?? [])
     setLaundryLoading(false)
   }
@@ -117,7 +114,9 @@ export default function GudangSteamPage() {
       .channel('gudang-steam')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'steam_jobs' }, () => loadSteam())
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   async function handleLaundrySave(e: React.FormEvent) {
@@ -128,11 +127,17 @@ export default function GudangSteamPage() {
       customer_name: laundryForm.customer_name,
       kg: Number(laundryForm.kg) || 0,
       meter: Number(laundryForm.meter) || 0,
-      description: laundryForm.description || null,
+      description: laundryForm.description || null
     })
     setLaundrySaving(false)
     setShowLaundryForm(false)
-    setLaundryForm({ customer_name: '', kg: '', meter: '', description: '', date: new Date().toISOString().slice(0, 10) })
+    setLaundryForm({
+      customer_name: '',
+      kg: '',
+      meter: '',
+      description: '',
+      date: new Date().toISOString().slice(0, 10)
+    })
     loadLaundry()
   }
 
@@ -143,27 +148,32 @@ export default function GudangSteamPage() {
       return
     }
     setPassSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('steam_jobs').update({
-      status: 'done',
-      result: 'pass',
-      completed_at: new Date().toISOString(),
-      checked_by: user?.id ?? null,
-    }).eq('id', job.id)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    await supabase
+      .from('steam_jobs')
+      .update({
+        status: 'done',
+        result: 'pass',
+        completed_at: new Date().toISOString(),
+        checked_by: user?.id ?? null
+      })
+      .eq('id', job.id)
     // V3: insert order_progress_photos dengan stage='steam' (V3 foto bukti)
     await supabase.from('order_progress_photos').insert({
       order_id: job.order_id,
       stage: 'steam',
       photo_url: steamPassPhoto,
       uploaded_by: user?.id ?? null,
-      notes: `Steam QC Pass — foto bukti hasil pengerjaan (V3)`,
+      notes: `Steam QC Pass — foto bukti hasil pengerjaan (V3)`
     })
     // Log
     await supabase.from('order_logs').insert({
       order_id: job.order_id,
       action: 'steam_qc_pass',
       notes: `Steam/QC Passed oleh Gudang`,
-      staff_id: user?.id ?? null,
+      staff_id: user?.id ?? null
     })
 
     // Pipeline baru: auto-advance dihapus. Gudang/Admin harus klik manual di order detail
@@ -184,7 +194,9 @@ export default function GudangSteamPage() {
       return
     }
     setFailSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
     const steamJobId = showFailModal.id
     const orderId = showFailModal.order_id
     const failReasonText = failReason
@@ -195,16 +207,19 @@ export default function GudangSteamPage() {
       stage: 'steam',
       photo_url: steamFailPhoto,
       uploaded_by: user?.id ?? null,
-      notes: `Steam QC Fail — foto bukti (V3). Alasan: ${failReasonText}`,
+      notes: `Steam QC Fail — foto bukti (V3). Alasan: ${failReasonText}`
     })
 
     // 1. Mark steam_job as revision (audit trail)
-    await supabase.from('steam_jobs').update({
-      status: 'revision',
-      result: 'fail',
-      fail_reason: failReasonText,
-      checked_by: user?.id ?? null,
-    }).eq('id', steamJobId)
+    await supabase
+      .from('steam_jobs')
+      .update({
+        status: 'revision',
+        result: 'fail',
+        fail_reason: failReasonText,
+        checked_by: user?.id ?? null
+      })
+      .eq('id', steamJobId)
 
     // 2. Get original production_job to preserve penjahit_id
     let originalPenjahitId: string | null = null
@@ -224,7 +239,7 @@ export default function GudangSteamPage() {
       .eq('order_id', orderId)
       .order('revision_round', { ascending: false })
       .limit(1)
-    const nextRound = ((priorRevisions?.[0]?.revision_round ?? -1)) + 1
+    const nextRound = (priorRevisions?.[0]?.revision_round ?? -1) + 1
 
     // 4. INSERT new production_job for re-do
     const { data: newJob, error: newJobErr } = await supabase
@@ -235,7 +250,7 @@ export default function GudangSteamPage() {
         status: 'waiting',
         revision_of: showFailModal.production_job_id ?? null,
         revision_round: nextRound,
-        revision_reason: failReasonText,
+        revision_reason: failReasonText
       })
       .select('id')
       .single()
@@ -255,7 +270,7 @@ export default function GudangSteamPage() {
       order_id: orderId,
       action: 'steam_revision_requeue',
       notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${failReasonText}. Job revisi: ${newJob.id.slice(0, 8)}`,
-      staff_id: user?.id ?? null,
+      staff_id: user?.id ?? null
     })
 
     setFailSaving(false)
@@ -265,21 +280,30 @@ export default function GudangSteamPage() {
     loadSteam()
   }
 
-  const steamPending = steamJobs.filter(j => j.status === 'pending')
-  const steamRevision = steamJobs.filter(j => j.status === 'revision')
-  const steamDone = steamJobs.filter(j => j.status === 'done')
+  const steamPending = steamJobs.filter((j) => j.status === 'pending')
+  const steamRevision = steamJobs.filter((j) => j.status === 'revision')
+  const steamDone = steamJobs.filter((j) => j.status === 'done')
 
   return (
     <div>
       <div className="page-header">
         <h1 className="page-title">Steam & QC Jahitan Penjahit</h1>
-        <p className="page-subtitle">QC jahitan penjahit setelah mereka submit laporan produksi. <strong>Bukan</strong> untuk QC per-item pesanan (lihat <a href="/gudang/qc" style={{color:'#cc7030'}}>QC Per-Item & Retur</a>).</p>
+        <p className="page-subtitle">
+          QC jahitan penjahit setelah mereka submit laporan produksi. <strong>Bukan</strong> untuk QC per-item pesanan
+          (lihat{' '}
+          <a href="/gudang/qc" style={{ color: '#cc7030' }}>
+            QC Per-Item & Retur
+          </a>
+          ).
+        </p>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
-        {(['laundry', 'steam'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
+        {(['laundry', 'steam'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
             style={{
               padding: '0.75rem 1.5rem',
               background: 'none',
@@ -290,8 +314,9 @@ export default function GudangSteamPage() {
               color: tab === t ? '#cc7030' : '#6b7280',
               fontSize: '0.9rem',
               marginBottom: '-2px',
-              transition: 'all 0.15s',
-            }}>
+              transition: 'all 0.15s'
+            }}
+          >
             {t === 'laundry' ? '🧺 Laundry' : '♨️ QC Jahitan (Steam)'}
           </button>
         ))}
@@ -301,8 +326,22 @@ export default function GudangSteamPage() {
       {tab === 'laundry' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-            <button onClick={() => setShowLaundryForm(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+            <button
+              onClick={() => setShowLaundryForm(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
               <Plus size={16} /> Input Laundry
             </button>
           </div>
@@ -318,12 +357,20 @@ export default function GudangSteamPage() {
             ) : (
               <table>
                 <thead>
-                  <tr><th>Tanggal</th><th>Nama Pelanggan</th><th>Kg</th><th>Meter</th><th>Keterangan</th></tr>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th>Nama Pelanggan</th>
+                    <th>Kg</th>
+                    <th>Meter</th>
+                    <th>Keterangan</th>
+                  </tr>
                 </thead>
                 <tbody>
-                  {laundryRecords.map(r => (
+                  {laundryRecords.map((r) => (
                     <tr key={r.id}>
-                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{new Date(r.date).toLocaleDateString('id-ID')}</td>
+                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                        {new Date(r.date).toLocaleDateString('id-ID')}
+                      </td>
                       <td style={{ fontWeight: '500' }}>{r.customer_name}</td>
                       <td>{r.kg > 0 ? `${r.kg.toFixed(2)} kg` : '—'}</td>
                       <td>{r.meter > 0 ? `${r.meter.toFixed(2)} m` : '—'}</td>
@@ -344,38 +391,92 @@ export default function GudangSteamPage() {
             <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-
               {/* Menunggu QC */}
               <div>
                 <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151', marginBottom: '0.75rem' }}>
                   ⏳ Menunggu QC Jahitan ({steamPending.length})
                 </h3>
                 {steamPending.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
+                  <div
+                    style={{
+                      padding: '2rem',
+                      textAlign: 'center',
+                      color: '#9ca3af',
+                      background: '#f9fafb',
+                      borderRadius: '0.75rem',
+                      border: '1px solid #e5e7eb'
+                    }}
+                  >
                     Tidak ada job yang menunggu QC jahitan
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {steamPending.map(job => (
-                      <div key={job.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    {steamPending.map((job) => (
+                      <div
+                        key={job.id}
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '0.75rem',
+                          padding: '1.25rem'
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            flexWrap: 'wrap',
+                            gap: '0.75rem'
+                          }}
+                        >
                           <div>
                             <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
                               {job.order?.customer?.name ?? 'Tanpa Nama'}
                             </div>
                             <div style={{ fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace' }}>
-                              Order #{job.order_id?.slice(0, 8)} • {new Date(job.created_at).toLocaleDateString('id-ID')}
+                              Order #{job.order_id?.slice(0, 8)} •{' '}
+                              {new Date(job.created_at).toLocaleDateString('id-ID')}
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
                               onClick={() => setShowPassDialog(job)}
-                              style={{ padding: '0.5rem 1rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              style={{
+                                padding: '0.5rem 1rem',
+                                background: '#16a34a',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '0.5rem',
+                                fontWeight: '600',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.375rem'
+                              }}
+                            >
                               <CheckCircle2 size={14} /> QC Jahitan Pass
                             </button>
                             <button
-                              onClick={() => { setShowFailModal(job); setFailReason('') }}
-                              style={{ padding: '0.5rem 1rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              onClick={() => {
+                                setShowFailModal(job)
+                                setFailReason('')
+                              }}
+                              style={{
+                                padding: '0.5rem 1rem',
+                                background: '#fef2f2',
+                                color: '#dc2626',
+                                border: '1px solid #fecaca',
+                                borderRadius: '0.5rem',
+                                fontWeight: '600',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.375rem'
+                              }}
+                            >
                               <AlertTriangle size={14} /> Revisi
                             </button>
                           </div>
@@ -393,12 +494,30 @@ export default function GudangSteamPage() {
                     ↩️ Dikembalikan ke Penjahit ({steamRevision.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {steamRevision.map(job => (
-                      <div key={job.id} style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                    {steamRevision.map((job) => (
+                      <div
+                        key={job.id}
+                        style={{
+                          background: '#fef2f2',
+                          border: '1px solid #fecaca',
+                          borderRadius: '0.75rem',
+                          padding: '1.25rem'
+                        }}
+                      >
                         <div style={{ fontWeight: '600', color: '#991b1b', marginBottom: '0.25rem' }}>
                           {job.order?.customer?.name ?? 'Tanpa Nama'}
                         </div>
-                        <div style={{ fontSize: '0.78rem', color: '#dc2626', background: '#fee2e2', borderRadius: '0.375rem', padding: '0.375rem 0.625rem', display: 'inline-block', marginBottom: '0.25rem' }}>
+                        <div
+                          style={{
+                            fontSize: '0.78rem',
+                            color: '#dc2626',
+                            background: '#fee2e2',
+                            borderRadius: '0.375rem',
+                            padding: '0.375rem 0.625rem',
+                            display: 'inline-block',
+                            marginBottom: '0.25rem'
+                          }}
+                        >
                           ⚠️ {job.fail_reason}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
@@ -417,17 +536,23 @@ export default function GudangSteamPage() {
                     ✅ QC Jahitan Pass — Lanjut ke QC Per-Item ({steamDone.length})
                   </h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {steamDone.map(job => (
-                      <div key={job.id} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.75rem', padding: '1.25rem' }}>
+                    {steamDone.map((job) => (
+                      <div
+                        key={job.id}
+                        style={{
+                          background: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '0.75rem',
+                          padding: '1.25rem'
+                        }}
+                      >
                         <div style={{ fontWeight: '600', color: '#166534', marginBottom: '0.25rem' }}>
                           {job.order?.customer?.name ?? 'Tanpa Nama'}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>
                           ✓ QC Jahitan Pass — {new Date(job.completed_at ?? job.created_at).toLocaleDateString('id-ID')}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
-                          Order #{job.order_id?.slice(0, 8)}
-                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Order #{job.order_id?.slice(0, 8)}</div>
                       </div>
                     ))}
                   </div>
@@ -440,46 +565,205 @@ export default function GudangSteamPage() {
 
       {/* ===== LAUNDRY FORM MODAL ===== */}
       {showLaundryForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowLaundryForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 440, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowLaundryForm(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '0.875rem',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 440,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>🧺 Input Laundry</h2>
             <form onSubmit={handleLaundrySave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Pelanggan *</label>
-                <input required type="text" placeholder="Nama pelanggan" value={laundryForm.customer_name}
-                  onChange={e => setLaundryForm(f => ({ ...f, customer_name: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Nama Pelanggan *
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Nama pelanggan"
+                  value={laundryForm.customer_name}
+                  onChange={(e) => setLaundryForm((f) => ({ ...f, customer_name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Berat (kg) *</label>
-                  <input required type="number" step="0.01" min="0" placeholder="58,75" value={laundryForm.kg}
-                    onChange={e => setLaundryForm(f => ({ ...f, kg: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Berat (kg) *
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="58,75"
+                    value={laundryForm.kg}
+                    onChange={(e) => setLaundryForm((f) => ({ ...f, kg: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Meter (m)</label>
-                  <input type="number" step="0.01" min="0" placeholder="0" value={laundryForm.meter}
-                    onChange={e => setLaundryForm(f => ({ ...f, meter: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Meter (m)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0"
+                    value={laundryForm.meter}
+                    onChange={(e) => setLaundryForm((f) => ({ ...f, meter: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Tanggal</label>
-                <input type="date" value={laundryForm.date}
-                  onChange={e => setLaundryForm(f => ({ ...f, date: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Tanggal
+                </label>
+                <input
+                  type="date"
+                  value={laundryForm.date}
+                  onChange={(e) => setLaundryForm((f) => ({ ...f, date: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Keterangan</label>
-                <input type="text" placeholder="Vitras, Gorden, dll..." value={laundryForm.description}
-                  onChange={e => setLaundryForm(f => ({ ...f, description: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Keterangan
+                </label>
+                <input
+                  type="text"
+                  placeholder="Vitras, Gorden, dll..."
+                  value={laundryForm.description}
+                  onChange={(e) => setLaundryForm((f) => ({ ...f, description: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowLaundryForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={laundrySaving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: laundrySaving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowLaundryForm(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={laundrySaving}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: '#cc7030',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: laundrySaving ? 'not-allowed' : 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
                   {laundrySaving ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
@@ -489,32 +773,89 @@ export default function GudangSteamPage() {
       )}
 
       {/* ===== PASS CONFIRMATION DIALOG ===== */}
-      <Dialog open={!!showPassDialog} onOpenChange={() => { setShowPassDialog(null); setSteamPassPhoto(null) }}>
+      <Dialog
+        open={!!showPassDialog}
+        onOpenChange={() => {
+          setShowPassDialog(null)
+          setSteamPassPhoto(null)
+        }}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Konfirmasi QC Pass</DialogTitle>
             <DialogDescription>
-              Yakin bahwa barang untuk <strong>{showPassDialog?.order?.customer?.name}</strong> sudah lolos QC Steam dan siap dikirim ke Finance untuk approval pembayaran?
+              Yakin bahwa barang untuk <strong>{showPassDialog?.order?.customer?.name}</strong> sudah lolos QC Steam dan
+              siap dikirim ke Finance untuk approval pembayaran?
             </DialogDescription>
           </DialogHeader>
           {/* V3: Foto bukti WAJIB untuk stage 'steam' */}
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
               Foto Bukti Hasil QC <span style={{ color: '#dc2626' }}>*</span>
             </label>
             {steamPassPhoto ? (
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img src={steamPassPhoto} alt="Foto bukti" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                <img
+                  src={steamPassPhoto}
+                  alt="Foto bukti"
+                  style={{
+                    width: 100,
+                    height: 100,
+                    objectFit: 'cover',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db'
+                  }}
+                />
                 <button
                   onClick={() => setSteamPassPhoto(null)}
-                  style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}
-                >×</button>
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 20,
+                    height: 20,
+                    fontSize: 12,
+                    cursor: 'pointer'
+                  }}
+                >
+                  ×
+                </button>
               </div>
             ) : (
               <label
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 100, height: 100, border: '2px dashed #d1d5db', borderRadius: '0.5rem', cursor: 'pointer', background: '#f9fafb', gap: '0.25rem' }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 100,
+                  height: 100,
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  background: '#f9fafb',
+                  gap: '0.25rem'
+                }}
               >
-                <input type="file" accept="image/*" onChange={e => handleSteamPhotoUpload(e, 'pass')} disabled={uploadingSteamPhoto} style={{ display: 'none' }} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleSteamPhotoUpload(e, 'pass')}
+                  disabled={uploadingSteamPhoto}
+                  style={{ display: 'none' }}
+                />
                 {uploadingSteamPhoto ? (
                   <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
                 ) : (
@@ -527,8 +868,19 @@ export default function GudangSteamPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowPassDialog(null); setSteamPassPhoto(null) }}>Batal</Button>
-            <Button onClick={() => showPassDialog && handleSteamPass(showPassDialog)} disabled={passSaving || !steamPassPhoto}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPassDialog(null)
+                setSteamPassPhoto(null)
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={() => showPassDialog && handleSteamPass(showPassDialog)}
+              disabled={passSaving || !steamPassPhoto}
+            >
               {passSaving ? 'Menyimpan...' : '✓ Ya, QC Pass'}
             </Button>
           </DialogFooter>
@@ -536,7 +888,13 @@ export default function GudangSteamPage() {
       </Dialog>
 
       {/* ===== FAIL / REVISION MODAL ===== */}
-      <Dialog open={!!showFailModal} onOpenChange={() => { setShowFailModal(null); setSteamFailPhoto(null) }}>
+      <Dialog
+        open={!!showFailModal}
+        onOpenChange={() => {
+          setShowFailModal(null)
+          setSteamFailPhoto(null)
+        }}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Kembalikan ke Penjahit</DialogTitle>
@@ -545,34 +903,102 @@ export default function GudangSteamPage() {
             </DialogDescription>
           </DialogHeader>
           <div style={{ margin: '1rem 0' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Alasan Revisi *</label>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Alasan Revisi *
+            </label>
             <textarea
               required
               rows={3}
               placeholder="Contoh: Jahitan kurang rapi, ukuran tidak sesuai, dll..."
               value={failReason}
-              onChange={e => setFailReason(e.target.value)}
-              style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }}
+              onChange={(e) => setFailReason(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                resize: 'vertical'
+              }}
             />
           </div>
           {/* V3: Foto bukti WAJIB untuk stage 'steam' (saat fail) */}
           <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
               Foto Bukti QC Gagal <span style={{ color: '#dc2626' }}>*</span>
             </label>
             {steamFailPhoto ? (
               <div style={{ position: 'relative', display: 'inline-block' }}>
-                <img src={steamFailPhoto} alt="Foto bukti fail" style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                <img
+                  src={steamFailPhoto}
+                  alt="Foto bukti fail"
+                  style={{
+                    width: 100,
+                    height: 100,
+                    objectFit: 'cover',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #d1d5db'
+                  }}
+                />
                 <button
                   onClick={() => setSteamFailPhoto(null)}
-                  style={{ position: 'absolute', top: -6, right: -6, background: '#ef4444', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer' }}
-                >×</button>
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    background: '#ef4444',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 20,
+                    height: 20,
+                    fontSize: 12,
+                    cursor: 'pointer'
+                  }}
+                >
+                  ×
+                </button>
               </div>
             ) : (
               <label
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 100, height: 100, border: '2px dashed #d1d5db', borderRadius: '0.5rem', cursor: 'pointer', background: '#f9fafb', gap: '0.25rem' }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 100,
+                  height: 100,
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  background: '#f9fafb',
+                  gap: '0.25rem'
+                }}
               >
-                <input type="file" accept="image/*" onChange={e => handleSteamPhotoUpload(e, 'fail')} disabled={uploadingSteamPhoto} style={{ display: 'none' }} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleSteamPhotoUpload(e, 'fail')}
+                  disabled={uploadingSteamPhoto}
+                  style={{ display: 'none' }}
+                />
                 {uploadingSteamPhoto ? (
                   <span style={{ fontSize: '0.7rem', color: '#6b7280' }}>Upload...</span>
                 ) : (
@@ -585,9 +1011,20 @@ export default function GudangSteamPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowFailModal(null); setSteamFailPhoto(null) }}>Batal</Button>
-            <Button onClick={handleSteamFail} disabled={failSaving || !failReason.trim() || !steamFailPhoto}
-              style={{ background: '#dc2626' }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowFailModal(null)
+                setSteamFailPhoto(null)
+              }}
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSteamFail}
+              disabled={failSaving || !failReason.trim() || !steamFailPhoto}
+              style={{ background: '#dc2626' }}
+            >
               {failSaving ? 'Menyimpan...' : '↩️ Ya, Kembalikan'}
             </Button>
           </DialogFooter>

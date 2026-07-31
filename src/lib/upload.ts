@@ -9,7 +9,17 @@ export interface UploadResult {
 
 export async function uploadToLocal(
   file: File,
-  folder: 'products' | 'banners' | 'portfolio' | 'evidence' | 'documents' | 'videos' | 'order_progress' | 'returns' | 'qc' | 'install',
+  folder:
+    | 'products'
+    | 'banners'
+    | 'portfolio'
+    | 'evidence'
+    | 'documents'
+    | 'videos'
+    | 'order_progress'
+    | 'returns'
+    | 'qc'
+    | 'install',
   options?: { compress?: boolean; maxSizeMB?: number }
 ): Promise<UploadResult> {
   const { compress = true, maxSizeMB = 1 } = options || {}
@@ -20,7 +30,7 @@ export async function uploadToLocal(
     try {
       fileToUpload = await imageCompression(file, {
         maxSizeMB,
-        maxWidthOrHeight: 1920,
+        maxWidthOrHeight: 1920
       })
     } catch (e) {
       console.warn('Image compression failed, using original file:', e)
@@ -33,7 +43,7 @@ export async function uploadToLocal(
 
   const res = await fetch('/api/upload', {
     method: 'POST',
-    body: formData,
+    body: formData
   })
 
   if (!res.ok) {

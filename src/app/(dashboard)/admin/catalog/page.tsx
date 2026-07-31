@@ -7,22 +7,22 @@ const CATALOG_MODULES = [
     desc: 'CRUD produk — nama, SKU, harga, stok, foto',
     href: '/admin/catalog/products',
     icon: <Package size={22} />,
-    color: 'orange',
+    color: 'orange'
   },
   {
     title: 'Kategori',
     desc: 'Kelola kategori produk dengan slug',
     href: '/admin/catalog/categories',
     icon: <Tag size={22} />,
-    color: 'blue',
+    color: 'blue'
   },
-    {
+  {
     title: 'Banner & Hero',
     desc: 'Upload dan atur banner landing page',
     href: '/admin/catalog/banners',
     icon: <ImageIcon size={22} />,
-    color: 'green',
-  },
+    color: 'green'
+  }
 ]
 
 export default function CatalogPage() {

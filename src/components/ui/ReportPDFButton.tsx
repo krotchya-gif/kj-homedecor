@@ -13,7 +13,7 @@ export default function ReportPDFButton({
   onClick,
   label = 'Download PDF',
   className = '',
-  disabled = false,
+  disabled = false
 }: ReportPDFButtonProps) {
   return (
     <button

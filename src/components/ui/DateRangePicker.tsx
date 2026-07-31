@@ -11,7 +11,20 @@ interface DateRangePickerProps {
   className?: string
 }
 
-const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+const MONTHS = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember'
+]
 const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab']
 
 function formatDisplay(dateStr: string) {
@@ -31,7 +44,7 @@ export default function DateRangePicker({
   endDate,
   onStartChange,
   onEndChange,
-  className = '',
+  className = ''
 }: DateRangePickerProps) {
   const [showStart, setShowStart] = useState(false)
   const [showEnd, setShowEnd] = useState(false)
@@ -53,13 +66,17 @@ export default function DateRangePicker({
   }
 
   function prevMonth() {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
-    else setViewMonth(m => m - 1)
+    if (viewMonth === 0) {
+      setViewMonth(11)
+      setViewYear((y) => y - 1)
+    } else setViewMonth((m) => m - 1)
   }
 
   function nextMonth() {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) }
-    else setViewMonth(m => m + 1)
+    if (viewMonth === 11) {
+      setViewMonth(0)
+      setViewYear((y) => y + 1)
+    } else setViewMonth((m) => m + 1)
   }
 
   function selectDate(date: Date) {
@@ -151,27 +168,55 @@ export default function DateRangePicker({
     for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(viewYear, viewMonth, d))
 
     return (
-      <div style={{
-        position: 'absolute', top: '100%', left: 0, zIndex: 50,
-        background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.15)', padding: '1rem', marginTop: '0.5rem',
-        width: '320px'
-      }}>
+      <div
+        style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          zIndex: 50,
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+          padding: '1rem',
+          marginTop: '0.5rem',
+          width: '320px'
+        }}
+      >
         {/* Month navigation */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <button onClick={prevMonth} style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}>
+          <button
+            onClick={prevMonth}
+            style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}
+          >
             <ChevronLeft size={18} />
           </button>
-          <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>{MONTHS[viewMonth]} {viewYear}</span>
-          <button onClick={nextMonth} style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}>
+          <span style={{ fontWeight: '600', fontSize: '0.95rem' }}>
+            {MONTHS[viewMonth]} {viewYear}
+          </span>
+          <button
+            onClick={nextMonth}
+            style={{ padding: '0.5rem', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '0.5rem' }}
+          >
             <ChevronRight size={18} />
           </button>
         </div>
 
         {/* Day headers */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '0.5rem' }}>
-          {DAYS.map(d => (
-            <div key={d} style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', fontWeight: '500', padding: '0.25rem' }}>{d}</div>
+          {DAYS.map((d) => (
+            <div
+              key={d}
+              style={{
+                textAlign: 'center',
+                fontSize: '0.75rem',
+                color: '#9ca3af',
+                fontWeight: '500',
+                padding: '0.25rem'
+              }}
+            >
+              {d}
+            </div>
           ))}
         </div>
 
@@ -187,12 +232,15 @@ export default function DateRangePicker({
                 key={date.toISOString()}
                 onClick={() => selectDate(date)}
                 style={{
-                  padding: '0.5rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: selected ? '700' : '400',
+                  padding: '0.5rem',
+                  textAlign: 'center',
+                  fontSize: '0.82rem',
+                  fontWeight: selected ? '700' : '400',
                   background: inRange ? '#fef3c7' : selected ? '#cc7030' : 'transparent',
                   color: selected ? '#fff' : inRange ? '#92400e' : '#374151',
                   border: isT && !selected ? '1px solid #cc7030' : 'none',
                   borderRadius: selected ? '0.5rem' : '0',
-                  cursor: 'pointer',
+                  cursor: 'pointer'
                 }}
               >
                 {date.getDate()}
@@ -202,7 +250,16 @@ export default function DateRangePicker({
         </div>
 
         {/* Selected range display */}
-        <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#f9fafb', borderRadius: '0.5rem', fontSize: '0.82rem', textAlign: 'center' }}>
+        <div
+          style={{
+            marginTop: '0.75rem',
+            padding: '0.75rem',
+            background: '#f9fafb',
+            borderRadius: '0.5rem',
+            fontSize: '0.82rem',
+            textAlign: 'center'
+          }}
+        >
           <span style={{ fontWeight: '600', color: '#cc7030' }}>{formatShort(tempStart)}</span>
           <span style={{ color: '#9ca3af', margin: '0 0.5rem' }}>—</span>
           <span style={{ fontWeight: '600', color: '#cc7030' }}>{formatShort(tempEnd)}</span>
@@ -210,10 +267,33 @@ export default function DateRangePicker({
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
-          <button onClick={applyAndClose} style={{ flex: 1, padding: '0.5rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer' }}>
+          <button
+            onClick={applyAndClose}
+            style={{
+              flex: 1,
+              padding: '0.5rem',
+              background: '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontSize: '0.82rem',
+              fontWeight: '600',
+              cursor: 'pointer'
+            }}
+          >
             Terapkan
           </button>
-          <button onClick={onClose} style={{ padding: '0.5rem 0.75rem', background: '#f3f4f6', border: 'none', borderRadius: '0.5rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: '0.5rem 0.75rem',
+              background: '#f3f4f6',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontSize: '0.82rem',
+              cursor: 'pointer'
+            }}
+          >
             Batal
           </button>
         </div>
@@ -235,9 +315,16 @@ export default function DateRangePicker({
           <button
             onClick={() => openCalendar(true)}
             style={{
-              padding: '0.625rem 1rem', background: '#fff', border: '1px solid #d1d5db',
-              borderRadius: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', minWidth: '140px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '0.625rem 1rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              minWidth: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
             }}
           >
             <span style={{ color: startDate && startDate !== '2020-01-01' ? '#374151' : '#9ca3af' }}>
@@ -254,9 +341,16 @@ export default function DateRangePicker({
           <button
             onClick={() => openCalendar(false)}
             style={{
-              padding: '0.625rem 1rem', background: '#fff', border: '1px solid #d1d5db',
-              borderRadius: '0.5rem', fontSize: '0.875rem', cursor: 'pointer', minWidth: '140px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '0.625rem 1rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              minWidth: '140px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
             }}
           >
             <span style={{ color: endDate && endDate !== '2099-12-31' ? '#374151' : '#9ca3af' }}>
@@ -268,18 +362,69 @@ export default function DateRangePicker({
 
         {/* Quick presets */}
         <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
-          <button onClick={() => applyPreset(7)} style={{ padding: '0.5rem 0.875rem', background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: '500' }}>7 Hari</button>
-          <button onClick={() => applyPreset(30)} style={{ padding: '0.5rem 0.875rem', background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: '500' }}>30 Hari</button>
-          <button onClick={applyThisMonth} style={{ padding: '0.5rem 0.875rem', background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: '500' }}>Bulan Ini</button>
-          <button onClick={applyAll} style={{ padding: '0.5rem 0.875rem', background: '#fff', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.78rem', cursor: 'pointer', fontWeight: '500' }}>Semua</button>
+          <button
+            onClick={() => applyPreset(7)}
+            style={{
+              padding: '0.5rem 0.875rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            7 Hari
+          </button>
+          <button
+            onClick={() => applyPreset(30)}
+            style={{
+              padding: '0.5rem 0.875rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            30 Hari
+          </button>
+          <button
+            onClick={applyThisMonth}
+            style={{
+              padding: '0.5rem 0.875rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            Bulan Ini
+          </button>
+          <button
+            onClick={applyAll}
+            style={{
+              padding: '0.5rem 0.875rem',
+              background: '#fff',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.78rem',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            Semua
+          </button>
         </div>
       </div>
 
       {/* Current display */}
       {startDate && endDate && (
         <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: '#6b7280' }}>
-          Menampilkan: <span style={{ fontWeight: '600', color: '#374151' }}>{formatDisplay(startDate)}</span>
-          {' '}sampai{' '}
+          Menampilkan: <span style={{ fontWeight: '600', color: '#374151' }}>{formatDisplay(startDate)}</span> sampai{' '}
           <span style={{ fontWeight: '600', color: '#374151' }}>{formatDisplay(endDate)}</span>
         </div>
       )}

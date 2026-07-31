@@ -11,7 +11,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   penjahit: '/penjahit',
   finance: '/finance',
   installer: '/installer',
-  owner: '/owner',
+  owner: '/owner'
 }
 
 export default function LoginPage() {
@@ -43,7 +43,7 @@ export default function LoginPage() {
 
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       })
 
       if (authError) {
@@ -63,11 +63,7 @@ export default function LoginPage() {
       if (data.user) {
         setAttempts(0)
         setLockedUntil(null)
-        const { data: staffData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
+        const { data: staffData } = await supabase.from('users').select('role').eq('id', data.user.id).single()
 
         const role = staffData?.role ?? 'admin'
         router.push(ROLE_DASHBOARDS[role] ?? '/admin')
@@ -97,7 +93,7 @@ export default function LoginPage() {
               borderRadius: '0.5rem',
               padding: '0.75rem 1rem',
               fontSize: '0.875rem',
-              marginBottom: '1rem',
+              marginBottom: '1rem'
             }}
           >
             {error}
@@ -114,7 +110,7 @@ export default function LoginPage() {
                 fontSize: '0.875rem',
                 fontWeight: '500',
                 color: '#374151',
-                marginBottom: '0.375rem',
+                marginBottom: '0.375rem'
               }}
             >
               Email
@@ -127,7 +123,7 @@ export default function LoginPage() {
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af',
+                  color: '#9ca3af'
                 }}
               />
               <input
@@ -144,7 +140,7 @@ export default function LoginPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
-                  transition: 'border-color 0.15s',
+                  transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#cc7030')}
                 onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
@@ -161,7 +157,7 @@ export default function LoginPage() {
                 fontSize: '0.875rem',
                 fontWeight: '500',
                 color: '#374151',
-                marginBottom: '0.375rem',
+                marginBottom: '0.375rem'
               }}
             >
               Password
@@ -174,7 +170,7 @@ export default function LoginPage() {
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af',
+                  color: '#9ca3af'
                 }}
               />
               <input
@@ -191,7 +187,7 @@ export default function LoginPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
-                  transition: 'border-color 0.15s',
+                  transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#cc7030')}
                 onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
@@ -208,7 +204,7 @@ export default function LoginPage() {
                   border: 'none',
                   cursor: 'pointer',
                   color: '#9ca3af',
-                  padding: 0,
+                  padding: 0
                 }}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -235,7 +231,7 @@ export default function LoginPage() {
               justifyContent: 'center',
               gap: '0.5rem',
               transition: 'all 0.15s',
-              marginTop: '0.5rem',
+              marginTop: '0.5rem'
             }}
           >
             {loading ? (
@@ -255,7 +251,7 @@ export default function LoginPage() {
             textAlign: 'center',
             fontSize: '0.78rem',
             color: '#9ca3af',
-            marginTop: '1.5rem',
+            marginTop: '1.5rem'
           }}
         >
           Akun dibuat oleh Admin. Hubungi admin jika belum punya akses.

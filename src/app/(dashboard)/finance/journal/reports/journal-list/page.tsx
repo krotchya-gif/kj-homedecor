@@ -24,7 +24,9 @@ export default function JournalListPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function downloadPDF() {
     alert('PDF download - implement dengan jspdf atau @react-pdf/renderer')
@@ -32,12 +34,36 @@ export default function JournalListPage() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Daftar Jurnal</h1>
           <p className="page-subtitle">Journal entries list</p>
         </div>
-        <button onClick={downloadPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={downloadPDF}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Download size={16} /> Download PDF
         </button>
       </div>
@@ -62,17 +88,27 @@ export default function JournalListPage() {
               </tr>
             </thead>
             <tbody>
-              {entries.map((e) => (
+              {entries.map((e) =>
                 e.lines?.map((line: any, idx: number) => (
                   <tr key={`${e.id}-${idx}`}>
-                    {idx === 0 && <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>{e.entry_date}</td>}
-                    <td style={{ fontWeight: '500' }}>{line.account?.code ?? '—'} {line.account?.name ?? ''}</td>
+                    {idx === 0 && (
+                      <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>
+                        {e.entry_date}
+                      </td>
+                    )}
+                    <td style={{ fontWeight: '500' }}>
+                      {line.account?.code ?? '—'} {line.account?.name ?? ''}
+                    </td>
                     <td style={{ textAlign: 'right' }}>{line.debit > 0 ? formatRp(line.debit) : '—'}</td>
                     <td style={{ textAlign: 'right' }}>{line.credit > 0 ? formatRp(line.credit) : '—'}</td>
-                    {idx === 0 && <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>{e.description ?? '—'}</td>}
+                    {idx === 0 && (
+                      <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>
+                        {e.description ?? '—'}
+                      </td>
+                    )}
                   </tr>
                 ))
-              ))}
+              )}
             </tbody>
           </table>
         )}

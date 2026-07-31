@@ -10,13 +10,13 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   liability: { bg: '#fef3c7', text: '#92400e' },
   equity: { bg: '#d1fae5', text: '#065f46' },
   revenue: { bg: '#e0e7ff', text: '#3730a3' },
-  expense: { bg: '#fef2f2', text: '#991b1b' },
+  expense: { bg: '#fef2f2', text: '#991b1b' }
 }
 
 interface Category {
   id: string
   name: string
-  type: typeof ACCOUNT_TYPES[number]
+  type: (typeof ACCOUNT_TYPES)[number]
   description?: string
 }
 
@@ -27,7 +27,7 @@ export default function CategoriesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<Category | null>(null)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', type: 'asset' as typeof ACCOUNT_TYPES[number], description: '' })
+  const [form, setForm] = useState({ name: '', type: 'asset' as (typeof ACCOUNT_TYPES)[number], description: '' })
 
   const supabase = createClient()
 
@@ -38,9 +38,11 @@ export default function CategoriesPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchCategories() }, [])
+  useEffect(() => {
+    fetchCategories()
+  }, [])
 
-  const filtered = categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = categories.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
 
   function openAdd() {
     setEditItem(null)
@@ -83,11 +85,47 @@ export default function CategoriesPage() {
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-          <input type="text" placeholder="Cari kategori..." value={search} onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#9ca3af'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Cari kategori..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
+          />
         </div>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={openAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Plus size={16} /> Tambah Kategori
         </button>
       </div>
@@ -117,15 +155,47 @@ export default function CategoriesPage() {
                   <tr key={c.id}>
                     <td style={{ fontWeight: '500' }}>{c.name}</td>
                     <td>
-                      <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', background: tc.bg, color: tc.text, textTransform: 'capitalize' }}>
+                      <span
+                        style={{
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          background: tc.bg,
+                          color: tc.text,
+                          textTransform: 'capitalize'
+                        }}
+                      >
                         {c.type}
                       </span>
                     </td>
                     <td style={{ color: '#6b7280' }}>{c.description ?? '—'}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={() => openEdit(c)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}><Pencil size={15} /></button>
-                        <button onClick={() => handleDelete(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.25rem' }}><Trash2 size={15} /></button>
+                        <button
+                          onClick={() => openEdit(c)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#6b7280',
+                            padding: '0.25rem'
+                          }}
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(c.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: '#dc2626',
+                            padding: '0.25rem'
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -137,31 +207,152 @@ export default function CategoriesPage() {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 480, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>{editItem ? 'Edit Kategori' : 'Tambah Kategori'}</h2>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.5)',
+            zIndex: 200,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowForm(false)
+          }}
+        >
+          <div
+            style={{
+              background: '#fff',
+              borderRadius: '0.875rem',
+              padding: '2rem',
+              width: '100%',
+              maxWidth: 480,
+              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+            }}
+          >
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+              {editItem ? 'Edit Kategori' : 'Tambah Kategori'}
+            </h2>
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Kategori *</label>
-                <input required type="text" placeholder="Nama kategori" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Nama Kategori *
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Nama kategori"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Tipe Akun *</label>
-                <select value={form.type} onChange={(e) => setForm(f => ({ ...f, type: e.target.value as typeof ACCOUNT_TYPES[number] }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
-                  {ACCOUNT_TYPES.map(t => <option key={t} value={t} style={{ textTransform: 'capitalize' }}>{t}</option>)}
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Tipe Akun *
+                </label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as (typeof ACCOUNT_TYPES)[number] }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    background: '#fff'
+                  }}
+                >
+                  {ACCOUNT_TYPES.map((t) => (
+                    <option key={t} value={t} style={{ textTransform: 'capitalize' }}>
+                      {t}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Deskripsi</label>
-                <textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} rows={2}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', resize: 'vertical' }} />
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Deskripsi
+                </label>
+                <textarea
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+                />
               </div>
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    background: '#fff',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: '#cc7030',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: saving ? 'not-allowed' : 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
                   {saving ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>

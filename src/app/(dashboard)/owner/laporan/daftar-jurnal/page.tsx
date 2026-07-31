@@ -30,7 +30,9 @@ export default function DaftarJurnalPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -50,7 +52,7 @@ export default function DaftarJurnalPage() {
           `${line.account?.code ?? ''} ${line.account?.name ?? ''}`,
           line.debit > 0 ? formatRp(line.debit) : '',
           line.credit > 0 ? formatRp(line.credit) : '',
-          idx === 0 ? (e.description ?? '') : '',
+          idx === 0 ? (e.description ?? '') : ''
         ])
       })
     })
@@ -65,8 +67,8 @@ export default function DaftarJurnalPage() {
         1: { cellWidth: 55 },
         2: { cellWidth: 35, halign: 'right' },
         3: { cellWidth: 35, halign: 'right' },
-        4: { cellWidth: 40 },
-      },
+        4: { cellWidth: 40 }
+      }
     })
 
     doc.save(`owner-daftar-jurnal-${startDate}-${endDate}.pdf`)
@@ -75,7 +77,16 @@ export default function DaftarJurnalPage() {
   return (
     <div>
       <BackButton href="/owner/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+      <div
+        className="page-header"
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem'
+        }}
+      >
         <div>
           <h1 className="page-title">Daftar Jurnal</h1>
           <p className="page-subtitle">Journal entries list - Tampilan Owner (Read Only)</p>
@@ -83,7 +94,15 @@ export default function DaftarJurnalPage() {
         <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div
+        style={{
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: '0.75rem',
+          padding: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -112,11 +131,21 @@ export default function DaftarJurnalPage() {
               {entries.map((e) =>
                 e.lines?.map((line: any, idx: number) => (
                   <tr key={`${e.id}-${idx}`}>
-                    {idx === 0 && <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>{e.entry_date}</td>}
-                    <td style={{ fontWeight: '500' }}>{line.account?.code ?? '—'} {line.account?.name ?? ''}</td>
+                    {idx === 0 && (
+                      <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>
+                        {e.entry_date}
+                      </td>
+                    )}
+                    <td style={{ fontWeight: '500' }}>
+                      {line.account?.code ?? '—'} {line.account?.name ?? ''}
+                    </td>
                     <td style={{ textAlign: 'right' }}>{line.debit > 0 ? formatRp(line.debit) : '—'}</td>
                     <td style={{ textAlign: 'right' }}>{line.credit > 0 ? formatRp(line.credit) : '—'}</td>
-                    {idx === 0 && <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>{e.description ?? '—'}</td>}
+                    {idx === 0 && (
+                      <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>
+                        {e.description ?? '—'}
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

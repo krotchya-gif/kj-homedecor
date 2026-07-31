@@ -6,7 +6,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const supabase = await createClient()
   const body = await request.json()
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   // Support approve/reject action

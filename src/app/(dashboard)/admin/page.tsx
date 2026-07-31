@@ -27,19 +27,69 @@ import {
   Camera,
   Activity,
   Wrench,
-  AlertCircle,
+  AlertCircle
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 
-interface Order { id: string; status: string; payment_status: string; source?: string; total_amount?: number; created_at: string }
-interface PurchaseRequest { id: string; qty: number; estimated_cost: number; status: string; material?: { name: string } }
-interface OrderLog { id: string; order_id: string; action: string; notes?: string; created_at: string; staff?: { name: string } }
-interface OrderProgressPhoto { id: string; order_id: string; stage: string; photo_url: string; notes?: string; created_at: string }
-interface OrderWithLogs { id: string; order_number?: string; status: string; payment_status: string; created_at: string; customer?: { name: string }; recentLogs: OrderLog[]; progressPhotos?: OrderProgressPhoto[] }
-interface StatData { orders: Order[]; totalOrders: number; totalCustomers: number; totalProducts: number; pendingPRs: PurchaseRequest[]; ordersWithLogs: OrderWithLogs[] }
-interface InstallBooking { id: string; status: string; scheduled_date: string; scheduled_time: string; type: string; order?: { customer?: { name: string; phone: string; address: string } | null } }
+interface Order {
+  id: string
+  status: string
+  payment_status: string
+  source?: string
+  total_amount?: number
+  created_at: string
+}
+interface PurchaseRequest {
+  id: string
+  qty: number
+  estimated_cost: number
+  status: string
+  material?: { name: string }
+}
+interface OrderLog {
+  id: string
+  order_id: string
+  action: string
+  notes?: string
+  created_at: string
+  staff?: { name: string }
+}
+interface OrderProgressPhoto {
+  id: string
+  order_id: string
+  stage: string
+  photo_url: string
+  notes?: string
+  created_at: string
+}
+interface OrderWithLogs {
+  id: string
+  order_number?: string
+  status: string
+  payment_status: string
+  created_at: string
+  customer?: { name: string }
+  recentLogs: OrderLog[]
+  progressPhotos?: OrderProgressPhoto[]
+}
+interface StatData {
+  orders: Order[]
+  totalOrders: number
+  totalCustomers: number
+  totalProducts: number
+  pendingPRs: PurchaseRequest[]
+  ordersWithLogs: OrderWithLogs[]
+}
+interface InstallBooking {
+  id: string
+  status: string
+  scheduled_date: string
+  scheduled_time: string
+  type: string
+  order?: { customer?: { name: string; phone: string; address: string } | null }
+}
 
 const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   created: { icon: <PackagePlus size={14} />, color: '#3b82f6' },
@@ -58,10 +108,11 @@ const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   done: { icon: <CheckCheck size={14} />, color: '#16a34a' },
   return_stock_in: { icon: <PackagePlus size={14} />, color: '#22c55e' },
   return_disposed: { icon: <XOctagon size={14} />, color: '#ef4444' },
-  refund_issued: { icon: <DollarSign size={14} />, color: '#f59e0b' },
+  refund_issued: { icon: <DollarSign size={14} />, color: '#f59e0b' }
 }
 
-const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+const formatRp = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function AdminDashboardPage() {
   const [data, setData] = useState<StatData | null>(null)
@@ -94,7 +145,9 @@ export default function AdminDashboardPage() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   useEffect(() => {
@@ -128,27 +181,43 @@ export default function AdminDashboardPage() {
     // Fetch recent orders with their recent logs (max 10 orders, 5 logs each)
     const { data: ordersWithLogsData } = await supabase
       .from('orders')
-      .select(`
+      .select(
+        `
         id, order_number, status, payment_status, created_at,
         customer:customers(name),
         order_logs!order_logs_order_id_fkey(id, action, notes, created_at, staff:users(name)),
         order_progress_photos(id, stage, photo_url, notes, created_at)
-      `)
+      `
+      )
       .order('created_at', { ascending: false })
       .limit(10)
 
     const formatted = (ordersWithLogsData ?? []).map((o: any) => ({
       ...o,
-      recentLogs: (o.order_logs ?? []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5),
-      progressPhotos: o.order_progress_photos ?? [],
+      recentLogs: (o.order_logs ?? [])
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5),
+      progressPhotos: o.order_progress_photos ?? []
     }))
 
-    const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }, { data: installsData }] = await Promise.all([
+    const [
+      { data: ordersData, count: totalOrders },
+      { data: customersData, count: totalCustomers },
+      { data: productsData, count: totalProducts },
+      { data: pendingPRs },
+      { data: installsData }
+    ] = await Promise.all([
       supabase.from('orders').select('id, status, payment_status', { count: 'exact' }),
       supabase.from('customers').select('id', { count: 'exact' }),
       supabase.from('products').select('id', { count: 'exact' }),
       supabase.from('purchase_requests').select('*, material:materials(name)').eq('status', 'pending'),
-      supabase.from('install_bookings').select('id, status, scheduled_date, scheduled_time, type, order:orders(customer:customers(name, phone, address))').gte('scheduled_date', new Date().toISOString().split('T')[0]).in('status', ['scheduled', 'in_progress', 'revision']),
+      supabase
+        .from('install_bookings')
+        .select(
+          'id, status, scheduled_date, scheduled_time, type, order:orders(customer:customers(name, phone, address))'
+        )
+        .gte('scheduled_date', new Date().toISOString().split('T')[0])
+        .in('status', ['scheduled', 'in_progress', 'revision'])
     ])
 
     setInstallBookings((installsData as any) ?? [])
@@ -158,14 +227,16 @@ export default function AdminDashboardPage() {
       totalCustomers: totalCustomers ?? 0,
       totalProducts: totalProducts ?? 0,
       pendingPRs: pendingPRs ?? [],
-      ordersWithLogs: formatted,
+      ordersWithLogs: formatted
     })
     setLoading(false)
   }
 
   async function approvePR(id: string) {
     setApproving(id)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
     await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id }).eq('id', id)
     setApproving(null)
     loadData()
@@ -174,7 +245,9 @@ export default function AdminDashboardPage() {
   async function rejectPR(id: string) {
     if (!confirm('Tolak PR ini?')) return
     setRejecting(id)
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
     await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id }).eq('id', id)
     setRejecting(null)
     loadData()
@@ -194,8 +267,8 @@ export default function AdminDashboardPage() {
   const doneOrders = orders.filter((o) => o.status === 'done').length
   const inProduction = orders.filter((o) => o.status === 'production' || o.status === 'steam').length
   // Order sudah lunas tapi Admin belum sortir — perlu perhatian
-  const paidNotSorted = orders.filter((o) =>
-    o.payment_status === 'paid' && (o.status === 'new' || o.status === 'sorted')
+  const paidNotSorted = orders.filter(
+    (o) => o.payment_status === 'paid' && (o.status === 'new' || o.status === 'sorted')
   ).length
 
   // Real-time: today's orders
@@ -206,21 +279,31 @@ export default function AdminDashboardPage() {
   const todayRevenue = todayOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
 
   // Install stats
-  const scheduledInstalls = installBookings.filter(b => b.status === 'scheduled').length
-  const activeInstalls = installBookings.filter(b => b.status === 'in_progress').length
-  const revisionInstalls = installBookings.filter(b => b.status === 'revision').length
+  const scheduledInstalls = installBookings.filter((b) => b.status === 'scheduled').length
+  const activeInstalls = installBookings.filter((b) => b.status === 'in_progress').length
+  const revisionInstalls = installBookings.filter((b) => b.status === 'revision').length
 
   // Chart data: Order count by status
   const statusCounts: Record<string, number> = {}
-  orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1 })
+  orders.forEach((o) => {
+    statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1
+  })
   const STATUS_LABELS: Record<string, string> = {
-    new: 'Baru', sorted: 'Sorted', payment_ok: 'Payment OK', production: 'Produksi',
-    steam: 'Steam/QC', ready: 'Siap', packed: 'Packed', shipped: 'Dikirim', done: 'Selesai',
-    cancelled: 'Cancelled', returned: 'Returned',
+    new: 'Baru',
+    sorted: 'Sorted',
+    payment_ok: 'Payment OK',
+    production: 'Produksi',
+    steam: 'Steam/QC',
+    ready: 'Siap',
+    packed: 'Packed',
+    shipped: 'Dikirim',
+    done: 'Selesai',
+    cancelled: 'Cancelled',
+    returned: 'Returned'
   }
   const statusChartData = Object.entries(statusCounts).map(([k, v]) => ({
     name: STATUS_LABELS[k] ?? k,
-    count: v,
+    count: v
   }))
 
   // Chart data: Revenue by source
@@ -229,10 +312,12 @@ export default function AdminDashboardPage() {
     const src = o.source ?? 'offline'
     revenueBySource[src] = (revenueBySource[src] ?? 0) + (o.total_amount ?? 0)
   })
-  const revenueChartData = Object.entries(revenueBySource).map(([k, v]) => ({
-    name: SOURCE_LABELS[k as keyof typeof SOURCE_LABELS] ?? k,
-    revenue: v,
-  })).sort((a, b) => b.revenue - a.revenue)
+  const revenueChartData = Object.entries(revenueBySource)
+    .map(([k, v]) => ({
+      name: SOURCE_LABELS[k as keyof typeof SOURCE_LABELS] ?? k,
+      revenue: v
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
 
   return (
     <div>
@@ -249,10 +334,14 @@ export default function AdminDashboardPage() {
             <div>
               <div className="stat-card-label">Real-time Hari Ini</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#16a34a' }}>{todayOrderCount}</div>
+                <div className="stat-card-value" style={{ color: '#16a34a' }}>
+                  {todayOrderCount}
+                </div>
                 <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>pesanan baru</span>
               </div>
-              <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>{formatRp(todayRevenue)} omzet</div>
+              <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>
+                {formatRp(todayRevenue)} omzet
+              </div>
             </div>
             <div style={{ background: '#d1fae5', borderRadius: '0.5rem', padding: '0.5rem' }}>
               <Activity size={20} style={{ color: '#16a34a' }} />
@@ -266,7 +355,9 @@ export default function AdminDashboardPage() {
             <div>
               <div className="stat-card-label">Produksi Aktif</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#06b6d4' }}>{inProduction}</div>
+                <div className="stat-card-value" style={{ color: '#06b6d4' }}>
+                  {inProduction}
+                </div>
                 <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang diproduksi</span>
               </div>
               <div className="stat-card-sub">Gudang sedang kerjakan</div>
@@ -283,10 +374,14 @@ export default function AdminDashboardPage() {
             <div>
               <div className="stat-card-label">Instalasi Aktif</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#8b5cf6' }}>{activeInstalls}</div>
+                <div className="stat-card-value" style={{ color: '#8b5cf6' }}>
+                  {activeInstalls}
+                </div>
                 <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang pasang</span>
               </div>
-              <div className="stat-card-sub">{scheduledInstalls} terjadwal · {revisionInstalls} revisi</div>
+              <div className="stat-card-sub">
+                {scheduledInstalls} terjadwal · {revisionInstalls} revisi
+              </div>
             </div>
             <div style={{ background: '#f5f3ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
               <Calendar size={20} style={{ color: '#8b5cf6' }} />
@@ -300,7 +395,9 @@ export default function AdminDashboardPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <div className="stat-card-label">PR Pending</div>
-                <div className="stat-card-value" style={{ color: '#f59e0b' }}>{pendingPRs.length}</div>
+                <div className="stat-card-value" style={{ color: '#f59e0b' }}>
+                  {pendingPRs.length}
+                </div>
                 <div className="stat-card-sub">Perlu approve</div>
               </div>
               <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -315,8 +412,12 @@ export default function AdminDashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Total Pesanan</div>
-              <div className="stat-card-value" style={{ color: '#3b82f6' }}>{totalOrders}</div>
-              <div className="stat-card-sub" style={{ color: '#f59e0b' }}>{newOrders} pesanan baru</div>
+              <div className="stat-card-value" style={{ color: '#3b82f6' }}>
+                {totalOrders}
+              </div>
+              <div className="stat-card-sub" style={{ color: '#f59e0b' }}>
+                {newOrders} pesanan baru
+              </div>
             </div>
             <div style={{ background: '#eff6ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
               <ShoppingCart size={20} style={{ color: '#3b82f6' }} />
@@ -329,7 +430,9 @@ export default function AdminDashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Menunggu Bayar</div>
-              <div className="stat-card-value" style={{ color: '#ef4444' }}>{pendingPayment}</div>
+              <div className="stat-card-value" style={{ color: '#ef4444' }}>
+                {pendingPayment}
+              </div>
               <div className="stat-card-sub">Perlu konfirmasi Finance</div>
             </div>
             <div style={{ background: '#fef2f2', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -345,8 +448,12 @@ export default function AdminDashboardPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div className="stat-card-label">Sudah Bayar Belum Disortir</div>
-                  <div className="stat-card-value" style={{ color: '#f59e0b' }}>{paidNotSorted}</div>
-                  <div className="stat-card-sub" style={{ color: '#92400e' }}>⚠️ Perlu sortir Admin</div>
+                  <div className="stat-card-value" style={{ color: '#f59e0b' }}>
+                    {paidNotSorted}
+                  </div>
+                  <div className="stat-card-sub" style={{ color: '#92400e' }}>
+                    ⚠️ Perlu sortir Admin
+                  </div>
                 </div>
                 <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
                   <AlertCircle size={20} style={{ color: '#f59e0b' }} />
@@ -361,7 +468,9 @@ export default function AdminDashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Selesai</div>
-              <div className="stat-card-value" style={{ color: '#22c55e' }}>{doneOrders}</div>
+              <div className="stat-card-value" style={{ color: '#22c55e' }}>
+                {doneOrders}
+              </div>
               <div className="stat-card-sub">Pesanan completed</div>
             </div>
             <div style={{ background: '#f0fdf4', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -375,7 +484,9 @@ export default function AdminDashboardPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div className="stat-card-label">Total Pelanggan</div>
-              <div className="stat-card-value" style={{ color: '#ec4899' }}>{totalCustomers}</div>
+              <div className="stat-card-value" style={{ color: '#ec4899' }}>
+                {totalCustomers}
+              </div>
               <div className="stat-card-sub">Terdaftar</div>
             </div>
             <div style={{ background: '#fdf2f8', borderRadius: '0.5rem', padding: '0.5rem' }}>
@@ -389,14 +500,35 @@ export default function AdminDashboardPage() {
       {!loading && data && (
         <>
           {/* Order by Status Bar Chart */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '1.5rem',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <div
+              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <BarChart3 size={16} color="#cc7030" />
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Pesanan per Status</h3>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                  Pesanan per Status
+                </h3>
               </div>
               {data.orders.length === 0 ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+                <div
+                  style={{
+                    height: 200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af'
+                  }}
+                >
+                  Tidak ada data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={statusChartData}>
@@ -411,19 +543,34 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Revenue by Source Bar Chart */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}>
+            <div
+              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <TrendingUp size={16} color="#2563eb" />
                 <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Sumber</h3>
               </div>
               {data.orders.length === 0 ? (
-                <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+                <div
+                  style={{
+                    height: 200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af'
+                  }}
+                >
+                  Tidak ada data
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={revenueChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
+                    />
                     <Tooltip formatter={(v) => formatRp(v as number)} />
                     <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -433,13 +580,31 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* 30-Day Order Trend */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+          <div
+            style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              padding: '1.25rem',
+              marginBottom: '1.5rem'
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <TrendingUp size={16} color="#16a34a" />
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren 30 Hari</h3>
             </div>
             {trendData.length === 0 ? (
-              <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+              <div
+                style={{
+                  height: 200,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#9ca3af'
+                }}
+              >
+                Tidak ada data
+              </div>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={trendData}>
@@ -477,26 +642,50 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingPRs.map(pr => (
+                  {pendingPRs.map((pr) => (
                     <tr key={pr.id}>
                       <td style={{ fontWeight: '600' }}>{pr.material?.name ?? '—'}</td>
                       <td style={{ color: '#6b7280' }}>{pr.qty}</td>
-                      <td style={{ fontWeight: '600', color: '#cc7030' }}>
-                        {formatRp(pr.estimated_cost)}
-                      </td>
+                      <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(pr.estimated_cost)}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
                             onClick={() => approvePR(pr.id)}
                             disabled={approving === pr.id}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.75rem', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.78rem', fontWeight: '600', cursor: approving === pr.id ? 'not-allowed' : 'pointer', opacity: approving === pr.id ? 0.6 : 1 }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.375rem 0.75rem',
+                              background: '#22c55e',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.78rem',
+                              fontWeight: '600',
+                              cursor: approving === pr.id ? 'not-allowed' : 'pointer',
+                              opacity: approving === pr.id ? 0.6 : 1
+                            }}
                           >
                             <CheckCircle2 size={12} /> {approving === pr.id ? '...' : 'Approve'}
                           </button>
                           <button
                             onClick={() => rejectPR(pr.id)}
                             disabled={rejecting === pr.id}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.75rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.78rem', fontWeight: '600', cursor: rejecting === pr.id ? 'not-allowed' : 'pointer', opacity: rejecting === pr.id ? 0.6 : 1 }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.375rem 0.75rem',
+                              background: '#ef4444',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.78rem',
+                              fontWeight: '600',
+                              cursor: rejecting === pr.id ? 'not-allowed' : 'pointer',
+                              opacity: rejecting === pr.id ? 0.6 : 1
+                            }}
                           >
                             <XCircle size={12} /> {rejecting === pr.id ? '...' : 'Tolak'}
                           </button>
@@ -518,7 +707,17 @@ export default function AdminDashboardPage() {
           <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
         </div>
         {!data?.ordersWithLogs || data.ordersWithLogs.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '0.875rem' }}>
+          <div
+            style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: '#9ca3af',
+              background: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              fontSize: '0.875rem'
+            }}
+          >
             Belum ada pesanan
           </div>
         ) : (
@@ -526,28 +725,76 @@ export default function AdminDashboardPage() {
             {data.ordersWithLogs.map((order) => {
               const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: '#9ca3af' }
               const STATUS_COLORS: Record<string, string> = {
-                new: '#3b82f6', sorted: '#8b5cf6', payment_ok: '#f59e0b', production: '#06b6d4',
-                steam: '#0d9488', ready: '#14b8a6', packed: '#f97316', shipped: '#0d9488',
-                done: '#22c55e', returned: '#f59e0b', cancelled: '#dc2626',
+                new: '#3b82f6',
+                sorted: '#8b5cf6',
+                payment_ok: '#f59e0b',
+                production: '#06b6d4',
+                steam: '#0d9488',
+                ready: '#14b8a6',
+                packed: '#f97316',
+                shipped: '#0d9488',
+                done: '#22c55e',
+                returned: '#f59e0b',
+                cancelled: '#dc2626'
               }
               const PAYMENT_COLORS: Record<string, string> = {
-                pending: '#ef4444', partial: '#f59e0b', paid: '#22c55e',
+                pending: '#ef4444',
+                partial: '#f59e0b',
+                paid: '#22c55e'
               }
               const statusColor = STATUS_COLORS[order.status] ?? '#9ca3af'
               const payColor = PAYMENT_COLORS[order.payment_status] ?? '#9ca3af'
-              const photos = order.progressPhotos?.map(p => p.photo_url) ?? []
-              const stages = ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'shipped', 'done']
+              const photos = order.progressPhotos?.map((p) => p.photo_url) ?? []
+              const stages = [
+                'new',
+                'sorted',
+                'production',
+                'steam',
+                'ready',
+                'payment_ok',
+                'packed',
+                'shipped',
+                'done'
+              ]
               const currentStageIdx = stages.indexOf(order.status)
               const date = new Date(order.created_at)
               const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
               const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 
               return (
-                <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                <div
+                  key={order.id}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden'
+                  }}
+                >
                   {/* Card Header */}
-                  <div style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
+                  <div
+                    style={{
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: statusColor + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusColor, flexShrink: 0 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: statusColor + '15',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: statusColor,
+                          flexShrink: 0
+                        }}
+                      >
                         {actionStyle.icon}
                       </div>
                       <div>
@@ -560,10 +807,29 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: statusColor + '15', color: statusColor, textTransform: 'capitalize' }}>
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: '600',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: statusColor + '15',
+                          color: statusColor,
+                          textTransform: 'capitalize'
+                        }}
+                      >
                         {order.status.replace(/_/g, ' ')}
                       </span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: payColor + '15', color: payColor }}>
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: '600',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: payColor + '15',
+                          color: payColor
+                        }}
+                      >
                         {order.payment_status === 'partial' ? 'DP' : order.payment_status.toUpperCase()}
                       </span>
                     </div>
@@ -576,10 +842,28 @@ export default function AdminDashboardPage() {
                         const filled = currentStageIdx >= i
                         const active = currentStageIdx === i
                         return (
-                          <div key={stage} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem' }}>
-                            <div style={{ width: '100%', height: 3, borderRadius: 2, background: filled ? statusColor : '#e5e7eb' }} />
+                          <div
+                            key={stage}
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '0.125rem'
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '100%',
+                                height: 3,
+                                borderRadius: 2,
+                                background: filled ? statusColor : '#e5e7eb'
+                              }}
+                            />
                             {active && (
-                              <span style={{ fontSize: '0.5rem', color: statusColor, fontWeight: 600, marginTop: 2 }}>●</span>
+                              <span style={{ fontSize: '0.5rem', color: statusColor, fontWeight: 600, marginTop: 2 }}>
+                                ●
+                              </span>
                             )}
                           </div>
                         )
@@ -590,20 +874,45 @@ export default function AdminDashboardPage() {
                   {/* Activity Timeline */}
                   <div style={{ padding: '0.5rem 1rem', minHeight: 80 }}>
                     {order.recentLogs.length === 0 ? (
-                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', padding: '0.5rem 0' }}>Belum ada aktivitas</div>
+                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', padding: '0.5rem 0' }}>
+                        Belum ada aktivitas
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         {order.recentLogs.slice(0, 3).map((log, i) => {
                           const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: '#9ca3af' }
                           return (
-                            <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: i > 0 ? '0.75rem' : 0, borderLeft: i > 0 ? '2px solid #e5e7eb' : 'none' }}>
-                              <span style={{ color: logStyle.color, display: 'flex', flexShrink: 0 }}>{logStyle.icon}</span>
-                              <span style={{ fontSize: '0.72rem', color: '#6b7280', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <div
+                              key={log.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                paddingLeft: i > 0 ? '0.75rem' : 0,
+                                borderLeft: i > 0 ? '2px solid #e5e7eb' : 'none'
+                              }}
+                            >
+                              <span style={{ color: logStyle.color, display: 'flex', flexShrink: 0 }}>
+                                {logStyle.icon}
+                              </span>
+                              <span
+                                style={{
+                                  fontSize: '0.72rem',
+                                  color: '#6b7280',
+                                  flex: 1,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
                                 {log.action.replace(/_/g, ' ').toUpperCase()}
                                 {log.staff && <span style={{ color: '#9ca3af' }}> — {log.staff.name}</span>}
                               </span>
                               <span style={{ fontSize: '0.65rem', color: '#9ca3af', flexShrink: 0 }}>
-                                {new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                {new Date(log.created_at).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </span>
                             </div>
                           )
@@ -621,7 +930,11 @@ export default function AdminDashboardPage() {
                       </div>
                       <LightboxGallery
                         photos={photos}
-                        onPhotoClick={(i) => { setLightboxPhotos(photos); setLightboxIndex(i); setLightboxOpen(true) }}
+                        onPhotoClick={(i) => {
+                          setLightboxPhotos(photos)
+                          setLightboxIndex(i)
+                          setLightboxOpen(true)
+                        }}
                         columns={4}
                         thumbSize="sm"
                       />
@@ -629,8 +942,19 @@ export default function AdminDashboardPage() {
                   )}
 
                   {/* Card Footer */}
-                  <div style={{ padding: '0.5rem 1rem', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <a href={`/admin/orders/${order.id}`} style={{ fontSize: '0.72rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}>
+                  <div
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: '#f9fafb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end'
+                    }}
+                  >
+                    <a
+                      href={`/admin/orders/${order.id}`}
+                      style={{ fontSize: '0.72rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}
+                    >
                       Lihat Detail →
                     </a>
                   </div>
@@ -647,8 +971,8 @@ export default function AdminDashboardPage() {
           photos={lightboxPhotos}
           currentIndex={lightboxIndex}
           onClose={() => setLightboxOpen(false)}
-          onNext={() => setLightboxIndex(i => i < lightboxPhotos.length - 1 ? i + 1 : i)}
-          onPrev={() => setLightboxIndex(i => i > 0 ? i - 1 : i)}
+          onNext={() => setLightboxIndex((i) => (i < lightboxPhotos.length - 1 ? i + 1 : i))}
+          onPrev={() => setLightboxIndex((i) => (i > 0 ? i - 1 : i))}
         />
       )}
     </div>

@@ -11,13 +11,7 @@ interface ColorPickerProps {
   description?: string
 }
 
-export default function ColorPicker({
-  label,
-  value,
-  defaultValue,
-  onChange,
-  description,
-}: ColorPickerProps) {
+export default function ColorPicker({ label, value, defaultValue, onChange, description }: ColorPickerProps) {
   const [isValid, setIsValid] = useState(true)
 
   const validateHex = (hex: string): boolean => {
@@ -49,7 +43,7 @@ export default function ColorPicker({
           fontSize: '0.8rem',
           fontWeight: '600',
           color: '#374151',
-          marginBottom: '0.5rem',
+          marginBottom: '0.5rem'
         }}
       >
         {label}
@@ -67,7 +61,7 @@ export default function ColorPicker({
               border: '2px solid #d1d5db',
               borderRadius: '0.5rem',
               cursor: 'pointer',
-              padding: 0,
+              padding: 0
             }}
             title="Pick a color"
           />
@@ -79,7 +73,7 @@ export default function ColorPicker({
               right: 2,
               color: '#fff',
               pointerEvents: 'none',
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
             }}
           />
         </div>
@@ -99,7 +93,7 @@ export default function ColorPicker({
             fontSize: '0.875rem',
             fontFamily: 'monospace',
             outline: 'none',
-            textTransform: 'uppercase',
+            textTransform: 'uppercase'
           }}
         />
 
@@ -117,7 +111,7 @@ export default function ColorPicker({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.15s',
+            transition: 'all 0.15s'
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = '#e5e7eb'
@@ -136,7 +130,7 @@ export default function ColorPicker({
           style={{
             fontSize: '0.72rem',
             color: '#9ca3af',
-            marginTop: '0.25rem',
+            marginTop: '0.25rem'
           }}
         >
           {description}
@@ -147,7 +141,7 @@ export default function ColorPicker({
           style={{
             fontSize: '0.72rem',
             color: '#ef4444',
-            marginTop: '0.25rem',
+            marginTop: '0.25rem'
           }}
         >
           Invalid HEX color format. Use #RRGGBB (e.g., #DDC0B4)

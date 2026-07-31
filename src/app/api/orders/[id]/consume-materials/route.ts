@@ -16,20 +16,16 @@ import { NextResponse } from 'next/server'
  *
  * Idempotent: kalau sudah pernah di-consume, return info tanpa re-process.
  */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
 
   // 1. Auth check
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
   if (!user) {
-    return NextResponse.json(
-      { data: null, error: { message: 'Unauthorized' } },
-      { status: 401 }
-    )
+    return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
 
   // 2. Parse body
@@ -37,10 +33,7 @@ export async function POST(
   const productionJobId: string = body.production_job_id
 
   if (!productionJobId) {
-    return NextResponse.json(
-      { data: null, error: { message: 'production_job_id wajib diisi' } },
-      { status: 400 }
-    )
+    return NextResponse.json({ data: null, error: { message: 'production_job_id wajib diisi' } }, { status: 400 })
   }
 
   // 3. Verify order exists & match
@@ -51,10 +44,7 @@ export async function POST(
     .single()
 
   if (orderErr || !order) {
-    return NextResponse.json(
-      { data: null, error: { message: 'Order tidak ditemukan' } },
-      { status: 404 }
-    )
+    return NextResponse.json({ data: null, error: { message: 'Order tidak ditemukan' } }, { status: 404 })
   }
 
   // 4. Verify production_job exists & belongs to this order
@@ -74,19 +64,23 @@ export async function POST(
 
   if (job.status !== 'done') {
     return NextResponse.json(
-      { data: null, error: { message: `Production job belum 'done' (saat ini: ${job.status}). Material hanya bisa di-consume setelah job selesai.` } },
+      {
+        data: null,
+        error: {
+          message: `Production job belum 'done' (saat ini: ${job.status}). Material hanya bisa di-consume setelah job selesai.`
+        }
+      },
       { status: 400 }
     )
   }
 
   // 5. Call RPC (server-side atomic transaction)
   // RPC ini SECURITY DEFINER — bypass RLS untuk perform atomic stock decrement.
-  const { data: rpcResult, error: rpcErr } = await supabase
-    .rpc('consume_materials_for_production', {
-      p_production_job_id: productionJobId,
-      p_order_id: id,
-      p_consumed_by: user.id,
-    })
+  const { data: rpcResult, error: rpcErr } = await supabase.rpc('consume_materials_for_production', {
+    p_production_job_id: productionJobId,
+    p_order_id: id,
+    p_consumed_by: user.id
+  })
 
   if (rpcErr) {
     console.error('consume_materials_for_production RPC failed:', rpcErr)
@@ -103,8 +97,8 @@ export async function POST(
       order_id: id,
       order_number: order.order_number,
       production_job_id: productionJobId,
-      ...(rpcResult as any),
+      ...(rpcResult as any)
     },
-    error: null,
+    error: null
   })
 }

@@ -20,7 +20,9 @@ export default function ProcessReturPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
     <div>
@@ -60,7 +62,18 @@ export default function ProcessReturPage() {
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{p.return_amount ?? 0}</td>
                     <td style={{ fontWeight: '600', textAlign: 'right' }}>{sisa}</td>
                     <td>
-                      <button style={{ padding: '0.25rem 0.625rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>
+                      <button
+                        style={{
+                          padding: '0.25rem 0.625rem',
+                          background: '#3b82f6',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                      >
                         Proses Retur
                       </button>
                     </td>
