@@ -115,7 +115,6 @@ export default function ScrollHero({
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
           alignItems: 'center'
         }}
       >
@@ -134,6 +133,7 @@ export default function ScrollHero({
             textTransform: 'uppercase',
             padding: '0.5rem 1.25rem',
             borderRadius: 999,
+            marginTop: 'auto',
             marginBottom: '2rem',
             backdropFilter: 'blur(12px)',
             animation: 'fadeUp 0.6s 0.1s ease both'
@@ -244,6 +244,7 @@ export default function ScrollHero({
             justifyContent: 'center',
             flexWrap: 'wrap',
             marginTop: '3.5rem',
+            marginBottom: 'auto',
             paddingTop: '3rem',
             borderTop: '1px solid rgba(255,255,255,0.1)',
             animation: 'fadeUp 0.7s 0.7s ease both'
