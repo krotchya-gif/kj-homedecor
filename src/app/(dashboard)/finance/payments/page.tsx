@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
+import { Modal } from '@/components/ui/Modal'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -958,32 +959,9 @@ export default function FinancePaymentsPage() {
         </div>
       )}
 
-      {selected && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelected(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 440,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth={440} padding="2rem" zIndex={200}>
+        {selected && (
+          <>
             <h2
               style={{
                 fontSize: '1.1rem',
@@ -1173,9 +1151,9 @@ export default function FinancePaymentsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -209,32 +210,15 @@ export default function ProsesReturPage() {
         )}
       </div>
 
-      {showRetur && returItem && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowRetur(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 420,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal
+        open={showRetur && !!returItem}
+        onClose={() => setShowRetur(false)}
+        maxWidth={420}
+        padding="2rem"
+        zIndex={200}
+      >
+        {returItem && (
+          <>
             <div
               style={{
                 display: 'flex',
@@ -403,9 +387,9 @@ export default function ProsesReturPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

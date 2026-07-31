@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -208,147 +209,115 @@ export default function BannersPage() {
         </div>
       )}
 
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={480} padding="2rem" zIndex={200}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Tambah Banner</h2>
+          <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}
             >
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>Tambah Banner</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  Gambar Banner
-                </label>
-                {uploadedUrl ? (
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src={uploadedUrl}
-                      alt="Preview"
-                      style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setUploadedUrl('')}
-                      style={{
-                        position: 'absolute',
-                        top: -8,
-                        right: -8,
-                        width: 24,
-                        height: 24,
-                        background: '#ef4444',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '50%',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <label
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '100%',
-                      height: 150,
-                      background: '#f9fafb',
-                      border: '2px dashed #d1d5db',
-                      borderRadius: '0.5rem',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {uploading ? (
-                      <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: '#9ca3af' }} />
-                    ) : (
-                      <>
-                        <ImageIcon size={24} style={{ color: '#9ca3af', marginBottom: '0.5rem' }} />
-                        <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Klik untuk upload</span>
-                      </>
-                    )}
-                    <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-                  </label>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              Gambar Banner
+            </label>
+            {uploadedUrl ? (
+              <div style={{ position: 'relative' }}>
+                <img
+                  src={uploadedUrl}
+                  alt="Preview"
+                  style={{ width: '100%', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}
+                />
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={() => setUploadedUrl('')}
                   style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || !uploadedUrl}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
+                    position: 'absolute',
+                    top: -8,
+                    right: -8,
+                    width: 24,
+                    height: 24,
+                    background: '#ef4444',
                     color: '#fff',
                     border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
+                    borderRadius: '50%',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer'
                   }}
                 >
-                  {saving ? 'Menyimpan...' : 'Simpan'}
+                  ×
                 </button>
               </div>
-            </form>
+            ) : (
+              <label
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '100%',
+                  height: 150,
+                  background: '#f9fafb',
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {uploading ? (
+                  <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: '#9ca3af' }} />
+                ) : (
+                  <>
+                    <ImageIcon size={24} style={{ color: '#9ca3af', marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Klik untuk upload</span>
+                  </>
+                )}
+                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+              </label>
+            )}
           </div>
-        </div>
-      )}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving || !uploadedUrl}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

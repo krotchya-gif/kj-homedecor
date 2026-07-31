@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -259,294 +260,267 @@ export default function AssetsPage() {
         )}
       </div>
 
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 520,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
-              {editItem ? 'Edit Aset' : 'Tambah Aset'}
-            </h2>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Kode Aset
-                  </label>
-                  <input
-                    type="text"
-                    value={form.code}
-                    onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Kategori
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Kendaraan, Elektronik"
-                    value={form.category}
-                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Nama Aset *
-                </label>
-                <input
-                  required
-                  type="text"
-                  placeholder="Nama aset"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Lokasi
-                </label>
-                <input
-                  type="text"
-                  placeholder="Lokasi aset"
-                  value={form.location}
-                  onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Tgl Pembelian
-                  </label>
-                  <input
-                    type="date"
-                    value={form.purchase_date}
-                    onChange={(e) => setForm((f) => ({ ...f, purchase_date: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Nilai Perolehan
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={form.purchase_value}
-                    onChange={(e) => setForm((f) => ({ ...f, purchase_value: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Rate Penyusutan (%)
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={form.depreciation_rate}
-                    onChange={(e) => setForm((f) => ({ ...f, depreciation_rate: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Nilai Buku
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={form.current_value}
-                    onChange={(e) => setForm((f) => ({ ...f, current_value: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={520} padding="2rem" zIndex={200}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+          {editItem ? 'Edit Aset' : 'Tambah Aset'}
+        </h2>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Kode Aset
+              </label>
+              <input
+                type="text"
+                value={form.code}
+                onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Kategori
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Kendaraan, Elektronik"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
           </div>
-        </div>
-      )}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Nama Aset *
+            </label>
+            <input
+              required
+              type="text"
+              placeholder="Nama aset"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Lokasi
+            </label>
+            <input
+              type="text"
+              placeholder="Lokasi aset"
+              value={form.location}
+              onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Tgl Pembelian
+              </label>
+              <input
+                type="date"
+                value={form.purchase_date}
+                onChange={(e) => setForm((f) => ({ ...f, purchase_date: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Nilai Perolehan
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={form.purchase_value}
+                onChange={(e) => setForm((f) => ({ ...f, purchase_value: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Rate Penyusutan (%)
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={form.depreciation_rate}
+                onChange={(e) => setForm((f) => ({ ...f, depreciation_rate: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Nilai Buku
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={form.current_value}
+                onChange={(e) => setForm((f) => ({ ...f, current_value: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

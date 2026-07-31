@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -166,148 +167,125 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
+      <Modal
+        open={showForm}
+        onClose={() => {
+          setShowForm(false)
+          setEditing(null)
+        }}
+        maxWidth={480}
+        padding="2rem"
+        zIndex={200}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
+            {editing ? 'Edit Kategori' : 'Kategori Baru'}
+          </h2>
+          <button
+            onClick={() => {
               setShowForm(false)
               setEditing(null)
-            }
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
             }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}
-            >
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
-                {editing ? 'Edit Kategori' : 'Kategori Baru'}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowForm(false)
-                  setEditing(null)
-                }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Nama Kategori *
-                </label>
-                <input
-                  required
-                  type="text"
-                  placeholder="cth: Gorden"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Slug *
-                </label>
-                <input
-                  required
-                  type="text"
-                  placeholder="cth: gorden"
-                  value={form.slug}
-                  onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowForm(false)
-                    setEditing(null)
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : editing ? 'Update' : 'Simpan'}
-                </button>
-              </div>
-            </form>
-          </div>
+            <X size={20} />
+          </button>
         </div>
-      )}
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Nama Kategori *
+            </label>
+            <input
+              required
+              type="text"
+              placeholder="cth: Gorden"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Slug *
+            </label>
+            <input
+              required
+              type="text"
+              placeholder="cth: gorden"
+              value={form.slug}
+              onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false)
+                setEditing(null)
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : editing ? 'Update' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

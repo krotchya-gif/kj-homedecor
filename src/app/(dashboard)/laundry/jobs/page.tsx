@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -342,35 +343,18 @@ export default function LaundryJobsPage() {
       )}
 
       {/* Done Confirmation Modal */}
-      {showDoneModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowDoneModal(null)
-              setCompletedKg('')
-            }
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 400,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal
+        open={!!showDoneModal}
+        onClose={() => {
+          setShowDoneModal(null)
+          setCompletedKg('')
+        }}
+        maxWidth={400}
+        padding="2rem"
+        zIndex={200}
+      >
+        {showDoneModal && (
+          <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Konfirmasi Selesai</h2>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
               Berat aktual untuk <strong>{showDoneModal.customer_name}</strong>:
@@ -438,9 +422,9 @@ export default function LaundryJobsPage() {
                 {saving === showDoneModal.id ? 'Menyimpan...' : '✓ Selesai'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

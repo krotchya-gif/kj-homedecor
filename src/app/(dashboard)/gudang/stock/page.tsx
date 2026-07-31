@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { AlertTriangle, CheckCircle2, Minus, Plus, Pencil, Package, Truck } from 'lucide-react'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Modal } from '@/components/ui/Modal'
 
 const PAGE_SIZE = 20
 
@@ -1010,32 +1011,9 @@ export default function GudangStockPage() {
         </div>
       )}
 
-      {editItem && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setEditItem(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 460,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal open={!!editItem} onClose={() => setEditItem(null)} maxWidth={460} padding="2rem" zIndex={200}>
+        {editItem && (
+          <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: '0 0 1.25rem' }}>✏️ Edit Stok</h2>
             <div style={{ padding: '0.75rem', background: '#f3f4f6', borderRadius: '0.5rem', marginBottom: '1rem' }}>
               <strong>{editItem.name}</strong>
@@ -1211,9 +1189,9 @@ export default function GudangStockPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {tab === 'delivery' && (
         <div>

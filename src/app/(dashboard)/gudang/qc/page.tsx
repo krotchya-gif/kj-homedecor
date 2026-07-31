@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -509,32 +510,9 @@ export default function GudangQCPage() {
       )}
 
       {/* QC Modal */}
-      {selected && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelected(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 460,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth={460} padding="2rem" zIndex={200}>
+        {selected && (
+          <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>QC Check</h2>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
               {selected.product?.name} — {selected.size ?? 'tanpa ukuran'}
@@ -687,39 +665,14 @@ export default function GudangQCPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {/* Retur Verification Modal */}
-      {selectedReturn && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSelectedReturn(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 520,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-          >
+      <Modal open={!!selectedReturn} onClose={() => setSelectedReturn(null)} maxWidth={520} padding="2rem" zIndex={200}>
+        {selectedReturn && (
+          <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.25rem' }}>📦 Verifikasi Return</h2>
             <p style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: '1.25rem' }}>
               Periksa kondisi fisik barang return. Foto wajib sebagai dokumentasi.
@@ -955,9 +908,9 @@ export default function GudangQCPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

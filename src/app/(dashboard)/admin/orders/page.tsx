@@ -9,6 +9,7 @@ import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 const PAGE_SIZE = 20
 const formatRp = (n: number) =>
@@ -457,387 +458,358 @@ export default function OrdersPage() {
       )}
 
       {/* Create Order Modal */}
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Buat Pesanan Baru</h2>
-            <form onSubmit={handleCreateOrder} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Customer */}
-              <div className="form-section">
-                <div className="form-section-title">Data Pelanggan</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div>
-                    <label
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={520} padding="2rem" zIndex={200}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Buat Pesanan Baru</h2>
+        <form onSubmit={handleCreateOrder} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* Customer */}
+          <div className="form-section">
+            <div className="form-section-title">Data Pelanggan</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Pilih / Tambah Pelanggan
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="Ketik nama atau no HP untuk cari..."
+                    value={searchCustomer}
+                    onChange={(e) => {
+                      setSearchCustomer(e.target.value)
+                      if (!e.target.value) {
+                        setSelectedCustomerId(null)
+                        setForm((f) => ({ ...f, customer_name: '', customer_phone: '', customer_address: '' }))
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      background: '#fff'
+                    }}
+                  />
+                  {searchCustomer && (
+                    <div
                       style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '0.3rem'
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        zIndex: 50,
+                        background: '#fff',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        maxHeight: 200,
+                        overflowY: 'auto'
                       }}
                     >
-                      Pilih / Tambah Pelanggan
-                    </label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        type="text"
-                        placeholder="Ketik nama atau no HP untuk cari..."
-                        value={searchCustomer}
-                        onChange={(e) => {
-                          setSearchCustomer(e.target.value)
-                          if (!e.target.value) {
-                            setSelectedCustomerId(null)
-                            setForm((f) => ({ ...f, customer_name: '', customer_phone: '', customer_address: '' }))
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none',
-                          background: '#fff'
-                        }}
-                      />
-                      {searchCustomer && (
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            zIndex: 50,
-                            background: '#fff',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.5rem',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                            maxHeight: 200,
-                            overflowY: 'auto'
-                          }}
-                        >
-                          {filteredCustomers(searchCustomer).length === 0 && (
-                            <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
-                              Ketik untuk cari atau buat pelanggan baru
-                            </div>
-                          )}
-                          {filteredCustomers(searchCustomer).map((c) => (
-                            <div
-                              key={c.id}
-                              onClick={() => {
-                                setSelectedCustomerId(c.id)
-                                setSearchCustomer('')
-                                setForm((f) => ({
-                                  ...f,
-                                  customer_name: c.name,
-                                  customer_phone: c.phone || '',
-                                  customer_address: c.address || ''
-                                }))
-                              }}
-                              style={{
-                                padding: '0.625rem 0.75rem',
-                                cursor: 'pointer',
-                                borderBottom: '1px solid #f3f4f6',
-                                fontSize: '0.85rem',
-                                background: selectedCustomerId === c.id ? '#fef3c7' : 'transparent'
-                              }}
-                            >
-                              <div style={{ fontWeight: 500 }}>{c.name}</div>
-                              <div style={{ color: '#9ca3af', fontSize: '0.78rem' }}>
-                                {c.phone || '—'}
-                                {c.address && ` · ${c.address}`}
-                              </div>
-                            </div>
-                          ))}
+                      {filteredCustomers(searchCustomer).length === 0 && (
+                        <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                          Ketik untuk cari atau buat pelanggan baru
                         </div>
                       )}
-                    </div>
-                    {!searchCustomer &&
-                      selectedCustomerId &&
-                      (() => {
-                        const sel = customers.find((c) => c.id === selectedCustomerId)
-                        return sel ? (
-                          <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', color: '#16a34a' }}>
-                            ✓ {sel.name} — {sel.phone || '—'}
+                      {filteredCustomers(searchCustomer).map((c) => (
+                        <div
+                          key={c.id}
+                          onClick={() => {
+                            setSelectedCustomerId(c.id)
+                            setSearchCustomer('')
+                            setForm((f) => ({
+                              ...f,
+                              customer_name: c.name,
+                              customer_phone: c.phone || '',
+                              customer_address: c.address || ''
+                            }))
+                          }}
+                          style={{
+                            padding: '0.625rem 0.75rem',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f3f4f6',
+                            fontSize: '0.85rem',
+                            background: selectedCustomerId === c.id ? '#fef3c7' : 'transparent'
+                          }}
+                        >
+                          <div style={{ fontWeight: 500 }}>{c.name}</div>
+                          <div style={{ color: '#9ca3af', fontSize: '0.78rem' }}>
+                            {c.phone || '—'}
+                            {c.address && ` · ${c.address}`}
                           </div>
-                        ) : null
-                      })()}
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '0.3rem'
-                      }}
-                    >
-                      No. HP
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="08xxx"
-                      value={form.customer_phone}
-                      onChange={(e) => setForm((f) => ({ ...f, customer_phone: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '0.3rem'
-                      }}
-                    >
-                      Alamat
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Alamat lengkap"
-                      value={form.customer_address}
-                      onChange={(e) => setForm((f) => ({ ...f, customer_address: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {!searchCustomer &&
+                  selectedCustomerId &&
+                  (() => {
+                    const sel = customers.find((c) => c.id === selectedCustomerId)
+                    return sel ? (
+                      <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', color: '#16a34a' }}>
+                        ✓ {sel.name} — {sel.phone || '—'}
+                      </div>
+                    ) : null
+                  })()}
               </div>
-
-              {/* Order details */}
-              <div className="form-section">
-                <div className="form-section-title">Detail Pesanan</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Sumber
-                      </label>
-                      <select
-                        value={form.source}
-                        onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none',
-                          background: '#fff'
-                        }}
-                      >
-                        <option value="offline">Offline</option>
-                        <option value="shopee">Shopee</option>
-                        <option value="tokopedia">Tokopedia</option>
-                        <option value="tiktok">TikTok</option>
-                        <option value="landing_page">Landing Page</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Jenis *
-                      </label>
-                      <select
-                        value={form.classification}
-                        onChange={(e) => setForm((f) => ({ ...f, classification: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none',
-                          background: '#fff'
-                        }}
-                      >
-                        <option value="kirim">📦 Kirim</option>
-                        <option value="pasang">📍 Pasang</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Total (Rp)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={form.total_amount}
-                        onChange={(e) => setForm((f) => ({ ...f, total_amount: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        DP (Rp)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="0"
-                        value={form.dp_amount}
-                        onChange={(e) => setForm((f) => ({ ...f, dp_amount: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '0.3rem'
-                      }}
-                    >
-                      Catatan
-                    </label>
-                    <textarea
-                      placeholder="Catatan pesanan..."
-                      value={form.notes}
-                      onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                      rows={2}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
+              <div>
+                <label
                   style={{
-                    flex: 1,
-                    padding: '0.75rem',
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  No. HP
+                </label>
+                <input
+                  type="text"
+                  placeholder="08xxx"
+                  value={form.customer_phone}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_phone: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
+                    fontSize: '0.875rem',
+                    outline: 'none'
                   }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : 'Buat Pesanan'}
-                </button>
+                />
               </div>
-            </form>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Alamat
+                </label>
+                <input
+                  type="text"
+                  placeholder="Alamat lengkap"
+                  value={form.customer_address}
+                  onChange={(e) => setForm((f) => ({ ...f, customer_address: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Order details */}
+          <div className="form-section">
+            <div className="form-section-title">Detail Pesanan</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Sumber
+                  </label>
+                  <select
+                    value={form.source}
+                    onChange={(e) => setForm((f) => ({ ...f, source: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      background: '#fff'
+                    }}
+                  >
+                    <option value="offline">Offline</option>
+                    <option value="shopee">Shopee</option>
+                    <option value="tokopedia">Tokopedia</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="landing_page">Landing Page</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Jenis *
+                  </label>
+                  <select
+                    value={form.classification}
+                    onChange={(e) => setForm((f) => ({ ...f, classification: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      background: '#fff'
+                    }}
+                  >
+                    <option value="kirim">📦 Kirim</option>
+                    <option value="pasang">📍 Pasang</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Total (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.total_amount}
+                    onChange={(e) => setForm((f) => ({ ...f, total_amount: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    DP (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.dp_amount}
+                    onChange={(e) => setForm((f) => ({ ...f, dp_amount: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Catatan
+                </label>
+                <textarea
+                  placeholder="Catatan pesanan..."
+                  value={form.notes}
+                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                  rows={2}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Buat Pesanan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

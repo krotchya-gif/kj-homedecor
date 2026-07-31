@@ -17,6 +17,7 @@ import {
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
+import { Modal } from '@/components/ui/Modal'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   waiting: { bg: '#fef2f2', text: '#991b1b' },
@@ -502,32 +503,9 @@ export default function GudangProductionPage() {
         )}
       </div>
 
-      {assignJob && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setAssignJob(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 420,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal open={!!assignJob} onClose={() => setAssignJob(null)} maxWidth={420} padding="2rem" zIndex={200}>
+        {assignJob && (
+          <>
             <div
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}
             >
@@ -588,39 +566,22 @@ export default function GudangProductionPage() {
                 ))
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
-      {warningJob && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 201,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setWarningJob(null)
-              setWarningMats([])
-            }
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal
+        open={!!warningJob}
+        onClose={() => {
+          setWarningJob(null)
+          setWarningMats([])
+        }}
+        maxWidth={480}
+        padding="2rem"
+        zIndex={201}
+      >
+        {warningJob && (
+          <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               <AlertTriangle size={28} style={{ color: '#dc2626', flexShrink: 0 }} />
               <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0, color: '#dc2626' }}>
@@ -700,9 +661,9 @@ export default function GudangProductionPage() {
                 ⚠️ Tetap Mulai (Material Akan Dimakan Habis)
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

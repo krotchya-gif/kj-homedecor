@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -354,23 +355,14 @@ export default function AdminShippingPage() {
       )}
 
       {/* Resi Modal */}
-      {showResiModal && selectedOrder && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowResiModal(false)
-          }}
-        >
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 420 }}>
+      <Modal
+        open={showResiModal && !!selectedOrder}
+        onClose={() => setShowResiModal(false)}
+        maxWidth={420}
+        padding="2rem"
+      >
+        {selectedOrder && (
+          <>
             <div
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}
             >
@@ -566,9 +558,9 @@ export default function AdminShippingPage() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

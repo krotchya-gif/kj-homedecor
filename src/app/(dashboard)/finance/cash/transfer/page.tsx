@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -197,261 +198,234 @@ export default function TransferPage() {
         )}
       </div>
 
-      {showForm && (
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={480} padding="2rem" zIndex={200}>
         <div
           style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
+            marginBottom: '1.5rem'
           }}
         >
-          <div
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Transfer Antar Kas</h2>
+          <button
+            onClick={() => setShowForm(false)}
             style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#6b7280'
             }}
           >
-            <div
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1.5rem'
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
               }}
             >
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Transfer Antar Kas</h2>
-              <button
-                onClick={() => setShowForm(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Dari Akun *
-                </label>
-                <select
-                  required
-                  value={form.from_account_id}
-                  onChange={(e) => setForm((f) => ({ ...f, from_account_id: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    background: '#fff'
-                  }}
-                >
-                  <option value="">— Pilih Akun Asal —</option>
-                  {cashAccounts.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.bank_name} — {c.account_number} ({formatRp(c.balance)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Ke Akun *
-                </label>
-                <select
-                  required
-                  value={form.to_account_id}
-                  onChange={(e) => setForm((f) => ({ ...f, to_account_id: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    background: '#fff'
-                  }}
-                >
-                  <option value="">— Pilih Akun Tujuan —</option>
-                  {cashAccounts
-                    .filter((c) => c.id !== form.from_account_id)
-                    .map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.bank_name} — {c.account_number} ({formatRp(c.balance)})
-                      </option>
-                    ))}
-                </select>
-                {form.from_account_id && form.from_account_id === form.to_account_id && (
-                  <p
-                    style={{
-                      color: '#dc2626',
-                      fontSize: '0.78rem',
-                      marginTop: '0.25rem'
-                    }}
-                  >
-                    Akun asal dan tujuan harus berbeda
-                  </p>
-                )}
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '0.75rem'
-                }}
-              >
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Jumlah (Rp) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    placeholder="0"
-                    value={form.amount}
-                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Tanggal
-                  </label>
-                  <input
-                    type="date"
-                    value={form.entry_date}
-                    onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Deskripsi
-                </label>
-                <input
-                  type="text"
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Misal: Setor tunai ke bank"
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || form.from_account_id === form.to_account_id}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#6366f1',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : 'Transfer'}
-                </button>
-              </div>
-            </form>
+              Dari Akun *
+            </label>
+            <select
+              required
+              value={form.from_account_id}
+              onChange={(e) => setForm((f) => ({ ...f, from_account_id: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: '#fff'
+              }}
+            >
+              <option value="">— Pilih Akun Asal —</option>
+              {cashAccounts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.bank_name} — {c.account_number} ({formatRp(c.balance)})
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Ke Akun *
+            </label>
+            <select
+              required
+              value={form.to_account_id}
+              onChange={(e) => setForm((f) => ({ ...f, to_account_id: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: '#fff'
+              }}
+            >
+              <option value="">— Pilih Akun Tujuan —</option>
+              {cashAccounts
+                .filter((c) => c.id !== form.from_account_id)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.bank_name} — {c.account_number} ({formatRp(c.balance)})
+                  </option>
+                ))}
+            </select>
+            {form.from_account_id && form.from_account_id === form.to_account_id && (
+              <p
+                style={{
+                  color: '#dc2626',
+                  fontSize: '0.78rem',
+                  marginTop: '0.25rem'
+                }}
+              >
+                Akun asal dan tujuan harus berbeda
+              </p>
+            )}
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem'
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Jumlah (Rp) *
+              </label>
+              <input
+                type="number"
+                required
+                placeholder="0"
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Tanggal
+              </label>
+              <input
+                type="date"
+                value={form.entry_date}
+                onChange={(e) => setForm((f) => ({ ...f, entry_date: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Deskripsi
+            </label>
+            <input
+              type="text"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Misal: Setor tunai ke bank"
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving || form.from_account_id === form.to_account_id}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#6366f1',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Transfer'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

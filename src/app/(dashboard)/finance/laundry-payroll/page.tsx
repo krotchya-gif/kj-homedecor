@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -308,32 +309,9 @@ export default function LaundryPayrollPage() {
       )}
 
       {/* Paid Confirmation Modal */}
-      {showPaidModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowPaidModal(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 400,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
+      <Modal open={!!showPaidModal} onClose={() => setShowPaidModal(null)} maxWidth={400} padding="2rem" zIndex={200}>
+        {showPaidModal && (
+          <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Konfirmasi Pembayaran</h2>
             <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
               Yakin ingin menandai payroll ini sebagai <strong>Lunas</strong>?
@@ -370,9 +348,9 @@ export default function LaundryPayrollPage() {
                 {saving ? 'Menyimpan...' : '✓ Bayar'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

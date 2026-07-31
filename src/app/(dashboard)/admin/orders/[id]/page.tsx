@@ -25,6 +25,7 @@ import type { Order, OrderItem, Product, Customer, PreparationChecklistItem, Ord
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
+import { Modal } from '@/components/ui/Modal'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
 
 // V3 Pipeline: ORDER_STATUSES now conditional based on order.classification
@@ -1351,918 +1352,730 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Add Item Modal */}
-      {showItemForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowItemForm(false)
-              resetForm()
-            }
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 580,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Tambah Item Pesanan</h2>
+      <Modal
+        open={showItemForm}
+        onClose={() => {
+          setShowItemForm(false)
+          resetForm()
+        }}
+        maxWidth={580}
+        padding="2rem"
+      >
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Tambah Item Pesanan</h2>
 
-            {/* Step 1: Type selector */}
-            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-              {(['gorden', 'perabot', 'laundry'] as ItemType[]).map((t) => {
-                const labels: Record<ItemType, string> = {
-                  gorden: '🪟 Gorden',
-                  perabot: '🪑 Perabot',
-                  laundry: '🧺 Laundry'
-                }
-                return (
-                  <button
-                    key={t}
-                    onClick={() => setItemType(t)}
+        {/* Step 1: Type selector */}
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          {(['gorden', 'perabot', 'laundry'] as ItemType[]).map((t) => {
+            const labels: Record<ItemType, string> = {
+              gorden: '🪟 Gorden',
+              perabot: '🪑 Perabot',
+              laundry: '🧺 Laundry'
+            }
+            return (
+              <button
+                key={t}
+                onClick={() => setItemType(t)}
+                style={{
+                  flex: 1,
+                  padding: '0.625rem',
+                  border: `2px solid ${itemType === t ? '#cc7030' : '#e5e7eb'}`,
+                  borderRadius: '0.5rem',
+                  background: itemType === t ? '#fff7ed' : '#fff',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '0.8rem',
+                  color: itemType === t ? '#92400e' : '#6b7280'
+                }}
+              >
+                {labels[t]}
+              </button>
+            )
+          })}
+        </div>
+
+        <form onSubmit={addItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* === GORDEN FORM === */}
+          {itemType === 'gorden' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label
                     style={{
-                      flex: 1,
-                      padding: '0.625rem',
-                      border: `2px solid ${itemType === t ? '#cc7030' : '#e5e7eb'}`,
-                      borderRadius: '0.5rem',
-                      background: itemType === t ? '#fff7ed' : '#fff',
-                      cursor: 'pointer',
-                      fontWeight: '600',
+                      display: 'block',
                       fontSize: '0.8rem',
-                      color: itemType === t ? '#92400e' : '#6b7280'
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
                     }}
                   >
-                    {labels[t]}
-                  </button>
-                )
-              })}
-            </div>
-
-            <form onSubmit={addItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* === GORDEN FORM === */}
-              {itemType === 'gorden' && (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
+                    Produk
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Cari produk..."
+                      value={searchProduct}
+                      onChange={(e) => setSearchProduct(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        background: '#fff'
+                      }}
+                    />
+                    {searchProduct && (
+                      <div
                         style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          zIndex: 50,
+                          background: '#fff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          maxHeight: 200,
+                          overflowY: 'auto'
                         }}
                       >
-                        Produk
-                      </label>
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          type="text"
-                          placeholder="Cari produk..."
-                          value={searchProduct}
-                          onChange={(e) => setSearchProduct(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '0.625rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
-                            outline: 'none',
-                            background: '#fff'
+                        <div
+                          onClick={() => {
+                            setItemForm((f) => ({ ...f, product_id: '', price: '' }))
+                            setSearchProduct('')
                           }}
-                        />
-                        {searchProduct && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              zIndex: 50,
-                              background: '#fff',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '0.5rem',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                              maxHeight: 200,
-                              overflowY: 'auto'
-                            }}
-                          >
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            color: '#6b7280',
+                            borderBottom: '1px solid #f3f4f6'
+                          }}
+                        >
+                          — Pilih Produk —
+                        </div>
+                        {products
+                          .filter(
+                            (p) =>
+                              p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+                              (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
+                          )
+                          .map((p) => (
                             <div
+                              key={p.id}
                               onClick={() => {
-                                setItemForm((f) => ({ ...f, product_id: '', price: '' }))
+                                setItemForm((f) => ({ ...f, product_id: p.id, price: String(p.price ?? 0) }))
                                 setSearchProduct('')
                               }}
                               style={{
                                 padding: '0.5rem 0.75rem',
                                 cursor: 'pointer',
                                 fontSize: '0.8rem',
-                                color: '#6b7280',
-                                borderBottom: '1px solid #f3f4f6'
+                                borderBottom: '1px solid #f3f4f6',
+                                background: itemForm.product_id === p.id ? '#fef3c7' : 'transparent'
                               }}
                             >
-                              — Pilih Produk —
-                            </div>
-                            {products
-                              .filter(
-                                (p) =>
-                                  p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                                  (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                              )
-                              .map((p) => (
-                                <div
-                                  key={p.id}
-                                  onClick={() => {
-                                    setItemForm((f) => ({ ...f, product_id: p.id, price: String(p.price ?? 0) }))
-                                    setSearchProduct('')
-                                  }}
-                                  style={{
-                                    padding: '0.5rem 0.75rem',
-                                    cursor: 'pointer',
-                                    fontSize: '0.8rem',
-                                    borderBottom: '1px solid #f3f4f6',
-                                    background: itemForm.product_id === p.id ? '#fef3c7' : 'transparent'
-                                  }}
-                                >
-                                  <span style={{ fontWeight: 500 }}>{p.name}</span>
-                                  {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
-                                  <span style={{ float: 'right', color: '#cc7030' }}>
-                                    {p.price != null
-                                      ? new Intl.NumberFormat('id-ID', {
-                                          style: 'currency',
-                                          currency: 'IDR',
-                                          maximumFractionDigits: 0
-                                        }).format(p.price)
-                                      : ''}
-                                  </span>
-                                </div>
-                              ))}
-                            {products.filter(
-                              (p) =>
-                                p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                                (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                            ).length === 0 && (
-                              <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
-                                Tidak ada produk ditemukan
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {!searchProduct && !itemForm.product_id && (
-                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af' }}>
-                            Ketik untuk mencari produk
-                          </div>
-                        )}
-                        {!searchProduct &&
-                          itemForm.product_id &&
-                          (() => {
-                            const sel = products.find((p) => p.id === itemForm.product_id)
-                            return sel ? (
-                              <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#374151' }}>
-                                <span style={{ fontWeight: 500 }}>{sel.name}</span>
-                                {sel.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({sel.sku})</span>}
-                              </div>
-                            ) : null
-                          })()}
-                      </div>
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Qty
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={itemForm.qty}
-                        onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Ukuran (cm)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="120 x 250"
-                        value={itemForm.size}
-                        onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                    {itemForm.product_id &&
-                      (() => {
-                        const prodBom = boms.filter((b) => b.product_id === itemForm.product_id)
-                        if (prodBom.length === 0) return null
-                        return (
-                          <div>
-                            <label
-                              style={{
-                                display: 'block',
-                                fontSize: '0.8rem',
-                                fontWeight: '600',
-                                color: '#374151',
-                                marginBottom: '0.3rem'
-                              }}
-                            >
-                              📋 Material Dibutuhkan
-                            </label>
-                            <div
-                              style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.25rem',
-                                maxHeight: 120,
-                                overflowY: 'auto',
-                                padding: '0.5rem',
-                                background: '#fef3c7',
-                                borderRadius: '0.5rem',
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              {prodBom.map((b) => {
-                                const mat = b.material
-                                const isLow = (mat?.stock_gudang ?? 0) < b.qty_per_unit
-                                return (
-                                  <div
-                                    key={b.id}
-                                    style={{
-                                      display: 'flex',
-                                      justifyContent: 'space-between',
-                                      alignItems: 'center',
-                                      padding: '0.2rem 0'
-                                    }}
-                                  >
-                                    <span
-                                      style={{
-                                        color: isLow ? '#dc2626' : '#374151',
-                                        fontWeight: isLow ? '700' : '400'
-                                      }}
-                                    >
-                                      {mat?.name ?? '—'} × {b.qty_per_unit} {mat?.unit}
-                                    </span>
-                                    <span style={{ color: isLow ? '#dc2626' : '#059669', fontWeight: '600' }}>
-                                      {isLow ? '⚠️ Stok kurang' : '✅ Cukup'}
-                                    </span>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        )
-                      })()}
-                  </div>
-                  <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
-                      Meteran Gorden
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Meter Gorden (m)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={itemForm.meter_gorden}
-                          onChange={(e) => setItemForm((prev) => ({ ...prev, meter_gorden: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Berat Auto (kg)
-                        </label>
-                        <input
-                          type="text"
-                          value={itemForm.meter_gorden ? (Number(itemForm.meter_gorden) * 0.4).toFixed(2) : '0'}
-                          readOnly
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none',
-                            background: '#f3f4f6',
-                            color: '#6b7280'
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {/* Style Variant Cards */}
-                  <div>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
-                      Model Gorden
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.5rem' }}>
-                      {GORDEN_STYLES.map((style) => (
-                        <div
-                          key={style}
-                          onClick={() => setItemForm((f) => ({ ...f, style_type: style, smokring_color: '' }))}
-                          style={{
-                            padding: '0.625rem 0.5rem',
-                            textAlign: 'center',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            background: itemForm.style_type === style ? '#cc7030' : '#fff',
-                            color: itemForm.style_type === style ? '#fff' : '#374151',
-                            border: `1px solid ${itemForm.style_type === style ? '#cc7030' : '#d1d5db'}`
-                          }}
-                        >
-                          {style.charAt(0).toUpperCase() + style.slice(1)}
-                        </div>
-                      ))}
-                    </div>
-                    {itemForm.style_type === 'smokring' && (
-                      <div style={{ marginTop: '0.75rem' }}>
-                        <div
-                          style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.4rem' }}
-                        >
-                          Warna Smokring
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {SMOKRING_COLORS.map((c) => (
-                            <div
-                              key={c}
-                              onClick={() => setItemForm((f) => ({ ...f, smokring_color: c }))}
-                              style={{
-                                padding: '0.375rem 0.75rem',
-                                borderRadius: '9999px',
-                                cursor: 'pointer',
-                                fontSize: '0.75rem',
-                                fontWeight: '500',
-                                background: itemForm.smokring_color === c ? '#cc7030' : '#fff',
-                                color: itemForm.smokring_color === c ? '#fff' : '#374151',
-                                border: `1px solid ${itemForm.smokring_color === c ? '#cc7030' : '#d1d5db'}`
-                              }}
-                            >
-                              {c}
+                              <span style={{ fontWeight: 500 }}>{p.name}</span>
+                              {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                              <span style={{ float: 'right', color: '#cc7030' }}>
+                                {p.price != null
+                                  ? new Intl.NumberFormat('id-ID', {
+                                      style: 'currency',
+                                      currency: 'IDR',
+                                      maximumFractionDigits: 0
+                                    }).format(p.price)
+                                  : ''}
+                              </span>
                             </div>
                           ))}
+                        {products.filter(
+                          (p) =>
+                            p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+                            (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
+                        ).length === 0 && (
+                          <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                            Tidak ada produk ditemukan
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!searchProduct && !itemForm.product_id && (
+                      <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af' }}>
+                        Ketik untuk mencari produk
+                      </div>
+                    )}
+                    {!searchProduct &&
+                      itemForm.product_id &&
+                      (() => {
+                        const sel = products.find((p) => p.id === itemForm.product_id)
+                        return sel ? (
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#374151' }}>
+                            <span style={{ fontWeight: 500 }}>{sel.name}</span>
+                            {sel.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({sel.sku})</span>}
+                          </div>
+                        ) : null
+                      })()}
+                  </div>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={itemForm.qty}
+                    onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Ukuran (cm)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="120 x 250"
+                    value={itemForm.size}
+                    onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                {itemForm.product_id &&
+                  (() => {
+                    const prodBom = boms.filter((b) => b.product_id === itemForm.product_id)
+                    if (prodBom.length === 0) return null
+                    return (
+                      <div>
+                        <label
+                          style={{
+                            display: 'block',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            color: '#374151',
+                            marginBottom: '0.3rem'
+                          }}
+                        >
+                          📋 Material Dibutuhkan
+                        </label>
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '0.25rem',
+                            maxHeight: 120,
+                            overflowY: 'auto',
+                            padding: '0.5rem',
+                            background: '#fef3c7',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          {prodBom.map((b) => {
+                            const mat = b.material
+                            const isLow = (mat?.stock_gudang ?? 0) < b.qty_per_unit
+                            return (
+                              <div
+                                key={b.id}
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  padding: '0.2rem 0'
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    color: isLow ? '#dc2626' : '#374151',
+                                    fontWeight: isLow ? '700' : '400'
+                                  }}
+                                >
+                                  {mat?.name ?? '—'} × {b.qty_per_unit} {mat?.unit}
+                                </span>
+                                <span style={{ color: isLow ? '#dc2626' : '#059669', fontWeight: '600' }}>
+                                  {isLow ? '⚠️ Stok kurang' : '✅ Cukup'}
+                                </span>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
-                    )}
+                    )
+                  })()}
+              </div>
+              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+                  Meteran Gorden
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Meter Gorden (m)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={itemForm.meter_gorden}
+                      onChange={(e) => setItemForm((prev) => ({ ...prev, meter_gorden: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
                   </div>
-                  <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                    <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.375rem',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={itemForm.poni_lurus}
-                          onChange={(e) => setItemForm((prev) => ({ ...prev, poni_lurus: e.target.checked }))}
-                        />
-                        Poni Lurus
-                      </label>
-                      <label
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.375rem',
-                          fontSize: '0.8rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={itemForm.poni_gel}
-                          onChange={(e) => setItemForm((prev) => ({ ...prev, poni_gel: e.target.checked }))}
-                        />
-                        Poni Gel
-                      </label>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Berat Auto (kg)
+                    </label>
+                    <input
+                      type="text"
+                      value={itemForm.meter_gorden ? (Number(itemForm.meter_gorden) * 0.4).toFixed(2) : '0'}
+                      readOnly
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none',
+                        background: '#f3f4f6',
+                        color: '#6b7280'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Style Variant Cards */}
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Model Gorden
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.5rem' }}>
+                  {GORDEN_STYLES.map((style) => (
+                    <div
+                      key={style}
+                      onClick={() => setItemForm((f) => ({ ...f, style_type: style, smokring_color: '' }))}
+                      style={{
+                        padding: '0.625rem 0.5rem',
+                        textAlign: 'center',
+                        borderRadius: '0.5rem',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        background: itemForm.style_type === style ? '#cc7030' : '#fff',
+                        color: itemForm.style_type === style ? '#fff' : '#374151',
+                        border: `1px solid ${itemForm.style_type === style ? '#cc7030' : '#d1d5db'}`
+                      }}
+                    >
+                      {style.charAt(0).toUpperCase() + style.slice(1)}
                     </div>
-                    {itemForm.meter_gorden && Number(itemForm.meter_gorden) > 0 && (
-                      <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: '#16a34a', fontWeight: '600' }}>
-                        Estimasi:{' '}
-                        {(products.find((p) => p.id === itemForm.product_id)?.price || 0) *
-                          Number(itemForm.meter_gorden)}
-                      </div>
-                    )}
+                  ))}
+                </div>
+                {itemForm.style_type === 'smokring' && (
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.4rem' }}>
+                      Warna Smokring
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      {SMOKRING_COLORS.map((c) => (
+                        <div
+                          key={c}
+                          onClick={() => setItemForm((f) => ({ ...f, smokring_color: c }))}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '9999px',
+                            cursor: 'pointer',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            background: itemForm.smokring_color === c ? '#cc7030' : '#fff',
+                            color: itemForm.smokring_color === c ? '#fff' : '#374151',
+                            border: `1px solid ${itemForm.smokring_color === c ? '#cc7030' : '#d1d5db'}`
+                          }}
+                        >
+                          {c}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </>
-              )}
+                )}
+              </div>
+              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={itemForm.poni_lurus}
+                      onChange={(e) => setItemForm((prev) => ({ ...prev, poni_lurus: e.target.checked }))}
+                    />
+                    Poni Lurus
+                  </label>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={itemForm.poni_gel}
+                      onChange={(e) => setItemForm((prev) => ({ ...prev, poni_gel: e.target.checked }))}
+                    />
+                    Poni Gel
+                  </label>
+                </div>
+                {itemForm.meter_gorden && Number(itemForm.meter_gorden) > 0 && (
+                  <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: '#16a34a', fontWeight: '600' }}>
+                    Estimasi:{' '}
+                    {(products.find((p) => p.id === itemForm.product_id)?.price || 0) * Number(itemForm.meter_gorden)}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
-              {/* === PERABOT FORM === */}
-              {itemType === 'perabot' && (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
+          {/* === PERABOT FORM === */}
+          {itemType === 'perabot' && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Produk
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Cari produk..."
+                      value={searchProduct}
+                      onChange={(e) => setSearchProduct(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        background: '#fff'
+                      }}
+                    />
+                    {searchProduct && (
+                      <div
                         style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          zIndex: 50,
+                          background: '#fff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.5rem',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          maxHeight: 200,
+                          overflowY: 'auto'
                         }}
                       >
-                        Produk
-                      </label>
-                      <div style={{ position: 'relative' }}>
-                        <input
-                          type="text"
-                          placeholder="Cari produk..."
-                          value={searchProduct}
-                          onChange={(e) => setSearchProduct(e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '0.625rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.875rem',
-                            outline: 'none',
-                            background: '#fff'
+                        <div
+                          onClick={() => {
+                            setItemForm((f) => ({ ...f, product_id: '', price: '' }))
+                            setSearchProduct('')
                           }}
-                        />
-                        {searchProduct && (
-                          <div
-                            style={{
-                              position: 'absolute',
-                              top: '100%',
-                              left: 0,
-                              right: 0,
-                              zIndex: 50,
-                              background: '#fff',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '0.5rem',
-                              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                              maxHeight: 200,
-                              overflowY: 'auto'
-                            }}
-                          >
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            color: '#6b7280',
+                            borderBottom: '1px solid #f3f4f6'
+                          }}
+                        >
+                          — Pilih Produk —
+                        </div>
+                        {products
+                          .filter(
+                            (p) =>
+                              p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
+                              (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
+                          )
+                          .map((p) => (
                             <div
+                              key={p.id}
                               onClick={() => {
-                                setItemForm((f) => ({ ...f, product_id: '', price: '' }))
+                                setItemForm((f) => ({ ...f, product_id: p.id, price: String(p.price ?? 0) }))
                                 setSearchProduct('')
                               }}
                               style={{
                                 padding: '0.5rem 0.75rem',
                                 cursor: 'pointer',
                                 fontSize: '0.8rem',
-                                color: '#6b7280',
-                                borderBottom: '1px solid #f3f4f6'
+                                borderBottom: '1px solid #f3f4f6',
+                                background: itemForm.product_id === p.id ? '#fef3c7' : 'transparent'
                               }}
                             >
-                              — Pilih Produk —
+                              <span style={{ fontWeight: 500 }}>{p.name}</span>
+                              {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                              <span style={{ float: 'right', color: '#cc7030' }}>
+                                {p.price != null
+                                  ? new Intl.NumberFormat('id-ID', {
+                                      style: 'currency',
+                                      currency: 'IDR',
+                                      maximumFractionDigits: 0
+                                    }).format(p.price)
+                                  : ''}
+                              </span>
                             </div>
-                            {products
-                              .filter(
-                                (p) =>
-                                  p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                                  (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                              )
-                              .map((p) => (
-                                <div
-                                  key={p.id}
-                                  onClick={() => {
-                                    setItemForm((f) => ({ ...f, product_id: p.id, price: String(p.price ?? 0) }))
-                                    setSearchProduct('')
-                                  }}
-                                  style={{
-                                    padding: '0.5rem 0.75rem',
-                                    cursor: 'pointer',
-                                    fontSize: '0.8rem',
-                                    borderBottom: '1px solid #f3f4f6',
-                                    background: itemForm.product_id === p.id ? '#fef3c7' : 'transparent'
-                                  }}
-                                >
-                                  <span style={{ fontWeight: 500 }}>{p.name}</span>
-                                  {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
-                                  <span style={{ float: 'right', color: '#cc7030' }}>
-                                    {p.price != null
-                                      ? new Intl.NumberFormat('id-ID', {
-                                          style: 'currency',
-                                          currency: 'IDR',
-                                          maximumFractionDigits: 0
-                                        }).format(p.price)
-                                      : ''}
-                                  </span>
-                                </div>
-                              ))}
-                          </div>
-                        )}
-                        {!searchProduct &&
-                          itemForm.product_id &&
-                          (() => {
-                            const sel = products.find((p) => p.id === itemForm.product_id)
-                            return sel ? (
-                              <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#374151' }}>
-                                <span style={{ fontWeight: 500 }}>{sel.name}</span>
-                                {sel.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({sel.sku})</span>}
-                              </div>
-                            ) : null
-                          })()}
-                      </div>
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Qty
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={itemForm.qty}
-                        onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Harga (Rp)
-                      </label>
-                      <input
-                        type="number"
-                        value={itemForm.price}
-                        onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.8rem',
-                          fontWeight: '600',
-                          color: '#374151',
-                          marginBottom: '0.3rem'
-                        }}
-                      >
-                        Ukuran (cm)
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="120 x 250"
-                        value={itemForm.size}
-                        onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.625rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          fontSize: '0.875rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
-                      Warna & Dimensi
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Warna
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Contoh: Hitam, Silver"
-                          value={itemForm.variant_color}
-                          onChange={(e) => setItemForm((prev) => ({ ...prev, variant_color: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Berat (kg)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0"
-                          value={itemForm.weight}
-                          onChange={(e) => setItemForm((prev) => ({ ...prev, weight: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3,1fr)',
-                        gap: '0.5rem',
-                        marginTop: '0.5rem'
-                      }}
-                    >
-                      {(['dimension_p', 'P', 'dimension_l', 'L', 'dimension_t', 'T'] as const).map((field, i) => (
-                        <div key={field}>
-                          <label style={{ fontSize: '0.65rem', color: '#6b7280' }}>{['P', 'L', 'T'][i]} (cm)</label>
-                          <input
-                            type="number"
-                            placeholder={['P', 'L', 'T'][i]}
-                            value={itemForm[field as keyof typeof itemForm] as string}
-                            onChange={(e) => setItemForm((prev) => ({ ...prev, [field]: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              padding: '0.4rem',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '0.375rem',
-                              fontSize: '0.8rem',
-                              outline: 'none'
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* === LAUNDRY FORM === */}
-              {itemType === 'laundry' && (
-                <>
-                  <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
-                      🧺 Detail Laundry
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Nama Customer *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Nama customer"
-                          value={itemForm.customer_name}
-                          onChange={(e) => setItemForm((f) => ({ ...f, customer_name: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Telepon
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="08xxxxxxxxxx"
-                          value={itemForm.customer_phone}
-                          onChange={(e) => setItemForm((f) => ({ ...f, customer_phone: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div
-                      style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}
-                    >
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Berat (kg)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={itemForm.kg}
-                          onChange={(e) => setItemForm((f) => ({ ...f, kg: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            color: '#6b7280',
-                            marginBottom: '0.25rem'
-                          }}
-                        >
-                          Meter (m)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          value={itemForm.meter_laundry}
-                          onChange={(e) => setItemForm((f) => ({ ...f, meter_laundry: e.target.value }))}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.8rem',
-                            outline: 'none'
-                          }}
-                        />
-                      </div>
-                    </div>
-                    {itemForm.kg && laundryRate > 0 && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#16a34a' }}>
-                        Estimasi harga: {fmt(Number(itemForm.kg) * laundryRate)} ({itemForm.kg}kg × {fmt(laundryRate)}
-                        /kg)
+                          ))}
                       </div>
                     )}
-                    <div style={{ marginTop: '0.75rem' }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          color: '#6b7280',
-                          marginBottom: '0.25rem'
-                        }}
-                      >
-                        Keterangan
-                      </label>
+                    {!searchProduct &&
+                      itemForm.product_id &&
+                      (() => {
+                        const sel = products.find((p) => p.id === itemForm.product_id)
+                        return sel ? (
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#374151' }}>
+                            <span style={{ fontWeight: 500 }}>{sel.name}</span>
+                            {sel.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({sel.sku})</span>}
+                          </div>
+                        ) : null
+                      })()}
+                  </div>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={itemForm.qty}
+                    onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Harga (Rp)
+                  </label>
+                  <input
+                    type="number"
+                    value={itemForm.price}
+                    onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Ukuran (cm)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="120 x 250"
+                    value={itemForm.size}
+                    onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  Warna & Dimensi
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Warna
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Hitam, Silver"
+                      value={itemForm.variant_color}
+                      onChange={(e) => setItemForm((prev) => ({ ...prev, variant_color: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Berat (kg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0"
+                      value={itemForm.weight}
+                      onChange={(e) => setItemForm((prev) => ({ ...prev, weight: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3,1fr)',
+                    gap: '0.5rem',
+                    marginTop: '0.5rem'
+                  }}
+                >
+                  {(['dimension_p', 'P', 'dimension_l', 'L', 'dimension_t', 'T'] as const).map((field, i) => (
+                    <div key={field}>
+                      <label style={{ fontSize: '0.65rem', color: '#6b7280' }}>{['P', 'L', 'T'][i]} (cm)</label>
                       <input
-                        type="text"
-                        placeholder="Contoh: Gorden 15kg, Vitras 5kg, dll..."
-                        value={itemForm.description}
-                        onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))}
+                        type="number"
+                        placeholder={['P', 'L', 'T'][i]}
+                        value={itemForm[field as keyof typeof itemForm] as string}
+                        onChange={(e) => setItemForm((prev) => ({ ...prev, [field]: e.target.value }))}
                         style={{
                           width: '100%',
-                          padding: '0.5rem',
+                          padding: '0.4rem',
                           border: '1px solid #d1d5db',
                           borderRadius: '0.375rem',
                           fontSize: '0.8rem',
@@ -2270,50 +2083,210 @@ export default function OrderDetailPage() {
                         }}
                       />
                     </div>
-                  </div>
-                </>
-              )}
-
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowItemForm(false)
-                    resetForm()
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingItem}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: savingItem ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {savingItem ? 'Menyimpan...' : 'Tambah Item'}
-                </button>
+                  ))}
+                </div>
               </div>
-            </form>
+            </>
+          )}
+
+          {/* === LAUNDRY FORM === */}
+          {itemType === 'laundry' && (
+            <>
+              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+                  🧺 Detail Laundry
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Nama Customer *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Nama customer"
+                      value={itemForm.customer_name}
+                      onChange={(e) => setItemForm((f) => ({ ...f, customer_name: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Telepon
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="08xxxxxxxxxx"
+                      value={itemForm.customer_phone}
+                      onChange={(e) => setItemForm((f) => ({ ...f, customer_phone: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Berat (kg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={itemForm.kg}
+                      onChange={(e) => setItemForm((f) => ({ ...f, kg: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Meter (m)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={itemForm.meter_laundry}
+                      onChange={(e) => setItemForm((f) => ({ ...f, meter_laundry: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </div>
+                {itemForm.kg && laundryRate > 0 && (
+                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#16a34a' }}>
+                    Estimasi harga: {fmt(Number(itemForm.kg) * laundryRate)} ({itemForm.kg}kg × {fmt(laundryRate)}
+                    /kg)
+                  </div>
+                )}
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: '#6b7280',
+                      marginBottom: '0.25rem'
+                    }}
+                  >
+                    Keterangan
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Gorden 15kg, Vitras 5kg, dll..."
+                    value={itemForm.description}
+                    onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.8rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowItemForm(false)
+                resetForm()
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={savingItem}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: savingItem ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {savingItem ? 'Menyimpan...' : 'Tambah Item'}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
+
       {/* Activity Log */}
       <div style={{ marginTop: '1.5rem' }}>
         <div
@@ -2404,228 +2377,345 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Photo Upload Modal for Status Change */}
-      {showPhotoModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
+      <Modal
+        open={showPhotoModal}
+        onClose={() => {
+          setShowPhotoModal(false)
+          setProgressPhotos([])
+          setPendingStatus(null)
+        }}
+        maxWidth={480}
+        padding="1.5rem"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>
+            📷 Foto Progress — {pendingStatus ? STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS] : ''}
+          </h2>
+          <button
+            onClick={() => {
               setShowPhotoModal(false)
               setProgressPhotos([])
               setPendingStatus(null)
-            }
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '1.5rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
             }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
           >
-            <div
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}
-            >
-              <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>
-                📷 Foto Progress — {pendingStatus ? STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS] : ''}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowPhotoModal(false)
-                  setProgressPhotos([])
-                  setPendingStatus(null)
-                }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
-              >
-                <XIcon size={18} />
-              </button>
-            </div>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1rem' }}>
-              {pendingStatus && isPhotoRequired(pendingStatus as any) ? (
-                <>
-                  <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> untuk stage{' '}
-                  <strong>{STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS]}</strong> (V3 accountability).
-                  Foto akan tercatat sebagai bukti pengerjaan.
-                </>
-              ) : (
-                <>
-                  <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> sebagai
-                  bukti pengerjaan. Foto akan tercatat sebagai akuntabilitas siapa yang bertanggung jawab di stage ini.
-                </>
-              )}
-            </p>
-            <div
-              style={{
-                border: '2px dashed #d1d5db',
-                borderRadius: '0.5rem',
-                padding: '1.5rem',
-                textAlign: 'center',
-                marginBottom: '1rem',
-                cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                opacity: uploadingPhoto ? 0.6 : 1
-              }}
-            >
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoUpload}
-                disabled={uploadingPhoto}
-                id="progress-photo-input"
-                style={{ display: 'none' }}
-              />
-              <label
-                htmlFor="progress-photo-input"
-                style={{
-                  cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                {uploadingPhoto ? (
-                  <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
-                ) : (
-                  <Upload size={24} style={{ color: '#9ca3af' }} />
-                )}
-                <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                  {uploadingPhoto ? 'Mengupload...' : 'Klik untuk upload foto'}
-                </span>
-              </label>
-            </div>
-            {progressPhotos.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
-                {progressPhotos.map((url, i) => (
-                  <div key={i} style={{ position: 'relative', width: 72, height: 72 }}>
-                    <img
-                      src={url}
-                      style={{
-                        width: 72,
-                        height: 72,
-                        objectFit: 'cover',
-                        borderRadius: '0.375rem',
-                        border: '1px solid #e5e7eb'
-                      }}
-                    />
-                    <button
-                      onClick={() => setProgressPhotos((p) => p.filter((_, j) => j !== i))}
-                      style={{
-                        position: 'absolute',
-                        top: -6,
-                        right: -6,
-                        background: '#ef4444',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 20,
-                        height: 20,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        color: '#fff',
-                        fontSize: 10
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => {
-                  setShowPhotoModal(false)
-                  setProgressPhotos([])
-                  setPendingStatus(null)
-                }}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  background: '#fff',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => pendingStatus && updateStatus(pendingStatus, progressPhotos)}
-                disabled={updating || progressPhotos.length === 0}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  background: progressPhotos.length === 0 ? '#9ca3af' : '#cc7030',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  cursor: updating || progressPhotos.length === 0 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  opacity: updating ? 0.6 : 1
-                }}
-              >
-                {updating ? (
-                  <Loader2
-                    size={14}
-                    style={{ animation: 'spin 1s linear infinite', display: 'inline', marginRight: 4 }}
-                  />
-                ) : null}
-                {progressPhotos.length === 0
-                  ? '📷 Upload foto dulu'
-                  : `Lanjut & Simpan (${progressPhotos.length} foto)`}
-              </button>
-            </div>
-          </div>
+            <XIcon size={18} />
+          </button>
         </div>
-      )}
-
-      {/* Cancel Order Modal */}
-      {showCancelForm && (
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1rem' }}>
+          {pendingStatus && isPhotoRequired(pendingStatus as any) ? (
+            <>
+              <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> untuk stage{' '}
+              <strong>{STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS]}</strong> (V3 accountability). Foto
+              akan tercatat sebagai bukti pengerjaan.
+            </>
+          ) : (
+            <>
+              <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> sebagai bukti
+              pengerjaan. Foto akan tercatat sebagai akuntabilitas siapa yang bertanggung jawab di stage ini.
+            </>
+          )}
+        </p>
         <div
           style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowCancelForm(false)
+            border: '2px dashed #d1d5db',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            textAlign: 'center',
+            marginBottom: '1rem',
+            cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+            opacity: uploadingPhoto ? 0.6 : 1
           }}
         >
-          <div
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoUpload}
+            disabled={uploadingPhoto}
+            id="progress-photo-input"
+            style={{ display: 'none' }}
+          />
+          <label
+            htmlFor="progress-photo-input"
             style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 440,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+              cursor: uploadingPhoto ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0.5rem'
             }}
           >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>❌ Batalkan Order</h2>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
-              Order akan dibatalkan dan payment di-void. Tindakan ini tidak bisa dibatalkan.
-            </p>
-            <div style={{ marginBottom: '1rem' }}>
+            {uploadingPhoto ? (
+              <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+            ) : (
+              <Upload size={24} style={{ color: '#9ca3af' }} />
+            )}
+            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+              {uploadingPhoto ? 'Mengupload...' : 'Klik untuk upload foto'}
+            </span>
+          </label>
+        </div>
+        {progressPhotos.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+            {progressPhotos.map((url, i) => (
+              <div key={i} style={{ position: 'relative', width: 72, height: 72 }}>
+                <img
+                  src={url}
+                  style={{
+                    width: 72,
+                    height: 72,
+                    objectFit: 'cover',
+                    borderRadius: '0.375rem',
+                    border: '1px solid #e5e7eb'
+                  }}
+                />
+                <button
+                  onClick={() => setProgressPhotos((p) => p.filter((_, j) => j !== i))}
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    right: -6,
+                    background: '#ef4444',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: 20,
+                    height: 20,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#fff',
+                    fontSize: 10
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={() => {
+              setShowPhotoModal(false)
+              setProgressPhotos([])
+              setPendingStatus(null)
+            }}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              background: '#fff',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Batal
+          </button>
+          <button
+            onClick={() => pendingStatus && updateStatus(pendingStatus, progressPhotos)}
+            disabled={updating || progressPhotos.length === 0}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              background: progressPhotos.length === 0 ? '#9ca3af' : '#cc7030',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: updating || progressPhotos.length === 0 ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              opacity: updating ? 0.6 : 1
+            }}
+          >
+            {updating ? (
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite', display: 'inline', marginRight: 4 }} />
+            ) : null}
+            {progressPhotos.length === 0 ? '📷 Upload foto dulu' : `Lanjut & Simpan (${progressPhotos.length} foto)`}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Cancel Order Modal */}
+      <Modal open={showCancelForm} onClose={() => setShowCancelForm(false)} maxWidth={440} padding="2rem">
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>❌ Batalkan Order</h2>
+        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+          Order akan dibatalkan dan payment di-void. Tindakan ini tidak bisa dibatalkan.
+        </p>
+        <div style={{ marginBottom: '1rem' }}>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              color: '#374151',
+              marginBottom: '0.3rem'
+            }}
+          >
+            Alasan Pembatalan *
+          </label>
+          <textarea
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '0.625rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none',
+              resize: 'vertical'
+            }}
+            placeholder="Contoh: Customer batal, stok tidak tersedia, dll"
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button
+            onClick={() => setShowCancelForm(false)}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              background: '#fff',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Batal
+          </button>
+          <button
+            onClick={handleCancel}
+            style={{
+              flex: 1,
+              padding: '0.75rem',
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            Ya, Batalkan
+          </button>
+        </div>
+      </Modal>
+
+      {/* Return Modal */}
+      <Modal open={showReturnForm} onClose={() => setShowReturnForm(false)} maxWidth={480} padding="2rem">
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>📦 Proses Return</h2>
+        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+          Barang yang dikembalikan akan dicek kondisinya. Bagus → masuk stock toko. Rusak → dispose.
+        </p>
+        <form onSubmit={handleReturn} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Item (opsional)
+            </label>
+            <select
+              value={returnForm.item_id}
+              onChange={(e) => setReturnForm((f) => ({ ...f, item_id: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: '#fff'
+              }}
+            >
+              <option value="">Semua item (return entire order)</option>
+              {items.map((it) => (
+                <option key={it.id} value={it.id}>
+                  {(it.product as any)?.name ?? 'Item'} — Qty: {it.qty}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Alasan Return *
+            </label>
+            <textarea
+              value={returnForm.reason}
+              onChange={(e) => setReturnForm((f) => ({ ...f, reason: e.target.value }))}
+              rows={2}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                resize: 'vertical'
+              }}
+              placeholder="Contoh: Barang rusak, tidak sesuai ukuran, dll"
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Kondisi Barang *
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {[
+                ['good', '✅ Bagus (masuk stock)'],
+                ['damaged', '❌ Rusak (dispose)']
+              ].map(([val, label]) => (
+                <label
+                  key={val}
+                  onClick={() => setReturnForm((f) => ({ ...f, condition: val as 'good' | 'damaged' }))}
+                  style={{
+                    flex: 1,
+                    cursor: 'pointer',
+                    border: `2px solid ${returnForm.condition === val ? '#9333ea' : '#e5e7eb'}`,
+                    borderRadius: '0.5rem',
+                    padding: '0.75rem',
+                    background: returnForm.condition === val ? '#f5f3ff' : '#fff',
+                    textAlign: 'center'
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="condition"
+                    value={val}
+                    checked={returnForm.condition === val}
+                    onChange={() => {}}
+                    style={{ display: 'none' }}
+                  />
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
               <label
                 style={{
                   display: 'block',
@@ -2635,458 +2725,206 @@ export default function OrderDetailPage() {
                   marginBottom: '0.3rem'
                 }}
               >
-                Alasan Pembatalan *
+                Qty Return
               </label>
-              <textarea
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-                rows={3}
+              <input
+                type="number"
+                min="1"
+                value={returnForm.qty}
+                onChange={(e) => setReturnForm((f) => ({ ...f, qty: e.target.value }))}
                 style={{
                   width: '100%',
                   padding: '0.625rem',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
-                  outline: 'none',
-                  resize: 'vertical'
+                  outline: 'none'
                 }}
-                placeholder="Contoh: Customer batal, stok tidak tersedia, dll"
               />
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                onClick={() => setShowCancelForm(false)}
+            <div>
+              <label
                 style={{
-                  flex: 1,
-                  padding: '0.75rem',
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Refund (Rp)
+              </label>
+              <input
+                type="number"
+                min="0"
+                value={returnForm.refund_amount}
+                onChange={(e) => setReturnForm((f) => ({ ...f, refund_amount: e.target.value }))}
+                placeholder="0 = tidak ada refund"
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.5rem',
-                  background: '#fff',
-                  cursor: 'pointer',
-                  fontWeight: '600'
+                  fontSize: '0.875rem',
+                  outline: 'none'
                 }}
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleCancel}
-                style={{
-                  flex: 1,
-                  padding: '0.75rem',
-                  background: '#ef4444',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  cursor: 'pointer',
-                  fontWeight: '600'
-                }}
-              >
-                Ya, Batalkan
-              </button>
+              />
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Return Modal */}
-      {showReturnForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowReturnForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>📦 Proses Return</h2>
-            <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1.25rem' }}>
-              Barang yang dikembalikan akan dicek kondisinya. Bagus → masuk stock toko. Rusak → dispose.
-            </p>
-            <form onSubmit={handleReturn} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Item (opsional)
-                </label>
-                <select
-                  value={returnForm.item_id}
-                  onChange={(e) => setReturnForm((f) => ({ ...f, item_id: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    background: '#fff'
-                  }}
-                >
-                  <option value="">Semua item (return entire order)</option>
-                  {items.map((it) => (
-                    <option key={it.id} value={it.id}>
-                      {(it.product as any)?.name ?? 'Item'} — Qty: {it.qty}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Alasan Return *
-                </label>
-                <textarea
-                  value={returnForm.reason}
-                  onChange={(e) => setReturnForm((f) => ({ ...f, reason: e.target.value }))}
-                  rows={2}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Contoh: Barang rusak, tidak sesuai ukuran, dll"
-                />
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Kondisi Barang *
-                </label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {[
-                    ['good', '✅ Bagus (masuk stock)'],
-                    ['damaged', '❌ Rusak (dispose)']
-                  ].map(([val, label]) => (
-                    <label
-                      key={val}
-                      onClick={() => setReturnForm((f) => ({ ...f, condition: val as 'good' | 'damaged' }))}
-                      style={{
-                        flex: 1,
-                        cursor: 'pointer',
-                        border: `2px solid ${returnForm.condition === val ? '#9333ea' : '#e5e7eb'}`,
-                        borderRadius: '0.5rem',
-                        padding: '0.75rem',
-                        background: returnForm.condition === val ? '#f5f3ff' : '#fff',
-                        textAlign: 'center'
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="condition"
-                        value={val}
-                        checked={returnForm.condition === val}
-                        onChange={() => {}}
-                        style={{ display: 'none' }}
-                      />
-                      <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Qty Return
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={returnForm.qty}
-                    onChange={(e) => setReturnForm((f) => ({ ...f, qty: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Refund (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={returnForm.refund_amount}
-                    onChange={(e) => setReturnForm((f) => ({ ...f, refund_amount: e.target.value }))}
-                    placeholder="0 = tidak ada refund"
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowReturnForm(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#9333ea',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Simpan Return
-                </button>
-              </div>
-            </form>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowReturnForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#9333ea',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Simpan Return
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
 
       {/* Payment Modal */}
-      {showPaymentForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowPaymentForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 400,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>+ Tambah Pembayaran</h2>
-            <form onSubmit={handleAddPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
+      <Modal open={showPaymentForm} onClose={() => setShowPaymentForm(false)} maxWidth={400} padding="2rem">
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>+ Tambah Pembayaran</h2>
+        <form onSubmit={handleAddPayment} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Tipe Pembayaran
+            </label>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {(
+                [
+                  ['dp', '💰 DP'],
+                  ['lunas', '✅ Lunas']
+                ] as const
+              ).map(([val, label]) => (
                 <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Tipe Pembayaran
-                </label>
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  {(
-                    [
-                      ['dp', '💰 DP'],
-                      ['lunas', '✅ Lunas']
-                    ] as const
-                  ).map(([val, label]) => (
-                    <label
-                      key={val}
-                      onClick={() => setPaymentForm((f) => ({ ...f, type: val }))}
-                      style={{
-                        flex: 1,
-                        cursor: 'pointer',
-                        border: `2px solid ${paymentForm.type === val ? '#16a34a' : '#e5e7eb'}`,
-                        borderRadius: '0.5rem',
-                        padding: '0.75rem',
-                        background: paymentForm.type === val ? '#f0fdf4' : '#fff',
-                        textAlign: 'center'
-                      }}
-                    >
-                      <input
-                        type="radio"
-                        name="paymentType"
-                        value={val}
-                        checked={paymentForm.type === val}
-                        onChange={() => {}}
-                        style={{ display: 'none' }}
-                      />
-                      <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Jumlah (Rp)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={paymentForm.amount}
-                  onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
-                  Sisa: {fmt(order.total_amount - order.dp_amount - order.lunas_amount)}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowPaymentForm(false)}
+                  key={val}
+                  onClick={() => setPaymentForm((f) => ({ ...f, type: val }))}
                   style={{
                     flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
                     cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingPayment}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#16a34a',
-                    color: '#fff',
-                    border: 'none',
+                    border: `2px solid ${paymentForm.type === val ? '#16a34a' : '#e5e7eb'}`,
                     borderRadius: '0.5rem',
-                    cursor: savingPayment ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
+                    padding: '0.75rem',
+                    background: paymentForm.type === val ? '#f0fdf4' : '#fff',
+                    textAlign: 'center'
                   }}
                 >
-                  {savingPayment ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
+                  <input
+                    type="radio"
+                    name="paymentType"
+                    value={val}
+                    checked={paymentForm.type === val}
+                    onChange={() => {}}
+                    style={{ display: 'none' }}
+                  />
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>{label}</span>
+                </label>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Jumlah (Rp)
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={paymentForm.amount}
+              onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
+              Sisa: {fmt(order.total_amount - order.dp_amount - order.lunas_amount)}
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowPaymentForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={savingPayment}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#16a34a',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: savingPayment ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {savingPayment ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      {photoPopup && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.6)',
-            zIndex: 300,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setPhotoPopup(null)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '1.5rem',
-              width: '100%',
-              maxWidth: 480,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.3)'
-            }}
-          >
+      <Modal open={!!photoPopup} onClose={() => setPhotoPopup(null)} maxWidth={480} padding="1.5rem" zIndex={300}>
+        {photoPopup && (
+          <>
             <div
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}
             >
@@ -3132,9 +2970,9 @@ export default function OrderDetailPage() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
 
       {lightboxOpen && (
         <Lightbox

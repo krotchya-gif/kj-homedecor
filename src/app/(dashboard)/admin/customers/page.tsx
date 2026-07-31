@@ -8,6 +8,7 @@ import type { Customer } from '@/types'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import ImportModal from '@/components/ui/ImportModal'
+import { Modal } from '@/components/ui/Modal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 
 const PAGE_SIZE = 20
@@ -365,108 +366,81 @@ export default function CustomersPage() {
         </div>
       )}
 
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 460,
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-          >
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
-              {editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
-            </h2>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {[
-                { label: 'Nama *', id: 'name', placeholder: 'Nama lengkap', required: true },
-                { label: 'No. HP *', id: 'phone', placeholder: '08xxx', required: true },
-                { label: 'Alamat', id: 'address', placeholder: 'Jl. ...', required: false },
-                { label: 'Catatan', id: 'notes', placeholder: 'Catatan tambahan', required: false }
-              ].map((f) => (
-                <div key={f.id}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    {f.label}
-                  </label>
-                  <input
-                    type="text"
-                    required={f.required}
-                    placeholder={f.placeholder}
-                    value={(form as Record<string, string>)[f.id]}
-                    onChange={(e) => setForm((prev) => ({ ...prev, [f.id]: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              ))}
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={460} padding="2rem">
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+          {editCustomer ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
+        </h2>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {[
+            { label: 'Nama *', id: 'name', placeholder: 'Nama lengkap', required: true },
+            { label: 'No. HP *', id: 'phone', placeholder: '08xxx', required: true },
+            { label: 'Alamat', id: 'address', placeholder: 'Jl. ...', required: false },
+            { label: 'Catatan', id: 'notes', placeholder: 'Catatan tambahan', required: false }
+          ].map((f) => (
+            <div key={f.id}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                {f.label}
+              </label>
+              <input
+                type="text"
+                required={f.required}
+                placeholder={f.placeholder}
+                value={(form as Record<string, string>)[f.id]}
+                onChange={(e) => setForm((prev) => ({ ...prev, [f.id]: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
       <ImportModal
         open={importModalOpen}
         onClose={() => setImportModalOpen(false)}

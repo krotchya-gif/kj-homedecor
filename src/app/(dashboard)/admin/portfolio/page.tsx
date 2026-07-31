@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -313,261 +314,232 @@ export default function AdminPortfolioPage() {
       )}
 
       {/* Create/Edit Modal */}
-      {showForm && (
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={600} padding="2rem" zIndex={200}>
         <div
           style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
+            marginBottom: '1.5rem'
           }}
         >
-          <div
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
+            {editingPost ? 'Edit Post' : 'Post Baru'}
+          </h2>
+          <button
+            onClick={() => setShowForm(false)}
             style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 600,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer'
             }}
           >
+            <X size={20} />
+          </button>
+        </div>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Judul *
+            </label>
+            <input
+              required
+              type="text"
+              placeholder="Judul post..."
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Konten *
+            </label>
+            <textarea
+              required
+              placeholder="Tulis konten post di sini..."
+              value={form.content}
+              onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+              rows={6}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}
+            >
+              Gambar ({form.images.length})
+            </label>
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1.5rem'
+                gap: '0.5rem',
+                flexWrap: 'wrap',
+                marginBottom: '0.75rem'
               }}
             >
-              <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>
-                {editingPost ? 'Edit Post' : 'Post Baru'}
-              </h2>
-              <button
-                onClick={() => setShowForm(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Judul *
-                </label>
-                <input
-                  required
-                  type="text"
-                  placeholder="Judul post..."
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Konten *
-                </label>
-                <textarea
-                  required
-                  placeholder="Tulis konten post di sini..."
-                  value={form.content}
-                  onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-                  rows={6}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  Gambar ({form.images.length})
-                </label>
+              {form.images.map((url, i) => (
+                <div key={i} style={{ position: 'relative' }}>
+                  <img
+                    src={url}
+                    alt={`Img ${i}`}
+                    style={{
+                      width: 80,
+                      height: 80,
+                      objectFit: 'cover',
+                      borderRadius: '0.5rem',
+                      border: '1px solid #e5e7eb'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    style={{
+                      position: 'absolute',
+                      top: -8,
+                      right: -8,
+                      width: 20,
+                      height: 20,
+                      background: '#ef4444',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {uploading ? (
                 <div
                   style={{
+                    width: 80,
+                    height: 80,
                     display: 'flex',
-                    gap: '0.5rem',
-                    flexWrap: 'wrap',
-                    marginBottom: '0.75rem'
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f3f4f6',
+                    borderRadius: '0.5rem'
                   }}
                 >
-                  {form.images.map((url, i) => (
-                    <div key={i} style={{ position: 'relative' }}>
-                      <img
-                        src={url}
-                        alt={`Img ${i}`}
-                        style={{
-                          width: 80,
-                          height: 80,
-                          objectFit: 'cover',
-                          borderRadius: '0.5rem',
-                          border: '1px solid #e5e7eb'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        style={{
-                          position: 'absolute',
-                          top: -8,
-                          right: -8,
-                          width: 20,
-                          height: 20,
-                          background: '#ef4444',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '50%',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                  {uploading ? (
-                    <div
-                      style={{
-                        width: 80,
-                        height: 80,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#f3f4f6',
-                        borderRadius: '0.5rem'
-                      }}
-                    >
-                      <Loader2
-                        size={20}
-                        style={{
-                          animation: 'spin 1s linear infinite',
-                          color: '#9ca3af'
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <label
-                      style={{
-                        width: 80,
-                        height: 80,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#f9fafb',
-                        border: '2px dashed #d1d5db',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <ImageIcon size={18} style={{ color: '#9ca3af' }} />
-                      <span
-                        style={{
-                          fontSize: '0.6rem',
-                          color: '#9ca3af',
-                          marginTop: '0.25rem'
-                        }}
-                      >
-                        Upload
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-                  )}
+                  <Loader2
+                    size={20}
+                    style={{
+                      animation: 'spin 1s linear infinite',
+                      color: '#9ca3af'
+                    }}
+                  />
                 </div>
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
+              ) : (
+                <label
                   style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
+                    width: 80,
+                    height: 80,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: '#f9fafb',
+                    border: '2px dashed #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
+                    cursor: 'pointer'
                   }}
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : editingPost ? 'Update Post' : 'Publikasi'}
-                </button>
-              </div>
-            </form>
+                  <ImageIcon size={18} style={{ color: '#9ca3af' }} />
+                  <span
+                    style={{
+                      fontSize: '0.6rem',
+                      color: '#9ca3af',
+                      marginTop: '0.25rem'
+                    }}
+                  >
+                    Upload
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : editingPost ? 'Update Post' : 'Publikasi'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

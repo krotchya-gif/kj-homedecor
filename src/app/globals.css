@@ -978,6 +978,16 @@ body {
   border-color: var(--neutral-200);
 }
 
+/* Modal panel — pengganti pola inline position:'fixed' (2026-07-31) */
+.modal-panel {
+  background: #fff;
+  border-radius: 0.875rem;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+}
+.dark .modal-panel {
+  background: var(--neutral-100);
+}
+
 .stat-card-label {
   font-size: 0.78rem;
   font-weight: 500;

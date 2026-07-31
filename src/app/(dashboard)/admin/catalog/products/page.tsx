@@ -10,6 +10,7 @@ import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Modal } from '@/components/ui/Modal'
 import ImportModal from '@/components/ui/ImportModal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 
@@ -697,36 +698,8 @@ export default function ProductsPage() {
       )}
 
       {/* Modal Form */}
-      {showForm && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowForm(false)
-          }}
-        >
-          <div
-            style={{
-              background: '#fff',
-              borderRadius: '0.875rem',
-              padding: '2rem',
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 25px 60px rgba(0,0,0,0.25)'
-            }}
-            className="product-form-modal"
-          >
-            <style>{`
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={520} padding="2rem" zIndex={200}>
+        <style>{`
               .product-form-modal input[type=radio],
               .product-form-modal input[type=checkbox] {
                 width: 14px;
@@ -736,475 +709,473 @@ export default function ProductsPage() {
                 flex-shrink: 0;
               }
             `}</style>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
-              {editProduct ? 'Edit Produk' : 'Tambah Produk'}
-            </h2>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {(
-                [
-                  { label: 'Nama Produk *', id: 'name', placeholder: 'Atlas 59-1 Smokering' },
-                  { label: 'SKU', id: 'sku', placeholder: 'SKU-001' },
-                  { label: 'Kode Kain', id: 'kode_kain', placeholder: 'ATL-59' }
-                ] as Field[]
-              ).map((field) => (
-                <div key={field.id}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    {field.label}
-                  </label>
-                  <input
-                    type={field.type ?? 'text'}
-                    required={field.label.includes('*')}
-                    placeholder={field.placeholder}
-                    value={(form as unknown as Record<string, string | string[] | boolean>)[field.id] as string}
-                    onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem 0.875rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+          {editProduct ? 'Edit Produk' : 'Tambah Produk'}
+        </h2>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {(
+            [
+              { label: 'Nama Produk *', id: 'name', placeholder: 'Atlas 59-1 Smokering' },
+              { label: 'SKU', id: 'sku', placeholder: 'SKU-001' },
+              { label: 'Kode Kain', id: 'kode_kain', placeholder: 'ATL-59' }
+            ] as Field[]
+          ).map((field) => (
+            <div key={field.id}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                {field.label}
+              </label>
+              <input
+                type={field.type ?? 'text'}
+                required={field.label.includes('*')}
+                placeholder={field.placeholder}
+                value={(form as unknown as Record<string, string | string[] | boolean>)[field.id] as string}
+                onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 0.875rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          ))}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Kategori
+            </label>
+            <select
+              value={form.category_id}
+              onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem 0.875rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: '#fff'
+              }}
+            >
+              <option value="">— Pilih Kategori —</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
               ))}
+            </select>
+          </div>
+          {(
+            [
+              { label: 'Harga Jual (Rp) *', id: 'price', placeholder: '250000', type: 'number' },
+              { label: 'Stok Toko', id: 'stock_toko', placeholder: '0', type: 'number' }
+            ] as Field[]
+          ).map((field) => (
+            <div key={field.id}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                {field.label}
+              </label>
+              <input
+                type={field.type ?? 'text'}
+                required={field.label.includes('*')}
+                placeholder={field.placeholder}
+                value={(form as unknown as Record<string, string | string[] | boolean>)[field.id] as string}
+                onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 0.875rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          ))}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Deskripsi
+            </label>
+            <textarea
+              placeholder="Deskripsi produk (opsional)"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              rows={3}
+              style={{
+                width: '100%',
+                padding: '0.625rem 0.875rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                resize: 'vertical'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="radio"
+                name="product_type"
+                checked={form.product_type === 'gorden'}
+                onChange={() => setForm((f) => ({ ...f, product_type: 'gorden' }))}
+              />
+              Tipe Gorden
+            </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="radio"
+                name="product_type"
+                checked={form.product_type === 'perabot'}
+                onChange={() => setForm((f) => ({ ...f, product_type: 'perabot' }))}
+              />
+              Tipe Perabot
+            </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={form.is_featured}
+                onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))}
+              />
+              Produk Unggulan
+            </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={form.is_custom}
+                onChange={(e) => setForm((f) => ({ ...f, is_custom: e.target.checked }))}
+              />
+              Custom Order
+            </label>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={form.is_catalog_visible}
+                onChange={(e) => setForm((f) => ({ ...f, is_catalog_visible: e.target.checked }))}
+              />
+              Tampil di Katalog
+            </label>
+          </div>
+
+          {/* Color Variants for Perabot */}
+          {form.product_type === 'perabot' && (
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Warna Variants (Perabot) - pisahkan dengan koma
+              </label>
+              <input
+                type="text"
+                placeholder="Contoh: Hitam, Silver, Merah"
+                value={form.color_variants}
+                onChange={(e) => setForm((f) => ({ ...f, color_variants: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem 0.875rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          )}
+
+          {/* Shipping Dimensions */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}
+            >
+              Dimensi & Berat (untuk ongkir)
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Kategori
-                </label>
-                <select
-                  value={form.category_id}
-                  onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}
+                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Panjang (cm)</label>
+                <input
+                  type="number"
+                  placeholder="P"
+                  value={form.dimension_p}
+                  onChange={(e) => setForm((f) => ({ ...f, dimension_p: e.target.value }))}
                   style={{
                     width: '100%',
-                    padding: '0.625rem 0.875rem',
+                    padding: '0.5rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
-                    outline: 'none',
-                    background: '#fff'
-                  }}
-                >
-                  <option value="">— Pilih Kategori —</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {(
-                [
-                  { label: 'Harga Jual (Rp) *', id: 'price', placeholder: '250000', type: 'number' },
-                  { label: 'Stok Toko', id: 'stock_toko', placeholder: '0', type: 'number' }
-                ] as Field[]
-              ).map((field) => (
-                <div key={field.id}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    {field.label}
-                  </label>
-                  <input
-                    type={field.type ?? 'text'}
-                    required={field.label.includes('*')}
-                    placeholder={field.placeholder}
-                    value={(form as unknown as Record<string, string | string[] | boolean>)[field.id] as string}
-                    onChange={(e) => setForm((f) => ({ ...f, [field.id]: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem 0.875rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              ))}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.3rem'
-                  }}
-                >
-                  Deskripsi
-                </label>
-                <textarea
-                  placeholder="Deskripsi produk (opsional)"
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    padding: '0.625rem 0.875rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                    resize: 'vertical'
+                    outline: 'none'
                   }}
                 />
               </div>
-              <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="product_type"
-                    checked={form.product_type === 'gorden'}
-                    onChange={() => setForm((f) => ({ ...f, product_type: 'gorden' }))}
-                  />
-                  Tipe Gorden
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="radio"
-                    name="product_type"
-                    checked={form.product_type === 'perabot'}
-                    onChange={() => setForm((f) => ({ ...f, product_type: 'perabot' }))}
-                  />
-                  Tipe Perabot
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.is_featured}
-                    onChange={(e) => setForm((f) => ({ ...f, is_featured: e.target.checked }))}
-                  />
-                  Produk Unggulan
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.is_custom}
-                    onChange={(e) => setForm((f) => ({ ...f, is_custom: e.target.checked }))}
-                  />
-                  Custom Order
-                </label>
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={form.is_catalog_visible}
-                    onChange={(e) => setForm((f) => ({ ...f, is_catalog_visible: e.target.checked }))}
-                  />
-                  Tampil di Katalog
-                </label>
-              </div>
-
-              {/* Color Variants for Perabot */}
-              {form.product_type === 'perabot' && (
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Warna Variants (Perabot) - pisahkan dengan koma
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Hitam, Silver, Merah"
-                    value={form.color_variants}
-                    onChange={(e) => setForm((f) => ({ ...f, color_variants: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem 0.875rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Shipping Dimensions */}
               <div>
-                <label
+                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Lebar (cm)</label>
+                <input
+                  type="number"
+                  placeholder="L"
+                  value={form.dimension_l}
+                  onChange={(e) => setForm((f) => ({ ...f, dimension_l: e.target.value }))}
                   style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  Dimensi & Berat (untuk ongkir)
-                </label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Panjang (cm)</label>
-                    <input
-                      type="number"
-                      placeholder="P"
-                      value={form.dimension_p}
-                      onChange={(e) => setForm((f) => ({ ...f, dimension_p: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Lebar (cm)</label>
-                    <input
-                      type="number"
-                      placeholder="L"
-                      value={form.dimension_l}
-                      onChange={(e) => setForm((f) => ({ ...f, dimension_l: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tinggi (cm)</label>
-                    <input
-                      type="number"
-                      placeholder="T"
-                      value={form.dimension_t}
-                      onChange={(e) => setForm((f) => ({ ...f, dimension_t: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Berat (kg)</label>
-                    <input
-                      type="number"
-                      placeholder="Kg"
-                      value={form.weight}
-                      onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Image Upload */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: '#374151',
-                    marginBottom: '0.5rem'
-                  }}
-                >
-                  Foto Produk
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  {form.images.map((img, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        position: 'relative',
-                        width: 72,
-                        height: 72,
-                        borderRadius: '0.5rem',
-                        overflow: 'hidden',
-                        border: '1px solid #e5e7eb'
-                      }}
-                    >
-                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <button
-                        type="button"
-                        onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
-                        style={{
-                          position: 'absolute',
-                          top: 2,
-                          right: 2,
-                          background: 'rgba(0,0,0,0.6)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: 18,
-                          height: 18,
-                          cursor: 'pointer',
-                          fontSize: '0.65rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                  <label
-                    style={{
-                      width: 72,
-                      height: 72,
-                      border: '2px dashed #d1d5db',
-                      borderRadius: '0.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      color: '#9ca3af',
-                      fontSize: '0.75rem',
-                      textAlign: 'center'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontSize: '1.2rem' }}>+</div>
-                      <div>Tambah</div>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      style={{ display: 'none' }}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (!file) return
-                        const fd = new FormData()
-                        fd.append('file', file)
-                        fd.append('folder', 'products')
-                        const res = await fetch('/api/upload', { method: 'POST', body: fd })
-                        const json = await res.json()
-                        if (json.success) {
-                          setForm((f) => ({ ...f, images: [...f.images, json.url] }))
-                        } else {
-                          toast('error', 'Gagal upload gambar')
-                        }
-                        e.target.value = ''
-                      }}
-                    />
-                  </label>
-                </div>
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>PNG, JPG, WebP — maks 5MB per foto</p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
+                    width: '100%',
+                    padding: '0.5rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
-                    cursor: 'pointer',
-                    fontWeight: '600'
+                    fontSize: '0.875rem',
+                    outline: 'none'
                   }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    background: '#cc7030',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
+                />
               </div>
-            </form>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tinggi (cm)</label>
+                <input
+                  type="number"
+                  placeholder="T"
+                  value={form.dimension_t}
+                  onChange={(e) => setForm((f) => ({ ...f, dimension_t: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Berat (kg)</label>
+                <input
+                  type="number"
+                  placeholder="Kg"
+                  value={form.weight}
+                  onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Image Upload */}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '0.5rem'
+              }}
+            >
+              Foto Produk
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              {form.images.map((img, i) => (
+                <div
+                  key={i}
+                  style={{
+                    position: 'relative',
+                    width: 72,
+                    height: 72,
+                    borderRadius: '0.5rem',
+                    overflow: 'hidden',
+                    border: '1px solid #e5e7eb'
+                  }}
+                >
+                  <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, images: f.images.filter((_, j) => j !== i) }))}
+                    style={{
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      background: 'rgba(0,0,0,0.6)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: 18,
+                      height: 18,
+                      cursor: 'pointer',
+                      fontSize: '0.65rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <label
+                style={{
+                  width: 72,
+                  height: 72,
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  fontSize: '0.75rem',
+                  textAlign: 'center'
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '1.2rem' }}>+</div>
+                  <div>Tambah</div>
+                </div>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    fd.append('folder', 'products')
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                    const json = await res.json()
+                    if (json.success) {
+                      setForm((f) => ({ ...f, images: [...f.images, json.url] }))
+                    } else {
+                      toast('error', 'Gagal upload gambar')
+                    }
+                    e.target.value = ''
+                  }}
+                />
+              </label>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>PNG, JPG, WebP — maks 5MB per foto</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
       {/* Import Modal */}
       <ImportModal
         open={importModalOpen}
