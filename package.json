@@ -10,7 +10,8 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{json,md}\""
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -54,6 +55,7 @@
     "@vitest/ui": "^4.1.5",
     "jsdom": "^29.1.1",
     "playwright": "^1.59.1",
+    "prettier": "^3.9.6",
     "tailwindcss": "^4",
     "tslib": "^2.8.1",
     "typescript": "^5",
