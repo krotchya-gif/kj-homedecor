@@ -6,6 +6,7 @@ import { ChevronRight, MessageCircle } from 'lucide-react'
 
 interface ScrollHeroProps {
   videoUrl?: string | null
+  overlayOpacity?: number
   title?: string
   subtitle?: string
   ctaText?: string
@@ -16,6 +17,7 @@ interface ScrollHeroProps {
 
 export default function ScrollHero({
   videoUrl,
+  overlayOpacity = 0.75,
   title,
   subtitle,
   ctaText,
@@ -73,8 +75,11 @@ export default function ScrollHero({
         }}
       />
 
-      {/* Fallback background when video fails or no video */}
-      {(videoError || !videoUrl) && (
+      {/* Fallback background — HANYA saat video gagal load.
+          Sebelumnya (videoError || !videoUrl): saat settings kosong, !videoUrl=true →
+          gradient zIndex 0 dirender SETELAH <video> zIndex 0 di DOM → menutupi video
+          fallback public (/uploads/kj.mp4) yang sedang diputar. Video ada tapi tak terlihat. */}
+      {videoError && (
         <div
           style={{
             position: 'absolute',
@@ -85,12 +90,12 @@ export default function ScrollHero({
         />
       )}
 
-      {/* Gradient Overlay */}
+      {/* Gradient Overlay — opacity bisa diatur dari admin (hero_background_overlay_opacity) */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(160deg, rgba(15,5,0,0.75) 0%, rgba(45,16,5,0.6) 50%, rgba(90,35,14,0.65) 100%)',
+          background: `linear-gradient(160deg, rgba(15,5,0,${Math.min(1, Math.max(0, overlayOpacity))}) 0%, rgba(45,16,5,${Math.min(1, Math.max(0, overlayOpacity)) * 0.8} 50%, rgba(90,35,14,${Math.min(1, Math.max(0, overlayOpacity)) * 0.87} 100%)`,
           zIndex: 1
         }}
       />

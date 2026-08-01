@@ -86,6 +86,7 @@ export default async function LandingPage() {
         {/* ===== HERO ===== */}
         <ScrollHero
           videoUrl={settings?.hero_video_url}
+          overlayOpacity={settings?.hero_background_overlay_opacity}
           title={heroTitle}
           subtitle={heroSubtitle}
           ctaText={heroCtaText}
