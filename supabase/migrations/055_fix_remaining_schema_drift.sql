@@ -209,7 +209,7 @@ ALTER TABLE public.order_logs ADD CONSTRAINT chk_action
     'done','return_initiated','return_stock_in','return_disposed','cancelled',
     'penjahit_assigned','install_started','install_done','install_revision',
     'steam_qc_pass','steam_revision_requeue','order_deleted','payment_input',
-    'payment_added','refund_issued'
+    'payment_added','refund_issued','status_changed','production_completed'
   ));
 
 -- ============================================================================
