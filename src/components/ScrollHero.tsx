@@ -25,7 +25,7 @@ export default function ScrollHero({
 }: ScrollHeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoError, setVideoError] = useState(false)
-  const videoSrc = videoUrl || '/kj.mp4'
+  const videoSrc = videoUrl || '/uploads/kj.mp4'
 
   // Pause video when tab is hidden to save battery/data
   useEffect(() => {
