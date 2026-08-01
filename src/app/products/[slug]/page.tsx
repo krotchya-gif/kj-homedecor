@@ -169,9 +169,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <MessageCircle size={18} /> Pesan via WhatsApp
               </a>
               <a
-                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage + ', saya ingin booking survey ukur')}`}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/booking"
                 style={{
                   flex: 1,
                   display: 'flex',
