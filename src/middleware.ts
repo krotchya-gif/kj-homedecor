@@ -55,7 +55,13 @@ export async function middleware(request: NextRequest) {
       '/owner': ['owner']
     }
 
-    const allowedRoles = ROLE_DASHBOARD_MAP[pathname]
+    // Prefix match — subroute (mis. /admin/orders, /owner/laporan/neraca) harus ikut dicek,
+    // bukan hanya pathname exact. Ambil segmen pertama dari path.
+    const dashboardPrefix = DASHBOARD_ROUTES.find(
+      (route) => pathname === route || pathname.startsWith(route + '/')
+    )
+
+    const allowedRoles = dashboardPrefix ? ROLE_DASHBOARD_MAP[dashboardPrefix] : undefined
     if (allowedRoles && !allowedRoles.includes(userRole)) {
       // Redirect to user's own dashboard
       const dashboards: Record<string, string> = {
