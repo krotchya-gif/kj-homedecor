@@ -5,6 +5,13 @@ import SeoScripts from '@/components/SeoScripts'
 import Providers from '@/components/Providers'
 import FontLoader from '@/components/FontLoader'
 
+// Halaman statis Next.js di-cache CDN 1 tahun (s-maxage=31536000). Setelah
+// deploy, HTML lama tetap di-serve CDN sementara file CSS/JS lama sudah
+// terhapus -> halaman tampil tanpa CSS ("berantakan"). ISR 60 detik membuat
+// HTML segar maksimal 1 menit setelah deploy baru. Aman: semua halaman
+// fetch data client-side (tidak ada SSR user data / cookies).
+export const revalidate = 60
+
 export const viewport: Viewport = {
   themeColor: '#DDC0B4'
 }
