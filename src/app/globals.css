@@ -110,6 +110,27 @@ html, body {
   --surface: var(--neutral-100);
   --input-border: var(--neutral-300);
   color-scheme: dark;  /* native inputs/placeholder/scrollbar ikut dark */
+
+  /* Semantic tokens dark — komponen ui (dialog/dropdown/select) ikut dark */
+  --color-background: #0e0b0a;
+  --color-foreground: #f5f0ec;
+  --color-card: #221b18;
+  --color-card-foreground: #f5f0ec;
+  --color-popover: #221b18;
+  --color-popover-foreground: #f5f0ec;
+  --color-primary: #cc7030;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #2e2522;
+  --color-secondary-foreground: #f5f0ec;
+  --color-muted: #2e2522;
+  --color-muted-foreground: #a89088;
+  --color-accent: #3a302c;
+  --color-accent-foreground: #f5f0ec;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #3a302c;
+  --color-input: #3a302c;
+  --color-ring: #dd918d;
 }
 
 .dark body {
@@ -277,11 +298,43 @@ html, body {
   background: var(--neutral-300);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* Reset universal — DIPINDAH ke @layer base (2026-08-02):
+   rule unlayered MENANG atas @layer utilities Tailwind → semua padding utility (px-4, py-2, p-4)
+   jadi 0px → button gepeng. Di @layer base, utility (layer terakhir) menang. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
+
+/* ===== Design Tokens semantic (shadcn-style) — dipakai komponen ui (dialog, dropdown, select, button, card, dll) ===== */
+/* Dulu class seperti bg-popover/bg-muted/bg-primary TIDAK ter-generate karena token tidak ada di @theme
+   → dialog/dropdown transparan. Ditambahkan 2026-08-02. Nilai mengikuti palet user (--neutral-*). */
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #2b2321;
+  --color-card: #ffffff;
+  --color-card-foreground: #2b2321;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #2b2321;
+  --color-primary: #cc7030;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f2ebe8;
+  --color-secondary-foreground: #2b2321;
+  --color-muted: #f2ebe8;
+  --color-muted-foreground: #6b4a42;
+  --color-accent: #f9efed;
+  --color-accent-foreground: #2b2321;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e8d8d4;
+  --color-input: #e8d8d4;
+  --color-ring: #dd918d;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 html {
   scroll-behavior: smooth;
