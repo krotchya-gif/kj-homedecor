@@ -210,7 +210,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               borderRadius: '0.75rem',
               fontSize: '1rem',
               fontWeight: 500,
-              color: isDark ? '#a1a1aa' : '#374151',
+              color: isDark ? '#a1a1aa' : 'var(--neutral-700)',
               textDecoration: 'none',
               transition: 'all 0.15s',
               display: 'block'
@@ -223,7 +223,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             onMouseLeave={(e) => {
               const t = e.currentTarget
               t.style.background = 'transparent'
-              t.style.color = isDark ? '#a1a1aa' : '#374151'
+              t.style.color = isDark ? '#a1a1aa' : 'var(--neutral-700)'
             }}
           >
             {l.label}

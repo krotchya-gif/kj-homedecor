@@ -315,7 +315,7 @@ export default function GudangSteamPage() {
               borderBottom: `2px solid ${tab === t ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: tab === t ? '700' : '500',
-              color: tab === t ? '#cc7030' : '#6b7280',
+              color: tab === t ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px',
               transition: 'all 0.15s'
@@ -352,9 +352,9 @@ export default function GudangSteamPage() {
 
           <div className="data-table">
             {laundryLoading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : laundryRecords.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
                 <Waves size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
                 <p>Belum ada laundry</p>
               </div>
@@ -372,13 +372,13 @@ export default function GudangSteamPage() {
                 <tbody>
                   {laundryRecords.map((r) => (
                     <tr key={r.id}>
-                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>
                         {new Date(r.date).toLocaleDateString('id-ID')}
                       </td>
                       <td style={{ fontWeight: '500' }}>{r.customer_name}</td>
                       <td>{r.kg > 0 ? `${r.kg.toFixed(2)} kg` : '—'}</td>
                       <td>{r.meter > 0 ? `${r.meter.toFixed(2)} m` : '—'}</td>
-                      <td style={{ color: '#6b7280' }}>{r.description ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{r.description ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -392,12 +392,12 @@ export default function GudangSteamPage() {
       {tab === 'steam' && (
         <>
           {steamLoading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               {/* Menunggu QC */}
               <div>
-                <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
                   ⏳ Menunggu QC Jahitan ({steamPending.length})
                 </h3>
                 {steamPending.length === 0 ? (
@@ -405,8 +405,8 @@ export default function GudangSteamPage() {
                     style={{
                       padding: '2rem',
                       textAlign: 'center',
-                      color: '#9ca3af',
-                      background: '#f9fafb',
+                      color: 'var(--neutral-400)',
+                      background: 'var(--neutral-100)',
                       borderRadius: '0.75rem',
                       border: '1px solid #e5e7eb'
                     }}
@@ -419,7 +419,7 @@ export default function GudangSteamPage() {
                       <div
                         key={job.id}
                         style={{
-                          background: '#fff',
+                          background: 'var(--surface)',
                           border: '1px solid #e5e7eb',
                           borderRadius: '0.75rem',
                           padding: '1.25rem'
@@ -435,10 +435,10 @@ export default function GudangSteamPage() {
                           }}
                         >
                           <div>
-                            <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                            <div style={{ fontWeight: '600', color: 'var(--neutral-800)', marginBottom: '0.25rem' }}>
                               {job.order?.customer?.name ?? 'Tanpa Nama'}
                             </div>
-                            <div style={{ fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)', fontFamily: 'monospace' }}>
                               Order #{job.order_id?.slice(0, 8)} •{' '}
                               {new Date(job.created_at).toLocaleDateString('id-ID')}
                             </div>
@@ -524,7 +524,7 @@ export default function GudangSteamPage() {
                         >
                           ⚠️ {job.fail_reason}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                           Order #{job.order_id?.slice(0, 8)} • {new Date(job.created_at).toLocaleDateString('id-ID')}
                         </div>
                       </div>
@@ -556,7 +556,7 @@ export default function GudangSteamPage() {
                         <div style={{ fontSize: '0.75rem', color: '#16a34a' }}>
                           ✓ QC Jahitan Pass — {new Date(job.completed_at ?? job.created_at).toLocaleDateString('id-ID')}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Order #{job.order_id?.slice(0, 8)}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Order #{job.order_id?.slice(0, 8)}</div>
                       </div>
                     ))}
                   </div>
@@ -583,7 +583,7 @@ export default function GudangSteamPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -612,7 +612,7 @@ export default function GudangSteamPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -642,7 +642,7 @@ export default function GudangSteamPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -672,7 +672,7 @@ export default function GudangSteamPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -698,7 +698,7 @@ export default function GudangSteamPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -728,7 +728,7 @@ export default function GudangSteamPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -778,7 +778,7 @@ export default function GudangSteamPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -828,7 +828,7 @@ export default function GudangSteamPage() {
                   border: '2px dashed #d1d5db',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
-                  background: '#f9fafb',
+                  background: 'var(--neutral-100)',
                   gap: '0.25rem'
                 }}
               >
@@ -840,11 +840,11 @@ export default function GudangSteamPage() {
                   style={{ display: 'none' }}
                 />
                 {uploadingSteamPhoto ? (
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Upload...</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Upload...</span>
                 ) : (
                   <>
-                    <Camera size={18} style={{ color: '#9ca3af' }} />
-                    <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Wajib</span>
+                    <Camera size={18} style={{ color: 'var(--neutral-400)' }} />
+                    <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)' }}>Wajib</span>
                   </>
                 )}
               </label>
@@ -891,7 +891,7 @@ export default function GudangSteamPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -921,7 +921,7 @@ export default function GudangSteamPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -971,7 +971,7 @@ export default function GudangSteamPage() {
                   border: '2px dashed #d1d5db',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
-                  background: '#f9fafb',
+                  background: 'var(--neutral-100)',
                   gap: '0.25rem'
                 }}
               >
@@ -983,11 +983,11 @@ export default function GudangSteamPage() {
                   style={{ display: 'none' }}
                 />
                 {uploadingSteamPhoto ? (
-                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Upload...</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Upload...</span>
                 ) : (
                   <>
-                    <Camera size={18} style={{ color: '#9ca3af' }} />
-                    <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Wajib</span>
+                    <Camera size={18} style={{ color: 'var(--neutral-400)' }} />
+                    <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)' }}>Wajib</span>
                   </>
                 )}
               </label>

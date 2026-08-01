@@ -358,13 +358,13 @@ export default function AdminBookingPage() {
             onClick={() => setActiveTab(tab.key)}
             style={{
               padding: '0.5rem 1rem',
-              border: `1px solid ${activeTab === tab.key ? '#cc7030' : '#e5e7eb'}`,
+              border: `1px solid ${activeTab === tab.key ? '#cc7030' : 'var(--neutral-200)'}`,
               borderRadius: '0.5rem',
               fontSize: '0.85rem',
               fontWeight: '600',
               cursor: 'pointer',
               background: activeTab === tab.key ? '#cc7030' : '#fff',
-              color: activeTab === tab.key ? '#fff' : '#6b7280',
+              color: activeTab === tab.key ? '#fff' : 'var(--neutral-600)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.375rem'
@@ -376,7 +376,7 @@ export default function AdminBookingPage() {
                 padding: '0.125rem 0.5rem',
                 borderRadius: '999px',
                 fontSize: '0.75rem',
-                background: activeTab === tab.key ? 'rgba(255,255,255,0.2)' : '#f3f4f6'
+                background: activeTab === tab.key ? 'rgba(255,255,255,0.2)' : 'var(--neutral-100)'
               }}
             >
               {tab.count}
@@ -387,7 +387,7 @@ export default function AdminBookingPage() {
 
       {/* Booking List */}
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : filteredBookings.length === 0 ? (
         <div className="section-card">
           <CalendarIcon size={40} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
@@ -398,8 +398,8 @@ export default function AdminBookingPage() {
           {filteredBookings.map((booking) => {
             const statusInfo = STATUS_LABELS[booking.status] ?? {
               label: booking.status,
-              color: '#6b7280',
-              bg: '#f3f4f6'
+              color: 'var(--neutral-600)',
+              bg: 'var(--neutral-100)'
             }
             const typeInfo = TYPE_LABELS[booking.type] ?? { label: booking.type, icon: null }
 
@@ -407,7 +407,7 @@ export default function AdminBookingPage() {
               <div
                 key={booking.id}
                 style={{
-                  background: '#fff',
+                  background: 'var(--surface)',
                   border: '1px solid #e5e7eb',
                   borderRadius: '0.75rem',
                   padding: '1.25rem',
@@ -428,7 +428,7 @@ export default function AdminBookingPage() {
                       flexWrap: 'wrap'
                     }}
                   >
-                    <span style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.95rem' }}>
+                    <span style={{ fontWeight: '600', color: 'var(--neutral-800)', fontSize: '0.95rem' }}>
                       {booking.customer_name ?? 'Tanpa Nama'}
                     </span>
                     {booking.customer_phone && (
@@ -492,7 +492,7 @@ export default function AdminBookingPage() {
 
                     {/* Source badge */}
                     {booking.source && (
-                      <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>dari {booking.source}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>dari {booking.source}</span>
                     )}
                   </div>
 
@@ -501,7 +501,7 @@ export default function AdminBookingPage() {
                     <div
                       style={{
                         fontSize: '0.8rem',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: '0.375rem',
@@ -518,7 +518,7 @@ export default function AdminBookingPage() {
                     <div
                       style={{
                         fontSize: '0.8rem',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.375rem'
@@ -532,7 +532,7 @@ export default function AdminBookingPage() {
 
                   {/* Notes */}
                   {booking.notes && (
-                    <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', marginTop: '0.25rem', fontStyle: 'italic' }}>
                       "{booking.notes}"
                     </div>
                   )}
@@ -584,7 +584,7 @@ export default function AdminBookingPage() {
                       onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
                       style={{
                         padding: '0.5rem 0.875rem',
-                        background: '#fff',
+                        background: 'var(--surface)',
                         color: '#dc2626',
                         border: '1px solid #fecaca',
                         borderRadius: '0.5rem',
@@ -620,7 +620,7 @@ export default function AdminBookingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -646,7 +646,7 @@ export default function AdminBookingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -674,7 +674,7 @@ export default function AdminBookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -692,7 +692,7 @@ export default function AdminBookingPage() {
                   style={{
                     flex: 1,
                     padding: '0.625rem',
-                    border: `2px solid ${form.type === t.value ? '#cc7030' : '#e5e7eb'}`,
+                    border: `2px solid ${form.type === t.value ? '#cc7030' : 'var(--neutral-200)'}`,
                     borderRadius: '0.5rem',
                     background: form.type === t.value ? '#fff3e8' : '#fff',
                     fontSize: '0.85rem',
@@ -713,7 +713,7 @@ export default function AdminBookingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -742,7 +742,7 @@ export default function AdminBookingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -767,7 +767,7 @@ export default function AdminBookingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -794,7 +794,7 @@ export default function AdminBookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -809,7 +809,7 @@ export default function AdminBookingPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">-- Pilih Installer --</option>
@@ -827,7 +827,7 @@ export default function AdminBookingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -857,7 +857,7 @@ export default function AdminBookingPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -905,15 +905,15 @@ export default function AdminBookingPage() {
               </button>
             </div>
 
-            <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
-              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+            <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--neutral-100)', borderRadius: '0.5rem' }}>
+              <div style={{ fontWeight: '600', color: 'var(--neutral-800)', marginBottom: '0.25rem' }}>
                 {selectedBooking.customer_name}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)' }}>
                 {selectedBooking.customer_phone} • {TYPE_LABELS[selectedBooking.type]?.label}
               </div>
               {selectedBooking.address && (
-                <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                   📍 {selectedBooking.address}
                 </div>
               )}
@@ -926,7 +926,7 @@ export default function AdminBookingPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -952,7 +952,7 @@ export default function AdminBookingPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -977,7 +977,7 @@ export default function AdminBookingPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -993,7 +993,7 @@ export default function AdminBookingPage() {
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
-                    background: '#fff'
+                    background: 'var(--surface)'
                   }}
                 >
                   <option value="">-- Pilih Installer --</option>
@@ -1014,7 +1014,7 @@ export default function AdminBookingPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}

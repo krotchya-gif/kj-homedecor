@@ -145,8 +145,8 @@ export default function AdminSeoPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1.25rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -199,13 +199,13 @@ export default function AdminSeoPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {/* Analytics */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
             <h2
               style={{
                 fontSize: '0.9rem',
                 fontWeight: '700',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -223,7 +223,7 @@ export default function AdminSeoPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -243,7 +243,7 @@ export default function AdminSeoPage() {
                     outline: 'none'
                   }}
                 />
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                   Facebook Pixel ID untuk tracking konversi
                 </p>
               </div>
@@ -253,7 +253,7 @@ export default function AdminSeoPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -274,7 +274,7 @@ export default function AdminSeoPage() {
                     outline: 'none'
                   }}
                 />
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                   GA4 Measurement ID untuk analytics
                 </p>
               </div>
@@ -283,13 +283,13 @@ export default function AdminSeoPage() {
         </div>
 
         {/* Meta Tags */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
             <h2
               style={{
                 fontSize: '0.9rem',
                 fontWeight: '700',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -306,7 +306,7 @@ export default function AdminSeoPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -327,7 +327,7 @@ export default function AdminSeoPage() {
                   outline: 'none'
                 }}
               />
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                 {form.seo_title.length}/60 karakter
               </p>
             </div>
@@ -337,7 +337,7 @@ export default function AdminSeoPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -359,7 +359,7 @@ export default function AdminSeoPage() {
                   resize: 'vertical'
                 }}
               />
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                 {form.seo_description.length}/160 karakter
               </p>
             </div>
@@ -369,7 +369,7 @@ export default function AdminSeoPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -389,7 +389,7 @@ export default function AdminSeoPage() {
                   outline: 'none'
                 }}
               />
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>Pisahkan dengan koma</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>Pisahkan dengan koma</p>
             </div>
             <div>
               <label
@@ -397,7 +397,7 @@ export default function AdminSeoPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -418,7 +418,7 @@ export default function AdminSeoPage() {
                   outline: 'none'
                 }}
               />
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                 Gambar untuk Open Graph (Facebook/WhatsApp share). Disarankan 1200x630px
               </p>
             </div>
@@ -426,13 +426,13 @@ export default function AdminSeoPage() {
         </div>
 
         {/* File Uploads */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
             <h2
               style={{
                 fontSize: '0.9rem',
                 fontWeight: '700',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -449,7 +449,7 @@ export default function AdminSeoPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.5rem'
                 }}
               >
@@ -471,8 +471,8 @@ export default function AdminSeoPage() {
                     alignItems: 'center',
                     gap: '0.375rem',
                     padding: '0.625rem 1rem',
-                    background: uploadingSitemap ? '#f3f4f6' : '#fff',
-                    color: '#374151',
+                    background: uploadingSitemap ? 'var(--neutral-100)' : '#fff',
+                    color: 'var(--neutral-700)',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     fontWeight: '600',
@@ -496,7 +496,7 @@ export default function AdminSeoPage() {
                     alignItems: 'center',
                     gap: '0.375rem',
                     padding: '0.625rem 1rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     color: '#cc7030',
                     border: '1px solid #cc7030',
                     borderRadius: '0.5rem',
@@ -508,7 +508,7 @@ export default function AdminSeoPage() {
                   <Search size={15} /> Lihat Current
                 </a>
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.4rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.4rem' }}>
                 Upload file sitemap.xml yang sudah di-generate (misal dari sitemapgenerator.org)
               </p>
             </div>
@@ -519,7 +519,7 @@ export default function AdminSeoPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.5rem'
                 }}
               >
@@ -541,8 +541,8 @@ export default function AdminSeoPage() {
                     alignItems: 'center',
                     gap: '0.375rem',
                     padding: '0.625rem 1rem',
-                    background: uploadingRobots ? '#f3f4f6' : '#fff',
-                    color: '#374151',
+                    background: uploadingRobots ? 'var(--neutral-100)' : '#fff',
+                    color: 'var(--neutral-700)',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     fontWeight: '600',
@@ -566,7 +566,7 @@ export default function AdminSeoPage() {
                     alignItems: 'center',
                     gap: '0.375rem',
                     padding: '0.625rem 1rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     color: '#cc7030',
                     border: '1px solid #cc7030',
                     borderRadius: '0.5rem',
@@ -578,7 +578,7 @@ export default function AdminSeoPage() {
                   <Search size={15} /> Lihat Current
                 </a>
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.4rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.4rem' }}>
                 Upload file robots.txt untuk mengatur crawler access
               </p>
             </div>

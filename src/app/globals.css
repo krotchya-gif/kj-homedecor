@@ -74,6 +74,7 @@
   /* Surface — card/input background (dark-aware, 2026-08-01) */
   --surface: #ffffff;
   --input-border: #d1d5db;
+  color-scheme: light;
 }
 
 html, body {
@@ -108,11 +109,19 @@ html, body {
   /* Surface dark */
   --surface: var(--neutral-100);
   --input-border: var(--neutral-300);
+  color-scheme: dark;  /* native inputs/placeholder/scrollbar ikut dark */
 }
 
 .dark body {
   background-color: #0E0B0A;
   color: var(--neutral-900);
+
+  /* Placeholder global — semua input ikut terlihat di dark */
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--neutral-500);
+    opacity: 1;
+  }
 }
 
 .dark .topnav {

@@ -99,7 +99,7 @@ export default function LaundryJobsPage() {
       <PageHeader title="Laundry Jobs" subtitle="Pesanan laundry yang di-assign ke Anda" />
 
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           {/* Unassigned — self assign */}
@@ -128,8 +128,8 @@ export default function LaundryJobsPage() {
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: '600', color: '#1f2937' }}>{o.customer_name}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      <div style={{ fontWeight: '600', color: 'var(--neutral-800)' }}>{o.customer_name}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                         {o.kg} kg{o.meter ? ` • ${o.meter}m` : ''}
                       </div>
                     </div>
@@ -156,7 +156,7 @@ export default function LaundryJobsPage() {
 
           {/* Pending */}
           <div>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
               ⏳ Pesanan Baru ({pending.length})
             </h3>
             {pending.length === 0 ? (
@@ -164,8 +164,8 @@ export default function LaundryJobsPage() {
                 style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  color: '#9ca3af',
-                  background: '#f9fafb',
+                  color: 'var(--neutral-400)',
+                  background: 'var(--neutral-100)',
                   borderRadius: '0.75rem',
                   border: '1px solid #e5e7eb'
                 }}
@@ -180,7 +180,7 @@ export default function LaundryJobsPage() {
                     <div
                       key={o.id}
                       style={{
-                        background: '#fff',
+                        background: 'var(--surface)',
                         border: '1px solid #e5e7eb',
                         borderRadius: '0.75rem',
                         padding: '1.25rem'
@@ -196,13 +196,13 @@ export default function LaundryJobsPage() {
                         }}
                       >
                         <div>
-                          <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                          <div style={{ fontWeight: '600', color: 'var(--neutral-800)', marginBottom: '0.25rem' }}>
                             {o.customer_name}
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                             {o.kg} kg{o.meter ? ` • ${o.meter}m` : ''} • {o.description || '—'}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                             Masuk: {new Date(o.received_at).toLocaleDateString('id-ID')}
                           </div>
                         </div>
@@ -242,7 +242,7 @@ export default function LaundryJobsPage() {
                 style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  color: '#9ca3af',
+                  color: 'var(--neutral-400)',
                   background: '#eff6ff',
                   borderRadius: '0.75rem',
                   border: '1px solid #bfdbfe'
@@ -256,7 +256,7 @@ export default function LaundryJobsPage() {
                   <div
                     key={o.id}
                     style={{
-                      background: '#fff',
+                      background: 'var(--surface)',
                       border: '1px solid #bfdbfe',
                       borderRadius: '0.75rem',
                       padding: '1.25rem'
@@ -272,10 +272,10 @@ export default function LaundryJobsPage() {
                       }}
                     >
                       <div>
-                        <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                        <div style={{ fontWeight: '600', color: 'var(--neutral-800)', marginBottom: '0.25rem' }}>
                           {o.customer_name}
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                           {o.kg} kg{o.meter ? ` • ${o.meter}m` : ''} • {o.description || '—'}
                         </div>
                       </div>
@@ -356,7 +356,7 @@ export default function LaundryJobsPage() {
         {showDoneModal && (
           <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Konfirmasi Selesai</h2>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.5rem' }}>
               Berat aktual untuk <strong>{showDoneModal.customer_name}</strong>:
             </p>
             <div style={{ marginBottom: '1.5rem' }}>
@@ -365,7 +365,7 @@ export default function LaundryJobsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -398,7 +398,7 @@ export default function LaundryJobsPage() {
                   padding: '0.75rem',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.5rem',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   cursor: 'pointer',
                   fontWeight: '600'
                 }}

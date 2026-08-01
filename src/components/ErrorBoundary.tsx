@@ -57,10 +57,10 @@ export class ErrorBoundary extends Component<Props, State> {
           >
             <AlertTriangle size={24} color="#ef4444" />
           </div>
-          <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#374151', marginBottom: '0.5rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
             Terjadi kesalahan
           </h2>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem', maxWidth: 400 }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.5rem', maxWidth: 400 }}>
             {this.state.error?.message ?? 'Tidak dapat memuat halaman ini.'}
           </p>
           <button

@@ -46,9 +46,9 @@ export default function ReturPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : retur.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <RotateCcw size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada retur</p>
           </div>

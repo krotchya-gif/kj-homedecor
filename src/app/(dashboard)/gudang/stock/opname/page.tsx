@@ -236,7 +236,7 @@ export default function GudangStockOpnamePage() {
               borderBottom: `2px solid ${tab === t.key ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: tab === t.key ? '700' : '500',
-              color: tab === t.key ? '#cc7030' : '#6b7280',
+              color: tab === t.key ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px'
             }}
@@ -275,7 +275,7 @@ export default function GudangStockOpnamePage() {
                   display: 'block',
                   fontSize: '0.75rem',
                   fontWeight: '600',
-                  color: '#6b7280',
+                  color: 'var(--neutral-600)',
                   marginBottom: '0.25rem'
                 }}
               >
@@ -353,12 +353,12 @@ export default function GudangStockOpnamePage() {
                 <tbody>
                   {sessions.map((s) => (
                     <tr key={s.id}>
-                      <td style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+                      <td style={{ fontSize: '0.82rem', color: 'var(--neutral-600)' }}>
                         {new Date(s.created_at).toLocaleDateString('id-ID')}
                       </td>
                       <td
                         style={{
-                          color: '#6b7280',
+                          color: 'var(--neutral-600)',
                           maxWidth: 200,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
@@ -382,7 +382,7 @@ export default function GudangStockOpnamePage() {
                           {s.status === 'open' ? '🟡 Open' : s.status === 'submitted' ? '🔵 Submitted' : '✅ Approved'}
                         </span>
                       </td>
-                      <td style={{ color: '#6b7280' }}>{s.staff?.name ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{s.staff?.name ?? '—'}</td>
                       <td>
                         {s.status === 'open' && (
                           <button
@@ -482,7 +482,7 @@ export default function GudangStockOpnamePage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontSize: '0.8rem'
               }}
@@ -493,7 +493,7 @@ export default function GudangStockOpnamePage() {
               <h2 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>
                 Hitung Fisik — {new Date(activeSession.created_at).toLocaleDateString('id-ID')}
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.2rem 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', margin: '0.2rem 0 0' }}>
                 {activeSession.notes ?? 'Tanpa catatan'}
               </p>
             </div>
@@ -548,8 +548,8 @@ export default function GudangStockOpnamePage() {
                   return (
                     <tr key={item.id}>
                       <td style={{ fontWeight: '500' }}>{item.material?.name ?? '—'}</td>
-                      <td style={{ color: '#6b7280' }}>{item.material?.unit ?? '—'}</td>
-                      <td style={{ color: '#6b7280' }}>{item.system_qty}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{item.material?.unit ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{item.system_qty}</td>
                       <td>
                         <input
                           type="number"
@@ -571,7 +571,7 @@ export default function GudangStockOpnamePage() {
                       </td>
                       <td>
                         <span
-                          style={{ fontWeight: '700', color: diff > 0 ? '#16a34a' : diff < 0 ? '#ef4444' : '#6b7280' }}
+                          style={{ fontWeight: '700', color: diff > 0 ? '#16a34a' : diff < 0 ? '#ef4444' : 'var(--neutral-600)' }}
                         >
                           {diff > 0 ? '+' : ''}
                           {diff}
@@ -597,7 +597,7 @@ export default function GudangStockOpnamePage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}
@@ -662,7 +662,7 @@ export default function GudangStockOpnamePage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontSize: '0.8rem'
               }}
@@ -673,7 +673,7 @@ export default function GudangStockOpnamePage() {
               <h2 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>
                 Review Opname — {new Date(approveSession.created_at).toLocaleDateString('id-ID')}
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.2rem 0 0' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', margin: '0.2rem 0 0' }}>
                 {approveSession.notes ?? 'Tanpa catatan'}
               </p>
             </div>
@@ -700,7 +700,7 @@ export default function GudangStockOpnamePage() {
                 </div>
                 <div className="stat-card">
                   <div className="stat-card-label">Sesuai (=)</div>
-                  <div className="stat-card-value" style={{ color: '#6b7280' }}>
+                  <div className="stat-card-value" style={{ color: 'var(--neutral-600)' }}>
                     {totalZero}
                   </div>
                 </div>
@@ -723,14 +723,14 @@ export default function GudangStockOpnamePage() {
                 {approveItems.map((item) => (
                   <tr key={item.id}>
                     <td style={{ fontWeight: '500' }}>{item.material?.name ?? '—'}</td>
-                    <td style={{ color: '#6b7280' }}>{item.material?.unit ?? '—'}</td>
-                    <td style={{ color: '#6b7280' }}>{item.system_qty}</td>
-                    <td style={{ color: '#6b7280' }}>{item.counted_qty}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{item.material?.unit ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{item.system_qty}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{item.counted_qty}</td>
                     <td>
                       <span
                         style={{
                           fontWeight: '700',
-                          color: item.difference > 0 ? '#16a34a' : item.difference < 0 ? '#ef4444' : '#6b7280'
+                          color: item.difference > 0 ? '#16a34a' : item.difference < 0 ? '#ef4444' : 'var(--neutral-600)'
                         }}
                       >
                         {item.difference > 0 ? '+' : ''}
@@ -746,7 +746,7 @@ export default function GudangStockOpnamePage() {
           {approveSession.status !== 'approved' && (
             <div className="section-card">
               <h3 style={{ fontSize: '0.9rem', fontWeight: '700', margin: '0 0 0.75rem' }}>Approval</h3>
-              <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 1rem' }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', margin: '0 0 1rem' }}>
                 Dengan menyetujui, selisih (+/−) akan langsung di-adjust ke <strong>stock_gudang</strong> dan dicatat di
                 inventory movements.
               </p>
@@ -761,7 +761,7 @@ export default function GudangStockOpnamePage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600',
                     color: '#ef4444'

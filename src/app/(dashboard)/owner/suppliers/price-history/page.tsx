@@ -86,7 +86,7 @@ export default function MaterialHistoryPage() {
                   left: '0.75rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -135,7 +135,7 @@ export default function MaterialHistoryPage() {
                       }}
                     >
                       <td style={{ fontWeight: selectedMaterial === m.id ? '700' : '500' }}>{m.name}</td>
-                      <td style={{ color: '#6b7280', fontSize: '0.82rem' }}>{m.supplier?.name ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.82rem' }}>{m.supplier?.name ?? '—'}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(m.cost_per_unit)}</td>
                     </tr>
                   ))}
@@ -153,20 +153,20 @@ export default function MaterialHistoryPage() {
               <p>Pilih material di sebelah kiri untuk melihat riwayat harganya</p>
             </div>
           ) : loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
           ) : (
             <div>
               {/* Header */}
               <div className="section-card">
-                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: '#1f2937', marginBottom: '0.375rem' }}>
+                <div style={{ fontWeight: '700', fontSize: '1.1rem', color: 'var(--neutral-800)', marginBottom: '0.375rem' }}>
                   {selectedMat?.name}
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', marginBottom: '0.75rem' }}>
                   Supplier: <strong>{selectedMat?.supplier?.name ?? '—'}</strong>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.2rem' }}>HARGA TERKINI</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginBottom: '0.2rem' }}>HARGA TERKINI</div>
                     <div style={{ fontWeight: '800', fontSize: '1.5rem', color: '#cc7030' }}>
                       {formatRp(latestPrice)}
                     </div>
@@ -179,7 +179,7 @@ export default function MaterialHistoryPage() {
                         <TrendingDown size={20} color="#059669" />
                       )}
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>vs harga sebelumnya</div>
                         <div style={{ fontWeight: '700', color: trend.direction === 'up' ? '#dc2626' : '#059669' }}>
                           {trend.direction === 'up' ? '+' : ''}
                           {formatRp(trend.diff)} ({trend.pct.toFixed(1)}%)
@@ -188,10 +188,10 @@ export default function MaterialHistoryPage() {
                     </div>
                   )}
                   {trend.direction === 'same' && history.length >= 2 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#6b7280' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--neutral-600)' }}>
                       <Minus size={20} />
                       <div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>vs harga sebelumnya</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>vs harga sebelumnya</div>
                         <div style={{ fontWeight: '700' }}>Tidak berubah</div>
                       </div>
                     </div>
@@ -201,15 +201,15 @@ export default function MaterialHistoryPage() {
 
               {/* History table */}
               <div
-                style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
+                style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
               >
-                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                     Riwayat Perubahan Harga
                   </h3>
                 </div>
                 {history.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
                     <Calendar size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
                     <p>Belum ada data riwayat harga untuk material ini.</p>
                     <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
@@ -253,8 +253,8 @@ export default function MaterialHistoryPage() {
                             )}
                           </td>
                           <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(h.price)}</td>
-                          <td style={{ fontSize: '0.82rem', color: '#6b7280' }}>{h.supplier?.name ?? '—'}</td>
-                          <td style={{ fontSize: '0.78rem', color: '#9ca3af' }}>{h.notes ?? '—'}</td>
+                          <td style={{ fontSize: '0.82rem', color: 'var(--neutral-600)' }}>{h.supplier?.name ?? '—'}</td>
+                          <td style={{ fontSize: '0.78rem', color: 'var(--neutral-400)' }}>{h.notes ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>

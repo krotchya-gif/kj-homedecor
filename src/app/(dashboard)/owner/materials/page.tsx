@@ -164,7 +164,7 @@ export default function MaterialsPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -189,8 +189,8 @@ export default function MaterialsPage() {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1rem',
-            background: '#fff',
-            color: '#374151',
+            background: 'var(--surface)',
+            color: 'var(--neutral-700)',
             border: '1px solid #d1d5db',
             borderRadius: '0.5rem',
             fontWeight: 600,
@@ -207,8 +207,8 @@ export default function MaterialsPage() {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1rem',
-            background: '#fff',
-            color: '#374151',
+            background: 'var(--surface)',
+            color: 'var(--neutral-700)',
             border: '1px solid #d1d5db',
             borderRadius: '0.5rem',
             fontWeight: 600,
@@ -225,8 +225,8 @@ export default function MaterialsPage() {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1rem',
-            background: '#fff',
-            color: '#374151',
+            background: 'var(--surface)',
+            color: 'var(--neutral-700)',
             border: '1px solid #d1d5db',
             borderRadius: '0.5rem',
             fontWeight: 600,
@@ -282,7 +282,7 @@ export default function MaterialsPage() {
                 return (
                   <tr key={m.id}>
                     <td style={{ fontWeight: '500' }}>{m.name}</td>
-                    <td style={{ color: '#6b7280' }}>{m.unit}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{m.unit}</td>
                     <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(m.cost_per_unit)}</td>
                     <td>{m.stock_gudang}</td>
                     <td>{m.stock_toko}</td>
@@ -338,7 +338,7 @@ export default function MaterialsPage() {
             borderTop: '1px solid #e5e7eb'
           }}
         >
-          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
             Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} material
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -352,10 +352,10 @@ export default function MaterialsPage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
-                color: currentPage === 1 ? '#9ca3af' : '#374151'
+                color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)'
               }}
             >
               <ChevronLeft size={14} /> Sebelumnya
@@ -370,10 +370,10 @@ export default function MaterialsPage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
-                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151'
+                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'var(--neutral-400)' : 'var(--neutral-700)'
               }}
             >
               Selanjutnya <ChevronRight size={14} />
@@ -391,7 +391,7 @@ export default function MaterialsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -420,7 +420,7 @@ export default function MaterialsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -436,7 +436,7 @@ export default function MaterialsPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               >
                 <option value="meter">Meter</option>
@@ -452,7 +452,7 @@ export default function MaterialsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -486,7 +486,7 @@ export default function MaterialsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -518,7 +518,7 @@ export default function MaterialsPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

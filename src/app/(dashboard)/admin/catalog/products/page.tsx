@@ -353,8 +353,8 @@ export default function ProductsPage() {
             fontWeight: '600',
             fontSize: '0.875rem',
             cursor: 'pointer',
-            background: activeTab === 'gorden' ? '#cc7030' : '#f3f4f6',
-            color: activeTab === 'gorden' ? '#fff' : '#6b7280'
+            background: activeTab === 'gorden' ? '#cc7030' : 'var(--neutral-100)',
+            color: activeTab === 'gorden' ? '#fff' : 'var(--neutral-600)'
           }}
         >
           Gorden
@@ -368,8 +368,8 @@ export default function ProductsPage() {
             fontWeight: '600',
             fontSize: '0.875rem',
             cursor: 'pointer',
-            background: activeTab === 'perabot' ? '#cc7030' : '#f3f4f6',
-            color: activeTab === 'perabot' ? '#fff' : '#6b7280'
+            background: activeTab === 'perabot' ? '#cc7030' : 'var(--neutral-100)',
+            color: activeTab === 'perabot' ? '#fff' : 'var(--neutral-600)'
           }}
         >
           Perabot
@@ -383,8 +383,8 @@ export default function ProductsPage() {
             fontWeight: '600',
             fontSize: '0.875rem',
             cursor: 'pointer',
-            background: activeTab === 'all' ? '#cc7030' : '#f3f4f6',
-            color: activeTab === 'all' ? '#fff' : '#6b7280'
+            background: activeTab === 'all' ? '#cc7030' : 'var(--neutral-100)',
+            color: activeTab === 'all' ? '#fff' : 'var(--neutral-600)'
           }}
         >
           Semua
@@ -401,7 +401,7 @@ export default function ProductsPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -426,8 +426,8 @@ export default function ProductsPage() {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1rem',
-            background: '#fff',
-            color: '#374151',
+            background: 'var(--surface)',
+            color: 'var(--neutral-700)',
             border: '1px solid #d1d5db',
             borderRadius: '0.5rem',
             fontWeight: 600,
@@ -444,8 +444,8 @@ export default function ProductsPage() {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1rem',
-            background: '#fff',
-            color: '#374151',
+            background: 'var(--surface)',
+            color: 'var(--neutral-700)',
             border: '1px solid #d1d5db',
             borderRadius: '0.5rem',
             fontWeight: 600,
@@ -462,8 +462,8 @@ export default function ProductsPage() {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1rem',
-            background: '#fff',
-            color: '#374151',
+            background: 'var(--surface)',
+            color: 'var(--neutral-700)',
             border: '1px solid #d1d5db',
             borderRadius: '0.5rem',
             fontWeight: 600,
@@ -536,12 +536,12 @@ export default function ProductsPage() {
                           style={{
                             width: 36,
                             height: 36,
-                            background: '#f3f4f6',
+                            background: 'var(--neutral-100)',
                             borderRadius: '0.375rem',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            color: '#9ca3af',
+                            color: 'var(--neutral-400)',
                             fontSize: '0.75rem'
                           }}
                         >
@@ -551,8 +551,8 @@ export default function ProductsPage() {
                       <span style={{ fontWeight: '500' }}>{p.name}</span>
                     </div>
                   </td>
-                  <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku ?? '—'}</td>
-                  <td style={{ color: '#6b7280' }}>{p.kode_kain ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{p.kode_kain ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
                   <td>{p.stock_toko}</td>
                   <td>
@@ -591,8 +591,8 @@ export default function ProductsPage() {
                     {p.is_catalog_visible === false && (
                       <span
                         style={{
-                          background: '#f3f4f6',
-                          color: '#6b7280',
+                          background: 'var(--neutral-100)',
+                          color: 'var(--neutral-600)',
                           padding: '0.15rem 0.5rem',
                           borderRadius: '999px',
                           fontSize: '0.75rem',
@@ -612,7 +612,7 @@ export default function ProductsPage() {
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          color: '#6b7280',
+                          color: 'var(--neutral-600)',
                           padding: '0.25rem'
                         }}
                         title="Edit"
@@ -653,7 +653,7 @@ export default function ProductsPage() {
             borderTop: '1px solid #e5e7eb'
           }}
         >
-          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
             Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} produk
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -667,10 +667,10 @@ export default function ProductsPage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
-                color: currentPage === 1 ? '#9ca3af' : '#374151'
+                color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)'
               }}
             >
               <ChevronLeft size={14} /> Sebelumnya
@@ -685,10 +685,10 @@ export default function ProductsPage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
-                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151'
+                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'var(--neutral-400)' : 'var(--neutral-700)'
               }}
             >
               Selanjutnya <ChevronRight size={14} />
@@ -726,7 +726,7 @@ export default function ProductsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -755,7 +755,7 @@ export default function ProductsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -771,7 +771,7 @@ export default function ProductsPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih Kategori —</option>
@@ -794,7 +794,7 @@ export default function ProductsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -823,7 +823,7 @@ export default function ProductsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -938,7 +938,7 @@ export default function ProductsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -968,7 +968,7 @@ export default function ProductsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.5rem'
               }}
             >
@@ -976,7 +976,7 @@ export default function ProductsPage() {
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.5rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Panjang (cm)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Panjang (cm)</label>
                 <input
                   type="number"
                   placeholder="P"
@@ -993,7 +993,7 @@ export default function ProductsPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Lebar (cm)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Lebar (cm)</label>
                 <input
                   type="number"
                   placeholder="L"
@@ -1010,7 +1010,7 @@ export default function ProductsPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tinggi (cm)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Tinggi (cm)</label>
                 <input
                   type="number"
                   placeholder="T"
@@ -1027,7 +1027,7 @@ export default function ProductsPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Berat (kg)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Berat (kg)</label>
                 <input
                   type="number"
                   placeholder="Kg"
@@ -1053,7 +1053,7 @@ export default function ProductsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.5rem'
               }}
             >
@@ -1107,7 +1107,7 @@ export default function ProductsPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  color: '#9ca3af',
+                  color: 'var(--neutral-400)',
                   fontSize: '0.75rem',
                   textAlign: 'center'
                 }}
@@ -1138,7 +1138,7 @@ export default function ProductsPage() {
                 />
               </label>
             </div>
-            <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>PNG, JPG, WebP — maks 5MB per foto</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>PNG, JPG, WebP — maks 5MB per foto</p>
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -1150,7 +1150,7 @@ export default function ProductsPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

@@ -430,7 +430,7 @@ export default function FinancePaymentsPage() {
               borderBottom: `2px solid ${activeTab === t.key ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: activeTab === t.key ? '700' : '500',
-              color: activeTab === t.key ? '#cc7030' : '#6b7280',
+              color: activeTab === t.key ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px',
               display: 'flex',
@@ -498,13 +498,13 @@ export default function FinancePaymentsPage() {
                           style={{
                             fontFamily: 'monospace',
                             fontSize: '0.78rem',
-                            color: '#6b7280'
+                            color: 'var(--neutral-600)'
                           }}
                         >
                           {r.order_id?.slice(0, 8)}
                         </td>
                         <td style={{ fontWeight: '500' }}>{r.order?.customer?.name ?? '—'}</td>
-                        <td style={{ fontSize: '0.82rem', color: '#6b7280' }}>{r.reason}</td>
+                        <td style={{ fontSize: '0.82rem', color: 'var(--neutral-600)' }}>{r.reason}</td>
                         <td style={{ fontWeight: '700', color: '#cc7030' }}>{fmt(r.refund_amount)}</td>
                         <td>
                           <span
@@ -565,7 +565,7 @@ export default function FinancePaymentsPage() {
                   left: '0.75rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -591,7 +591,7 @@ export default function FinancePaymentsPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 outline: 'none'
               }}
             >
@@ -671,7 +671,7 @@ export default function FinancePaymentsPage() {
                               gap: '0.25rem'
                             }}
                           >
-                            <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                               {(STATUS_LABELS as Record<string, string>)[o.status]}
                             </span>
                             {o.status === 'new' && o.payment_status !== 'pending' && (
@@ -741,8 +741,8 @@ export default function FinancePaymentsPage() {
                                 disabled
                                 style={{
                                   padding: '0.3rem 0.75rem',
-                                  background: '#f3f4f6',
-                                  color: '#d1d5db',
+                                  background: 'var(--neutral-100)',
+                                  color: 'var(--input-border)',
                                   border: 'none',
                                   borderRadius: '0.375rem',
                                   fontSize: '0.75rem',
@@ -778,7 +778,7 @@ export default function FinancePaymentsPage() {
                 borderTop: '1px solid #e5e7eb'
               }}
             >
-              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                 Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} order
               </span>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -792,10 +792,10 @@ export default function FinancePaymentsPage() {
                     padding: '0.4rem 0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.375rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                     fontSize: '0.8rem',
-                    color: currentPage === 1 ? '#9ca3af' : '#374151'
+                    color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)'
                   }}
                 >
                   <ChevronLeft size={14} /> Sebelumnya
@@ -810,10 +810,10 @@ export default function FinancePaymentsPage() {
                     padding: '0.4rem 0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.375rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
                     fontSize: '0.8rem',
-                    color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151'
+                    color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'var(--neutral-400)' : 'var(--neutral-700)'
                   }}
                 >
                   Selanjutnya <ChevronRight size={14} />
@@ -973,7 +973,7 @@ export default function FinancePaymentsPage() {
             </h2>
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '0.5rem',
                 padding: '0.875rem',
@@ -983,7 +983,7 @@ export default function FinancePaymentsPage() {
               <div
                 style={{
                   fontSize: '0.875rem',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.25rem'
                 }}
               >
@@ -994,7 +994,7 @@ export default function FinancePaymentsPage() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   fontSize: '0.8rem',
-                  color: '#6b7280'
+                  color: 'var(--neutral-600)'
                 }}
               >
                 <span>
@@ -1015,7 +1015,7 @@ export default function FinancePaymentsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1052,7 +1052,7 @@ export default function FinancePaymentsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1081,7 +1081,7 @@ export default function FinancePaymentsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1126,7 +1126,7 @@ export default function FinancePaymentsPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}

@@ -245,7 +245,7 @@ export default function OrdersPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -272,7 +272,7 @@ export default function OrdersPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           <option value="">Semua Status</option>
@@ -296,7 +296,7 @@ export default function OrdersPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           <option value="">Semua Kategori</option>
@@ -369,7 +369,7 @@ export default function OrdersPage() {
             <tbody>
               {filtered.map((o) => (
                 <tr key={o.id} style={{ cursor: 'pointer' }}>
-                  <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280', fontWeight: '600' }}>
+                  <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--neutral-600)', fontWeight: '600' }}>
                     {o.order_number || o.id.slice(0, 8)}
                   </td>
                   <td style={{ fontWeight: '500' }}>
@@ -405,7 +405,7 @@ export default function OrdersPage() {
                     })()}
                   </td>
                   <td>
-                    <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{SOURCE_LABELS[o.source]}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>{SOURCE_LABELS[o.source]}</span>
                   </td>
                   <td>
                     <span
@@ -438,16 +438,16 @@ export default function OrdersPage() {
                   <td>
                     {o.tracking_number ? (
                       <div style={{ fontSize: '0.75rem' }}>
-                        <div style={{ fontWeight: '600', color: '#374151' }}>
+                        <div style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>
                           {COURIERS.find((c) => c.value === o.courier)?.label ??
                             COURIERS.find((c) => c.label === o.courier)?.label ??
                             o.courier ??
                             '—'}
                         </div>
-                        <div style={{ color: '#6b7280', fontFamily: 'monospace' }}>{o.tracking_number}</div>
+                        <div style={{ color: 'var(--neutral-600)', fontFamily: 'monospace' }}>{o.tracking_number}</div>
                       </div>
                     ) : (
-                      <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>—</span>
+                      <span style={{ color: 'var(--neutral-400)', fontSize: '0.75rem' }}>—</span>
                     )}
                   </td>
                   <td>
@@ -485,7 +485,7 @@ export default function OrdersPage() {
             borderTop: '1px solid #e5e7eb'
           }}
         >
-          <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
             Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} pesanan
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -499,10 +499,10 @@ export default function OrdersPage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
-                color: currentPage === 1 ? '#9ca3af' : '#374151'
+                color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)'
               }}
             >
               <ChevronLeft size={14} /> Sebelumnya
@@ -517,10 +517,10 @@ export default function OrdersPage() {
                 padding: '0.4rem 0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
                 fontSize: '0.8rem',
-                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151'
+                color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'var(--neutral-400)' : 'var(--neutral-700)'
               }}
             >
               Selanjutnya <ChevronRight size={14} />
@@ -543,7 +543,7 @@ export default function OrdersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -568,7 +568,7 @@ export default function OrdersPage() {
                       borderRadius: '0.5rem',
                       fontSize: '0.875rem',
                       outline: 'none',
-                      background: '#fff'
+                      background: 'var(--surface)'
                     }}
                   />
                   {searchCustomer && (
@@ -579,7 +579,7 @@ export default function OrdersPage() {
                         left: 0,
                         right: 0,
                         zIndex: 50,
-                        background: '#fff',
+                        background: 'var(--surface)',
                         border: '1px solid #d1d5db',
                         borderRadius: '0.5rem',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -588,7 +588,7 @@ export default function OrdersPage() {
                       }}
                     >
                       {filteredCustomers(searchCustomer).length === 0 && (
-                        <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                        <div style={{ padding: '0.75rem', color: 'var(--neutral-400)', fontSize: '0.8rem' }}>
                           Ketik untuk cari atau buat pelanggan baru
                         </div>
                       )}
@@ -614,7 +614,7 @@ export default function OrdersPage() {
                           }}
                         >
                           <div style={{ fontWeight: 500 }}>{c.name}</div>
-                          <div style={{ color: '#9ca3af', fontSize: '0.78rem' }}>
+                          <div style={{ color: 'var(--neutral-400)', fontSize: '0.78rem' }}>
                             {c.phone || '—'}
                             {c.address && ` · ${c.address}`}
                           </div>
@@ -640,7 +640,7 @@ export default function OrdersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -667,7 +667,7 @@ export default function OrdersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -702,7 +702,7 @@ export default function OrdersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -718,7 +718,7 @@ export default function OrdersPage() {
                       borderRadius: '0.5rem',
                       fontSize: '0.875rem',
                       outline: 'none',
-                      background: '#fff'
+                      background: 'var(--surface)'
                     }}
                   >
                     <option value="offline">Offline</option>
@@ -734,7 +734,7 @@ export default function OrdersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -750,7 +750,7 @@ export default function OrdersPage() {
                       borderRadius: '0.5rem',
                       fontSize: '0.875rem',
                       outline: 'none',
-                      background: '#fff'
+                      background: 'var(--surface)'
                     }}
                   >
                     <option value="kirim">📦 Kirim</option>
@@ -765,7 +765,7 @@ export default function OrdersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -793,7 +793,7 @@ export default function OrdersPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -822,7 +822,7 @@ export default function OrdersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -856,7 +856,7 @@ export default function OrdersPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

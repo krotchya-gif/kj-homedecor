@@ -35,9 +35,9 @@ export default function PaymentPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : payments.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <DollarSign size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada pembayaran</p>
           </div>
@@ -55,11 +55,11 @@ export default function PaymentPage() {
             <tbody>
               {payments.map((p) => (
                 <tr key={p.id}>
-                  <td style={{ color: '#6b7280' }}>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#16a34a', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{p.type ?? 'dp'}</td>
-                  <td style={{ color: '#6b7280' }}>{p.staff?.name ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{p.staff?.name ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

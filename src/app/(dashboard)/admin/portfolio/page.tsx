@@ -153,7 +153,7 @@ export default function AdminPortfolioPage() {
 
       {/* Posts Grid */}
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : posts.length === 0 ? (
         <div className="section-card">
           <ImageIcon size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
@@ -171,7 +171,7 @@ export default function AdminPortfolioPage() {
             <div
               key={post.id}
               style={{
-                background: '#fff',
+                background: 'var(--surface)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '0.75rem',
                 overflow: 'hidden'
@@ -183,7 +183,7 @@ export default function AdminPortfolioPage() {
                     display: 'flex',
                     gap: '0.25rem',
                     padding: '0.5rem',
-                    background: '#f9fafb',
+                    background: 'var(--neutral-100)',
                     overflowX: 'auto'
                   }}
                 >
@@ -210,10 +210,10 @@ export default function AdminPortfolioPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: '#f3f4f6',
+                        background: 'var(--neutral-100)',
                         borderRadius: '0.375rem',
                         fontSize: '0.75rem',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         flexShrink: 0
                       }}
                     >
@@ -225,13 +225,13 @@ export default function AdminPortfolioPage() {
                 <div
                   style={{
                     height: 100,
-                    background: '#f3f4f6',
+                    background: 'var(--neutral-100)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}
                 >
-                  <ImageIcon size={24} style={{ color: '#d1d5db' }} />
+                  <ImageIcon size={24} style={{ color: 'var(--input-border)' }} />
                 </div>
               )}
               <div style={{ padding: '1rem' }}>
@@ -239,7 +239,7 @@ export default function AdminPortfolioPage() {
                   style={{
                     fontSize: '0.95rem',
                     fontWeight: '700',
-                    color: '#1f2937',
+                    color: 'var(--neutral-800)',
                     marginBottom: '0.5rem',
                     lineHeight: 1.3
                   }}
@@ -249,7 +249,7 @@ export default function AdminPortfolioPage() {
                 <p
                   style={{
                     fontSize: '0.8rem',
-                    color: '#6b7280',
+                    color: 'var(--neutral-600)',
                     marginBottom: '0.75rem',
                     overflow: 'hidden',
                     display: '-webkit-box',
@@ -266,7 +266,7 @@ export default function AdminPortfolioPage() {
                     alignItems: 'center'
                   }}
                 >
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                     {new Date(post.created_at).toLocaleDateString('id-ID', {
                       day: 'numeric',
                       month: 'short',
@@ -282,7 +282,7 @@ export default function AdminPortfolioPage() {
                         borderRadius: '0.375rem',
                         padding: '0.375rem',
                         cursor: 'pointer',
-                        color: '#6b7280'
+                        color: 'var(--neutral-600)'
                       }}
                     >
                       <Edit size={14} />
@@ -344,7 +344,7 @@ export default function AdminPortfolioPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -372,7 +372,7 @@ export default function AdminPortfolioPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -401,7 +401,7 @@ export default function AdminPortfolioPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.5rem'
               }}
             >
@@ -457,7 +457,7 @@ export default function AdminPortfolioPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: '#f3f4f6',
+                    background: 'var(--neutral-100)',
                     borderRadius: '0.5rem'
                   }}
                 >
@@ -465,7 +465,7 @@ export default function AdminPortfolioPage() {
                     size={20}
                     style={{
                       animation: 'spin 1s linear infinite',
-                      color: '#9ca3af'
+                      color: 'var(--neutral-400)'
                     }}
                   />
                 </div>
@@ -478,17 +478,17 @@ export default function AdminPortfolioPage() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: '#f9fafb',
+                    background: 'var(--neutral-100)',
                     border: '2px dashed #d1d5db',
                     borderRadius: '0.5rem',
                     cursor: 'pointer'
                   }}
                 >
-                  <ImageIcon size={18} style={{ color: '#9ca3af' }} />
+                  <ImageIcon size={18} style={{ color: 'var(--neutral-400)' }} />
                   <span
                     style={{
                       fontSize: '0.6rem',
-                      color: '#9ca3af',
+                      color: 'var(--neutral-400)',
                       marginTop: '0.25rem'
                     }}
                   >
@@ -514,7 +514,7 @@ export default function AdminPortfolioPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

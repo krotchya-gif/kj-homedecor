@@ -137,7 +137,7 @@ export default function AccountsListPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -177,9 +177,9 @@ export default function AccountsListPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <Book size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada akun</p>
           </div>
@@ -229,7 +229,7 @@ export default function AccountsListPage() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             padding: '0.25rem'
                           }}
                         >
@@ -269,7 +269,7 @@ export default function AccountsListPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -297,7 +297,7 @@ export default function AccountsListPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -313,7 +313,7 @@ export default function AccountsListPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               >
                 {ACCOUNT_TYPES.map((t) => (
@@ -330,7 +330,7 @@ export default function AccountsListPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -359,7 +359,7 @@ export default function AccountsListPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -405,7 +405,7 @@ export default function AccountsListPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -435,7 +435,7 @@ export default function AccountsListPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

@@ -92,9 +92,9 @@ export default function NeracaSaldoPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : accounts.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada data akun</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data akun</div>
         ) : (
           <table>
             <thead>
@@ -117,7 +117,7 @@ export default function NeracaSaldoPage() {
                       style={{
                         textAlign: 'right',
                         fontWeight: debit > 0 ? '600' : '400',
-                        color: debit > 0 ? '#16a34a' : '#d1d5db'
+                        color: debit > 0 ? '#16a34a' : 'var(--input-border)'
                       }}
                     >
                       {debit > 0 ? formatRp(debit) : '—'}
@@ -126,7 +126,7 @@ export default function NeracaSaldoPage() {
                       style={{
                         textAlign: 'right',
                         fontWeight: credit > 0 ? '600' : '400',
-                        color: credit > 0 ? '#dc2626' : '#d1d5db'
+                        color: credit > 0 ? '#dc2626' : 'var(--input-border)'
                       }}
                     >
                       {credit > 0 ? formatRp(credit) : '—'}

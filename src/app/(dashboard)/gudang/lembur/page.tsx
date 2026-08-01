@@ -99,9 +99,9 @@ export default function GudangLemburPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : records.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <Clock size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada catatan lembur</p>
           </div>
@@ -118,7 +118,7 @@ export default function GudangLemburPage() {
             <tbody>
               {records.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>
+                  <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>
                     {new Date(r.date).toLocaleDateString('id-ID', {
                       weekday: 'short',
                       day: 'numeric',
@@ -130,7 +130,7 @@ export default function GudangLemburPage() {
                   <td>
                     <span style={{ fontWeight: '700', color: '#cc7030' }}>{r.jam} jam</span>
                   </td>
-                  <td style={{ color: '#6b7280' }}>{r.keterangan ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{r.keterangan ?? '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -147,7 +147,7 @@ export default function GudangLemburPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -164,7 +164,7 @@ export default function GudangLemburPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih Staff —</option>
@@ -182,7 +182,7 @@ export default function GudangLemburPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -208,7 +208,7 @@ export default function GudangLemburPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -240,7 +240,7 @@ export default function GudangLemburPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -270,7 +270,7 @@ export default function GudangLemburPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

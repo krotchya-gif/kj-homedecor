@@ -136,7 +136,7 @@ export default function AdminReportsPage() {
   const momLabel = month === 0 ? `vs ${year - 1}` : `vs ${MONTHS[month === 1 ? 11 : month - 2]}`
 
   function TrendIcon({ change }: { change: number | null }) {
-    if (change === null) return <Minus size={12} style={{ color: '#9ca3af' }} />
+    if (change === null) return <Minus size={12} style={{ color: 'var(--neutral-400)' }} />
     if (change >= 0) return <TrendingUp size={12} style={{ color: '#059669' }} />
     return <TrendingDown size={12} style={{ color: '#dc2626' }} />
   }
@@ -208,7 +208,7 @@ export default function AdminReportsPage() {
     doc.text('KJ Homedecor — Laporan Penjualan', 14, 20)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor('#6b7280')
+    doc.setTextColor('var(--neutral-600)')
     doc.text(`Periode: ${periodLabel} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
     doc.setTextColor('#000')
 
@@ -283,8 +283,8 @@ export default function AdminReportsPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1.25rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -334,7 +334,7 @@ export default function AdminReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {[2024, 2025, 2026].map((y) => (
@@ -352,7 +352,7 @@ export default function AdminReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           <option value={0}>Semua Bulan</option>
@@ -457,7 +457,7 @@ export default function AdminReportsPage() {
           style={{
             fontSize: '0.95rem',
             fontWeight: '700',
-            color: '#374151',
+            color: 'var(--neutral-700)',
             marginBottom: '1rem'
           }}
         >
@@ -499,13 +499,13 @@ export default function AdminReportsPage() {
                   style={{
                     textAlign: 'center',
                     padding: '0.75rem',
-                    background: '#f9fafb',
+                    background: 'var(--neutral-100)',
                     border: `1px solid ${STATUS_COLORS[status]}`,
                     borderTop: 'none',
                     borderRadius: '0 0 0.5rem 0.5rem',
                     fontWeight: '700',
                     fontSize: '1.25rem',
-                    color: '#1f2937'
+                    color: 'var(--neutral-800)'
                   }}
                 >
                   {pipelineCounts[status]}
@@ -517,7 +517,7 @@ export default function AdminReportsPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#d1d5db',
+                    color: 'var(--input-border)',
                     fontSize: '1.2rem',
                     padding: '0 0.25rem',
                     alignSelf: 'center'
@@ -542,7 +542,7 @@ export default function AdminReportsPage() {
         {/* Marketplace Breakdown */}
         <div
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             border: '1px solid #e5e7eb',
             borderRadius: '0.75rem',
             overflow: 'hidden'
@@ -552,14 +552,14 @@ export default function AdminReportsPage() {
             style={{
               padding: '1rem 1.25rem',
               borderBottom: '1px solid #e5e7eb',
-              background: '#f9fafb'
+              background: 'var(--neutral-100)'
             }}
           >
             <h2
               style={{
                 fontSize: '0.9rem',
                 fontWeight: '700',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 margin: 0
               }}
             >
@@ -572,7 +572,7 @@ export default function AdminReportsPage() {
                 style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               >
                 Memuat...
@@ -594,7 +594,7 @@ export default function AdminReportsPage() {
                     .map(([src, rev]) => (
                       <tr key={src}>
                         <td style={{ fontWeight: '600' }}>{SOURCE_LABELS[src as keyof typeof SOURCE_LABELS] ?? src}</td>
-                        <td style={{ color: '#6b7280' }}>{sourceOrders[src] ?? 0}</td>
+                        <td style={{ color: 'var(--neutral-600)' }}>{sourceOrders[src] ?? 0}</td>
                         <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(rev)}</td>
                       </tr>
                     ))}
@@ -607,7 +607,7 @@ export default function AdminReportsPage() {
         {/* Top Products */}
         <div
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             border: '1px solid #e5e7eb',
             borderRadius: '0.75rem',
             overflow: 'hidden'
@@ -617,14 +617,14 @@ export default function AdminReportsPage() {
             style={{
               padding: '1rem 1.25rem',
               borderBottom: '1px solid #e5e7eb',
-              background: '#f9fafb'
+              background: 'var(--neutral-100)'
             }}
           >
             <h2
               style={{
                 fontSize: '0.9rem',
                 fontWeight: '700',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 margin: 0
               }}
             >
@@ -637,7 +637,7 @@ export default function AdminReportsPage() {
                 style={{
                   padding: '2rem',
                   textAlign: 'center',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               >
                 Memuat...
@@ -664,8 +664,8 @@ export default function AdminReportsPage() {
                             justifyContent: 'center',
                             width: 20,
                             height: 20,
-                            background: i < 3 ? '#cc7030' : '#e5e7eb',
-                            color: i < 3 ? '#fff' : '#6b7280',
+                            background: i < 3 ? '#cc7030' : 'var(--neutral-200)',
+                            color: i < 3 ? '#fff' : 'var(--neutral-600)',
                             borderRadius: '50%',
                             fontSize: '0.75rem',
                             fontWeight: '700',
@@ -676,7 +676,7 @@ export default function AdminReportsPage() {
                         </span>
                         {p.name}
                       </td>
-                      <td style={{ color: '#6b7280' }}>{p.count}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{p.count}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.revenue)}</td>
                     </tr>
                   ))}

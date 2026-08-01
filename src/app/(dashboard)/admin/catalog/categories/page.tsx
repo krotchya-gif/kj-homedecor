@@ -109,7 +109,7 @@ export default function CategoriesPage() {
           <p>Belum ada kategori</p>
         </div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
           <div className="data-table">
             <table>
               <thead>
@@ -123,7 +123,7 @@ export default function CategoriesPage() {
                 {categories.map((cat) => (
                   <tr key={cat.id}>
                     <td style={{ fontWeight: '600' }}>{cat.name}</td>
-                    <td style={{ color: '#6b7280', fontFamily: 'monospace' }}>{cat.slug}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace' }}>{cat.slug}</td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
@@ -134,7 +134,7 @@ export default function CategoriesPage() {
                             borderRadius: '0.375rem',
                             padding: '0.375rem',
                             cursor: 'pointer',
-                            color: '#6b7280'
+                            color: 'var(--neutral-600)'
                           }}
                         >
                           <Edit size={14} />
@@ -198,7 +198,7 @@ export default function CategoriesPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -226,7 +226,7 @@ export default function CategoriesPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -260,7 +260,7 @@ export default function CategoriesPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

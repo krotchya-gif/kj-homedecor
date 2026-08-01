@@ -28,7 +28,7 @@ export function SectionCard({
       {title && (
         <div className="section-card">
           {icon}
-          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>{title}</h3>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>{title}</h3>
         </div>
       )}
       {children}

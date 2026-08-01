@@ -702,9 +702,9 @@ export default function OrderDetailPage() {
     resetForm()
   }
 
-  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
   if (!order)
-    return <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Order tidak ditemukan.</div>
+    return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Order tidak ditemukan.</div>
 
   const customer = order.customer as { name: string; phone: string; address?: string } | null
   // V3: ORDER_STATUSES now conditional per classification (kirim vs pasang)
@@ -725,7 +725,7 @@ export default function OrderDetailPage() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '0.375rem',
-          color: '#6b7280',
+          color: 'var(--neutral-600)',
           fontSize: '0.875rem',
           textDecoration: 'none',
           marginBottom: '1rem'
@@ -759,7 +759,7 @@ export default function OrderDetailPage() {
           >
             {order.order_number || `#${id.slice(0, 8)}`}
           </p>
-          <p style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#9ca3af', marginTop: '0.1rem' }}>{id}</p>
+          <p style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--neutral-400)', marginTop: '0.1rem' }}>{id}</p>
         </div>
         {nextStatus &&
           !['done', 'returned', 'cancelled'].includes(order.status) &&
@@ -800,8 +800,8 @@ export default function OrderDetailPage() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.75rem 1.25rem',
-                background: '#f3f4f6',
-                color: '#6b7280',
+                background: 'var(--neutral-100)',
+                color: 'var(--neutral-600)',
                 border: '1px dashed #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -866,8 +866,8 @@ export default function OrderDetailPage() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.75rem 1rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -889,8 +889,8 @@ export default function OrderDetailPage() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.75rem 1rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -907,7 +907,7 @@ export default function OrderDetailPage() {
       {/* Status pipeline */}
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           border: '1px solid #e5e7eb',
           borderRadius: '0.75rem',
           padding: '1.25rem',
@@ -940,12 +940,12 @@ export default function OrderDetailPage() {
                       width: 32,
                       height: 32,
                       borderRadius: '50%',
-                      background: current ? '#cc7030' : done ? '#d1fae5' : '#f3f4f6',
-                      border: `2px solid ${current ? '#cc7030' : done ? '#22c55e' : '#e5e7eb'}`,
+                      background: current ? '#cc7030' : done ? '#d1fae5' : 'var(--neutral-100)',
+                      border: `2px solid ${current ? '#cc7030' : done ? '#22c55e' : 'var(--neutral-200)'}`,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: current ? '#fff' : done ? '#16a34a' : '#9ca3af',
+                      color: current ? '#fff' : done ? '#16a34a' : 'var(--neutral-400)',
                       fontSize: '0.75rem',
                       fontWeight: '700',
                       cursor: hasPhotos ? 'pointer' : 'default',
@@ -977,7 +977,7 @@ export default function OrderDetailPage() {
                     style={{
                       fontSize: '0.68rem',
                       fontWeight: current ? '700' : '400',
-                      color: current ? '#cc7030' : done ? '#374151' : '#9ca3af',
+                      color: current ? '#cc7030' : done ? 'var(--neutral-700)' : 'var(--neutral-400)',
                       textAlign: 'center',
                       whiteSpace: 'nowrap'
                     }}
@@ -987,7 +987,7 @@ export default function OrderDetailPage() {
                 </div>
                 {i < ORDER_STATUSES.length - 1 && (
                   <div
-                    style={{ width: 24, height: 2, background: i < statusIdx ? '#22c55e' : '#e5e7eb', flexShrink: 0 }}
+                    style={{ width: 24, height: 2, background: i < statusIdx ? '#22c55e' : 'var(--neutral-200)', flexShrink: 0 }}
                   />
                 )}
               </div>
@@ -999,7 +999,7 @@ export default function OrderDetailPage() {
       {/* Estimasi Selesai */}
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           border: '1px solid #e5e7eb',
           borderRadius: '0.75rem',
           padding: '1rem 1.25rem',
@@ -1011,16 +1011,16 @@ export default function OrderDetailPage() {
       >
         <Clock size={18} style={{ color: '#cc7030', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginBottom: '0.2rem' }}>ESTIMASI SELESAI</div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--neutral-400)', marginBottom: '0.2rem' }}>ESTIMASI SELESAI</div>
           {order.status === 'done' ? (
             <div style={{ fontWeight: '700', color: '#16a34a' }}>✅ Sudah Selesai</div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-              <span style={{ fontWeight: '700', color: '#374151' }}>
+              <span style={{ fontWeight: '700', color: 'var(--neutral-700)' }}>
                 Tahap {statusIdx + 1}/{ORDER_STATUSES.length}
               </span>
-              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>—</span>
-              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>—</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                 Pipeline:{' '}
                 {ORDER_STATUSES.slice(statusIdx + 1)
                   .map((s) => STATUS_LABELS[s])
@@ -1031,7 +1031,7 @@ export default function OrderDetailPage() {
         </div>
         {order.status !== 'done' && (
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Status Saat Ini</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Status Saat Ini</div>
             <div style={{ fontWeight: '700', color: '#cc7030' }}>
               {STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}
             </div>
@@ -1045,11 +1045,11 @@ export default function OrderDetailPage() {
           <div className="form-section-title">Pelanggan</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
             <div>
-              <span style={{ color: '#9ca3af' }}>Nama: </span>
+              <span style={{ color: 'var(--neutral-400)' }}>Nama: </span>
               <strong>{customer?.name ?? '—'}</strong>
             </div>
             <div>
-              <span style={{ color: '#9ca3af' }}>HP: </span>
+              <span style={{ color: 'var(--neutral-400)' }}>HP: </span>
               <a
                 href={`https://wa.me/${customer?.phone?.replace(/\D/g, '')}`}
                 target="_blank"
@@ -1060,7 +1060,7 @@ export default function OrderDetailPage() {
               </a>
             </div>
             <div>
-              <span style={{ color: '#9ca3af' }}>Alamat: </span>
+              <span style={{ color: 'var(--neutral-400)' }}>Alamat: </span>
               {customer?.address ?? '—'}
             </div>
           </div>
@@ -1071,27 +1071,27 @@ export default function OrderDetailPage() {
           <div className="form-section-title">Info Pesanan</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#9ca3af' }}>Sumber</span>
+              <span style={{ color: 'var(--neutral-400)' }}>Sumber</span>
               <span>{SOURCE_LABELS[order.source]}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#9ca3af' }}>Jenis</span>
+              <span style={{ color: 'var(--neutral-400)' }}>Jenis</span>
               <span style={{ fontWeight: '600' }}>{order.classification === 'pasang' ? '📍 Pasang' : '📦 Kirim'}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#9ca3af' }}>Total</span>
+              <span style={{ color: 'var(--neutral-400)' }}>Total</span>
               <span style={{ fontWeight: '700', color: '#cc7030' }}>{fmt(order.total_amount)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#9ca3af' }}>DP</span>
+              <span style={{ color: 'var(--neutral-400)' }}>DP</span>
               <span>{fmt(order.dp_amount)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: '#9ca3af' }}>Lunas</span>
+              <span style={{ color: 'var(--neutral-400)' }}>Lunas</span>
               <span>{fmt(order.lunas_amount)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#9ca3af' }}>Pembayaran</span>
+              <span style={{ color: 'var(--neutral-400)' }}>Pembayaran</span>
               <span
                 style={{
                   ...PAYMENT_COLORS[order.payment_status],
@@ -1116,7 +1116,7 @@ export default function OrderDetailPage() {
                   gap: '0.5rem'
                 }}
               >
-                <span style={{ color: '#9ca3af', flexShrink: 0 }}>
+                <span style={{ color: 'var(--neutral-400)', flexShrink: 0 }}>
                   {order.status === 'cancelled' ? 'Alasan Batal:' : 'Alasan Return:'}
                 </span>
                 <span style={{ color: '#991b1b', fontSize: '0.8rem', fontWeight: '600' }}>{order.return_reason}</span>
@@ -1148,7 +1148,7 @@ export default function OrderDetailPage() {
         <div
           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}
         >
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Item Pesanan</h2>
+          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>Item Pesanan</h2>
           <button
             onClick={openItemForm}
             style={{
@@ -1170,7 +1170,7 @@ export default function OrderDetailPage() {
         </div>
         <div className="data-table">
           {items.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.875rem' }}>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)', fontSize: '0.875rem' }}>
               Belum ada item pesanan
             </div>
           ) : (
@@ -1205,17 +1205,17 @@ export default function OrderDetailPage() {
                             fontWeight: '600',
                             padding: '0.15rem 0.5rem',
                             borderRadius: '999px',
-                            background: '#f3f4f6',
-                            color: '#374151'
+                            background: 'var(--neutral-100)',
+                            color: 'var(--neutral-700)'
                           }}
                         >
                           {itemTypeLabel}
                         </span>
                       </td>
                       <td style={{ fontWeight: '500' }}>{prod?.name ?? '—'}</td>
-                      <td style={{ color: '#6b7280', fontSize: '0.8rem' }}>{item.size ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>{item.size ?? '—'}</td>
                       <td>{item.qty}</td>
-                      <td style={{ fontSize: '0.75rem', color: '#6b7280', maxWidth: 180 }}>
+                      <td style={{ fontSize: '0.75rem', color: 'var(--neutral-600)', maxWidth: 180 }}>
                         {item.item_type === 'gorden' && (
                           <>
                             {Number(item.meter_gorden ?? 0) > 0 && (
@@ -1255,7 +1255,7 @@ export default function OrderDetailPage() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: item.ready ? '#16a34a' : '#d1d5db'
+                            color: item.ready ? '#16a34a' : 'var(--input-border)'
                           }}
                         >
                           <CheckCircle2 size={18} />
@@ -1282,7 +1282,7 @@ export default function OrderDetailPage() {
       <div
         style={{
           marginTop: '1.5rem',
-          background: '#fff',
+          background: 'var(--surface)',
           borderRadius: '0.875rem',
           border: '1px solid #e5e7eb',
           overflow: 'hidden'
@@ -1298,8 +1298,8 @@ export default function OrderDetailPage() {
           }}
         >
           <span style={{ fontSize: '1.1rem' }}>📦</span>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#374151' }}>Persiapan & Kelengkapan</h2>
-          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#9ca3af' }}>
+          <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--neutral-700)' }}>Persiapan & Kelengkapan</h2>
+          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
             {checklist.filter((i) => i.done).length}/{checklist.length} siap
           </span>
         </div>
@@ -1326,7 +1326,7 @@ export default function OrderDetailPage() {
                   flex: 1,
                   fontSize: '0.875rem',
                   fontWeight: item.done ? '400' : '500',
-                  color: item.done ? '#9ca3af' : '#374151',
+                  color: item.done ? 'var(--neutral-400)' : 'var(--neutral-700)',
                   textDecoration: item.done ? 'line-through' : 'none'
                 }}
               >
@@ -1378,13 +1378,13 @@ export default function OrderDetailPage() {
                 style={{
                   flex: 1,
                   padding: '0.625rem',
-                  border: `2px solid ${itemType === t ? '#cc7030' : '#e5e7eb'}`,
+                  border: `2px solid ${itemType === t ? '#cc7030' : 'var(--neutral-200)'}`,
                   borderRadius: '0.5rem',
                   background: itemType === t ? '#fff7ed' : '#fff',
                   cursor: 'pointer',
                   fontWeight: '600',
                   fontSize: '0.8rem',
-                  color: itemType === t ? '#92400e' : '#6b7280'
+                  color: itemType === t ? '#92400e' : 'var(--neutral-600)'
                 }}
               >
                 {labels[t]}
@@ -1404,7 +1404,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1423,7 +1423,7 @@ export default function OrderDetailPage() {
                         borderRadius: '0.5rem',
                         fontSize: '0.875rem',
                         outline: 'none',
-                        background: '#fff'
+                        background: 'var(--surface)'
                       }}
                     />
                     {searchProduct && (
@@ -1434,7 +1434,7 @@ export default function OrderDetailPage() {
                           left: 0,
                           right: 0,
                           zIndex: 50,
-                          background: '#fff',
+                          background: 'var(--surface)',
                           border: '1px solid #d1d5db',
                           borderRadius: '0.5rem',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -1451,7 +1451,7 @@ export default function OrderDetailPage() {
                             padding: '0.5rem 0.75rem',
                             cursor: 'pointer',
                             fontSize: '0.8rem',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             borderBottom: '1px solid #f3f4f6'
                           }}
                         >
@@ -1479,7 +1479,7 @@ export default function OrderDetailPage() {
                               }}
                             >
                               <span style={{ fontWeight: 500 }}>{p.name}</span>
-                              {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                              {p.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({p.sku})</span>}
                               <span style={{ float: 'right', color: '#cc7030' }}>
                                 {p.price != null
                                   ? new Intl.NumberFormat('id-ID', {
@@ -1496,14 +1496,14 @@ export default function OrderDetailPage() {
                             p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
                             (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
                         ).length === 0 && (
-                          <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                          <div style={{ padding: '0.75rem', color: 'var(--neutral-400)', fontSize: '0.8rem' }}>
                             Tidak ada produk ditemukan
                           </div>
                         )}
                       </div>
                     )}
                     {!searchProduct && !itemForm.product_id && (
-                      <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af' }}>
+                      <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                         Ketik untuk mencari produk
                       </div>
                     )}
@@ -1512,9 +1512,9 @@ export default function OrderDetailPage() {
                       (() => {
                         const sel = products.find((p) => p.id === itemForm.product_id)
                         return sel ? (
-                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#374151' }}>
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-700)' }}>
                             <span style={{ fontWeight: 500 }}>{sel.name}</span>
-                            {sel.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({sel.sku})</span>}
+                            {sel.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({sel.sku})</span>}
                           </div>
                         ) : null
                       })()}
@@ -1526,7 +1526,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1555,7 +1555,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1587,7 +1587,7 @@ export default function OrderDetailPage() {
                             display: 'block',
                             fontSize: '0.8rem',
                             fontWeight: '600',
-                            color: '#374151',
+                            color: 'var(--neutral-700)',
                             marginBottom: '0.3rem'
                           }}
                         >
@@ -1621,7 +1621,7 @@ export default function OrderDetailPage() {
                               >
                                 <span
                                   style={{
-                                    color: isLow ? '#dc2626' : '#374151',
+                                    color: isLow ? '#dc2626' : 'var(--neutral-700)',
                                     fontWeight: isLow ? '700' : '400'
                                   }}
                                 >
@@ -1638,8 +1638,8 @@ export default function OrderDetailPage() {
                     )
                   })()}
               </div>
-              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
                   Meteran Gorden
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -1649,7 +1649,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -1677,7 +1677,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -1694,8 +1694,8 @@ export default function OrderDetailPage() {
                         borderRadius: '0.375rem',
                         fontSize: '0.8rem',
                         outline: 'none',
-                        background: '#f3f4f6',
-                        color: '#6b7280'
+                        background: 'var(--neutral-100)',
+                        color: 'var(--neutral-600)'
                       }}
                     />
                   </div>
@@ -1703,7 +1703,7 @@ export default function OrderDetailPage() {
               </div>
               {/* Style Variant Cards */}
               <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
                   Model Gorden
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.5rem' }}>
@@ -1719,8 +1719,8 @@ export default function OrderDetailPage() {
                         fontSize: '0.75rem',
                         fontWeight: '600',
                         background: itemForm.style_type === style ? '#cc7030' : '#fff',
-                        color: itemForm.style_type === style ? '#fff' : '#374151',
-                        border: `1px solid ${itemForm.style_type === style ? '#cc7030' : '#d1d5db'}`
+                        color: itemForm.style_type === style ? '#fff' : 'var(--neutral-700)',
+                        border: `1px solid ${itemForm.style_type === style ? '#cc7030' : 'var(--input-border)'}`
                       }}
                     >
                       {style.charAt(0).toUpperCase() + style.slice(1)}
@@ -1729,7 +1729,7 @@ export default function OrderDetailPage() {
                 </div>
                 {itemForm.style_type === 'smokring' && (
                   <div style={{ marginTop: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--neutral-600)', marginBottom: '0.4rem' }}>
                       Warna Smokring
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -1744,8 +1744,8 @@ export default function OrderDetailPage() {
                             fontSize: '0.75rem',
                             fontWeight: '500',
                             background: itemForm.smokring_color === c ? '#cc7030' : '#fff',
-                            color: itemForm.smokring_color === c ? '#fff' : '#374151',
-                            border: `1px solid ${itemForm.smokring_color === c ? '#cc7030' : '#d1d5db'}`
+                            color: itemForm.smokring_color === c ? '#fff' : 'var(--neutral-700)',
+                            border: `1px solid ${itemForm.smokring_color === c ? '#cc7030' : 'var(--input-border)'}`
                           }}
                         >
                           {c}
@@ -1755,7 +1755,7 @@ export default function OrderDetailPage() {
                   </div>
                 )}
               </div>
-              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
+              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
                 <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                   <label
                     style={{
@@ -1810,7 +1810,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1829,7 +1829,7 @@ export default function OrderDetailPage() {
                         borderRadius: '0.5rem',
                         fontSize: '0.875rem',
                         outline: 'none',
-                        background: '#fff'
+                        background: 'var(--surface)'
                       }}
                     />
                     {searchProduct && (
@@ -1840,7 +1840,7 @@ export default function OrderDetailPage() {
                           left: 0,
                           right: 0,
                           zIndex: 50,
-                          background: '#fff',
+                          background: 'var(--surface)',
                           border: '1px solid #d1d5db',
                           borderRadius: '0.5rem',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -1857,7 +1857,7 @@ export default function OrderDetailPage() {
                             padding: '0.5rem 0.75rem',
                             cursor: 'pointer',
                             fontSize: '0.8rem',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             borderBottom: '1px solid #f3f4f6'
                           }}
                         >
@@ -1885,7 +1885,7 @@ export default function OrderDetailPage() {
                               }}
                             >
                               <span style={{ fontWeight: 500 }}>{p.name}</span>
-                              {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                              {p.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({p.sku})</span>}
                               <span style={{ float: 'right', color: '#cc7030' }}>
                                 {p.price != null
                                   ? new Intl.NumberFormat('id-ID', {
@@ -1904,9 +1904,9 @@ export default function OrderDetailPage() {
                       (() => {
                         const sel = products.find((p) => p.id === itemForm.product_id)
                         return sel ? (
-                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#374151' }}>
+                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-700)' }}>
                             <span style={{ fontWeight: 500 }}>{sel.name}</span>
-                            {sel.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({sel.sku})</span>}
+                            {sel.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({sel.sku})</span>}
                           </div>
                         ) : null
                       })()}
@@ -1918,7 +1918,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1947,7 +1947,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1973,7 +1973,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -1995,8 +1995,8 @@ export default function OrderDetailPage() {
                   />
                 </div>
               </div>
-              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
                   Warna & Dimensi
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -2006,7 +2006,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -2033,7 +2033,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -2067,7 +2067,7 @@ export default function OrderDetailPage() {
                 >
                   {(['dimension_p', 'P', 'dimension_l', 'L', 'dimension_t', 'T'] as const).map((field, i) => (
                     <div key={field}>
-                      <label style={{ fontSize: '0.65rem', color: '#6b7280' }}>{['P', 'L', 'T'][i]} (cm)</label>
+                      <label style={{ fontSize: '0.65rem', color: 'var(--neutral-600)' }}>{['P', 'L', 'T'][i]} (cm)</label>
                       <input
                         type="number"
                         placeholder={['P', 'L', 'T'][i]}
@@ -2092,8 +2092,8 @@ export default function OrderDetailPage() {
           {/* === LAUNDRY FORM === */}
           {itemType === 'laundry' && (
             <>
-              <div style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
                   🧺 Detail Laundry
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -2103,7 +2103,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -2131,7 +2131,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -2160,7 +2160,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -2188,7 +2188,7 @@ export default function OrderDetailPage() {
                         display: 'block',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         marginBottom: '0.25rem'
                       }}
                     >
@@ -2223,7 +2223,7 @@ export default function OrderDetailPage() {
                       display: 'block',
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: '#6b7280',
+                      color: 'var(--neutral-600)',
                       marginBottom: '0.25rem'
                     }}
                   >
@@ -2260,7 +2260,7 @@ export default function OrderDetailPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -2292,16 +2292,16 @@ export default function OrderDetailPage() {
         <div
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}
         >
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Riwayat Aktivitas</h2>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Semua aksi dicatat &bull; Admin bisa pantau</span>
+          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>Riwayat Aktivitas</h2>
+          <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Semua aksi dicatat &bull; Admin bisa pantau</span>
         </div>
         {orderLogs.length === 0 ? (
           <div
             style={{
               padding: '2rem',
               textAlign: 'center',
-              color: '#9ca3af',
-              background: '#f9fafb',
+              color: 'var(--neutral-400)',
+              background: 'var(--neutral-100)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               fontSize: '0.875rem'
@@ -2310,7 +2310,7 @@ export default function OrderDetailPage() {
             Belum ada aktivitas tercatat
           </div>
         ) : (
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
             <div style={{ maxHeight: 300, overflowY: 'auto' }}>
               {orderLogs.map((log: any) => (
                 <div
@@ -2339,15 +2339,15 @@ export default function OrderDetailPage() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                      <span style={{ fontWeight: '700', fontSize: '0.82rem', color: '#374151' }}>
+                      <span style={{ fontWeight: '700', fontSize: '0.82rem', color: 'var(--neutral-700)' }}>
                         {log.action.replace(/_/g, ' ').toUpperCase()}
                       </span>
                       {log.staff && (
                         <span
                           style={{
                             fontSize: '0.75rem',
-                            color: '#6b7280',
-                            background: '#f3f4f6',
+                            color: 'var(--neutral-600)',
+                            background: 'var(--neutral-100)',
                             padding: '0.1rem 0.5rem',
                             borderRadius: '999px'
                           }}
@@ -2357,9 +2357,9 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                     {log.notes && (
-                      <div style={{ fontSize: '0.78rem', color: '#6b7280', marginBottom: '0.25rem' }}>{log.notes}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>{log.notes}</div>
                     )}
-                    <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                       {new Date(log.created_at).toLocaleString('id-ID', {
                         day: 'numeric',
                         month: 'short',
@@ -2402,7 +2402,7 @@ export default function OrderDetailPage() {
             <XIcon size={18} />
           </button>
         </div>
-        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1rem' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
           {pendingStatus && isPhotoRequired(pendingStatus as any) ? (
             <>
               <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> untuk stage{' '}
@@ -2448,9 +2448,9 @@ export default function OrderDetailPage() {
             {uploadingPhoto ? (
               <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
             ) : (
-              <Upload size={24} style={{ color: '#9ca3af' }} />
+              <Upload size={24} style={{ color: 'var(--neutral-400)' }} />
             )}
-            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <span style={{ fontSize: '0.875rem', color: 'var(--neutral-600)' }}>
               {uploadingPhoto ? 'Mengupload...' : 'Klik untuk upload foto'}
             </span>
           </label>
@@ -2506,7 +2506,7 @@ export default function OrderDetailPage() {
               padding: '0.75rem',
               border: '1px solid #d1d5db',
               borderRadius: '0.5rem',
-              background: '#fff',
+              background: 'var(--surface)',
               cursor: 'pointer',
               fontWeight: '600'
             }}
@@ -2519,7 +2519,7 @@ export default function OrderDetailPage() {
             style={{
               flex: 1,
               padding: '0.75rem',
-              background: progressPhotos.length === 0 ? '#9ca3af' : '#cc7030',
+              background: progressPhotos.length === 0 ? 'var(--neutral-400)' : '#cc7030',
               color: '#fff',
               border: 'none',
               borderRadius: '0.5rem',
@@ -2539,7 +2539,7 @@ export default function OrderDetailPage() {
       {/* Cancel Order Modal */}
       <Modal open={showCancelForm} onClose={() => setShowCancelForm(false)} maxWidth={440} padding="2rem">
         <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>❌ Batalkan Order</h2>
-        <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
           Order akan dibatalkan dan payment di-void. Tindakan ini tidak bisa dibatalkan.
         </p>
         <div style={{ marginBottom: '1rem' }}>
@@ -2548,7 +2548,7 @@ export default function OrderDetailPage() {
               display: 'block',
               fontSize: '0.8rem',
               fontWeight: '600',
-              color: '#374151',
+              color: 'var(--neutral-700)',
               marginBottom: '0.3rem'
             }}
           >
@@ -2578,7 +2578,7 @@ export default function OrderDetailPage() {
               padding: '0.75rem',
               border: '1px solid #d1d5db',
               borderRadius: '0.5rem',
-              background: '#fff',
+              background: 'var(--surface)',
               cursor: 'pointer',
               fontWeight: '600'
             }}
@@ -2606,7 +2606,7 @@ export default function OrderDetailPage() {
       {/* Return Modal */}
       <Modal open={showReturnForm} onClose={() => setShowReturnForm(false)} maxWidth={480} padding="2rem">
         <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>📦 Proses Return</h2>
-        <p style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+        <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
           Barang yang dikembalikan akan dicek kondisinya. Bagus → masuk stock toko. Rusak → dispose.
         </p>
         <form onSubmit={handleReturn} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -2616,7 +2616,7 @@ export default function OrderDetailPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -2632,7 +2632,7 @@ export default function OrderDetailPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">Semua item (return entire order)</option>
@@ -2649,7 +2649,7 @@ export default function OrderDetailPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -2677,7 +2677,7 @@ export default function OrderDetailPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -2694,7 +2694,7 @@ export default function OrderDetailPage() {
                   style={{
                     flex: 1,
                     cursor: 'pointer',
-                    border: `2px solid ${returnForm.condition === val ? '#9333ea' : '#e5e7eb'}`,
+                    border: `2px solid ${returnForm.condition === val ? '#9333ea' : 'var(--neutral-200)'}`,
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
                     background: returnForm.condition === val ? '#f5f3ff' : '#fff',
@@ -2721,7 +2721,7 @@ export default function OrderDetailPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -2748,7 +2748,7 @@ export default function OrderDetailPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -2780,7 +2780,7 @@ export default function OrderDetailPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -2816,7 +2816,7 @@ export default function OrderDetailPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -2835,7 +2835,7 @@ export default function OrderDetailPage() {
                   style={{
                     flex: 1,
                     cursor: 'pointer',
-                    border: `2px solid ${paymentForm.type === val ? '#16a34a' : '#e5e7eb'}`,
+                    border: `2px solid ${paymentForm.type === val ? '#16a34a' : 'var(--neutral-200)'}`,
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
                     background: paymentForm.type === val ? '#f0fdf4' : '#fff',
@@ -2861,7 +2861,7 @@ export default function OrderDetailPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -2881,7 +2881,7 @@ export default function OrderDetailPage() {
                 outline: 'none'
               }}
             />
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#6b7280' }}>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--neutral-600)' }}>
               Sisa: {fmt(order.total_amount - order.dp_amount - order.lunas_amount)}
             </div>
           </div>
@@ -2894,7 +2894,7 @@ export default function OrderDetailPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -2930,7 +2930,7 @@ export default function OrderDetailPage() {
             >
               <div>
                 <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>📷 Foto Progress</h3>
-                <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', margin: '0.25rem 0 0' }}>
                   {STATUS_LABELS[photoPopup.stage as keyof typeof STATUS_LABELS]} — {photoPopup.photos.length} foto
                 </p>
               </div>

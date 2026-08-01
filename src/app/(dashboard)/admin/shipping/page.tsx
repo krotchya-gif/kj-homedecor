@@ -179,13 +179,13 @@ export default function AdminShippingPage() {
             onClick={() => setFilter(tab.key)}
             style={{
               padding: '0.5rem 1rem',
-              border: `1px solid ${filter === tab.key ? '#cc7030' : '#e5e7eb'}`,
+              border: `1px solid ${filter === tab.key ? '#cc7030' : 'var(--neutral-200)'}`,
               borderRadius: '0.5rem',
               fontSize: '0.85rem',
               fontWeight: '600',
               cursor: 'pointer',
               background: filter === tab.key ? '#cc7030' : '#fff',
-              color: filter === tab.key ? '#fff' : '#6b7280',
+              color: filter === tab.key ? '#fff' : 'var(--neutral-600)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.375rem'
@@ -197,7 +197,7 @@ export default function AdminShippingPage() {
                 padding: '0.125rem 0.5rem',
                 borderRadius: '999px',
                 fontSize: '0.75rem',
-                background: filter === tab.key ? 'rgba(255,255,255,0.2)' : '#f3f4f6'
+                background: filter === tab.key ? 'rgba(255,255,255,0.2)' : 'var(--neutral-100)'
               }}
             >
               {counts[tab.key]}
@@ -210,7 +210,7 @@ export default function AdminShippingPage() {
       <div style={{ position: 'relative', marginBottom: '1.25rem' }}>
         <Search
           size={15}
-          style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}
+          style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--neutral-400)' }}
         />
         <input
           type="text"
@@ -230,7 +230,7 @@ export default function AdminShippingPage() {
 
       {/* List */}
       {loading ? (
-        <div style={{ padding: '4rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : filtered.length === 0 ? (
         <div className="section-card">
           <Truck size={40} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
@@ -242,7 +242,7 @@ export default function AdminShippingPage() {
             <div
               key={order.id}
               style={{
-                background: '#fff',
+                background: 'var(--surface)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '0.75rem',
                 padding: '1.25rem',
@@ -254,7 +254,7 @@ export default function AdminShippingPage() {
             >
               <div style={{ flex: 1, minWidth: 200 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                     {order.order_number || `#${order.id.slice(0, 8)}`}
                   </span>
                   <span
@@ -264,11 +264,11 @@ export default function AdminShippingPage() {
                     {STATUS_LABELS[order.status]}
                   </span>
                 </div>
-                <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                <div style={{ fontWeight: '600', color: 'var(--neutral-800)', marginBottom: '0.25rem' }}>
                   {(order.customer as { name: string })?.name ?? '—'}
                 </div>
                 {(order.customer as { phone: string })?.phone && (
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>
                     📱 {(order.customer as { phone: string })?.phone}
                   </div>
                 )}
@@ -276,7 +276,7 @@ export default function AdminShippingPage() {
                   <div
                     style={{
                       fontSize: '0.8rem',
-                      color: '#6b7280',
+                      color: 'var(--neutral-600)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.375rem'
@@ -294,7 +294,7 @@ export default function AdminShippingPage() {
                     onClick={() => handleMarkPacked(order.id)}
                     style={{
                       padding: '0.5rem 0.875rem',
-                      background: '#fff',
+                      background: 'var(--surface)',
                       color: '#166534',
                       border: '1px solid #16a34a',
                       borderRadius: '0.5rem',
@@ -333,8 +333,8 @@ export default function AdminShippingPage() {
                   href={`/admin/orders/${order.id}`}
                   style={{
                     padding: '0.5rem 0.875rem',
-                    background: '#fff',
-                    color: '#374151',
+                    background: 'var(--surface)',
+                    color: 'var(--neutral-700)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.5rem',
                     fontSize: '0.8rem',
@@ -375,11 +375,11 @@ export default function AdminShippingPage() {
               </button>
             </div>
 
-            <div style={{ marginBottom: '1.25rem', padding: '1rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
-              <div style={{ fontWeight: '600', color: '#1f2937' }}>
+            <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--neutral-100)', borderRadius: '0.5rem' }}>
+              <div style={{ fontWeight: '600', color: 'var(--neutral-800)' }}>
                 {(selectedOrder.customer as { name: string })?.name}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>#{selectedOrder.id.slice(0, 8)}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)' }}>#{selectedOrder.id.slice(0, 8)}</div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -389,7 +389,7 @@ export default function AdminShippingPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -404,7 +404,7 @@ export default function AdminShippingPage() {
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
-                    background: '#fff'
+                    background: 'var(--surface)'
                   }}
                 >
                   <option value="">-- Pilih Kurir --</option>
@@ -421,7 +421,7 @@ export default function AdminShippingPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -448,7 +448,7 @@ export default function AdminShippingPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -499,7 +499,7 @@ export default function AdminShippingPage() {
                         border: '2px dashed #d1d5db',
                         borderRadius: '0.5rem',
                         cursor: 'pointer',
-                        background: '#f9fafb',
+                        background: 'var(--neutral-100)',
                         gap: '0.25rem'
                       }}
                     >
@@ -511,11 +511,11 @@ export default function AdminShippingPage() {
                         style={{ display: 'none' }}
                       />
                       {uploadingShippedPhoto ? (
-                        <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Upload...</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>Upload...</span>
                       ) : (
                         <>
-                          <Camera size={18} style={{ color: '#9ca3af' }} />
-                          <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>Wajib</span>
+                          <Camera size={18} style={{ color: 'var(--neutral-400)' }} />
+                          <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)' }}>Wajib</span>
                         </>
                       )}
                     </label>
@@ -533,7 +533,7 @@ export default function AdminShippingPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}

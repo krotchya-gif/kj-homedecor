@@ -91,7 +91,7 @@ export default function OwnerMarketplacePage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {MONTHS.map((m, i) => (
@@ -109,7 +109,7 @@ export default function OwnerMarketplacePage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {[2024, 2025, 2026].map((y) => (
@@ -148,16 +148,16 @@ export default function OwnerMarketplacePage() {
       </div>
 
       {/* Breakdown Table */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-          <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Per Platform</h2>
+      <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+          <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Per Platform</h2>
         </div>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
             <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
           </div>
         ) : topSources.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <ShoppingCart size={28} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Tidak ada data pesanan</p>
           </div>
@@ -199,12 +199,12 @@ export default function OwnerMarketplacePage() {
                         </span>
                       </div>
                     </td>
-                    <td style={{ color: '#6b7280' }}>{src.count}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{src.count}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030' }}>{formatRp(src.revenue)}</td>
                     <td>
                       <span
                         style={{
-                          background: '#f3f4f6',
+                          background: 'var(--neutral-100)',
                           padding: '0.2rem 0.6rem',
                           borderRadius: '999px',
                           fontSize: '0.75rem',
@@ -214,7 +214,7 @@ export default function OwnerMarketplacePage() {
                         {totalRevenue > 0 ? ((src.revenue / totalRevenue) * 100).toFixed(1) : 0}%
                       </span>
                     </td>
-                    <td style={{ color: '#6b7280' }}>{formatRp(src.count > 0 ? src.revenue / src.count : 0)}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{formatRp(src.count > 0 ? src.revenue / src.count : 0)}</td>
                   </tr>
                 ))}
               </tbody>

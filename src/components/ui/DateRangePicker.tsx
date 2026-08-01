@@ -196,7 +196,7 @@ export default function DateRangePicker({
               style={{
                 textAlign: 'center',
                 fontSize: '0.75rem',
-                color: '#9ca3af',
+                color: 'var(--neutral-400)',
                 fontWeight: '500',
                 padding: '0.25rem'
               }}
@@ -222,8 +222,8 @@ export default function DateRangePicker({
                   textAlign: 'center',
                   fontSize: '0.82rem',
                   fontWeight: selected ? '700' : '400',
-                  background: inRange ? '#fef3c7' : selected ? '#cc7030' : 'transparent',
-                  color: selected ? '#fff' : inRange ? '#92400e' : '#374151',
+                  background: inRange ? 'var(--neutral-200)' : selected ? '#cc7030' : 'transparent',
+                  color: selected ? '#fff' : inRange ? 'var(--neutral-700)' : 'var(--neutral-700)',
                   border: isT && !selected ? '1px solid #cc7030' : 'none',
                   borderRadius: selected ? '0.5rem' : '0',
                   cursor: 'pointer'
@@ -240,14 +240,14 @@ export default function DateRangePicker({
           style={{
             marginTop: '0.75rem',
             padding: '0.75rem',
-            background: '#f9fafb',
+            background: 'var(--neutral-100)',
             borderRadius: '0.5rem',
             fontSize: '0.82rem',
             textAlign: 'center'
           }}
         >
           <span style={{ fontWeight: '600', color: '#cc7030' }}>{formatShort(tempStart)}</span>
-          <span style={{ color: '#9ca3af', margin: '0 0.5rem' }}>—</span>
+          <span style={{ color: 'var(--neutral-400)', margin: '0 0.5rem' }}>—</span>
           <span style={{ fontWeight: '600', color: '#cc7030' }}>{formatShort(tempEnd)}</span>
         </div>
 
@@ -273,7 +273,7 @@ export default function DateRangePicker({
             onClick={onClose}
             style={{
               padding: '0.5rem 0.75rem',
-              background: '#f3f4f6',
+              background: 'var(--neutral-100)',
               border: 'none',
               borderRadius: '0.5rem',
               fontSize: '0.82rem',
@@ -293,7 +293,7 @@ export default function DateRangePicker({
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Calendar size={16} className="text-gray-500" />
-          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: '#374151' }}>Periode:</span>
+          <span style={{ fontSize: '0.875rem', fontWeight: '500', color: 'var(--neutral-700)' }}>Periode:</span>
         </div>
 
         {/* Start date button */}
@@ -302,8 +302,8 @@ export default function DateRangePicker({
             onClick={() => openCalendar(true)}
             style={{
               padding: '0.625rem 1rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
               fontSize: '0.875rem',
               cursor: 'pointer',
@@ -313,14 +313,14 @@ export default function DateRangePicker({
               justifyContent: 'space-between'
             }}
           >
-            <span style={{ color: startDate && startDate !== '2020-01-01' ? '#374151' : '#9ca3af' }}>
+            <span style={{ color: startDate && startDate !== '2020-01-01' ? 'var(--neutral-700)' : 'var(--neutral-400)' }}>
               {startDate && startDate !== '2020-01-01' ? formatShort(startDate) : 'Tanggal Mulai'}
             </span>
           </button>
           {showStart && <CalendarPicker onClose={() => setShowStart(false)} />}
         </div>
 
-        <span style={{ color: '#9ca3af' }}>—</span>
+        <span style={{ color: 'var(--neutral-400)' }}>—</span>
 
         {/* End date button */}
         <div style={{ position: 'relative' }}>
@@ -328,8 +328,8 @@ export default function DateRangePicker({
             onClick={() => openCalendar(false)}
             style={{
               padding: '0.625rem 1rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
               fontSize: '0.875rem',
               cursor: 'pointer',
@@ -339,7 +339,7 @@ export default function DateRangePicker({
               justifyContent: 'space-between'
             }}
           >
-            <span style={{ color: endDate && endDate !== '2099-12-31' ? '#374151' : '#9ca3af' }}>
+            <span style={{ color: endDate && endDate !== '2099-12-31' ? 'var(--neutral-700)' : 'var(--neutral-400)' }}>
               {endDate && endDate !== '2099-12-31' ? formatShort(endDate) : 'Tanggal Akhir'}
             </span>
           </button>
@@ -352,8 +352,8 @@ export default function DateRangePicker({
             onClick={() => applyPreset(7)}
             style={{
               padding: '0.5rem 0.875rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
               fontSize: '0.78rem',
               cursor: 'pointer',
@@ -366,8 +366,8 @@ export default function DateRangePicker({
             onClick={() => applyPreset(30)}
             style={{
               padding: '0.5rem 0.875rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
               fontSize: '0.78rem',
               cursor: 'pointer',
@@ -380,8 +380,8 @@ export default function DateRangePicker({
             onClick={applyThisMonth}
             style={{
               padding: '0.5rem 0.875rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
               fontSize: '0.78rem',
               cursor: 'pointer',
@@ -394,8 +394,8 @@ export default function DateRangePicker({
             onClick={applyAll}
             style={{
               padding: '0.5rem 0.875rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
               fontSize: '0.78rem',
               cursor: 'pointer',
@@ -409,9 +409,9 @@ export default function DateRangePicker({
 
       {/* Current display */}
       {startDate && endDate && (
-        <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: '#6b7280' }}>
-          Menampilkan: <span style={{ fontWeight: '600', color: '#374151' }}>{formatDisplay(startDate)}</span> sampai{' '}
-          <span style={{ fontWeight: '600', color: '#374151' }}>{formatDisplay(endDate)}</span>
+        <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
+          Menampilkan: <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{formatDisplay(startDate)}</span> sampai{' '}
+          <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{formatDisplay(endDate)}</span>
         </div>
       )}
     </div>

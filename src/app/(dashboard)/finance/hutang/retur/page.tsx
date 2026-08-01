@@ -69,7 +69,7 @@ export default function ReturHutangPage() {
             left: '0.75rem',
             top: '50%',
             transform: 'translateY(-50%)',
-            color: '#9ca3af'
+            color: 'var(--neutral-400)'
           }}
         />
         <input
@@ -90,9 +90,9 @@ export default function ReturHutangPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <RotateCcw size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada retur</p>
           </div>
@@ -126,7 +126,7 @@ export default function ReturHutangPage() {
                     </td>
                     <td
                       style={{
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         maxWidth: 200,
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
@@ -135,7 +135,7 @@ export default function ReturHutangPage() {
                     >
                       {r.return_reason ?? '—'}
                     </td>
-                    <td style={{ color: '#6b7280' }}>
+                    <td style={{ color: 'var(--neutral-600)' }}>
                       {r.return_date ? new Date(r.return_date).toLocaleDateString('id-ID') : '—'}
                     </td>
                     <td>

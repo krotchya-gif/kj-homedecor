@@ -155,7 +155,7 @@ export default function LaundryPayrollPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {MONTHS.map((m, i) => (
@@ -173,7 +173,7 @@ export default function LaundryPayrollPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {[2025, 2026, 2027].map((y) => (
@@ -182,8 +182,8 @@ export default function LaundryPayrollPage() {
             </option>
           ))}
         </select>
-        <div style={{ marginLeft: 'auto', fontSize: '0.875rem', color: '#6b7280' }}>
-          Rate: <strong style={{ color: '#374151' }}>{rate ? fmt(rate.rate_per_kg) + '/kg' : '...'}</strong>
+        <div style={{ marginLeft: 'auto', fontSize: '0.875rem', color: 'var(--neutral-600)' }}>
+          Rate: <strong style={{ color: 'var(--neutral-700)' }}>{rate ? fmt(rate.rate_per_kg) + '/kg' : '...'}</strong>
         </div>
       </div>
 
@@ -216,14 +216,14 @@ export default function LaundryPayrollPage() {
 
       {/* Staff List */}
       {loading ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : staff.length === 0 ? (
         <div
           style={{
             padding: '3rem',
             textAlign: 'center',
-            color: '#9ca3af',
-            background: '#f9fafb',
+            color: 'var(--neutral-400)',
+            background: 'var(--neutral-100)',
             borderRadius: '0.75rem',
             border: '1px solid #e5e7eb'
           }}
@@ -238,7 +238,7 @@ export default function LaundryPayrollPage() {
             return (
               <div
                 key={s.id}
-                style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+                style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
               >
                 <div
                   style={{
@@ -250,23 +250,23 @@ export default function LaundryPayrollPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '1rem', marginBottom: '0.25rem' }}>
+                    <div style={{ fontWeight: '600', color: 'var(--neutral-800)', fontSize: '1rem', marginBottom: '0.25rem' }}>
                       {s.name}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                       {totalKg > 0 ? `${totalKg.toFixed(1)} kg × ${fmt(ratePerKg)}` : 'Belum ada pesanan selesai'}
                     </div>
                     {payroll && (
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                         {payroll.status === 'paid' ? '✓ Lunas' : '⏳ Pending'}
                       </div>
                     )}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: isPaid ? '#16a34a' : '#374151' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: '700', color: isPaid ? '#16a34a' : 'var(--neutral-700)' }}>
                       {fmt(totalAmount)}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Total Upah</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Total Upah</div>
                     {!isPaid && totalAmount > 0 && (
                       <button
                         onClick={() => payroll && setShowPaidModal(payroll)}
@@ -313,7 +313,7 @@ export default function LaundryPayrollPage() {
         {showPaidModal && (
           <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>Konfirmasi Pembayaran</h2>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.5rem' }}>
               Yakin ingin menandai payroll ini sebagai <strong>Lunas</strong>?
             </p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -324,7 +324,7 @@ export default function LaundryPayrollPage() {
                   padding: '0.75rem',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.5rem',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   cursor: 'pointer',
                   fontWeight: '600'
                 }}

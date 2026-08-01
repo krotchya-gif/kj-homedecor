@@ -24,7 +24,7 @@ export default function JournalPage() {
           style={{
             fontSize: '0.9rem',
             fontWeight: '600',
-            color: '#6b7280',
+            color: 'var(--neutral-600)',
             marginBottom: '0.75rem',
             textTransform: 'uppercase',
             letterSpacing: '0.05em'
@@ -53,7 +53,7 @@ export default function JournalPage() {
             style={{
               fontSize: '0.9rem',
               fontWeight: '600',
-              color: '#6b7280',
+              color: 'var(--neutral-600)',
               margin: 0,
               textTransform: 'uppercase',
               letterSpacing: '0.05em'

@@ -138,7 +138,7 @@ export default function InstallerChecklistPage() {
       {/* Booking Selector */}
       <div style={{ marginBottom: '1.5rem' }}>
         <label
-          style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}
+          style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}
         >
           Pilih Booking
         </label>
@@ -153,7 +153,7 @@ export default function InstallerChecklistPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           <option value="">-- Pilih Booking --</option>
@@ -171,20 +171,20 @@ export default function InstallerChecklistPage() {
           {selectedBookingData && (
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '0.75rem',
                 padding: '1rem',
                 marginBottom: '1.5rem'
               }}
             >
-              <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+              <div style={{ fontWeight: '600', color: 'var(--neutral-800)', marginBottom: '0.25rem' }}>
                 {selectedBookingData.order?.customer?.name ?? '—'}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)' }}>
                 {selectedBookingData.address || selectedBookingData.order?.customer?.address}
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', marginTop: '0.25rem' }}>
                 📅 {selectedBookingData.scheduled_date} {selectedBookingData.scheduled_time}
               </div>
             </div>
@@ -193,15 +193,15 @@ export default function InstallerChecklistPage() {
           {/* Checklist */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               overflow: 'hidden',
               marginBottom: '1.5rem'
             }}
           >
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Daftar Checklist</h3>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Daftar Checklist</h3>
             </div>
             <div style={{ padding: '0.5rem' }}>
               {checklist.map((item, index) => (
@@ -222,12 +222,12 @@ export default function InstallerChecklistPage() {
                   {item.completed ? (
                     <CheckCircle2 size={20} style={{ color: '#22c55e', flexShrink: 0 }} />
                   ) : (
-                    <Circle size={20} style={{ color: '#d1d5db', flexShrink: 0 }} />
+                    <Circle size={20} style={{ color: 'var(--input-border)', flexShrink: 0 }} />
                   )}
                   <span
                     style={{
                       fontSize: '0.875rem',
-                      color: item.completed ? '#6b7280' : '#1f2937',
+                      color: item.completed ? 'var(--neutral-600)' : 'var(--neutral-800)',
                       textDecoration: item.completed ? 'line-through' : 'none'
                     }}
                   >
@@ -241,15 +241,15 @@ export default function InstallerChecklistPage() {
           {/* Photo Evidence */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               overflow: 'hidden',
               marginBottom: '1.5rem'
             }}
           >
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 Foto Bukti (Minimal 3 foto)
               </h3>
             </div>
@@ -297,11 +297,11 @@ export default function InstallerChecklistPage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background: '#f3f4f6',
+                      background: 'var(--neutral-100)',
                       borderRadius: '0.5rem'
                     }}
                   >
-                    <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: '#9ca3af' }} />
+                    <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: 'var(--neutral-400)' }} />
                   </div>
                 ) : (
                   <label
@@ -312,20 +312,20 @@ export default function InstallerChecklistPage() {
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      background: '#f9fafb',
+                      background: 'var(--neutral-100)',
                       border: '2px dashed #d1d5db',
                       borderRadius: '0.5rem',
                       cursor: 'pointer'
                     }}
                   >
-                    <Camera size={20} style={{ color: '#9ca3af' }} />
-                    <span style={{ fontSize: '0.65rem', color: '#9ca3af', marginTop: '0.25rem' }}>Upload</span>
+                    <Camera size={20} style={{ color: 'var(--neutral-400)' }} />
+                    <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>Upload</span>
                     <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
                   </label>
                 )}
               </div>
               {photos.length > 0 && (
-                <p style={{ fontSize: '0.78rem', color: '#6b7280' }}>{photos.length} foto uploaded</p>
+                <p style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>{photos.length} foto uploaded</p>
               )}
             </div>
           </div>
@@ -343,7 +343,7 @@ export default function InstallerChecklistPage() {
                 padding: '0.75rem 1.5rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600',
                 fontSize: '0.875rem'
@@ -357,7 +357,7 @@ export default function InstallerChecklistPage() {
               style={{
                 flex: 1,
                 padding: '0.75rem',
-                background: submitting || photos.length < 3 ? '#d1d5db' : '#22c55e',
+                background: submitting || photos.length < 3 ? 'var(--input-border)' : '#22c55e',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '0.5rem',
@@ -378,13 +378,13 @@ export default function InstallerChecklistPage() {
       )}
 
       {!selectedBooking && !loading && bookings.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--neutral-400)' }}>
           <CheckCircle2 size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
           <p>Tidak ada booking aktif untuk dikerjakan</p>
         </div>
       )}
 
-      {loading && <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Memuat...</div>}
+      {loading && <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--neutral-400)' }}>Memuat...</div>}
     </div>
   )
 }

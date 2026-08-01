@@ -111,7 +111,7 @@ export default function HPPPage() {
     load()
   }
 
-  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
 
   return (
     <div>
@@ -143,7 +143,7 @@ export default function HPPPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               />
               {searchProduct && (
@@ -154,7 +154,7 @@ export default function HPPPage() {
                     left: 0,
                     right: 0,
                     zIndex: 50,
-                    background: '#fff',
+                    background: 'var(--surface)',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -170,7 +170,7 @@ export default function HPPPage() {
                     )
                     if (filtered.length === 0) {
                       return (
-                        <div style={{ padding: '0.75rem', color: '#9ca3af', fontSize: '0.8rem' }}>
+                        <div style={{ padding: '0.75rem', color: 'var(--neutral-400)', fontSize: '0.8rem' }}>
                           Tidak ada produk ditemukan
                         </div>
                       )
@@ -191,22 +191,22 @@ export default function HPPPage() {
                         }}
                       >
                         <span style={{ fontWeight: 500 }}>{p.name}</span>
-                        {p.sku && <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                        {p.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({p.sku})</span>}
                       </div>
                     ))
                   })()}
                 </div>
               )}
               {!searchProduct && !selectedProduct && (
-                <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: '#9ca3af' }}>
+                <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                   Ketik untuk mencari produk
                 </div>
               )}
               {!searchProduct && selectedProduct && (
-                <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', color: '#374151' }}>
+                <div style={{ marginTop: '0.25rem', fontSize: '0.78rem', color: 'var(--neutral-700)' }}>
                   <span style={{ fontWeight: 500 }}>{selectedProduct.name}</span>
                   {selectedProduct.sku && (
-                    <span style={{ color: '#9ca3af', marginLeft: '0.5rem' }}>({selectedProduct.sku})</span>
+                    <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({selectedProduct.sku})</span>
                   )}
                 </div>
               )}
@@ -219,7 +219,7 @@ export default function HPPPage() {
                   flexDirection: 'column',
                   gap: '0.25rem',
                   fontSize: '0.85rem',
-                  color: '#6b7280'
+                  color: 'var(--neutral-600)'
                 }}
               >
                 <div>
@@ -258,7 +258,7 @@ export default function HPPPage() {
                     flex: '1 1 calc(50% - 0.375rem)',
                     minWidth: '140px',
                     cursor: 'pointer',
-                    border: `2px solid ${mode === opt.value ? '#cc7030' : '#e5e7eb'}`,
+                    border: `2px solid ${mode === opt.value ? '#cc7030' : 'var(--neutral-200)'}`,
                     borderRadius: '0.5rem',
                     padding: '0.75rem',
                     background: mode === opt.value ? '#fff8f2' : '#fff'
@@ -275,7 +275,7 @@ export default function HPPPage() {
                     />
                     <span style={{ fontWeight: '700', fontSize: '0.875rem' }}>{opt.label}</span>
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{opt.desc}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{opt.desc}</div>
                 </label>
               ))}
             </div>
@@ -316,7 +316,7 @@ export default function HPPPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               />
               <div style={{ fontSize: '0.75rem', color: '#7c3aed', marginTop: '0.25rem' }}>
@@ -355,9 +355,9 @@ export default function HPPPage() {
                 style={{
                   padding: '1.5rem',
                   textAlign: 'center',
-                  color: '#9ca3af',
+                  color: 'var(--neutral-400)',
                   fontSize: '0.85rem',
-                  background: '#f9fafb',
+                  background: 'var(--neutral-100)',
                   borderRadius: '0.5rem'
                 }}
               >
@@ -375,14 +375,14 @@ export default function HPPPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.5rem',
-                        background: '#f9fafb',
+                        background: 'var(--neutral-100)',
                         borderRadius: '0.5rem',
                         padding: '0.625rem 0.875rem'
                       }}
                     >
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{mat?.name ?? '—'}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                           {fmtN(line.qty)} {mat?.unit} × {fmt(mat?.cost_per_unit ?? 0)}
                         </div>
                       </div>
@@ -431,7 +431,7 @@ export default function HPPPage() {
                       display: 'block',
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: '#6b7280',
+                      color: 'var(--neutral-600)',
                       marginBottom: '0.25rem'
                     }}
                   >
@@ -447,7 +447,7 @@ export default function HPPPage() {
                       borderRadius: '0.375rem',
                       fontSize: '0.8rem',
                       outline: 'none',
-                      background: '#fff'
+                      background: 'var(--surface)'
                     }}
                   >
                     <option value="">— Pilih —</option>
@@ -464,7 +464,7 @@ export default function HPPPage() {
                       display: 'block',
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: '#6b7280',
+                      color: 'var(--neutral-600)',
                       marginBottom: '0.25rem'
                     }}
                   >
@@ -506,7 +506,7 @@ export default function HPPPage() {
                   onClick={() => setShowAddLine(false)}
                   style={{
                     padding: '0.5rem 0.875rem',
-                    background: '#f3f4f6',
+                    background: 'var(--neutral-100)',
                     border: 'none',
                     borderRadius: '0.375rem',
                     fontWeight: '600',
@@ -532,7 +532,7 @@ export default function HPPPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -552,7 +552,7 @@ export default function HPPPage() {
                     outline: 'none'
                   }}
                 />
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                   Upah jahit, ongkos pasang, dll.
                 </div>
               </div>
@@ -562,7 +562,7 @@ export default function HPPPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -714,15 +714,15 @@ export default function HPPPage() {
           {/* Quick guide */}
           <div
             style={{
-              background: '#f9fafb',
+              background: 'var(--neutral-100)',
               borderRadius: '0.5rem',
               padding: '1rem',
               fontSize: '0.8rem',
-              color: '#6b7280',
+              color: 'var(--neutral-600)',
               lineHeight: 1.7
             }}
           >
-            <strong style={{ color: '#374151', display: 'block', marginBottom: '0.375rem' }}>📌 Panduan</strong>
+            <strong style={{ color: 'var(--neutral-700)', display: 'block', marginBottom: '0.375rem' }}>📌 Panduan</strong>
             1. Pilih produk → BOM otomatis dimuat
             <br />
             2. Edit atau tambah material sesuai kebutuhan

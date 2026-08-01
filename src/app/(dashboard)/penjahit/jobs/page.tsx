@@ -143,7 +143,7 @@ export default function PenjahitJobsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {loading && <div style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>Memuat...</div>}
+          {loading && <div style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>Memuat...</div>}
           {jobs.map((job) => {
             // order_items sekarang nested di order.order_items (array, bukan single)
             const firstItem = job.order?.order_items?.[0]
@@ -152,7 +152,7 @@ export default function PenjahitJobsPage() {
             return (
               <div
                 key={job.id}
-                style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+                style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
               >
                 <div
                   style={{
@@ -164,10 +164,10 @@ export default function PenjahitJobsPage() {
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: '700', fontSize: '1rem', color: '#1f2937' }}>
+                    <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--neutral-800)' }}>
                       {productName ?? 'Item Pesanan'}
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', marginTop: '0.25rem' }}>
                       Pelanggan: {job.order?.customer?.name ?? '—'}
                       {itemSize && <span style={{ marginLeft: '0.75rem' }}>Ukuran: {itemSize}</span>}
                     </div>
@@ -272,7 +272,7 @@ export default function PenjahitJobsPage() {
                 {/* Inline report form */}
                 {showReport === job.id && (
                   <div style={{ borderTop: '1px solid #e5e7eb', marginTop: '1rem', paddingTop: '1rem' }}>
-                    <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#374151', marginBottom: '0.75rem' }}>
+                    <div style={{ fontWeight: '600', fontSize: '0.875rem', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
                       📋 Laporan Pengerjaan
                     </div>
                     <div
@@ -295,7 +295,7 @@ export default function PenjahitJobsPage() {
                               display: 'block',
                               fontSize: '0.75rem',
                               fontWeight: '600',
-                              color: '#6b7280',
+                              color: 'var(--neutral-600)',
                               marginBottom: '0.2rem'
                             }}
                           >
@@ -343,7 +343,7 @@ export default function PenjahitJobsPage() {
                               display: 'block',
                               fontSize: '0.75rem',
                               fontWeight: '600',
-                              color: '#6b7280',
+                              color: 'var(--neutral-600)',
                               marginBottom: '0.2rem'
                             }}
                           >
@@ -377,7 +377,7 @@ export default function PenjahitJobsPage() {
                             display: 'block',
                             fontSize: '0.75rem',
                             fontWeight: '600',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             marginBottom: '0.2rem'
                           }}
                         >
@@ -411,7 +411,7 @@ export default function PenjahitJobsPage() {
                           padding: '0.5rem 1rem',
                           border: '1px solid #d1d5db',
                           borderRadius: '0.375rem',
-                          background: '#fff',
+                          background: 'var(--surface)',
                           cursor: 'pointer',
                           fontWeight: '600',
                           fontSize: '0.8rem'

@@ -191,13 +191,13 @@ export default function FinanceDashboard() {
         <SectionCard delay={0.1}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <TrendingUp size={16} color="#cc7030" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
               Omzet per Bulan ({currentYear})
             </h3>
           </div>
           {monthlyData.every((m) => m.revenue === 0) ? (
             <div
-              style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}
+              style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neutral-400)' }}
             >
               Tidak ada data
             </div>
@@ -221,13 +221,13 @@ export default function FinanceDashboard() {
         <SectionCard delay={0.16}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <PieChartIcon size={16} color="#2563eb" />
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
               Distribusi Status Bayar
             </h3>
           </div>
           {paymentStatusData.length === 0 ? (
             <div
-              style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af' }}
+              style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--neutral-400)' }}
             >
               Tidak ada data
             </div>

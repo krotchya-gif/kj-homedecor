@@ -70,9 +70,9 @@ export default function BukuBesarPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : accounts.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada data akun</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data akun</div>
         ) : (
           <table>
             <thead>
@@ -88,7 +88,7 @@ export default function BukuBesarPage() {
                 <tr key={a.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{a.code}</td>
                   <td style={{ fontWeight: '500' }}>{a.name}</td>
-                  <td style={{ textTransform: 'capitalize', color: '#6b7280' }}>{a.type}</td>
+                  <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{a.type}</td>
                   <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
                     {formatRp(a.balance ?? 0)}
                   </td>

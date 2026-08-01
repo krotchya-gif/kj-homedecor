@@ -110,7 +110,7 @@ export default function LaporanKeuanganPage() {
             key={report.href}
             href={report.href}
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               padding: '1.25rem',
@@ -125,10 +125,10 @@ export default function LaporanKeuanganPage() {
                 {report.icon}
               </div>
               <div style={{ flex: 1 }}>
-                <h3 style={{ fontWeight: '700', fontSize: '0.95rem', color: '#374151', marginBottom: '0.25rem' }}>
+                <h3 style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--neutral-700)', marginBottom: '0.25rem' }}>
                   {report.title}
                 </h3>
-                <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>{report.desc}</p>
+                <p style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', margin: 0 }}>{report.desc}</p>
               </div>
             </div>
           </Link>

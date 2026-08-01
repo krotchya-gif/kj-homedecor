@@ -121,7 +121,7 @@ export default function ProsesReturPage() {
             left: '0.75rem',
             top: '50%',
             transform: 'translateY(-50%)',
-            color: '#9ca3af'
+            color: 'var(--neutral-400)'
           }}
         />
         <input
@@ -142,9 +142,9 @@ export default function ProsesReturPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <RefreshCw size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada tagihan</p>
           </div>
@@ -199,7 +199,7 @@ export default function ProsesReturPage() {
                           Retur
                         </button>
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>—</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>—</span>
                       )}
                     </td>
                   </tr>
@@ -234,7 +234,7 @@ export default function ProsesReturPage() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#6b7280'
+                  color: 'var(--neutral-600)'
                 }}
               >
                 <X size={20} />
@@ -242,20 +242,20 @@ export default function ProsesReturPage() {
             </div>
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 borderRadius: '0.5rem',
                 padding: '0.75rem',
                 marginBottom: '1rem',
                 fontSize: '0.85rem'
               }}
             >
-              <div style={{ color: '#6b7280', marginBottom: '0.25rem' }}>
+              <div style={{ color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>
                 Supplier: <strong>{returItem.supplier?.name ?? '—'}</strong>
               </div>
-              <div style={{ color: '#6b7280', marginBottom: '0.25rem' }}>
+              <div style={{ color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>
                 Invoice: <strong>{returItem.invoice_number ?? '—'}</strong>
               </div>
-              <div style={{ color: '#6b7280' }}>
+              <div style={{ color: 'var(--neutral-600)' }}>
                 Sisa Tagihan:{' '}
                 <strong style={{ color: '#cc7030' }}>
                   {formatRp((returItem.amount ?? 0) - (returItem.paid_amount ?? 0) - (returItem.return_amount ?? 0))}
@@ -269,7 +269,7 @@ export default function ProsesReturPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -297,7 +297,7 @@ export default function ProsesReturPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -323,7 +323,7 @@ export default function ProsesReturPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -354,7 +354,7 @@ export default function ProsesReturPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600',
                     display: 'flex',

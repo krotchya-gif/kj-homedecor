@@ -98,7 +98,7 @@ export default function OwnerStaffPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -124,7 +124,7 @@ export default function OwnerStaffPage() {
           <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
         </div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
           <div className="data-table">
             <table>
               <thead>
@@ -161,7 +161,7 @@ export default function OwnerStaffPage() {
                         {s.name}
                       </div>
                     </td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{s.email}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{s.email}</td>
                     <td>
                       <span
                         style={{
@@ -184,7 +184,7 @@ export default function OwnerStaffPage() {
                           borderRadius: '999px',
                           fontSize: '0.75rem',
                           fontWeight: '600',
-                          background: STATUS_COLORS[s.status] ?? '#f3f4f6',
+                          background: STATUS_COLORS[s.status] ?? 'var(--neutral-100)',
                           color: s.status === 'active' ? '#065f46' : '#991b1b'
                         }}
                       >

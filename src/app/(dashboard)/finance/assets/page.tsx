@@ -138,7 +138,7 @@ export default function AssetsPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -178,9 +178,9 @@ export default function AssetsPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <LandPlot size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada aset</p>
           </div>
@@ -204,8 +204,8 @@ export default function AssetsPage() {
                   <tr key={a.id}>
                     <td style={{ fontFamily: 'monospace' }}>{a.code ?? '—'}</td>
                     <td style={{ fontWeight: '500' }}>{a.name}</td>
-                    <td style={{ color: '#6b7280' }}>{a.category ?? '—'}</td>
-                    <td style={{ color: '#6b7280' }}>{a.location ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{a.category ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{a.location ?? '—'}</td>
                     <td style={{ fontWeight: '600', color: '#cc7030', textAlign: 'right' }}>
                       {formatRp(a.current_value ?? 0)}
                     </td>
@@ -232,7 +232,7 @@ export default function AssetsPage() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             padding: '0.25rem'
                           }}
                         >
@@ -272,7 +272,7 @@ export default function AssetsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -298,7 +298,7 @@ export default function AssetsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -326,7 +326,7 @@ export default function AssetsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -354,7 +354,7 @@ export default function AssetsPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -382,7 +382,7 @@ export default function AssetsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -408,7 +408,7 @@ export default function AssetsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -437,7 +437,7 @@ export default function AssetsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -464,7 +464,7 @@ export default function AssetsPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -495,7 +495,7 @@ export default function AssetsPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

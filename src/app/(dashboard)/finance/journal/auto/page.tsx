@@ -32,9 +32,9 @@ export default function AutoJournalPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : entries.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <FileText size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada journal entries</p>
           </div>
@@ -52,9 +52,9 @@ export default function AutoJournalPage() {
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id}>
-                  <td style={{ color: '#6b7280' }}>{e.entry_date ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{e.entry_date ?? '—'}</td>
                   <td style={{ fontWeight: '500' }}>{e.description ?? '—'}</td>
-                  <td style={{ textTransform: 'capitalize', color: '#6b7280' }}>{e.reference_type ?? '—'}</td>
+                  <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{e.reference_type ?? '—'}</td>
                   <td style={{ textAlign: 'right' }}>{e.total_debit ?? 0}</td>
                   <td style={{ textAlign: 'right' }}>{e.total_credit ?? 0}</td>
                 </tr>

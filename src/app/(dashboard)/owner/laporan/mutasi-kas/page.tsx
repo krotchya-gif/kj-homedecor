@@ -86,9 +86,9 @@ export default function MutasiKasPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : cashAccounts.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada akun kas/bank</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada akun kas/bank</div>
         ) : (
           <table>
             <thead>
@@ -104,7 +104,7 @@ export default function MutasiKasPage() {
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{c.account?.code ?? '—'}</td>
                   <td style={{ fontWeight: '500' }}>{c.bank_name ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>{c.account_number ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: 'var(--neutral-600)' }}>{c.account_number ?? '—'}</td>
                   <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
                     {formatRp(c.balance ?? 0)}
                   </td>

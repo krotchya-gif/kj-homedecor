@@ -150,8 +150,8 @@ export default function AdminLaundryPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1rem',
-                background: '#f3f4f6',
-                color: '#374151',
+                background: 'var(--neutral-100)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -200,7 +200,7 @@ export default function AdminLaundryPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -227,7 +227,7 @@ export default function AdminLaundryPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           <option value="">Semua Status</option>
@@ -286,9 +286,9 @@ export default function AdminLaundryPage() {
       {/* Table */}
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <WashingMachine size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada pesanan laundry</p>
           </div>
@@ -312,17 +312,17 @@ export default function AdminLaundryPage() {
                 const staff = laundryStaff.find((s) => s.id === o.assigned_to)
                 return (
                   <tr key={o.id}>
-                    <td style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>
                       {new Date(o.received_at).toLocaleDateString('id-ID')}
                     </td>
                     <td style={{ fontWeight: '500' }}>{o.customer_name}</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{o.customer_phone || '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{o.customer_phone || '—'}</td>
                     <td>
                       <span style={{ fontWeight: '600' }}>{o.kg}</span> kg
                     </td>
                     <td
                       style={{
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         fontSize: '0.85rem',
                         maxWidth: 200
                       }}
@@ -421,7 +421,7 @@ export default function AdminLaundryPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -449,7 +449,7 @@ export default function AdminLaundryPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -483,7 +483,7 @@ export default function AdminLaundryPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -513,7 +513,7 @@ export default function AdminLaundryPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -543,7 +543,7 @@ export default function AdminLaundryPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -559,7 +559,7 @@ export default function AdminLaundryPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">Belum assign</option>
@@ -576,7 +576,7 @@ export default function AdminLaundryPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -606,7 +606,7 @@ export default function AdminLaundryPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -651,7 +651,7 @@ export default function AdminLaundryPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -684,7 +684,7 @@ export default function AdminLaundryPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

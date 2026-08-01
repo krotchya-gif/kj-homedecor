@@ -243,7 +243,7 @@ export default function GudangQCPage() {
               borderBottom: `2px solid ${tab === t.key ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: tab === t.key ? '700' : '500',
-              color: tab === t.key ? '#cc7030' : '#6b7280',
+              color: tab === t.key ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px',
               display: 'flex',
@@ -277,7 +277,7 @@ export default function GudangQCPage() {
             {[
               { label: 'Pending QC', val: items.filter((i) => !i.ready).length, color: '#ef4444' },
               { label: 'Ready', val: items.filter((i) => i.ready).length, color: '#22c55e' },
-              { label: 'Total Items', val: items.length, color: '#6b7280' }
+              { label: 'Total Items', val: items.length, color: 'var(--neutral-600)' }
             ].map((s) => (
               <div key={s.label} className="stat-card">
                 <div className="stat-card-label">{s.label}</div>
@@ -290,9 +290,9 @@ export default function GudangQCPage() {
 
           <div className="data-table">
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : items.filter((i) => !i.ready).length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
                 <CheckCircle2 size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
                 <p>Semua item sudah QC pass ✅</p>
               </div>
@@ -314,13 +314,13 @@ export default function GudangQCPage() {
                     .map((item) => (
                       <tr key={item.id}>
                         <td style={{ fontWeight: '500' }}>{item.product?.name ?? '—'}</td>
-                        <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                           {item.order?.id?.slice(0, 8)}
                         </td>
                         <td>{item.order?.customer?.name ?? '—'}</td>
-                        <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>{item.size ?? '—'}</td>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>{item.size ?? '—'}</td>
                         <td>
-                          <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>Pending</span>
+                          <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>Pending</span>
                         </td>
                         <td>
                           <button
@@ -358,7 +358,7 @@ export default function GudangQCPage() {
             {[
               { label: 'Pending Verifikasi', val: pendingReturns.length, color: '#f59e0b' },
               { label: 'Sudah Diproses', val: resolvedReturns.length, color: '#22c55e' },
-              { label: 'Total Return', val: returns.length, color: '#6b7280' }
+              { label: 'Total Return', val: returns.length, color: 'var(--neutral-600)' }
             ].map((s) => (
               <div key={s.label} className="stat-card">
                 <div className="stat-card-label">{s.label}</div>
@@ -370,9 +370,9 @@ export default function GudangQCPage() {
           </div>
 
           {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
           ) : pendingReturns.length === 0 ? (
-            <div className="data-table" style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+            <div className="data-table" style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
               <Package size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
               <p>Tidak ada return yang menunggu verifikasi</p>
             </div>
@@ -382,7 +382,7 @@ export default function GudangQCPage() {
                 <div
                   key={r.id}
                   style={{
-                    background: '#fff',
+                    background: 'var(--surface)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.75rem',
                     padding: '1.25rem'
@@ -400,15 +400,15 @@ export default function GudangQCPage() {
                     <div>
                       <div style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '0.25rem' }}>
                         Return Order:{' '}
-                        <span style={{ fontFamily: 'monospace', color: '#6b7280' }}>{r.order?.id?.slice(0, 8)}</span>
+                        <span style={{ fontFamily: 'monospace', color: 'var(--neutral-600)' }}>{r.order?.id?.slice(0, 8)}</span>
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: '#6b7280' }}>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--neutral-600)' }}>
                         Pelanggan: <strong>{r.order?.customer?.name ?? '—'}</strong>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginTop: '0.2rem' }}>
                         Alasan: <span style={{ color: '#991b1b', fontWeight: '500' }}>{r.reason}</span>
                       </div>
-                      <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                         Qty return: <strong>{r.qty ?? 1}</strong> &bull; Refund:{' '}
                         <strong style={{ color: '#cc7030' }}>
                           {r.refund_amount > 0 ? fmt(r.refund_amount) : 'Tidak ada'}
@@ -460,7 +460,7 @@ export default function GudangQCPage() {
           {/* Resolved returns history */}
           {resolvedReturns.length > 0 && (
             <div style={{ marginTop: '2rem' }}>
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '600', color: 'var(--neutral-600)', marginBottom: '0.75rem' }}>
                 Sudah Diproses
               </h3>
               <div className="data-table">
@@ -477,7 +477,7 @@ export default function GudangQCPage() {
                   <tbody>
                     {resolvedReturns.map((r) => (
                       <tr key={r.id}>
-                        <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: '#6b7280' }}>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                           {r.order?.id?.slice(0, 8)}
                         </td>
                         <td style={{ fontSize: '0.82rem' }}>{r.reason}</td>
@@ -495,8 +495,8 @@ export default function GudangQCPage() {
                             {r.condition === 'good' ? '✅ Bagus → Stock' : '❌ Rusak → Dispose'}
                           </span>
                         </td>
-                        <td style={{ color: '#6b7280' }}>{r.qty}</td>
-                        <td style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                        <td style={{ color: 'var(--neutral-600)' }}>{r.qty}</td>
+                        <td style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                           {r.resolved_at ? new Date(r.resolved_at).toLocaleDateString('id-ID') : '—'}
                         </td>
                       </tr>
@@ -514,7 +514,7 @@ export default function GudangQCPage() {
         {selected && (
           <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>QC Check</h2>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
               {selected.product?.name} — {selected.size ?? 'tanpa ukuran'}
             </p>
             <form onSubmit={handleQC} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -524,7 +524,7 @@ export default function GudangQCPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.5rem'
                   }}
                 >
@@ -552,8 +552,8 @@ export default function GudangQCPage() {
                               : opt.val === 'fail'
                                 ? '#fef2f2'
                                 : '#fffbeb'
-                            : '#f3f4f6',
-                        border: `1px solid ${qcForm.result === opt.val ? (opt.val === 'pass' ? '#22c55e' : opt.val === 'fail' ? '#ef4444' : '#f59e0b') : '#e5e7eb'}`,
+                            : 'var(--neutral-100)',
+                        border: `1px solid ${qcForm.result === opt.val ? (opt.val === 'pass' ? '#22c55e' : opt.val === 'fail' ? '#ef4444' : '#f59e0b') : 'var(--neutral-200)'}`,
                         padding: '0.5rem 0.75rem',
                         borderRadius: '0.5rem'
                       }}
@@ -579,7 +579,7 @@ export default function GudangQCPage() {
                         display: 'block',
                         fontSize: '0.8rem',
                         fontWeight: '600',
-                        color: '#374151',
+                        color: 'var(--neutral-700)',
                         marginBottom: '0.3rem'
                       }}
                     >
@@ -607,7 +607,7 @@ export default function GudangQCPage() {
                         display: 'block',
                         fontSize: '0.8rem',
                         fontWeight: '600',
-                        color: '#374151',
+                        color: 'var(--neutral-700)',
                         marginBottom: '0.3rem'
                       }}
                     >
@@ -640,7 +640,7 @@ export default function GudangQCPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}
@@ -674,13 +674,13 @@ export default function GudangQCPage() {
         {selectedReturn && (
           <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.25rem' }}>📦 Verifikasi Return</h2>
-            <p style={{ fontSize: '0.82rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
               Periksa kondisi fisik barang return. Foto wajib sebagai dokumentasi.
             </p>
 
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 borderRadius: '0.5rem',
                 padding: '0.875rem',
                 marginBottom: '1.25rem',
@@ -718,7 +718,7 @@ export default function GudangQCPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.5rem'
                   }}
                 >
@@ -747,7 +747,7 @@ export default function GudangQCPage() {
                       style={{
                         flex: 1,
                         cursor: 'pointer',
-                        border: `2px solid ${returForm.condition === opt.val ? opt.border : '#e5e7eb'}`,
+                        border: `2px solid ${returForm.condition === opt.val ? opt.border : 'var(--neutral-200)'}`,
                         borderRadius: '0.5rem',
                         padding: '0.75rem',
                         background: returForm.condition === opt.val ? opt.bg : '#fff',
@@ -774,7 +774,7 @@ export default function GudangQCPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -825,18 +825,18 @@ export default function GudangQCPage() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       cursor: 'pointer',
-                      background: '#f9fafb'
+                      background: 'var(--neutral-100)'
                     }}
                   >
                     <input type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} />
                     {uploadingPhoto ? (
-                      <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>...</span>
+                      <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)' }}>...</span>
                     ) : (
-                      <Camera size={18} style={{ color: '#9ca3af' }} />
+                      <Camera size={18} style={{ color: 'var(--neutral-400)' }} />
                     )}
                   </label>
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                   Wajib upload minimal 2 foto sebagai bukti dokumentasi return.
                 </div>
               </div>
@@ -847,7 +847,7 @@ export default function GudangQCPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -879,7 +879,7 @@ export default function GudangQCPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}
@@ -892,7 +892,7 @@ export default function GudangQCPage() {
                   style={{
                     flex: 1,
                     padding: '0.75rem',
-                    background: returForm.photos.length < 2 ? '#9ca3af' : '#9333ea',
+                    background: returForm.photos.length < 2 ? 'var(--neutral-400)' : '#9333ea',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '0.5rem',

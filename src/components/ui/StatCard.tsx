@@ -53,7 +53,7 @@ export function StatCard({
             <div className="stat-card-value" style={{ color: accent }}>
               {value}
             </div>
-            {suffix && <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{suffix}</span>}
+            {suffix && <span style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>{suffix}</span>}
           </div>
           {sub && (
             <div className="stat-card-sub" style={{ fontWeight: sub !== undefined ? '600' : undefined }}>

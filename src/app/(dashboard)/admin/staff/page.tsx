@@ -165,7 +165,7 @@ export default function StaffPage() {
           {/* Header + Search */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.875rem',
               padding: '1.25rem',
@@ -183,10 +183,10 @@ export default function StaffPage() {
               }}
             >
               <div>
-                <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.2rem' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--neutral-800)', marginBottom: '0.2rem' }}>
                   Daftar Staff
                 </h2>
-                <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{staff.length} staff terdaftar</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>{staff.length} staff terdaftar</p>
               </div>
               <div style={{ position: 'relative', width: 280 }} className="staff-search-wrapper">
                 <Search
@@ -196,7 +196,7 @@ export default function StaffPage() {
                     left: '0.75rem',
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#9ca3af'
+                    color: 'var(--neutral-400)'
                   }}
                 />
                 <input
@@ -351,8 +351,8 @@ export default function StaffPage() {
                                 style={{
                                   flex: 1,
                                   padding: '0.375rem',
-                                  background: '#f3f4f6',
-                                  color: '#6b7280',
+                                  background: 'var(--neutral-100)',
+                                  color: 'var(--neutral-600)',
                                   border: 'none',
                                   borderRadius: '0.375rem',
                                   fontSize: '0.75rem',
@@ -372,8 +372,8 @@ export default function StaffPage() {
                                 width: 36,
                                 height: 36,
                                 borderRadius: '50%',
-                                background: `${ROLE_COLORS[s.role] ?? '#6b7280'}15`,
-                                color: ROLE_COLORS[s.role] ?? '#6b7280',
+                                background: `${ROLE_COLORS[s.role] ?? 'var(--neutral-600)'}15`,
+                                color: ROLE_COLORS[s.role] ?? 'var(--neutral-600)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -385,8 +385,8 @@ export default function StaffPage() {
                               {s.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.875rem' }}>{s.name}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{s.email}</div>
+                              <div style={{ fontWeight: '600', color: 'var(--neutral-800)', fontSize: '0.875rem' }}>{s.name}</div>
+                              <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{s.email}</div>
                             </div>
                           </div>
                         )}
@@ -398,8 +398,8 @@ export default function StaffPage() {
                             alignItems: 'center',
                             gap: '0.3rem',
                             padding: '0.25rem 0.625rem',
-                            background: `${ROLE_COLORS[s.role] ?? '#6b7280'}15`,
-                            color: ROLE_COLORS[s.role] ?? '#6b7280',
+                            background: `${ROLE_COLORS[s.role] ?? 'var(--neutral-600)'}15`,
+                            color: ROLE_COLORS[s.role] ?? 'var(--neutral-600)',
                             borderRadius: '999px',
                             fontSize: '0.75rem',
                             fontWeight: '600',
@@ -413,8 +413,8 @@ export default function StaffPage() {
                         <span
                           style={{
                             padding: '0.25rem 0.625rem',
-                            background: STATUS_COLORS[s.status]?.bg ?? '#f3f4f6',
-                            color: STATUS_COLORS[s.status]?.text ?? '#6b7280',
+                            background: STATUS_COLORS[s.status]?.bg ?? 'var(--neutral-100)',
+                            color: STATUS_COLORS[s.status]?.text ?? 'var(--neutral-600)',
                             borderRadius: '999px',
                             fontSize: '0.75rem',
                             fontWeight: '600',
@@ -424,7 +424,7 @@ export default function StaffPage() {
                           {s.status}
                         </span>
                       </td>
-                      <td style={{ color: '#9ca3af', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                      <td style={{ color: 'var(--neutral-400)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                         {new Date(s.created_at).toLocaleDateString('id-ID', {
                           day: 'numeric',
                           month: 'short',
@@ -492,7 +492,7 @@ export default function StaffPage() {
                 borderTop: '1px solid #e5e7eb'
               }}
             >
-              <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                 Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} staff
               </span>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -506,10 +506,10 @@ export default function StaffPage() {
                     padding: '0.4rem 0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.375rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                     fontSize: '0.8rem',
-                    color: currentPage === 1 ? '#9ca3af' : '#374151'
+                    color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)'
                   }}
                 >
                   <ChevronLeft size={14} /> Sebelumnya
@@ -524,10 +524,10 @@ export default function StaffPage() {
                     padding: '0.4rem 0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.375rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
                     fontSize: '0.8rem',
-                    color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? '#9ca3af' : '#374151'
+                    color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'var(--neutral-400)' : 'var(--neutral-700)'
                   }}
                 >
                   Selanjutnya <ChevronRight size={14} />
@@ -568,7 +568,7 @@ export default function StaffPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -596,7 +596,7 @@ export default function StaffPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -624,7 +624,7 @@ export default function StaffPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -655,7 +655,7 @@ export default function StaffPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.5rem'
                   }}
                 >
@@ -670,7 +670,7 @@ export default function StaffPage() {
                       key={r.value}
                       style={{
                         cursor: 'pointer',
-                        border: `2px solid ${form.role === r.value ? r.color : '#e5e7eb'}`,
+                        border: `2px solid ${form.role === r.value ? r.color : 'var(--neutral-200)'}`,
                         borderRadius: '0.5rem',
                         padding: '0.625rem 0.875rem',
                         background: form.role === r.value ? `${r.color}10` : '#fff',
@@ -689,12 +689,12 @@ export default function StaffPage() {
                         style={{
                           fontSize: '0.875rem',
                           fontWeight: '600',
-                          color: form.role === r.value ? r.color : '#374151'
+                          color: form.role === r.value ? r.color : 'var(--neutral-700)'
                         }}
                       >
                         {r.label}
                       </div>
-                      <div style={{ fontSize: '0.68rem', color: '#6b7280', marginTop: '0.1rem' }}>{r.desc}</div>
+                      <div style={{ fontSize: '0.68rem', color: 'var(--neutral-600)', marginTop: '0.1rem' }}>{r.desc}</div>
                     </label>
                   ))}
                 </div>
@@ -704,8 +704,8 @@ export default function StaffPage() {
                 disabled={saving}
                 style={{
                   padding: '0.875rem',
-                  background: saving ? '#e5e7eb' : '#cc7030',
-                  color: saving ? '#9ca3af' : '#fff',
+                  background: saving ? 'var(--neutral-200)' : '#cc7030',
+                  color: saving ? 'var(--neutral-400)' : '#fff',
                   border: 'none',
                   borderRadius: '0.5rem',
                   fontWeight: '700',

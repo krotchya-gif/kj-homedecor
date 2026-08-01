@@ -161,7 +161,7 @@ export default function ImportModal({
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           borderRadius: '0.875rem',
           width: '100%',
           maxWidth: 800,
@@ -286,9 +286,9 @@ export default function ImportModal({
                 cursor: 'pointer'
               }}
             >
-              <Upload size={32} style={{ color: '#9ca3af', margin: '0 auto 1rem' }} />
-              <div style={{ fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>Upload file CSV</div>
-              <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Drag & drop atau klik untuk pilih file</div>
+              <Upload size={32} style={{ color: 'var(--neutral-400)', margin: '0 auto 1rem' }} />
+              <div style={{ fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.25rem' }}>Upload file CSV</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Drag & drop atau klik untuk pilih file</div>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -332,9 +332,9 @@ export default function ImportModal({
               </div>
 
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
                   Map Kolom CSV → Sistem
-                  <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: '0.5rem' }}>
+                  <span style={{ fontWeight: 400, color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>
                     (Pilih kolom CSV untuk setiap kolom sistem)
                   </span>
                 </div>
@@ -352,7 +352,7 @@ export default function ImportModal({
                           style={{
                             fontSize: '0.75rem',
                             fontWeight: '600',
-                            color: col.required ? '#cc7030' : '#6b7280'
+                            color: col.required ? '#cc7030' : 'var(--neutral-600)'
                           }}
                         >
                           {col.label} {col.required && '*'}
@@ -384,7 +384,7 @@ export default function ImportModal({
               {/* Preview */}
               {parsed.length > 0 && (
                 <div style={{ marginBottom: '1rem' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
                     Preview (5 baris pertama)
                   </div>
                   <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.5rem' }}>
@@ -398,7 +398,7 @@ export default function ImportModal({
                                 key={c.key}
                                 style={{
                                   padding: '0.5rem 0.75rem',
-                                  background: '#f9fafb',
+                                  background: 'var(--neutral-100)',
                                   borderBottom: '1px solid #e5e7eb',
                                   textAlign: 'left',
                                   whiteSpace: 'nowrap'
@@ -435,7 +435,7 @@ export default function ImportModal({
                 disabled={!allMapped || importing}
                 style={{
                   padding: '0.75rem 1.5rem',
-                  background: !allMapped ? '#d1d5db' : importing ? '#f59e0b' : '#cc7030',
+                  background: !allMapped ? 'var(--neutral-300)' : importing ? '#f59e0b' : '#cc7030',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '0.5rem',

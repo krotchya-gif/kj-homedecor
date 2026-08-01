@@ -88,9 +88,9 @@ export default function KronologiHPPPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : orders.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada data order</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data order</div>
         ) : (
           <table>
             <thead>
@@ -107,7 +107,7 @@ export default function KronologiHPPPage() {
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>
                     {o.order_number ?? (o.id ?? 'N/A').slice(0, 8)}
                   </td>
-                  <td style={{ color: '#6b7280' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>
                     {formatRp(o.total_amount ?? 0)}
                   </td>
@@ -123,13 +123,13 @@ export default function KronologiHPPPage() {
                             ? '#dcfce7'
                             : o.payment_status === 'pending'
                               ? '#fef9c3'
-                              : '#f3f4f6',
+                              : 'var(--neutral-100)',
                         color:
                           o.payment_status === 'paid'
                             ? '#166534'
                             : o.payment_status === 'pending'
                               ? '#854d0e'
-                              : '#6b7280'
+                              : 'var(--neutral-600)'
                       }}
                     >
                       {o.payment_status ?? '—'}

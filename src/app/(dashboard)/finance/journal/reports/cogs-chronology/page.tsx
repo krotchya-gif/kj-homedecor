@@ -62,9 +62,9 @@ export default function COGSChronologyPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : orders.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <TrendingUp size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada data</p>
           </div>
@@ -81,7 +81,7 @@ export default function COGSChronologyPage() {
               {orders.map((o) => (
                 <tr key={o.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{o.order_number ?? o.id.slice(0, 8)}</td>
-                  <td style={{ color: '#6b7280' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{new Date(o.created_at).toLocaleDateString('id-ID')}</td>
                   <td style={{ fontWeight: '600', textAlign: 'right', color: '#cc7030' }}>
                     {formatRp(o.total_amount ?? 0)}
                   </td>

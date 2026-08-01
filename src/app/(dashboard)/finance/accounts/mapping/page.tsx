@@ -121,9 +121,9 @@ export default function MappingPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : mappings.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <GitBranch size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada mapping</p>
           </div>
@@ -152,7 +152,7 @@ export default function MappingPage() {
                     {m.credit_account ? <span style={{ fontFamily: 'monospace' }}>{m.credit_account.code}</span> : '—'}{' '}
                     {m.credit_account?.name ?? ''}
                   </td>
-                  <td style={{ color: '#6b7280' }}>{m.description ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{m.description ?? '—'}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -161,7 +161,7 @@ export default function MappingPage() {
                           background: 'none',
                           border: 'none',
                           cursor: 'pointer',
-                          color: '#6b7280',
+                          color: 'var(--neutral-600)',
                           padding: '0.25rem'
                         }}
                       >
@@ -199,7 +199,7 @@ export default function MappingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -216,7 +216,7 @@ export default function MappingPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih —</option>
@@ -234,7 +234,7 @@ export default function MappingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -250,7 +250,7 @@ export default function MappingPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               >
                 <option value="">— Pilih Akun —</option>
@@ -267,7 +267,7 @@ export default function MappingPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -283,7 +283,7 @@ export default function MappingPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               >
                 <option value="">— Pilih Akun —</option>
@@ -301,7 +301,7 @@ export default function MappingPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -330,7 +330,7 @@ export default function MappingPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

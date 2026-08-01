@@ -90,7 +90,7 @@ export default function PenjahitReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {MONTHS.map((m, i) => (
@@ -108,7 +108,7 @@ export default function PenjahitReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {[2024, 2025, 2026].map((y) => (
@@ -181,9 +181,9 @@ export default function PenjahitReportsPage() {
       {/* Detail table */}
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : reports.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <BarChart3 size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada laporan di periode ini</p>
           </div>
@@ -215,7 +215,7 @@ export default function PenjahitReportsPage() {
                   <td>{(r.meter_kupu_kupu ?? 0).toFixed(2)}m</td>
                   <td>{r.poni_lurus ?? 0}</td>
                   <td>{r.poni_gel ?? 0}</td>
-                  <td style={{ color: '#6b7280', fontSize: '0.8rem' }}>{r.notes ?? '—'}</td>
+                  <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>{r.notes ?? '—'}</td>
                 </tr>
               ))}
             </tbody>

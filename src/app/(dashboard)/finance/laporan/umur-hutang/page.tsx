@@ -124,9 +124,9 @@ export default function UmurHutangPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : enriched.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada data hutang</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data hutang</div>
         ) : (
           <table>
             <thead>
@@ -149,10 +149,10 @@ export default function UmurHutangPage() {
                 return (
                   <tr key={h.id}>
                     <td style={{ fontWeight: '600' }}>{h.supplier?.name ?? '—'}</td>
-                    <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>
+                    <td style={{ fontFamily: 'monospace', color: 'var(--neutral-600)' }}>
                       {h.invoice_number ?? h.id.slice(0, 8)}
                     </td>
-                    <td style={{ color: '#6b7280' }}>{new Date(h.invoice_date).toLocaleDateString('id-ID')}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{new Date(h.invoice_date).toLocaleDateString('id-ID')}</td>
                     <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
                       {formatRp(h.amount ?? 0)}
                     </td>
@@ -183,13 +183,13 @@ export default function UmurHutangPage() {
         <div
           style={{
             marginTop: '1.5rem',
-            background: '#fff',
+            background: 'var(--surface)',
             border: '1px solid #e5e7eb',
             borderRadius: '0.875rem',
             padding: '1.5rem'
           }}
         >
-          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '1rem' }}>
             Ringkasan per Bucket
           </h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>

@@ -58,9 +58,9 @@ export default function CashMutationPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : cashAccounts.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <LandPlot size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada akun kas/bank</p>
           </div>
@@ -79,7 +79,7 @@ export default function CashMutationPage() {
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{c.account?.code ?? '—'}</td>
                   <td style={{ fontWeight: '500' }}>{c.bank_name ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>{c.account_number ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace', color: 'var(--neutral-600)' }}>{c.account_number ?? '—'}</td>
                   <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
                     {formatRp(c.balance ?? 0)}
                   </td>

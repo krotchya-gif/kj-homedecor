@@ -113,7 +113,7 @@ export default function OwnerProductsPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -142,15 +142,15 @@ export default function OwnerProductsPage() {
           {/* Top Products by Revenue */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               overflow: 'hidden',
               marginBottom: '1.5rem'
             }}
           >
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 Top 10 Produk (Revenue)
               </h2>
             </div>
@@ -177,8 +177,8 @@ export default function OwnerProductsPage() {
                             width: 22,
                             height: 22,
                             borderRadius: '50%',
-                            background: i < 3 ? '#cc7030' : '#e5e7eb',
-                            color: i < 3 ? '#fff' : '#6b7280',
+                            background: i < 3 ? '#cc7030' : 'var(--neutral-200)',
+                            color: i < 3 ? '#fff' : 'var(--neutral-600)',
                             fontSize: '0.75rem',
                             fontWeight: '700'
                           }}
@@ -187,14 +187,14 @@ export default function OwnerProductsPage() {
                         </span>
                       </td>
                       <td style={{ fontWeight: '600' }}>{p.name}</td>
-                      <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
-                      <td style={{ color: '#6b7280' }}>{p.total_qty}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{p.total_qty}</td>
                       <td style={{ fontWeight: '700', color: '#cc7030' }}>{formatRp(p.total_revenue)}</td>
                     </tr>
                   ))}
                   {filteredStats.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>
                         Tidak ada data
                       </td>
                     </tr>
@@ -205,12 +205,12 @@ export default function OwnerProductsPage() {
           </div>
 
           {/* All Products with Pagination */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
             <div
               style={{
                 padding: '1rem 1.25rem',
                 borderBottom: '1px solid #e5e7eb',
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -218,8 +218,8 @@ export default function OwnerProductsPage() {
                 gap: '0.5rem'
               }}
             >
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Semua Produk</h2>
-              <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Semua Produk</h2>
+              <span style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                 Menampilkan {startIndex + 1}–{Math.min(endIndex, filtered.length)} dari {filtered.length}
               </span>
             </div>
@@ -238,8 +238,8 @@ export default function OwnerProductsPage() {
                   {paginatedProducts.map((p) => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: '600' }}>{p.name}</td>
-                      <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
-                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{p.category?.name ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{p.category?.name ?? '—'}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
                       <td>
                         <span
@@ -259,7 +259,7 @@ export default function OwnerProductsPage() {
                   ))}
                   {paginatedProducts.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>
                         <Package size={28} style={{ opacity: 0.3, margin: '0 auto 0.75rem', display: 'block' }} />
                         Tidak ada produk
                       </td>
@@ -289,19 +289,19 @@ export default function OwnerProductsPage() {
                     alignItems: 'center',
                     gap: '0.25rem',
                     padding: '0.5rem 0.875rem',
-                    background: currentPage === 1 ? '#f3f4f6' : '#fff',
+                    background: currentPage === 1 ? 'var(--neutral-100)' : '#fff',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                     fontSize: '0.82rem',
-                    color: currentPage === 1 ? '#9ca3af' : '#374151',
+                    color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)',
                     fontWeight: '600',
                     opacity: currentPage === 1 ? 0.5 : 1
                   }}
                 >
                   <ChevronLeft size={14} /> Prev
                 </button>
-                <span style={{ fontSize: '0.82rem', color: '#6b7280', padding: '0 0.5rem' }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', padding: '0 0.5rem' }}>
                   Halaman {currentPage} dari {totalPages}
                 </span>
                 <button
@@ -312,12 +312,12 @@ export default function OwnerProductsPage() {
                     alignItems: 'center',
                     gap: '0.25rem',
                     padding: '0.5rem 0.875rem',
-                    background: currentPage === totalPages ? '#f3f4f6' : '#fff',
+                    background: currentPage === totalPages ? 'var(--neutral-100)' : '#fff',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
                     cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                     fontSize: '0.82rem',
-                    color: currentPage === totalPages ? '#9ca3af' : '#374151',
+                    color: currentPage === totalPages ? 'var(--neutral-400)' : 'var(--neutral-700)',
                     fontWeight: '600',
                     opacity: currentPage === totalPages ? 0.5 : 1
                   }}

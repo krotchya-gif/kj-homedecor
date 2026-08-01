@@ -117,7 +117,7 @@ export default function IncomePage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -159,9 +159,9 @@ export default function IncomePage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <TrendingUp size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada pemasukan</p>
           </div>
@@ -182,12 +182,12 @@ export default function IncomePage() {
                 const revLine = j.lines?.find((l: any) => l.credit > 0)
                 return (
                   <tr key={j.id}>
-                    <td style={{ color: '#6b7280' }}>{new Date(j.entry_date).toLocaleDateString('id-ID')}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{new Date(j.entry_date).toLocaleDateString('id-ID')}</td>
                     <td style={{ fontWeight: '500' }}>{j.description}</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.82rem' }}>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.82rem' }}>
                       {cashLine?.account_id?.substring(0, 8) ?? '—'}
                     </td>
-                    <td style={{ color: '#6b7280', fontSize: '0.82rem' }}>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.82rem' }}>
                       {revLine?.account_id?.substring(0, 8) ?? '—'}
                     </td>
                     <td
@@ -224,7 +224,7 @@ export default function IncomePage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -241,7 +241,7 @@ export default function IncomePage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih Akun Kas —</option>
@@ -258,7 +258,7 @@ export default function IncomePage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -280,7 +280,7 @@ export default function IncomePage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih Akun —</option>
@@ -304,7 +304,7 @@ export default function IncomePage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -332,7 +332,7 @@ export default function IncomePage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -359,7 +359,7 @@ export default function IncomePage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -390,7 +390,7 @@ export default function IncomePage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

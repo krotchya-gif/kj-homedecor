@@ -103,7 +103,7 @@ export default function FinanceReportsPage() {
     doc.text('KJ Homedecor — Laporan Keuangan', 14, 20)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor('#6b7280')
+    doc.setTextColor('var(--neutral-600)')
     doc.text(`Periode: ${MONTHS[month]} ${year} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
     doc.setTextColor('#000')
 
@@ -161,7 +161,7 @@ export default function FinanceReportsPage() {
     doc.save(`kj-keuangan-${year}-${String(month + 1).padStart(2, '0')}.pdf`)
   }
 
-  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+  if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
 
   return (
     <div>
@@ -201,7 +201,7 @@ export default function FinanceReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {MONTHS.map((m, i) => (
@@ -219,7 +219,7 @@ export default function FinanceReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {[2024, 2025, 2026].map((y) => (
@@ -228,7 +228,7 @@ export default function FinanceReportsPage() {
             </option>
           ))}
         </select>
-        <span style={{ fontSize: '0.85rem', color: '#9ca3af' }}>
+        <span style={{ fontSize: '0.85rem', color: 'var(--neutral-400)' }}>
           Menampilkan data: {MONTHS[month]} {year}
         </span>
       </div>
@@ -256,7 +256,7 @@ export default function FinanceReportsPage() {
         <div className="form-section">
           <div className="form-section-title">📊 Breakdown per Platform</div>
           {Object.keys(bySource).length === 0 ? (
-            <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Tidak ada pesanan di periode ini</p>
+            <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem' }}>Tidak ada pesanan di periode ini</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {Object.entries(bySource)
@@ -276,7 +276,7 @@ export default function FinanceReportsPage() {
                       />
                       <span
                         style={{
-                          background: '#f3f4f6',
+                          background: 'var(--neutral-100)',
                           padding: '0.2rem 0.625rem',
                           borderRadius: '999px',
                           fontSize: '0.78rem',
@@ -296,7 +296,7 @@ export default function FinanceReportsPage() {
         <div className="form-section">
           <div className="form-section-title">⏱️ Lembur Bulan Ini</div>
           {periodLembur.length === 0 ? (
-            <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Tidak ada catatan lembur</p>
+            <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem' }}>Tidak ada catatan lembur</p>
           ) : (
             <>
               <div style={{ fontSize: '1.75rem', fontWeight: '800', color: '#cc7030', marginBottom: '0.5rem' }}>
@@ -306,13 +306,13 @@ export default function FinanceReportsPage() {
                 {periodLembur.slice(0, 5).map((l, i) => (
                   <div
                     key={i}
-                    style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: '#6b7280' }}
+                    style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', color: 'var(--neutral-600)' }}
                   >
                     <span>
                       {l.staff?.name ?? '—'} —{' '}
                       {new Date(l.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                     </span>
-                    <span style={{ fontWeight: '600', color: '#374151' }}>{l.jam} jam</span>
+                    <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{l.jam} jam</span>
                   </div>
                 ))}
               </div>
@@ -327,7 +327,7 @@ export default function FinanceReportsPage() {
           <Scissors size={15} /> Rekap Pengupahan Penjahit — {MONTHS[month]} {year}
         </div>
         {Object.keys(byPenjahit).length === 0 ? (
-          <p style={{ color: '#9ca3af', fontSize: '0.85rem', padding: '1rem 0' }}>
+          <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', padding: '1rem 0' }}>
             Tidak ada laporan produksi di periode ini
           </p>
         ) : (
@@ -358,7 +358,7 @@ export default function FinanceReportsPage() {
                     <td style={{ fontWeight: '700', color: '#cc7030' }}>{fmt(calcUpah(p))}</td>
                   </tr>
                 ))}
-                <tr style={{ background: '#fafafa', fontWeight: '700' }}>
+                <tr style={{ background: 'var(--neutral-50)', fontWeight: '700' }}>
                   <td>Total</td>
                   <td colSpan={6}></td>
                   <td style={{ color: '#cc7030' }}>

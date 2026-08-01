@@ -7,7 +7,7 @@ export function TableSkeleton({ rows = 5, cols = 5 }: { rows?: number; cols?: nu
         <tr>
           {Array.from({ length: cols }).map((_, i) => (
             <th key={i}>
-              <div style={{ height: 14, background: '#e5e7eb', borderRadius: 4, width: '80%' }} />
+              <div style={{ height: 14, background: 'var(--neutral-200)', borderRadius: 4, width: '80%' }} />
             </th>
           ))}
         </tr>
@@ -17,7 +17,7 @@ export function TableSkeleton({ rows = 5, cols = 5 }: { rows?: number; cols?: nu
           <tr key={r}>
             {Array.from({ length: cols }).map((_, c) => (
               <td key={c}>
-                <div style={{ height: 14, background: '#f3f4f6', borderRadius: 4, width: c === 0 ? '70%' : '50%' }} />
+                <div style={{ height: 14, background: 'var(--neutral-100)', borderRadius: 4, width: c === 0 ? '70%' : '50%' }} />
               </td>
             ))}
           </tr>
@@ -32,9 +32,9 @@ export function StatCardSkeleton() {
     <div className="stat-grid">
       {[0, 1, 2].map((i) => (
         <div key={i} className="stat-card">
-          <div style={{ height: 12, background: '#e5e7eb', borderRadius: 4, width: '50%', marginBottom: 8 }} />
-          <div style={{ height: 28, background: '#e5e7eb', borderRadius: 4, width: '70%', marginBottom: 4 }} />
-          <div style={{ height: 10, background: '#f3f4f6', borderRadius: 4, width: '40%' }} />
+          <div style={{ height: 12, background: 'var(--neutral-200)', borderRadius: 4, width: '50%', marginBottom: 8 }} />
+          <div style={{ height: 28, background: 'var(--neutral-200)', borderRadius: 4, width: '70%', marginBottom: 4 }} />
+          <div style={{ height: 10, background: 'var(--neutral-100)', borderRadius: 4, width: '40%' }} />
         </div>
       ))}
     </div>
@@ -47,11 +47,11 @@ export function CardGridSkeleton({ count = 4 }: { count?: number }) {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+          style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
         >
-          <div style={{ height: 14, background: '#e5e7eb', borderRadius: 4, width: '60%', marginBottom: 12 }} />
-          <div style={{ height: 20, background: '#e5e7eb', borderRadius: 4, width: '40%', marginBottom: 8 }} />
-          <div style={{ height: 12, background: '#f3f4f6', borderRadius: 4, width: '80%' }} />
+          <div style={{ height: 14, background: 'var(--neutral-200)', borderRadius: 4, width: '60%', marginBottom: 12 }} />
+          <div style={{ height: 20, background: 'var(--neutral-200)', borderRadius: 4, width: '40%', marginBottom: 8 }} />
+          <div style={{ height: 12, background: 'var(--neutral-100)', borderRadius: 4, width: '80%' }} />
         </div>
       ))}
     </div>

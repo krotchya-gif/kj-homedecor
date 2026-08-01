@@ -62,9 +62,9 @@ export default function JournalListPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : entries.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <List size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada journal entries</p>
           </div>
@@ -84,7 +84,7 @@ export default function JournalListPage() {
                 e.lines?.map((line: any, idx: number) => (
                   <tr key={`${e.id}-${idx}`}>
                     {idx === 0 && (
-                      <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>
+                      <td rowSpan={e.lines?.length ?? 1} style={{ color: 'var(--neutral-600)' }}>
                         {e.entry_date}
                       </td>
                     )}
@@ -94,7 +94,7 @@ export default function JournalListPage() {
                     <td style={{ textAlign: 'right' }}>{line.debit > 0 ? formatRp(line.debit) : '—'}</td>
                     <td style={{ textAlign: 'right' }}>{line.credit > 0 ? formatRp(line.credit) : '—'}</td>
                     {idx === 0 && (
-                      <td rowSpan={e.lines?.length ?? 1} style={{ color: '#6b7280' }}>
+                      <td rowSpan={e.lines?.length ?? 1} style={{ color: 'var(--neutral-600)' }}>
                         {e.description ?? '—'}
                       </td>
                     )}

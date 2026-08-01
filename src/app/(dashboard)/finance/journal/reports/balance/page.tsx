@@ -73,14 +73,14 @@ export default function BalanceSheetPage() {
         {/* ASSETS */}
         <div
           className="chart-card"
-          style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}
+          style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}
         >
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#fef3c7' }}>
             <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#92400e' }}>ASET</h2>
           </div>
           <div className="data-table">
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : (
               <table>
                 <tbody>
@@ -107,14 +107,14 @@ export default function BalanceSheetPage() {
         {/* LIABILITIES + EQUITY */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div
-            style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}
+            style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}
           >
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#fef3c7' }}>
               <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#92400e' }}>LIABILITAS</h2>
             </div>
             <div className="data-table">
               {loading ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
               ) : (
                 <table>
                   <tbody>
@@ -141,14 +141,14 @@ export default function BalanceSheetPage() {
           </div>
 
           <div
-            style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}
+            style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}
           >
             <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#fef3c7' }}>
               <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#92400e' }}>EKUITAS</h2>
             </div>
             <div className="data-table">
               {loading ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
               ) : (
                 <table>
                   <tbody>

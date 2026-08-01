@@ -42,7 +42,7 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
           display: 'block',
           fontSize: '0.8rem',
           fontWeight: '600',
-          color: '#374151',
+          color: 'var(--neutral-700)',
           marginBottom: '0.5rem'
         }}
       >
@@ -58,7 +58,7 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
             style={{
               width: 48,
               height: 48,
-              border: '2px solid #d1d5db',
+              border: '2px solid var(--input-border)',
               borderRadius: '0.5rem',
               cursor: 'pointer',
               padding: 0
@@ -88,7 +88,7 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
           style={{
             flex: 1,
             padding: '0.625rem',
-            border: `2px solid ${isValid ? '#d1d5db' : '#ef4444'}`,
+            border: `2px solid ${isValid ? 'var(--input-border)' : '#ef4444'}`,
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             fontFamily: 'monospace',
@@ -104,8 +104,8 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
           title="Reset to default"
           style={{
             padding: '0.625rem',
-            background: '#f3f4f6',
-            border: '1px solid #d1d5db',
+            background: 'var(--neutral-100)',
+            border: '1px solid var(--input-border)',
             borderRadius: '0.5rem',
             cursor: 'pointer',
             display: 'flex',
@@ -114,13 +114,13 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
             transition: 'all 0.15s'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#e5e7eb'
+            e.currentTarget.style.background = 'var(--neutral-200)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f3f4f6'
+            e.currentTarget.style.background = 'var(--neutral-100)'
           }}
         >
-          <RotateCcw size={16} style={{ color: '#6b7280' }} />
+          <RotateCcw size={16} style={{ color: 'var(--neutral-600)' }} />
         </button>
       </div>
 
@@ -129,7 +129,7 @@ export default function ColorPicker({ label, value, defaultValue, onChange, desc
         <p
           style={{
             fontSize: '0.75rem',
-            color: '#9ca3af',
+            color: 'var(--neutral-400)',
             marginTop: '0.25rem'
           }}
         >

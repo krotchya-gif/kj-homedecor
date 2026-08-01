@@ -14,7 +14,7 @@ export function EmptyState({ icon, title, description, action, compact = false }
       style={{
         padding: compact ? '2rem' : '3.5rem',
         textAlign: 'center',
-        color: '#9ca3af',
+        color: 'var(--neutral-400)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -27,13 +27,13 @@ export function EmptyState({ icon, title, description, action, compact = false }
             width: compact ? 48 : 64,
             height: compact ? 48 : 64,
             borderRadius: '50%',
-            background: '#f9fafb',
-            border: '2px solid #e5e7eb',
+            background: 'var(--neutral-100)',
+            border: '2px solid var(--neutral-200)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '0.25rem',
-            color: '#d1d5db',
+            color: 'var(--neutral-300)',
             fontSize: compact ? '1.5rem' : '2rem'
           }}
         >
@@ -44,7 +44,7 @@ export function EmptyState({ icon, title, description, action, compact = false }
         style={{
           fontSize: compact ? '0.875rem' : '1rem',
           fontWeight: '600',
-          color: '#6b7280'
+          color: 'var(--neutral-600)'
         }}
       >
         {title}
@@ -53,7 +53,7 @@ export function EmptyState({ icon, title, description, action, compact = false }
         <div
           style={{
             fontSize: compact ? '0.78rem' : '0.875rem',
-            color: '#9ca3af',
+            color: 'var(--neutral-400)',
             maxWidth: 320,
             lineHeight: 1.5
           }}

@@ -102,20 +102,20 @@ export default function UmurPiutangPage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : (
         <>
           {/* Bar chart */}
           <div
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.875rem',
               padding: '1.5rem',
               marginBottom: '1.5rem'
             }}
           >
-            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '1rem' }}>
               Distribusi Umur Piutang
             </h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -130,12 +130,12 @@ export default function UmurPiutangPage() {
                 return (
                   <div key={d.bucket}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151' }}>{d.bucket}</span>
+                      <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)' }}>{d.bucket}</span>
                       <span style={{ fontSize: '0.8rem', fontWeight: '700', color: colors[d.bucket] }}>
                         {formatRp(d.amount)}
                       </span>
                     </div>
-                    <div style={{ background: '#f3f4f6', borderRadius: '9999px', height: '12px', overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--neutral-100)', borderRadius: '9999px', height: '12px', overflow: 'hidden' }}>
                       <div
                         style={{
                           width: `${pct}%`,

@@ -29,7 +29,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e' },
   partial: { bg: '#dbeafe', text: '#1e40af' },
   paid: { bg: '#d1fae5', text: '#065f46' },
-  cancelled: { bg: '#f3f4f6', text: '#6b7280' }
+  cancelled: { bg: 'var(--neutral-100)', text: 'var(--neutral-600)' }
 }
 
 export default function FakturPage() {
@@ -135,7 +135,7 @@ export default function FakturPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -175,9 +175,9 @@ export default function FakturPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <FileText size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada faktur</p>
           </div>
@@ -203,9 +203,9 @@ export default function FakturPage() {
                 return (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
-                    <td style={{ textTransform: 'capitalize', color: '#6b7280' }}>{p.channel ?? '—'}</td>
+                    <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{p.channel ?? '—'}</td>
                     <td style={{ fontFamily: 'monospace' }}>{p.invoice_number ?? '—'}</td>
-                    <td style={{ color: '#6b7280' }}>{p.invoice_date ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{p.invoice_date ?? '—'}</td>
                     <td style={{ fontWeight: '600', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{formatRp(p.return_amount ?? 0)}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030', textAlign: 'right' }}>{formatRp(sisa)}</td>
@@ -232,7 +232,7 @@ export default function FakturPage() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             padding: '0.25rem'
                           }}
                         >
@@ -271,7 +271,7 @@ export default function FakturPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -288,7 +288,7 @@ export default function FakturPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih Customer —</option>
@@ -306,7 +306,7 @@ export default function FakturPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -322,7 +322,7 @@ export default function FakturPage() {
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none',
-                  background: '#fff'
+                  background: 'var(--surface)'
                 }}
               >
                 <option value="">— Pilih —</option>
@@ -339,7 +339,7 @@ export default function FakturPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -367,7 +367,7 @@ export default function FakturPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -393,7 +393,7 @@ export default function FakturPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -422,7 +422,7 @@ export default function FakturPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -449,7 +449,7 @@ export default function FakturPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -479,7 +479,7 @@ export default function FakturPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

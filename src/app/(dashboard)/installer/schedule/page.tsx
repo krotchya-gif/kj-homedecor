@@ -12,7 +12,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   in_progress: { bg: '#fef3c7', text: '#92400e' },
   revision: { bg: '#fee2e2', text: '#991b1b' },
   done: { bg: '#d1fae5', text: '#065f46' },
-  cancelled: { bg: '#f3f4f6', text: '#6b7280' }
+  cancelled: { bg: 'var(--neutral-100)', text: 'var(--neutral-600)' }
 }
 
 export default function InstallerSchedulePage() {
@@ -142,7 +142,7 @@ export default function InstallerSchedulePage() {
               borderBottom: `2px solid ${tab === t ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: tab === t ? '700' : '500',
-              color: tab === t ? '#cc7030' : '#6b7280',
+              color: tab === t ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px'
             }}
@@ -153,9 +153,9 @@ export default function InstallerSchedulePage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : list.length === 0 ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
           <Calendar size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
           <p>Tidak ada jadwal {tab === 'upcoming' ? 'mendatang' : 'selesai'}</p>
         </div>
@@ -175,7 +175,7 @@ export default function InstallerSchedulePage() {
             return (
               <div
                 key={b.id}
-                style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+                style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
               >
                 {/* Revision banner */}
                 {b.status === 'revision' && (
@@ -198,7 +198,7 @@ export default function InstallerSchedulePage() {
                       >
                         Revisi Dibuat
                       </div>
-                      <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>{b.revision_reason}</div>
+                      <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>{b.revision_reason}</div>
                     </div>
                   </div>
                 )}
@@ -253,7 +253,7 @@ export default function InstallerSchedulePage() {
                         {b.type === 'pasang' ? '📍 Pasang' : '📦 Kirim'}
                       </span>
                     </div>
-                    <div style={{ fontWeight: '700', fontSize: '1rem', color: '#1f2937', marginBottom: '0.375rem' }}>
+                    <div style={{ fontWeight: '700', fontSize: '1rem', color: 'var(--neutral-800)', marginBottom: '0.375rem' }}>
                       {cust?.name ?? '—'}
                     </div>
                     <div
@@ -262,7 +262,7 @@ export default function InstallerSchedulePage() {
                         flexDirection: 'column',
                         gap: '0.25rem',
                         fontSize: '0.85rem',
-                        color: '#6b7280'
+                        color: 'var(--neutral-600)'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -295,8 +295,8 @@ export default function InstallerSchedulePage() {
                         style={{
                           marginTop: '0.5rem',
                           fontSize: '0.82rem',
-                          color: '#6b7280',
-                          background: '#f9fafb',
+                          color: 'var(--neutral-600)',
+                          background: 'var(--neutral-100)',
                           borderRadius: '0.375rem',
                           padding: '0.5rem 0.75rem'
                         }}
@@ -391,7 +391,7 @@ export default function InstallerSchedulePage() {
             >
               <div>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: 0 }}>🔄 Laporkan Masalah</h2>
-                <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0.25rem 0 0' }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', margin: '0.25rem 0 0' }}>
                   {revBooking?.order?.customer?.name ?? '—'}
                 </p>
               </div>
@@ -410,7 +410,7 @@ export default function InstallerSchedulePage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -439,7 +439,7 @@ export default function InstallerSchedulePage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -488,12 +488,12 @@ export default function InstallerSchedulePage() {
                       height: 72,
                       border: '2px dashed #d1d5db',
                       borderRadius: '0.5rem',
-                      background: '#f9fafb',
+                      background: 'var(--neutral-100)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#9ca3af',
+                      color: 'var(--neutral-400)',
                       fontSize: '0.75rem',
                       textAlign: 'center',
                       flexDirection: 'column',
@@ -536,7 +536,7 @@ export default function InstallerSchedulePage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}

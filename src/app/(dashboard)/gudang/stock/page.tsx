@@ -320,7 +320,7 @@ export default function GudangStockPage() {
     display: 'block',
     fontSize: '0.8rem',
     fontWeight: '600' as const,
-    color: '#374151',
+    color: 'var(--neutral-700)',
     marginBottom: '0.3rem'
   }
 
@@ -340,7 +340,7 @@ export default function GudangStockPage() {
               borderBottom: `2px solid ${tab === t ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: tab === t ? '700' : '500',
-              color: tab === t ? '#cc7030' : '#6b7280',
+              color: tab === t ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px'
             }}
@@ -398,17 +398,17 @@ export default function GudangStockPage() {
                   {filteredMat.map((m) => (
                     <tr key={m.id}>
                       <td style={{ fontWeight: '500' }}>{m.name}</td>
-                      <td style={{ color: '#6b7280' }}>{m.unit}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{m.unit}</td>
                       <td
                         style={{
                           fontWeight: '700',
-                          color: m.stock_gudang <= m.min_stock_level ? '#ef4444' : '#374151'
+                          color: m.stock_gudang <= m.min_stock_level ? '#ef4444' : 'var(--neutral-700)'
                         }}
                       >
                         {m.stock_gudang}
                       </td>
                       <td>{m.stock_toko}</td>
-                      <td style={{ color: '#9ca3af' }}>{m.min_stock_level}</td>
+                      <td style={{ color: 'var(--neutral-400)' }}>{m.min_stock_level}</td>
                       <td>
                         {m.stock_gudang < m.min_stock_level && (
                           <span
@@ -475,9 +475,9 @@ export default function GudangStockPage() {
                   {filteredProd.map((p) => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: '500' }}>{p.name}</td>
-                      <td style={{ color: '#6b7280' }}>{p.category?.name ?? '—'}</td>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#9ca3af' }}>{p.sku ?? '—'}</td>
-                      <td style={{ fontWeight: '700', color: p.stock_toko === 0 ? '#ef4444' : '#374151' }}>
+                      <td style={{ color: 'var(--neutral-600)' }}>{p.category?.name ?? '—'}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--neutral-400)' }}>{p.sku ?? '—'}</td>
+                      <td style={{ fontWeight: '700', color: p.stock_toko === 0 ? '#ef4444' : 'var(--neutral-700)' }}>
                         {p.stock_toko}
                       </td>
                     </tr>
@@ -513,7 +513,7 @@ export default function GudangStockPage() {
           <form
             onSubmit={handleMutasiSubmit}
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               padding: '1.5rem',
@@ -535,12 +535,12 @@ export default function GudangStockPage() {
                 style={{
                   flex: 1,
                   padding: '0.625rem',
-                  border: `2px solid ${mutasiTarget === 'material' ? '#cc7030' : '#e5e7eb'}`,
+                  border: `2px solid ${mutasiTarget === 'material' ? '#cc7030' : 'var(--neutral-200)'}`,
                   borderRadius: '0.5rem',
                   background: mutasiTarget === 'material' ? '#fff7ed' : '#fff',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  color: mutasiTarget === 'material' ? '#92400e' : '#6b7280',
+                  color: mutasiTarget === 'material' ? '#92400e' : 'var(--neutral-600)',
                   fontSize: '0.875rem'
                 }}
               >
@@ -556,12 +556,12 @@ export default function GudangStockPage() {
                 style={{
                   flex: 1,
                   padding: '0.625rem',
-                  border: `2px solid ${mutasiTarget === 'produk' ? '#cc7030' : '#e5e7eb'}`,
+                  border: `2px solid ${mutasiTarget === 'produk' ? '#cc7030' : 'var(--neutral-200)'}`,
                   borderRadius: '0.5rem',
                   background: mutasiTarget === 'produk' ? '#fff7ed' : '#fff',
                   cursor: 'pointer',
                   fontWeight: '600',
-                  color: mutasiTarget === 'produk' ? '#92400e' : '#6b7280',
+                  color: mutasiTarget === 'produk' ? '#92400e' : 'var(--neutral-600)',
                   fontSize: '0.875rem'
                 }}
               >
@@ -589,7 +589,7 @@ export default function GudangStockPage() {
                       top: '100%',
                       left: 0,
                       right: 0,
-                      background: '#fff',
+                      background: 'var(--surface)',
                       border: '1px solid #e5e7eb',
                       borderRadius: '0.5rem',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -615,7 +615,7 @@ export default function GudangStockPage() {
                         }}
                       >
                         <div style={{ fontWeight: '500' }}>{it.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
                           {mutasiTarget === 'material'
                             ? `Gudang: ${it.stock_gudang} | Toko: ${it.stock_toko}`
                             : `Stok Toko: ${it.stock_toko}`}
@@ -672,13 +672,13 @@ export default function GudangStockPage() {
                         justifyContent: 'center',
                         gap: '0.4rem',
                         padding: '0.625rem',
-                        border: `2px solid ${mutasiLocation === loc ? '#cc7030' : '#e5e7eb'}`,
+                        border: `2px solid ${mutasiLocation === loc ? '#cc7030' : 'var(--neutral-200)'}`,
                         borderRadius: '0.5rem',
                         cursor: 'pointer',
                         fontWeight: '600',
                         fontSize: '0.875rem',
                         background: mutasiLocation === loc ? '#fff7ed' : '#fff',
-                        color: mutasiLocation === loc ? '#92400e' : '#6b7280',
+                        color: mutasiLocation === loc ? '#92400e' : 'var(--neutral-600)',
                         textTransform: 'capitalize' as const
                       }}
                     >
@@ -700,10 +700,10 @@ export default function GudangStockPage() {
               <div
                 style={{
                   padding: '0.625rem',
-                  background: '#f3f4f6',
+                  background: 'var(--neutral-100)',
                   borderRadius: '0.5rem',
                   fontSize: '0.82rem',
-                  color: '#6b7280',
+                  color: 'var(--neutral-600)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem'
@@ -718,7 +718,7 @@ export default function GudangStockPage() {
               <select
                 value={mutasiReason}
                 onChange={(e) => setMutasiReason(e.target.value)}
-                style={{ ...inp, background: '#fff' }}
+                style={{ ...inp, background: 'var(--surface)' }}
               >
                 <option value="">— Pilih Alasan —</option>
                 <option value="Restock">Restock</option>
@@ -772,12 +772,12 @@ export default function GudangStockPage() {
               style={{
                 flex: 1,
                 padding: '0.875rem',
-                border: `2px solid ${editTarget === 'material' ? '#cc7030' : '#e5e7eb'}`,
+                border: `2px solid ${editTarget === 'material' ? '#cc7030' : 'var(--neutral-200)'}`,
                 borderRadius: '0.75rem',
                 background: editTarget === 'material' ? '#fff7ed' : '#fff',
                 cursor: 'pointer',
                 fontWeight: '700',
-                color: editTarget === 'material' ? '#92400e' : '#6b7280',
+                color: editTarget === 'material' ? '#92400e' : 'var(--neutral-600)',
                 fontSize: '0.9rem'
               }}
             >
@@ -791,12 +791,12 @@ export default function GudangStockPage() {
               style={{
                 flex: 1,
                 padding: '0.875rem',
-                border: `2px solid ${editTarget === 'produk' ? '#cc7030' : '#e5e7eb'}`,
+                border: `2px solid ${editTarget === 'produk' ? '#cc7030' : 'var(--neutral-200)'}`,
                 borderRadius: '0.75rem',
                 background: editTarget === 'produk' ? '#fff7ed' : '#fff',
                 cursor: 'pointer',
                 fontWeight: '700',
-                color: editTarget === 'produk' ? '#92400e' : '#6b7280',
+                color: editTarget === 'produk' ? '#92400e' : 'var(--neutral-600)',
                 fontSize: '0.9rem'
               }}
             >
@@ -844,17 +844,17 @@ export default function GudangStockPage() {
                     {filteredItems(materials, editSearch).map((m) => (
                       <tr key={m.id}>
                         <td style={{ fontWeight: '500' }}>{m.name}</td>
-                        <td style={{ color: '#6b7280' }}>{m.unit}</td>
+                        <td style={{ color: 'var(--neutral-600)' }}>{m.unit}</td>
                         <td
                           style={{
                             fontWeight: '700',
-                            color: m.stock_gudang <= m.min_stock_level ? '#ef4444' : '#374151'
+                            color: m.stock_gudang <= m.min_stock_level ? '#ef4444' : 'var(--neutral-700)'
                           }}
                         >
                           {m.stock_gudang}
                         </td>
                         <td>{m.stock_toko}</td>
-                        <td style={{ color: '#9ca3af' }}>{m.min_stock_level}</td>
+                        <td style={{ color: 'var(--neutral-400)' }}>{m.min_stock_level}</td>
                         <td>
                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                             <button
@@ -937,9 +937,9 @@ export default function GudangStockPage() {
                   {filteredItems(products, editSearch).map((p) => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: '500' }}>{p.name}</td>
-                      <td style={{ color: '#6b7280' }}>{p.category?.name ?? '—'}</td>
-                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: '#9ca3af' }}>{p.sku ?? '—'}</td>
-                      <td style={{ fontWeight: '700', color: p.stock_toko === 0 ? '#ef4444' : '#374151' }}>
+                      <td style={{ color: 'var(--neutral-600)' }}>{p.category?.name ?? '—'}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--neutral-400)' }}>{p.sku ?? '—'}</td>
+                      <td style={{ fontWeight: '700', color: p.stock_toko === 0 ? '#ef4444' : 'var(--neutral-700)' }}>
                         {p.stock_toko}
                       </td>
                       <td>
@@ -1015,9 +1015,9 @@ export default function GudangStockPage() {
         {editItem && (
           <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', margin: '0 0 1.25rem' }}>✏️ Edit Stok</h2>
-            <div style={{ padding: '0.75rem', background: '#f3f4f6', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+            <div style={{ padding: '0.75rem', background: 'var(--neutral-100)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
               <strong>{editItem.name}</strong>
-              <div style={{ color: '#6b7280', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--neutral-600)', marginTop: '0.25rem' }}>
                 {editTarget === 'material'
                   ? `Stok saat ini — Gudang: ${editItem.stock_gudang} | Toko: ${editItem.stock_toko}`
                   : `Stok Toko: ${editItem.stock_toko}`}
@@ -1031,12 +1031,12 @@ export default function GudangStockPage() {
                   style={{
                     flex: 1,
                     padding: '0.625rem',
-                    border: `2px solid ${editMode === 'add' ? '#16a34a' : '#e5e7eb'}`,
+                    border: `2px solid ${editMode === 'add' ? '#16a34a' : 'var(--neutral-200)'}`,
                     borderRadius: '0.5rem',
                     background: editMode === 'add' ? '#d1fae5' : '#fff',
                     cursor: 'pointer',
                     fontWeight: '700',
-                    color: editMode === 'add' ? '#16a34a' : '#6b7280',
+                    color: editMode === 'add' ? '#16a34a' : 'var(--neutral-600)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1051,12 +1051,12 @@ export default function GudangStockPage() {
                   style={{
                     flex: 1,
                     padding: '0.625rem',
-                    border: `2px solid ${editMode === 'reduce' ? '#ef4444' : '#e5e7eb'}`,
+                    border: `2px solid ${editMode === 'reduce' ? '#ef4444' : 'var(--neutral-200)'}`,
                     borderRadius: '0.5rem',
                     background: editMode === 'reduce' ? '#fee2e2' : '#fff',
                     cursor: 'pointer',
                     fontWeight: '700',
-                    color: editMode === 'reduce' ? '#ef4444' : '#6b7280',
+                    color: editMode === 'reduce' ? '#ef4444' : 'var(--neutral-600)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -1092,13 +1092,13 @@ export default function GudangStockPage() {
                           justifyContent: 'center',
                           gap: '0.4rem',
                           padding: '0.625rem',
-                          border: `2px solid ${editLocation === loc ? '#cc7030' : '#e5e7eb'}`,
+                          border: `2px solid ${editLocation === loc ? '#cc7030' : 'var(--neutral-200)'}`,
                           borderRadius: '0.5rem',
                           cursor: 'pointer',
                           fontWeight: '600',
                           fontSize: '0.875rem',
                           background: editLocation === loc ? '#fff7ed' : '#fff',
-                          color: editLocation === loc ? '#92400e' : '#6b7280',
+                          color: editLocation === loc ? '#92400e' : 'var(--neutral-600)',
                           textTransform: 'capitalize' as const
                         }}
                       >
@@ -1120,10 +1120,10 @@ export default function GudangStockPage() {
                 <div
                   style={{
                     padding: '0.625rem',
-                    background: '#f3f4f6',
+                    background: 'var(--neutral-100)',
                     borderRadius: '0.5rem',
                     fontSize: '0.82rem',
-                    color: '#6b7280'
+                    color: 'var(--neutral-600)'
                   }}
                 >
                   &#128205; Lokasi: <strong>Toko</strong>
@@ -1135,7 +1135,7 @@ export default function GudangStockPage() {
                   required
                   value={editReason}
                   onChange={(e) => setEditReason(e.target.value)}
-                  style={{ ...inp, background: '#fff' }}
+                  style={{ ...inp, background: 'var(--surface)' }}
                 >
                   <option value="">— Pilih Alasan —</option>
                   {editReasonOptions.map((r) => (
@@ -1164,7 +1164,7 @@ export default function GudangStockPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}
@@ -1211,9 +1211,9 @@ export default function GudangStockPage() {
           </div>
 
           {loadingDelivery ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Memuat...</div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--neutral-400)' }}>Memuat...</div>
           ) : deliveryPOs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--neutral-400)' }}>
               <Truck size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem', display: 'block' }} />
               <p>Tidak ada pesanan yang sedang dalam perjalanan.</p>
             </div>
@@ -1226,7 +1226,7 @@ export default function GudangStockPage() {
                   <div
                     key={po.id}
                     style={{
-                      background: '#fff',
+                      background: 'var(--surface)',
                       border: '1px solid #e5e7eb',
                       borderRadius: '0.75rem',
                       padding: '1.25rem'
@@ -1256,16 +1256,16 @@ export default function GudangStockPage() {
                             📦 Sedang dalam perjalanan
                           </span>
                         </div>
-                        <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#1f2937' }}>
+                        <div style={{ fontWeight: '700', fontSize: '0.9rem', color: 'var(--neutral-800)' }}>
                           {material?.name ?? '—'}
                         </div>
-                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginTop: '0.2rem' }}>
                           Supplier: <strong>{po.supplier?.name ?? '—'}</strong> &bull; Qty:{' '}
                           <strong>
                             {pr?.qty ?? '—'} {material?.unit ?? ''}
                           </strong>
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.2rem' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
                           PO: <span style={{ fontFamily: 'monospace' }}>{po.id.slice(0, 8)}</span> &bull; Estimation
                           cost:{' '}
                           <strong style={{ color: '#cc7030' }}>

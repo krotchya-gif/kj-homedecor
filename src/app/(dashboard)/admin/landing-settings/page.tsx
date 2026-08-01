@@ -386,8 +386,8 @@ export default function AdminLandingSettingsPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1.25rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -425,9 +425,9 @@ export default function AdminLandingSettingsPage() {
         {/* LEFT — Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           {/* Hero Content */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Hero Section</h2>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Hero Section</h2>
             </div>
             <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
@@ -436,7 +436,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -457,7 +457,7 @@ export default function AdminLandingSettingsPage() {
                   }}
                   placeholder="Percantik Ruanganmu&#10;dengan Gorden Premium"
                 />
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                   Gunakan newline untuk breakline
                 </p>
               </div>
@@ -467,7 +467,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -496,7 +496,7 @@ export default function AdminLandingSettingsPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -523,7 +523,7 @@ export default function AdminLandingSettingsPage() {
                       display: 'block',
                       fontSize: '0.8rem',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: 'var(--neutral-700)',
                       marginBottom: '0.3rem'
                     }}
                   >
@@ -551,7 +551,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -573,7 +573,7 @@ export default function AdminLandingSettingsPage() {
                       }}
                       placeholder="/uploads/banners/xxx.jpg"
                     />
-                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                       URL gambar atau upload file baru
                     </p>
                   </div>
@@ -583,8 +583,8 @@ export default function AdminLandingSettingsPage() {
                       alignItems: 'center',
                       gap: '0.375rem',
                       padding: '0.625rem 1rem',
-                      background: heroImageUploading ? '#e5e7eb' : '#f3f4f6',
-                      color: '#374151',
+                      background: heroImageUploading ? 'var(--neutral-200)' : 'var(--neutral-100)',
+                      color: 'var(--neutral-700)',
                       border: '1px solid #d1d5db',
                       borderRadius: '0.5rem',
                       fontSize: '0.8rem',
@@ -632,7 +632,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -654,7 +654,7 @@ export default function AdminLandingSettingsPage() {
                       }}
                       placeholder="/uploads/videos/xxx.mp4"
                     />
-                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                       Video akan di-scrub saat scroll. Maks 100MB. Kosongkan untuk fallback /kj.mp4
                     </p>
                   </div>
@@ -664,8 +664,8 @@ export default function AdminLandingSettingsPage() {
                       alignItems: 'center',
                       gap: '0.375rem',
                       padding: '0.625rem 1rem',
-                      background: heroVideoUploading ? '#e5e7eb' : '#f3f4f6',
-                      color: '#374151',
+                      background: heroVideoUploading ? 'var(--neutral-200)' : 'var(--neutral-100)',
+                      color: 'var(--neutral-700)',
                       border: '1px solid #d1d5db',
                       borderRadius: '0.5rem',
                       fontSize: '0.8rem',
@@ -710,9 +710,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* WhatsApp */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <MessageCircle size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 WhatsApp
               </h2>
@@ -724,7 +724,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -751,7 +751,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -771,7 +771,7 @@ export default function AdminLandingSettingsPage() {
                   }}
                   placeholder="Halo KJ Homedecor, saya ingin konsultasi"
                 />
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                   Pesan pre-fill saat klik WhatsApp CTA
                 </p>
               </div>
@@ -781,18 +781,18 @@ export default function AdminLandingSettingsPage() {
           <ThemePresetCard selectedPreset={form.theme_preset} onSelectPreset={handlePresetSelect} />
 
           {/* Theme Colors */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
             <div
               style={{
                 padding: '1rem 1.25rem',
                 borderBottom: '1px solid #e5e7eb',
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}
             >
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>🎨 Theme Colors</h2>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>🎨 Theme Colors</h2>
               <button
                 type="button"
                 onClick={handleResetTheme}
@@ -801,8 +801,8 @@ export default function AdminLandingSettingsPage() {
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.375rem 0.75rem',
-                  background: '#f3f4f6',
-                  color: '#6b7280',
+                  background: 'var(--neutral-100)',
+                  color: 'var(--neutral-600)',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.375rem',
                   fontSize: '0.75rem',
@@ -853,18 +853,18 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* Trust Badges */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
             <div
               style={{
                 padding: '1rem 1.25rem',
                 borderBottom: '1px solid #e5e7eb',
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}
             >
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Trust Badges</h2>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Trust Badges</h2>
               <button
                 onClick={addTrustBadge}
                 style={{
@@ -896,7 +896,7 @@ export default function AdminLandingSettingsPage() {
                       borderRadius: '0.375rem',
                       fontSize: '0.8rem',
                       outline: 'none',
-                      background: '#fff'
+                      background: 'var(--surface)'
                     }}
                   >
                     {ICON_OPTIONS.map((opt) => (
@@ -934,7 +934,7 @@ export default function AdminLandingSettingsPage() {
                 </div>
               ))}
               {trustBadges.length === 0 && (
-                <p style={{ color: '#9ca3af', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
+                <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
                   Belum ada trust badge. Klik "Add" untuk tambah.
                 </p>
               )}
@@ -942,9 +942,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* Social Media */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 Social Media & Marketplace
               </h2>
             </div>
@@ -957,7 +957,7 @@ export default function AdminLandingSettingsPage() {
                     gap: '0.375rem',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -989,7 +989,7 @@ export default function AdminLandingSettingsPage() {
                     gap: '0.375rem',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1021,7 +1021,7 @@ export default function AdminLandingSettingsPage() {
                     gap: '0.375rem',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1053,7 +1053,7 @@ export default function AdminLandingSettingsPage() {
                     gap: '0.375rem',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.5rem'
                   }}
                 >
@@ -1062,7 +1062,7 @@ export default function AdminLandingSettingsPage() {
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.2rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--neutral-600)', marginBottom: '0.2rem' }}>
                       Shopee
                     </label>
                     <input
@@ -1081,7 +1081,7 @@ export default function AdminLandingSettingsPage() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.2rem' }}>
+                    <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--neutral-600)', marginBottom: '0.2rem' }}>
                       Tokopedia
                     </label>
                     <input
@@ -1105,9 +1105,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* Categories Section */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <LayoutGrid size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 Categories Section
               </h2>
@@ -1119,7 +1119,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1146,7 +1146,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1173,7 +1173,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1198,9 +1198,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* Why Us Section */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <Award size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 Why Us Section
               </h2>
@@ -1212,7 +1212,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1239,7 +1239,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1266,7 +1266,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1294,7 +1294,7 @@ export default function AdminLandingSettingsPage() {
                 { num: 4, title: form.whyus_card4_title ?? '', desc: form.whyus_card4_desc ?? '' }
               ].map((card) => (
                 <div key={card.num} style={{ borderTop: '1px solid #f3f4f6', paddingTop: '0.75rem' }}>
-                  <p style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', marginBottom: '0.5rem' }}>
+                  <p style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--neutral-600)', marginBottom: '0.5rem' }}>
                     Card {card.num}
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -1331,9 +1331,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* Portfolio Section */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <ImageIcon size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 Portfolio Section
               </h2>
@@ -1345,7 +1345,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1372,7 +1372,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1399,7 +1399,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1424,9 +1424,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* CTA Banner Section */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <Megaphone size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 CTA Banner Section
               </h2>
@@ -1438,7 +1438,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1465,7 +1465,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1492,7 +1492,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1517,9 +1517,9 @@ export default function AdminLandingSettingsPage() {
           </div>
 
           {/* Contact Info */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <MapPin size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 Contact & Address
               </h2>
@@ -1531,7 +1531,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1559,7 +1559,7 @@ export default function AdminLandingSettingsPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -1589,7 +1589,7 @@ export default function AdminLandingSettingsPage() {
         <div>
           <div
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               overflow: 'hidden',
@@ -1598,8 +1598,8 @@ export default function AdminLandingSettingsPage() {
             }}
             className="settings-preview-panel"
           >
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 <Eye size={14} style={{ marginRight: '0.375rem', verticalAlign: 'middle' }} />
                 Live Preview — Hero Section
               </h2>

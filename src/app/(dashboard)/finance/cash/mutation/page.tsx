@@ -101,7 +101,7 @@ export default function CashMutationPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff',
+            background: 'var(--surface)',
             minWidth: 250
           }}
         >
@@ -123,10 +123,10 @@ export default function CashMutationPage() {
               onClick={() => setDateRange(opt.value)}
               style={{
                 padding: '0.5rem 0.875rem',
-                border: `1px solid ${dateRange === opt.value ? '#cc7030' : '#d1d5db'}`,
+                border: `1px solid ${dateRange === opt.value ? '#cc7030' : 'var(--input-border)'}`,
                 borderRadius: '0.375rem',
                 background: dateRange === opt.value ? '#cc7030' : '#fff',
-                color: dateRange === opt.value ? '#fff' : '#374151',
+                color: dateRange === opt.value ? '#fff' : 'var(--neutral-700)',
                 cursor: 'pointer',
                 fontWeight: '600',
                 fontSize: '0.78rem'
@@ -153,7 +153,7 @@ export default function CashMutationPage() {
               fontSize: '0.75rem',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
-              color: '#9ca3af',
+              color: 'var(--neutral-400)',
               marginBottom: '0.25rem'
             }}
           >
@@ -174,9 +174,9 @@ export default function CashMutationPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : runningBalance.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <ArrowLeftRight size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada mutasi</p>
           </div>
@@ -195,11 +195,11 @@ export default function CashMutationPage() {
             <tbody>
               {runningBalance.map((j: any, idx) => (
                 <tr key={j.id ?? idx}>
-                  <td style={{ color: '#6b7280' }}>
+                  <td style={{ color: 'var(--neutral-600)' }}>
                     {j.entry?.entry_date ? new Date(j.entry.entry_date).toLocaleDateString('id-ID') : '—'}
                   </td>
                   <td style={{ fontWeight: '500' }}>{j.entry?.description ?? '—'}</td>
-                  <td style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{j.entry?.reference_type ?? '—'}</td>
+                  <td style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{j.entry?.reference_type ?? '—'}</td>
                   <td
                     style={{
                       fontWeight: '600',

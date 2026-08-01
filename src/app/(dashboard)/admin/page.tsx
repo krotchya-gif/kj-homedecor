@@ -453,7 +453,7 @@ export default function AdminDashboardPage() {
             <SectionCard delay={0.08}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <BarChart3 size={16} color="#cc7030" />
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                   Pesanan per Status
                 </h3>
               </div>
@@ -464,7 +464,7 @@ export default function AdminDashboardPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#9ca3af'
+                    color: 'var(--neutral-400)'
                   }}
                 >
                   Tidak ada data
@@ -486,7 +486,7 @@ export default function AdminDashboardPage() {
             <SectionCard delay={0.14}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <TrendingUp size={16} color="#2563eb" />
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Omzet per Sumber</h3>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Omzet per Sumber</h3>
               </div>
               {data.orders.length === 0 ? (
                 <div
@@ -495,7 +495,7 @@ export default function AdminDashboardPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#9ca3af'
+                    color: 'var(--neutral-400)'
                   }}
                 >
                   Tidak ada data
@@ -521,7 +521,7 @@ export default function AdminDashboardPage() {
           <div className="section-card">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <TrendingUp size={16} color="#16a34a" />
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Tren 30 Hari</h3>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Tren 30 Hari</h3>
             </div>
             {trendData.length === 0 ? (
               <div
@@ -530,7 +530,7 @@ export default function AdminDashboardPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               >
                 Tidak ada data
@@ -557,7 +557,7 @@ export default function AdminDashboardPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <AlertTriangle size={18} color="#f59e0b" />
-              <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>
                 Purchase Request Pending ({pendingPRs.length})
               </h2>
             </div>
@@ -575,7 +575,7 @@ export default function AdminDashboardPage() {
                   {pendingPRs.map((pr) => (
                     <tr key={pr.id}>
                       <td style={{ fontWeight: '600' }}>{pr.material?.name ?? '—'}</td>
-                      <td style={{ color: '#6b7280' }}>{pr.qty}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{pr.qty}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(pr.estimated_cost)}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -633,16 +633,16 @@ export default function AdminDashboardPage() {
       {/* Progress Pesanan — Improved Card UI */}
       <div style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Progress Pesanan</h2>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
+          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>Progress Pesanan</h2>
+          <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
         </div>
         {!data?.ordersWithLogs || data.ordersWithLogs.length === 0 ? (
           <div
             style={{
               padding: '2rem',
               textAlign: 'center',
-              color: '#9ca3af',
-              background: '#f9fafb',
+              color: 'var(--neutral-400)',
+              background: 'var(--neutral-100)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               fontSize: '0.875rem'
@@ -653,7 +653,7 @@ export default function AdminDashboardPage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
             {data.ordersWithLogs.map((order) => {
-              const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: '#9ca3af' }
+              const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: 'var(--neutral-400)' }
               const STATUS_COLORS: Record<string, string> = {
                 new: '#3b82f6',
                 sorted: '#8b5cf6',
@@ -672,8 +672,8 @@ export default function AdminDashboardPage() {
                 partial: '#f59e0b',
                 paid: '#22c55e'
               }
-              const statusColor = STATUS_COLORS[order.status] ?? '#9ca3af'
-              const payColor = PAYMENT_COLORS[order.payment_status] ?? '#9ca3af'
+              const statusColor = STATUS_COLORS[order.status] ?? 'var(--neutral-400)'
+              const payColor = PAYMENT_COLORS[order.payment_status] ?? 'var(--neutral-400)'
               const photos = order.progressPhotos?.map((p) => p.photo_url) ?? []
               const stages = [
                 'new',
@@ -695,7 +695,7 @@ export default function AdminDashboardPage() {
                 <div
                   key={order.id}
                   style={{
-                    background: '#fff',
+                    background: 'var(--surface)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.75rem',
                     overflow: 'hidden'
@@ -728,10 +728,10 @@ export default function AdminDashboardPage() {
                         {actionStyle.icon}
                       </div>
                       <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1f2937', lineHeight: 1.2 }}>
+                        <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--neutral-800)', lineHeight: 1.2 }}>
                           {order.order_number || `#${order.id.slice(0, 8)}`}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>
                           {order.customer?.name ?? '—'} · {dateStr}
                         </div>
                       </div>
@@ -787,7 +787,7 @@ export default function AdminDashboardPage() {
                                 width: '100%',
                                 height: 3,
                                 borderRadius: 2,
-                                background: filled ? statusColor : '#e5e7eb'
+                                background: filled ? statusColor : 'var(--neutral-200)'
                               }}
                             />
                             {active && (
@@ -804,13 +804,13 @@ export default function AdminDashboardPage() {
                   {/* Activity Timeline */}
                   <div style={{ padding: '0.5rem 1rem', minHeight: 80 }}>
                     {order.recentLogs.length === 0 ? (
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', padding: '0.5rem 0' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', padding: '0.5rem 0' }}>
                         Belum ada aktivitas
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         {order.recentLogs.slice(0, 3).map((log, i) => {
-                          const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: '#9ca3af' }
+                          const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: 'var(--neutral-400)' }
                           return (
                             <div
                               key={log.id}
@@ -828,7 +828,7 @@ export default function AdminDashboardPage() {
                               <span
                                 style={{
                                   fontSize: '0.75rem',
-                                  color: '#6b7280',
+                                  color: 'var(--neutral-600)',
                                   flex: 1,
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
@@ -836,9 +836,9 @@ export default function AdminDashboardPage() {
                                 }}
                               >
                                 {log.action.replace(/_/g, ' ').toUpperCase()}
-                                {log.staff && <span style={{ color: '#9ca3af' }}> — {log.staff.name}</span>}
+                                {log.staff && <span style={{ color: 'var(--neutral-400)' }}> — {log.staff.name}</span>}
                               </span>
-                              <span style={{ fontSize: '0.65rem', color: '#9ca3af', flexShrink: 0 }}>
+                              <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)', flexShrink: 0 }}>
                                 {new Date(log.created_at).toLocaleTimeString('id-ID', {
                                   hour: '2-digit',
                                   minute: '2-digit'
@@ -855,8 +855,8 @@ export default function AdminDashboardPage() {
                   {photos.length > 0 && (
                     <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid #f3f4f6' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-                        <Camera size={10} style={{ color: '#9ca3af' }} />
-                        <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{photos.length} foto</span>
+                        <Camera size={10} style={{ color: 'var(--neutral-400)' }} />
+                        <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)' }}>{photos.length} foto</span>
                       </div>
                       <LightboxGallery
                         photos={photos}
@@ -875,7 +875,7 @@ export default function AdminDashboardPage() {
                   <div
                     style={{
                       padding: '0.5rem 1rem',
-                      background: '#f9fafb',
+                      background: 'var(--neutral-100)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'flex-end'

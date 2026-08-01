@@ -226,7 +226,7 @@ export default function SuppliersPage() {
               borderBottom: `2px solid ${tab === t ? '#cc7030' : 'transparent'}`,
               cursor: 'pointer',
               fontWeight: tab === t ? '700' : '500',
-              color: tab === t ? '#cc7030' : '#6b7280',
+              color: tab === t ? '#cc7030' : 'var(--neutral-600)',
               fontSize: '0.9rem',
               marginBottom: '-2px'
             }}
@@ -247,7 +247,7 @@ export default function SuppliersPage() {
                   left: '0.75rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -272,8 +272,8 @@ export default function SuppliersPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: 600,
@@ -290,8 +290,8 @@ export default function SuppliersPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: 600,
@@ -308,8 +308,8 @@ export default function SuppliersPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: 600,
@@ -341,9 +341,9 @@ export default function SuppliersPage() {
 
           <div className="data-table">
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : filtered.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
                 <Users size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
                 <p>Belum ada supplier</p>
               </div>
@@ -378,10 +378,10 @@ export default function SuppliersPage() {
                           '—'
                         )}
                       </td>
-                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{s.email ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{s.email ?? '—'}</td>
                       <td
                         style={{
-                          color: '#6b7280',
+                          color: 'var(--neutral-600)',
                           fontSize: '0.85rem',
                           maxWidth: 200,
                           overflow: 'hidden',
@@ -399,7 +399,7 @@ export default function SuppliersPage() {
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
-                              color: '#6b7280',
+                              color: 'var(--neutral-600)',
                               padding: '0.25rem'
                             }}
                           >
@@ -432,9 +432,9 @@ export default function SuppliersPage() {
         <>
           <div className="data-table">
             {poLoading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : poList.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
                 <FileText size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
                 <p>Belum ada Purchase Order</p>
               </div>
@@ -461,7 +461,7 @@ export default function SuppliersPage() {
                     return (
                       <tr key={po.id}>
                         <td style={{ fontWeight: '600' }}>{po.supplier?.name ?? '—'}</td>
-                        <td style={{ color: '#6b7280' }}>{po.pr?.material?.name ?? '—'}</td>
+                        <td style={{ color: 'var(--neutral-600)' }}>{po.pr?.material?.name ?? '—'}</td>
                         <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(po.actual_cost)}</td>
                         <td>
                           <span
@@ -558,7 +558,7 @@ export default function SuppliersPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -590,7 +590,7 @@ export default function SuppliersPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -630,16 +630,16 @@ export default function SuppliersPage() {
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Buat Purchase Order</h2>
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 border: '1px solid #e5e7eb',
                 borderRadius: '0.5rem',
                 padding: '1rem',
                 marginBottom: '1.5rem'
               }}
             >
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>Material</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>Material</div>
               <div style={{ fontWeight: '600' }}>{selectedPR.material?.name ?? '—'}</div>
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.5rem' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginTop: '0.5rem' }}>
                 Qty: {selectedPR.qty} | Estimasi: {formatRp(selectedPR.estimated_cost)}
               </div>
             </div>
@@ -650,7 +650,7 @@ export default function SuppliersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -667,7 +667,7 @@ export default function SuppliersPage() {
                     borderRadius: '0.5rem',
                     fontSize: '0.875rem',
                     outline: 'none',
-                    background: '#fff'
+                    background: 'var(--surface)'
                   }}
                 >
                   <option value="">-- Pilih Supplier --</option>
@@ -684,7 +684,7 @@ export default function SuppliersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -712,7 +712,7 @@ export default function SuppliersPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -742,7 +742,7 @@ export default function SuppliersPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}

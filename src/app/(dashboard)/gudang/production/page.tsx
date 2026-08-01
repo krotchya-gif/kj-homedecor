@@ -232,8 +232,8 @@ export default function GudangProductionPage() {
               fontWeight: '600',
               cursor: 'pointer',
               border: 'none',
-              background: filter === s ? '#cc7030' : '#f3f4f6',
-              color: filter === s ? '#fff' : '#374151'
+              background: filter === s ? '#cc7030' : 'var(--neutral-100)',
+              color: filter === s ? '#fff' : 'var(--neutral-700)'
             }}
           >
             {s === '' ? 'Semua' : s === 'waiting' ? 'Menunggu' : s === 'in_progress' ? 'Dikerjakan' : 'Selesai'}
@@ -243,9 +243,9 @@ export default function GudangProductionPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <Layers size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada job produksi</p>
           </div>
@@ -266,7 +266,7 @@ export default function GudangProductionPage() {
                           style={{
                             fontFamily: 'monospace',
                             fontSize: '0.78rem',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             padding: '0.75rem 0.5rem',
                             width: 100
                           }}
@@ -304,7 +304,7 @@ export default function GudangProductionPage() {
                             )}
                           </div>
                         </td>
-                        <td style={{ color: '#6b7280', padding: '0.75rem 0.5rem' }}>{job.penjahit?.name ?? '—'}</td>
+                        <td style={{ color: 'var(--neutral-600)', padding: '0.75rem 0.5rem' }}>{job.penjahit?.name ?? '—'}</td>
                         <td style={{ padding: '0.75rem 0.25rem' }}>{Number(job.meter_gorden ?? 0).toFixed(1)}m</td>
                         <td style={{ padding: '0.75rem 0.25rem' }}>{Number(job.meter_vitras ?? 0).toFixed(1)}m</td>
                         <td style={{ padding: '0.75rem 0.25rem' }}>{Number(job.meter_roman ?? 0).toFixed(1)}m</td>
@@ -436,7 +436,7 @@ export default function GudangProductionPage() {
                         </div>
                         <table style={{ width: '100%', fontSize: '0.8rem' }}>
                           <thead>
-                            <tr style={{ color: '#9ca3af', fontWeight: '600' }}>
+                            <tr style={{ color: 'var(--neutral-400)', fontWeight: '600' }}>
                               <td>Material</td>
                               <td style={{ textAlign: 'center' }}>Dibutuhkan</td>
                               <td style={{ textAlign: 'center' }}>Stok Gudang</td>
@@ -455,7 +455,7 @@ export default function GudangProductionPage() {
                                   <td
                                     style={{
                                       textAlign: 'center',
-                                      color: insufficient ? '#dc2626' : '#374151',
+                                      color: insufficient ? '#dc2626' : 'var(--neutral-700)',
                                       fontWeight: '600'
                                     }}
                                   >
@@ -517,12 +517,12 @@ export default function GudangProductionPage() {
                 <X size={20} />
               </button>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
               Job: <strong>{assignJob.order?.customer?.name ?? assignJob.order_id?.slice(0, 8)}</strong>
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
               {penjahits.length === 0 ? (
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Tidak ada penjahit tersedia</p>
+                <p style={{ color: 'var(--neutral-400)', fontSize: '0.875rem' }}>Tidak ada penjahit tersedia</p>
               ) : (
                 penjahits.map((p) => (
                   <button
@@ -536,7 +536,7 @@ export default function GudangProductionPage() {
                       padding: '0.875rem',
                       border: '2px solid #e5e7eb',
                       borderRadius: '0.5rem',
-                      background: '#fff',
+                      background: 'var(--surface)',
                       cursor: 'pointer',
                       textAlign: 'left'
                     }}
@@ -559,8 +559,8 @@ export default function GudangProductionPage() {
                       {p.name.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#1f2937' }}>{p.name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Penjahit</div>
+                      <div style={{ fontWeight: '600', fontSize: '0.875rem', color: 'var(--neutral-800)' }}>{p.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>Penjahit</div>
                     </div>
                   </button>
                 ))
@@ -588,7 +588,7 @@ export default function GudangProductionPage() {
                 Material Tidak Mencukupi!
               </h2>
             </div>
-            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.25rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
               Job <strong>{warningJob.order?.customer?.name ?? warningJob.order_id?.slice(0, 8)}</strong> — material BOM
               belum tersedia. production akan dimulai tapi material kurang:
             </p>
@@ -632,7 +632,7 @@ export default function GudangProductionPage() {
                   padding: '0.75rem',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.5rem',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   cursor: 'pointer',
                   fontWeight: '600',
                   fontSize: '0.875rem'

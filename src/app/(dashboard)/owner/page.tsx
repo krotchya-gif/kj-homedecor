@@ -227,7 +227,7 @@ export default function OwnerDashboard() {
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.5rem 1rem',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   border: '1px solid #d1d5db',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
@@ -244,7 +244,7 @@ export default function OwnerDashboard() {
                     right: 0,
                     top: '100%',
                     marginTop: '0.25rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.5rem',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -298,7 +298,7 @@ export default function OwnerDashboard() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.5rem 1rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 cursor: 'pointer',
@@ -329,7 +329,7 @@ export default function OwnerDashboard() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                 <div className="stat-card-value">{todayNewOrders}</div>
-                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>pesanan baru</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>pesanan baru</span>
               </div>
               <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>
                 {formatRp(todayRevenue)} omzet
@@ -344,7 +344,7 @@ export default function OwnerDashboard() {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
                 <div className="stat-card-value">{activeInstalls}</div>
-                <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>sedang pasang</span>
+                <span style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>sedang pasang</span>
               </div>
               <div className="stat-card-sub">{scheduledInstalls} terjadwal</div>
             </div>
@@ -375,9 +375,9 @@ export default function OwnerDashboard() {
             {/* Revenue by Platform Bar Chart */}
             <div
               className="chart-card"
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+              style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
             >
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '1rem' }}>
                 Omzet per Platform
               </h3>
               {barData.length === 0 ? (
@@ -387,7 +387,7 @@ export default function OwnerDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#9ca3af'
+                    color: 'var(--neutral-400)'
                   }}
                 >
                   Tidak ada data
@@ -411,9 +411,9 @@ export default function OwnerDashboard() {
             {/* Platform Distribution Pie */}
             <div
               className="chart-card"
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
+              style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem' }}
             >
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '1rem' }}>
                 Distribusi Platform
               </h3>
               {barData.length === 0 ? (
@@ -423,7 +423,7 @@ export default function OwnerDashboard() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: '#9ca3af'
+                    color: 'var(--neutral-400)'
                   }}
                 >
                   Tidak ada data
@@ -456,7 +456,7 @@ export default function OwnerDashboard() {
           <div
             className="chart-card"
             style={{
-              background: '#fff',
+              background: 'var(--surface)',
               border: '1px solid #e5e7eb',
               borderRadius: '0.75rem',
               padding: '1.25rem',
@@ -465,7 +465,7 @@ export default function OwnerDashboard() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <TrendingUp size={16} color="#16a34a" />
-              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                 Tren Omzet 12 Bulan
               </h3>
             </div>
@@ -476,7 +476,7 @@ export default function OwnerDashboard() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               >
                 Tidak ada data
@@ -504,11 +504,11 @@ export default function OwnerDashboard() {
           >
             {/* Top Products */}
             <div
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
+              style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
             >
-              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
+              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
                     Produk Terlaris
                   </h3>
                   <a
@@ -521,7 +521,7 @@ export default function OwnerDashboard() {
               </div>
               <div className="data-table">
                 {topProducts.length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Tidak ada data</div>
                 ) : (
                   <table>
                     <thead>
@@ -542,8 +542,8 @@ export default function OwnerDashboard() {
                                 justifyContent: 'center',
                                 width: 18,
                                 height: 18,
-                                background: i < 3 ? '#cc7030' : '#e5e7eb',
-                                color: i < 3 ? '#fff' : '#6b7280',
+                                background: i < 3 ? '#cc7030' : 'var(--neutral-200)',
+                                color: i < 3 ? '#fff' : 'var(--neutral-600)',
                                 borderRadius: '50%',
                                 fontSize: '0.65rem',
                                 fontWeight: '700',
@@ -554,7 +554,7 @@ export default function OwnerDashboard() {
                             </span>
                             {p.name}
                           </td>
-                          <td style={{ color: '#6b7280' }}>{p.count}</td>
+                          <td style={{ color: 'var(--neutral-600)' }}>{p.count}</td>
                           <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.revenue)}</td>
                         </tr>
                       ))}
@@ -566,14 +566,14 @@ export default function OwnerDashboard() {
 
             {/* Pipeline Status */}
             <div
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
+              style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
             >
-              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Pipeline Status</h3>
+              <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Pipeline Status</h3>
               </div>
               <div className="data-table">
                 {Object.keys(pipeline).length === 0 ? (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</div>
+                  <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Tidak ada data</div>
                 ) : (
                   <table>
                     <thead>

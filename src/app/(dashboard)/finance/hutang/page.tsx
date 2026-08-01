@@ -26,7 +26,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e' },
   partial: { bg: '#dbeafe', text: '#1e40af' },
   paid: { bg: '#d1fae5', text: '#065f46' },
-  cancelled: { bg: '#f3f4f6', text: '#6b7280' }
+  cancelled: { bg: 'var(--neutral-100)', text: 'var(--neutral-600)' }
 }
 
 export default function HutangPage() {
@@ -156,7 +156,7 @@ export default function HutangPage() {
               left: '0.75rem',
               top: '50%',
               transform: 'translateY(-50%)',
-              color: '#9ca3af'
+              color: 'var(--neutral-400)'
             }}
           />
           <input
@@ -196,9 +196,9 @@ export default function HutangPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <CreditCard size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada tagihan</p>
           </div>
@@ -224,7 +224,7 @@ export default function HutangPage() {
                   <tr key={h.id}>
                     <td style={{ fontWeight: '500' }}>{h.supplier?.name ?? '—'}</td>
                     <td style={{ fontFamily: 'monospace' }}>{h.invoice_number ?? '—'}</td>
-                    <td style={{ color: '#6b7280' }}>{h.invoice_date ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{h.invoice_date ?? '—'}</td>
                     <td style={{ fontWeight: '600', textAlign: 'right' }}>{formatRp(h.amount ?? 0)}</td>
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{formatRp(h.return_amount ?? 0)}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030', textAlign: 'right' }}>{formatRp(sisa)}</td>
@@ -266,7 +266,7 @@ export default function HutangPage() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: '#6b7280',
+                            color: 'var(--neutral-600)',
                             padding: '0.25rem'
                           }}
                         >
@@ -305,7 +305,7 @@ export default function HutangPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -322,7 +322,7 @@ export default function HutangPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff'
+                background: 'var(--surface)'
               }}
             >
               <option value="">— Pilih Supplier —</option>
@@ -340,7 +340,7 @@ export default function HutangPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -366,7 +366,7 @@ export default function HutangPage() {
                   display: 'block',
                   fontSize: '0.8rem',
                   fontWeight: '600',
-                  color: '#374151',
+                  color: 'var(--neutral-700)',
                   marginBottom: '0.3rem'
                 }}
               >
@@ -393,7 +393,7 @@ export default function HutangPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -421,7 +421,7 @@ export default function HutangPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.3rem'
               }}
             >
@@ -451,7 +451,7 @@ export default function HutangPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}
@@ -493,23 +493,23 @@ export default function HutangPage() {
               <h2 style={{ fontSize: '1.1rem', fontWeight: '700' }}>Bayar Tagihan</h2>
               <button
                 onClick={() => setShowPayment(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--neutral-600)' }}
               >
                 <X size={20} />
               </button>
             </div>
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 borderRadius: '0.5rem',
                 padding: '0.75rem',
                 marginBottom: '1rem',
                 fontSize: '0.85rem'
               }}
             >
-              <div style={{ color: '#6b7280', marginBottom: '0.25rem' }}>Supplier</div>
+              <div style={{ color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>Supplier</div>
               <div style={{ fontWeight: '600' }}>{paymentItem.supplier?.name ?? '—'}</div>
-              <div style={{ color: '#6b7280', marginTop: '0.5rem', marginBottom: '0.25rem' }}>Sisa Tagihan</div>
+              <div style={{ color: 'var(--neutral-600)', marginTop: '0.5rem', marginBottom: '0.25rem' }}>Sisa Tagihan</div>
               <div style={{ fontWeight: '700', color: '#cc7030', fontSize: '1.1rem' }}>
                 {formatRp(
                   (paymentItem.amount ?? 0) - (paymentItem.paid_amount ?? 0) - (paymentItem.return_amount ?? 0)
@@ -523,7 +523,7 @@ export default function HutangPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -551,7 +551,7 @@ export default function HutangPage() {
                     display: 'block',
                     fontSize: '0.8rem',
                     fontWeight: '600',
-                    color: '#374151',
+                    color: 'var(--neutral-700)',
                     marginBottom: '0.3rem'
                   }}
                 >
@@ -581,7 +581,7 @@ export default function HutangPage() {
                     padding: '0.75rem',
                     border: '1px solid #d1d5db',
                     borderRadius: '0.5rem',
-                    background: '#fff',
+                    background: 'var(--surface)',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}

@@ -277,7 +277,7 @@ export default function TikTokDashboardPage() {
           <div style={{ fontSize: '0.75rem', lineHeight: 1.5, maxHeight: 160, overflowY: 'auto' }}>
             {monthlyStats.slice(0, 6).map((m) => (
               <div key={m.month} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
-                <span style={{ color: '#6b7280', fontWeight: 500 }}>{m.month}</span>
+                <span style={{ color: 'var(--neutral-600)', fontWeight: 500 }}>{m.month}</span>
                 <span style={{ color: '#2563eb' }}>{formatRp(m.total)}</span>
               </div>
             ))}
@@ -311,7 +311,7 @@ export default function TikTokDashboardPage() {
               style={{
                 fontSize: '0.9rem',
                 fontWeight: '700',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 margin: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -349,7 +349,7 @@ export default function TikTokDashboardPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.6rem 0.75rem',
-                    background: s.is_active ? '#faf5ef' : '#f9fafb',
+                    background: s.is_active ? '#faf5ef' : 'var(--neutral-100)',
                     borderRadius: '0.5rem',
                     border: s.is_active ? '1px solid #f0dcc0' : '1px solid #e5e7eb'
                   }}
@@ -368,7 +368,7 @@ export default function TikTokDashboardPage() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: expired ? '#ef4444' : s.is_active ? '#16a34a' : '#d1d5db',
+                        background: expired ? '#ef4444' : s.is_active ? '#16a34a' : 'var(--input-border)',
                         flexShrink: 0
                       }}
                     />
@@ -377,7 +377,7 @@ export default function TikTokDashboardPage() {
                         style={{
                           fontSize: '0.85rem',
                           fontWeight: '600',
-                          color: '#374151',
+                          color: 'var(--neutral-700)',
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis'
@@ -455,7 +455,7 @@ export default function TikTokDashboardPage() {
                       title="Re-authorize (refresh token & shop_cipher)"
                       style={{
                         padding: '0.35rem 0.65rem',
-                        background: '#f3f4f6',
+                        background: 'var(--neutral-100)',
                         border: '1px solid #d1d5db',
                         borderRadius: '0.375rem',
                         fontSize: '0.75rem',
@@ -464,7 +464,7 @@ export default function TikTokDashboardPage() {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.3rem',
-                        color: '#374151'
+                        color: 'var(--neutral-700)'
                       }}
                     >
                       <RefreshCw size={12} />
@@ -508,7 +508,7 @@ export default function TikTokDashboardPage() {
             style={{
               fontSize: '0.9rem',
               fontWeight: '700',
-              color: '#374151',
+              color: 'var(--neutral-700)',
               margin: 0
             }}
           >
@@ -544,7 +544,7 @@ export default function TikTokDashboardPage() {
           }}
         >
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <label style={{ fontSize: '0.8rem', color: '#6b7280' }}>Start:</label>
+            <label style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>Start:</label>
             <input
               type="date"
               value={dateRange.start}
@@ -556,7 +556,7 @@ export default function TikTokDashboardPage() {
                 fontSize: '0.8rem'
               }}
             />
-            <label style={{ fontSize: '0.8rem', color: '#6b7280' }}>End:</label>
+            <label style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>End:</label>
             <input
               type="date"
               value={dateRange.end}
@@ -571,7 +571,7 @@ export default function TikTokDashboardPage() {
             <span
               style={{
                 fontSize: '0.75rem',
-                color: '#9ca3af',
+                color: 'var(--neutral-400)',
                 fontStyle: 'italic'
               }}
             >
@@ -586,8 +586,8 @@ export default function TikTokDashboardPage() {
             disabled={syncing !== null || !activeShop}
             style={{
               padding: '0.5rem 1rem',
-              background: syncing === 'orders' || !activeShop ? '#e5e7eb' : '#f3f4f6',
-              color: syncing === 'orders' || !activeShop ? '#9ca3af' : '#374151',
+              background: syncing === 'orders' || !activeShop ? 'var(--neutral-200)' : 'var(--neutral-100)',
+              color: syncing === 'orders' || !activeShop ? 'var(--neutral-400)' : 'var(--neutral-700)',
               border: '1px solid #d1d5db',
               borderRadius: '0.5rem',
               fontSize: '0.8rem',
@@ -611,8 +611,8 @@ export default function TikTokDashboardPage() {
             disabled={syncing !== null || !activeShop}
             style={{
               padding: '0.5rem 1rem',
-              background: syncing === 'finance' || !activeShop ? '#e5e7eb' : '#f3f4f6',
-              color: syncing === 'finance' || !activeShop ? '#9ca3af' : '#374151',
+              background: syncing === 'finance' || !activeShop ? 'var(--neutral-200)' : 'var(--neutral-100)',
+              color: syncing === 'finance' || !activeShop ? 'var(--neutral-400)' : 'var(--neutral-700)',
               border: '1px solid #d1d5db',
               borderRadius: '0.5rem',
               fontSize: '0.8rem',
@@ -636,8 +636,8 @@ export default function TikTokDashboardPage() {
             disabled={syncing !== null || !activeShop}
             style={{
               padding: '0.5rem 1rem',
-              background: syncing === 'piutang' || !activeShop ? '#e5e7eb' : '#fef3c7',
-              color: syncing === 'piutang' || !activeShop ? '#9ca3af' : '#92400e',
+              background: syncing === 'piutang' || !activeShop ? 'var(--neutral-200)' : '#fef3c7',
+              color: syncing === 'piutang' || !activeShop ? 'var(--neutral-400)' : '#92400e',
               border: '1px solid #fde68a',
               borderRadius: '0.5rem',
               fontSize: '0.8rem',
@@ -661,8 +661,8 @@ export default function TikTokDashboardPage() {
             disabled={syncing !== null || !activeShop}
             style={{
               padding: '0.5rem 1rem',
-              background: syncing === 'orders_backfill' || !activeShop ? '#e5e7eb' : '#dbeafe',
-              color: syncing === 'orders_backfill' || !activeShop ? '#9ca3af' : '#1e40af',
+              background: syncing === 'orders_backfill' || !activeShop ? 'var(--neutral-200)' : '#dbeafe',
+              color: syncing === 'orders_backfill' || !activeShop ? 'var(--neutral-400)' : '#1e40af',
               border: '1px solid #bfdbfe',
               borderRadius: '0.5rem',
               fontSize: '0.8rem',
@@ -717,7 +717,7 @@ export default function TikTokDashboardPage() {
       {/* Orders Table */}
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           border: '1px solid #e5e7eb',
           borderRadius: '0.75rem',
           overflow: 'hidden',
@@ -728,7 +728,7 @@ export default function TikTokDashboardPage() {
           style={{
             padding: '1rem 1.25rem',
             borderBottom: '1px solid #e5e7eb',
-            background: '#f9fafb',
+            background: 'var(--neutral-100)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem'
@@ -739,7 +739,7 @@ export default function TikTokDashboardPage() {
             style={{
               fontSize: '0.9rem',
               fontWeight: '700',
-              color: '#374151',
+              color: 'var(--neutral-700)',
               margin: 0
             }}
           >
@@ -747,7 +747,7 @@ export default function TikTokDashboardPage() {
           </h2>
         </div>
         {orders.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <ShoppingBag size={24} style={{ opacity: 0.3, margin: '0 auto 0.5rem' }} />
             <p style={{ fontSize: '0.85rem' }}>Belum ada order tersync. Klik "Sync Orders" untuk import.</p>
           </div>
@@ -761,7 +761,7 @@ export default function TikTokDashboardPage() {
                 gap: '0.75rem',
                 flexWrap: 'wrap',
                 alignItems: 'center',
-                background: '#fafafa'
+                background: 'var(--neutral-50)'
               }}
             >
               <select
@@ -803,7 +803,7 @@ export default function TikTokDashboardPage() {
                 <option value="PAID">Paid</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{orderTotal} order</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{orderTotal} order</span>
               <select
                 value={String(orderPageSize)}
                 onChange={async (e) => {
@@ -873,7 +873,7 @@ export default function TikTokDashboardPage() {
                       </td>
                       <td style={{ fontWeight: '700' }}>{formatRp(Number(o.total_amount || 0))}</td>
                       <td>{o.buyer_name || '-'}</td>
-                      <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                         {o.order_date
                           ? new Date(o.order_date).toLocaleDateString('id-ID', {
                               day: 'numeric',
@@ -909,8 +909,8 @@ export default function TikTokDashboardPage() {
                 padding: '0.35rem 0.7rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: orderPage === 0 ? '#f9fafb' : '#fff',
-                color: orderPage === 0 ? '#d1d5db' : '#374151',
+                background: orderPage === 0 ? 'var(--neutral-100)' : '#fff',
+                color: orderPage === 0 ? 'var(--input-border)' : 'var(--neutral-700)',
                 cursor: orderPage === 0 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -924,7 +924,7 @@ export default function TikTokDashboardPage() {
             <span
               style={{
                 fontSize: '0.8rem',
-                color: '#6b7280'
+                color: 'var(--neutral-600)'
               }}
             >
               {orderPage + 1} of {orderPageCount}
@@ -936,8 +936,8 @@ export default function TikTokDashboardPage() {
                 padding: '0.35rem 0.7rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.375rem',
-                background: orderPage >= orderPageCount - 1 ? '#f9fafb' : '#fff',
-                color: orderPage >= orderPageCount - 1 ? '#d1d5db' : '#374151',
+                background: orderPage >= orderPageCount - 1 ? 'var(--neutral-100)' : '#fff',
+                color: orderPage >= orderPageCount - 1 ? 'var(--input-border)' : 'var(--neutral-700)',
                 cursor: orderPage >= orderPageCount - 1 ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -954,7 +954,7 @@ export default function TikTokDashboardPage() {
       {/* Statements Table */}
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           border: '1px solid #e5e7eb',
           borderRadius: '0.75rem',
           overflow: 'hidden'
@@ -964,7 +964,7 @@ export default function TikTokDashboardPage() {
           style={{
             padding: '1rem 1.25rem',
             borderBottom: '1px solid #e5e7eb',
-            background: '#f9fafb',
+            background: 'var(--neutral-100)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem'
@@ -975,7 +975,7 @@ export default function TikTokDashboardPage() {
             style={{
               fontSize: '0.9rem',
               fontWeight: '700',
-              color: '#374151',
+              color: 'var(--neutral-700)',
               margin: 0
             }}
           >
@@ -983,7 +983,7 @@ export default function TikTokDashboardPage() {
           </h2>
         </div>
         {statements.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <DollarSign size={24} style={{ opacity: 0.3, margin: '0 auto 0.5rem' }} />
             <p style={{ fontSize: '0.85rem' }}>Belum ada settlement tersync. Klik "Sync Finance" untuk import.</p>
           </div>
@@ -1020,7 +1020,7 @@ export default function TikTokDashboardPage() {
                         {st.status || '-'}
                       </span>
                     </td>
-                    <td style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                       {st.start_date ? new Date(st.start_date).toLocaleDateString('id-ID') : '-'}
                     </td>
                     <td>
@@ -1036,7 +1036,7 @@ export default function TikTokDashboardPage() {
                           ✓ Linked
                         </a>
                       ) : (
-                        <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>-</span>
+                        <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>-</span>
                       )}
                     </td>
                   </tr>
@@ -1091,7 +1091,7 @@ export default function TikTokDashboardPage() {
                 marginBottom: '0.3rem'
               }}
             >
-              App Key * <span style={{ fontWeight: '400', color: '#9ca3af' }}>(dari TikTok Partner Center)</span>
+              App Key * <span style={{ fontWeight: '400', color: 'var(--neutral-400)' }}>(dari TikTok Partner Center)</span>
             </label>
             <input
               value={form.app_key}
@@ -1116,7 +1116,7 @@ export default function TikTokDashboardPage() {
                 marginBottom: '0.3rem'
               }}
             >
-              App Secret * <span style={{ fontWeight: '400', color: '#9ca3af' }}>(dari TikTok Partner Center)</span>
+              App Secret * <span style={{ fontWeight: '400', color: 'var(--neutral-400)' }}>(dari TikTok Partner Center)</span>
             </label>
             <input
               value={form.app_secret}
@@ -1147,10 +1147,10 @@ export default function TikTokDashboardPage() {
               Shop Cipher{' '}
               <Info
                 size={12}
-                style={{ color: '#9ca3af', cursor: 'help' }}
+                style={{ color: 'var(--neutral-400)', cursor: 'help' }}
                 data-tip="Akan otomatis terisi setelah OAuth"
               />
-              <span style={{ fontWeight: '400', color: '#9ca3af' }}>(otomatis dari TikTok)</span>
+              <span style={{ fontWeight: '400', color: 'var(--neutral-400)' }}>(otomatis dari TikTok)</span>
             </label>
             <input
               value={form.shop_cipher}
@@ -1163,8 +1163,8 @@ export default function TikTokDashboardPage() {
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
-                background: '#f9fafb',
-                color: '#9ca3af'
+                background: 'var(--neutral-100)',
+                color: 'var(--neutral-400)'
               }}
             />
           </div>
@@ -1180,7 +1180,7 @@ export default function TikTokDashboardPage() {
               onClick={() => setShowAddForm(false)}
               style={{
                 padding: '0.5rem 1rem',
-                background: '#f3f4f6',
+                background: 'var(--neutral-100)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontSize: '0.85rem',
@@ -1270,7 +1270,7 @@ export default function TikTokDashboardPage() {
         <p
           style={{
             fontSize: '0.85rem',
-            color: '#6b7280',
+            color: 'var(--neutral-600)',
             margin: '0 0 0.25rem'
           }}
         >
@@ -1300,7 +1300,7 @@ export default function TikTokDashboardPage() {
             onClick={() => setShowReauthConfirm(null)}
             style={{
               padding: '0.5rem 1rem',
-              background: '#f3f4f6',
+              background: 'var(--neutral-100)',
               border: '1px solid #d1d5db',
               borderRadius: '0.5rem',
               fontSize: '0.85rem',

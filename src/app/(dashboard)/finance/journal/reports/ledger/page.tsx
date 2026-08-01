@@ -58,9 +58,9 @@ export default function LedgerPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : accounts.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <BookOpen size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada data akun</p>
           </div>
@@ -79,7 +79,7 @@ export default function LedgerPage() {
                 <tr key={a.id}>
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{a.code}</td>
                   <td style={{ fontWeight: '500' }}>{a.name}</td>
-                  <td style={{ textTransform: 'capitalize', color: '#6b7280' }}>{a.type}</td>
+                  <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{a.type}</td>
                   <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
                     {formatRp(a.balance ?? 0)}
                   </td>

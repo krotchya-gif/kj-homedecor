@@ -131,9 +131,9 @@ export default function BannersPage() {
           {banners.map((banner) => (
             <div
               key={banner.id}
-              style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
+              style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}
             >
-              <div style={{ position: 'relative', aspectRatio: '16/9', background: '#f3f4f6' }}>
+              <div style={{ position: 'relative', aspectRatio: '16/9', background: 'var(--neutral-100)' }}>
                 <img
                   src={banner.image_url}
                   alt="Banner"
@@ -165,7 +165,7 @@ export default function BannersPage() {
                   alignItems: 'center'
                 }}
               >
-                <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                   Sequence: <strong>{banner.sequence}</strong>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -175,11 +175,11 @@ export default function BannersPage() {
                       padding: '0.375rem 0.75rem',
                       border: '1px solid #d1d5db',
                       borderRadius: '0.375rem',
-                      background: '#fff',
+                      background: 'var(--surface)',
                       cursor: 'pointer',
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      color: banner.is_active ? '#16a34a' : '#9ca3af'
+                      color: banner.is_active ? '#16a34a' : 'var(--neutral-400)'
                     }}
                   >
                     {banner.is_active ? 'Aktif' : 'Nonaktifkan'}
@@ -223,7 +223,7 @@ export default function BannersPage() {
                 display: 'block',
                 fontSize: '0.8rem',
                 fontWeight: '600',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.5rem'
               }}
             >
@@ -265,18 +265,18 @@ export default function BannersPage() {
                   justifyContent: 'center',
                   width: '100%',
                   height: 150,
-                  background: '#f9fafb',
+                  background: 'var(--neutral-100)',
                   border: '2px dashed #d1d5db',
                   borderRadius: '0.5rem',
                   cursor: 'pointer'
                 }}
               >
                 {uploading ? (
-                  <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: '#9ca3af' }} />
+                  <Loader2 size={24} style={{ animation: 'spin 1s linear infinite', color: 'var(--neutral-400)' }} />
                 ) : (
                   <>
-                    <ImageIcon size={24} style={{ color: '#9ca3af', marginBottom: '0.5rem' }} />
-                    <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Klik untuk upload</span>
+                    <ImageIcon size={24} style={{ color: 'var(--neutral-400)', marginBottom: '0.5rem' }} />
+                    <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Klik untuk upload</span>
                   </>
                 )}
                 <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
@@ -292,7 +292,7 @@ export default function BannersPage() {
                 padding: '0.75rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
                 fontWeight: '600'
               }}

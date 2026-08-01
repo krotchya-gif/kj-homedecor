@@ -99,7 +99,7 @@ export default function FinanceSettingsPage() {
               padding: '0.5rem 1rem',
               border: 'none',
               background: activeTab === tab.id ? '#cc7030' : 'transparent',
-              color: activeTab === tab.id ? '#fff' : '#6b7280',
+              color: activeTab === tab.id ? '#fff' : 'var(--neutral-600)',
               borderRadius: '0.5rem',
               cursor: 'pointer',
               fontWeight: '600',
@@ -112,7 +112,7 @@ export default function FinanceSettingsPage() {
       </div>
 
       {loading ? (
-        <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : (
         <>
           {activeTab === 'saldo' && (
@@ -120,7 +120,7 @@ export default function FinanceSettingsPage() {
               <p
                 style={{
                   fontSize: '0.85rem',
-                  color: '#6b7280',
+                  color: 'var(--neutral-600)',
                   marginBottom: '1rem'
                 }}
               >
@@ -142,8 +142,8 @@ export default function FinanceSettingsPage() {
                     {cashAccounts.map((c) => (
                       <tr key={c.id}>
                         <td style={{ fontWeight: '500' }}>{c.bank_name}</td>
-                        <td style={{ fontFamily: 'monospace', color: '#6b7280' }}>{c.account_number ?? '—'}</td>
-                        <td style={{ color: '#6b7280' }}>{c.account_holder ?? '—'}</td>
+                        <td style={{ fontFamily: 'monospace', color: 'var(--neutral-600)' }}>{c.account_number ?? '—'}</td>
+                        <td style={{ color: 'var(--neutral-600)' }}>{c.account_holder ?? '—'}</td>
                         <td style={{ fontWeight: '600', textAlign: 'right' }}>{formatRp(c.balance ?? 0)}</td>
                         <td>
                           <input
@@ -198,7 +198,7 @@ export default function FinanceSettingsPage() {
               <p
                 style={{
                   fontSize: '0.85rem',
-                  color: '#6b7280',
+                  color: 'var(--neutral-600)',
                   marginBottom: '1rem'
                 }}
               >
@@ -269,7 +269,7 @@ export default function FinanceSettingsPage() {
                   </div>
                 </div>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
                 Untuk input saldo awal hutang, gunakan menu <strong>Hutang → Tambah Tagihan</strong>. Saldo awal
                 otomatis tercatat dari tagihan yang sudah ada.
               </p>
@@ -281,7 +281,7 @@ export default function FinanceSettingsPage() {
               <p
                 style={{
                   fontSize: '0.85rem',
-                  color: '#6b7280',
+                  color: 'var(--neutral-600)',
                   marginBottom: '1rem'
                 }}
               >
@@ -352,7 +352,7 @@ export default function FinanceSettingsPage() {
                   </div>
                 </div>
               </div>
-              <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
                 Untuk input saldo awal piutang, gunakan menu <strong>Piutang → Faktur → Tambah Faktur</strong>. Saldo
                 awal otomatis tercatat dari faktur yang sudah ada.
               </p>

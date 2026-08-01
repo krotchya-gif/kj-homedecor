@@ -63,7 +63,7 @@ export default function GudangReportsPage() {
     doc.text('KJ Homedecor — Laporan Gudang', 14, 20)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor('#6b7280')
+    doc.setTextColor('var(--neutral-600)')
     doc.text(
       `Periode: ${MONTHS[period.month - 1]} ${period.year} — Generated: ${new Date().toLocaleDateString('id-ID')}`,
       14,
@@ -169,8 +169,8 @@ export default function GudangReportsPage() {
                 alignItems: 'center',
                 gap: '0.375rem',
                 padding: '0.625rem 1.25rem',
-                background: '#fff',
-                color: '#374151',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontWeight: '600',
@@ -213,7 +213,7 @@ export default function GudangReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {MONTHS.map((m, i) => (
@@ -231,7 +231,7 @@ export default function GudangReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           {[2024, 2025, 2026].map((y) => (
@@ -249,7 +249,7 @@ export default function GudangReportsPage() {
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             outline: 'none',
-            background: '#fff'
+            background: 'var(--surface)'
           }}
         >
           <option value="">Semua Tipe</option>
@@ -293,16 +293,16 @@ export default function GudangReportsPage() {
       </div>
 
       {/* Movements Table */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-          <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Riwayat Pergerakan</h2>
+      <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+          <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Riwayat Pergerakan</h2>
         </div>
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 200 }}>
             <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
           </div>
         ) : movements.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <Package size={28} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Tidak ada data pergerakan bulan ini</p>
           </div>
@@ -343,11 +343,11 @@ export default function GudangReportsPage() {
                       </span>
                     </td>
                     <td style={{ fontWeight: '600' }}>{m.qty.toLocaleString()}</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{m.from_location ?? '—'}</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{m.to_location ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{m.from_location ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{m.to_location ?? '—'}</td>
                     <td
                       style={{
-                        color: '#6b7280',
+                        color: 'var(--neutral-600)',
                         fontSize: '0.85rem',
                         maxWidth: 150,
                         overflow: 'hidden',

@@ -48,9 +48,9 @@ export default function PenjahitHistoryPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : jobs.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <CheckCircle2 size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada riwayat pekerjaan</p>
           </div>
@@ -76,7 +76,7 @@ export default function PenjahitHistoryPage() {
                 const itemSize = firstItem?.size
                 return (
                   <tr key={job.id}>
-                    <td style={{ color: '#6b7280', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       {job.completed_at
                         ? new Date(job.completed_at).toLocaleDateString('id-ID', {
                             day: 'numeric',
@@ -87,7 +87,7 @@ export default function PenjahitHistoryPage() {
                     </td>
                     <td style={{ fontWeight: '500' }}>{productName ?? '—'}</td>
                     <td>{job.order?.customer?.name ?? '—'}</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.8rem' }}>{itemSize ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>{itemSize ?? '—'}</td>
                     <td>{Number(job.meter_gorden ?? 0).toFixed(2)}m</td>
                     <td>{Number(job.meter_vitras ?? 0).toFixed(2)}m</td>
                     <td>{Number(job.meter_roman ?? 0).toFixed(2)}m</td>

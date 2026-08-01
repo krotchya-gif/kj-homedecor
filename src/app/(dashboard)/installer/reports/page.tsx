@@ -107,10 +107,10 @@ export default function InstallerReportsPage() {
             style={{
               padding: '0.5rem 1rem',
               border: '1px solid',
-              borderColor: period === p ? '#cc7030' : '#d1d5db',
+              borderColor: period === p ? '#cc7030' : 'var(--input-border)',
               borderRadius: '0.5rem',
               background: period === p ? '#cc7030' : '#fff',
-              color: period === p ? '#fff' : '#374151',
+              color: period === p ? '#fff' : 'var(--neutral-700)',
               fontSize: '0.8rem',
               fontWeight: '600',
               cursor: 'pointer'
@@ -124,9 +124,9 @@ export default function InstallerReportsPage() {
       {/* Table */}
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : bookings.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <Calendar size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada data instalasi untuk periode ini</p>
           </div>
@@ -157,7 +157,7 @@ export default function InstallerReportsPage() {
                             })
                           : '—'}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{b.scheduled_date}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{b.scheduled_date}</div>
                     </td>
                     <td>
                       <div style={{ fontWeight: '500' }}>{b.order?.customer?.name ?? '—'}</div>
@@ -172,15 +172,15 @@ export default function InstallerReportsPage() {
                         </a>
                       )}
                     </td>
-                    <td style={{ fontSize: '0.85rem', color: '#6b7280' }}>{b.address || '—'}</td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--neutral-600)' }}>{b.address || '—'}</td>
                     <td>
                       <div style={{ fontSize: '0.8rem' }}>
                         {productNames.length > 0 ? productNames.slice(0, 2).join(', ') : '—'}
                         {productNames.length > 2 && (
-                          <span style={{ color: '#9ca3af' }}> +{productNames.length - 2}</span>
+                          <span style={{ color: 'var(--neutral-400)' }}> +{productNames.length - 2}</span>
                         )}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
                         {items.length} item • {items.reduce((sum: number, i: any) => sum + (i.meter_gorden ?? 0), 0)}m
                         gorden
                       </div>

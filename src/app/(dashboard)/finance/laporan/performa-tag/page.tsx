@@ -104,9 +104,9 @@ export default function PerformaTagPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : tagData.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada data order</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data order</div>
         ) : (
           <table>
             <thead>
@@ -120,13 +120,13 @@ export default function PerformaTagPage() {
               {tagData.map((d) => (
                 <tr key={d.tag}>
                   <td style={{ fontWeight: '600' }}>{d.tag}</td>
-                  <td style={{ textAlign: 'right', color: '#6b7280' }}>{d.count}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--neutral-600)' }}>{d.count}</td>
                   <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(d.total)}</td>
                 </tr>
               ))}
               <tr style={{ borderTop: '2px solid #e5e7eb', background: '#fdf2f8' }}>
                 <td style={{ fontWeight: '800' }}>TOTAL</td>
-                <td style={{ fontWeight: '800', textAlign: 'right', color: '#6b7280' }}>{grandCount}</td>
+                <td style={{ fontWeight: '800', textAlign: 'right', color: 'var(--neutral-600)' }}>{grandCount}</td>
                 <td style={{ fontWeight: '800', textAlign: 'right', color: '#db2777' }}>{formatRp(grandTotal)}</td>
               </tr>
             </tbody>

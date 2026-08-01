@@ -105,13 +105,13 @@ export default function LabaRugiPage() {
           marginTop: '1.5rem'
         }}
       >
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}>
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#dcfce7' }}>
             <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#166534' }}>PENDAPATAN</h2>
           </div>
           <div className="data-table">
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : (
               <table>
                 <tbody>
@@ -137,13 +137,13 @@ export default function LabaRugiPage() {
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.875rem', overflow: 'hidden' }}>
           <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#fef2f2' }}>
             <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#991b1b' }}>BIAYA</h2>
           </div>
           <div className="data-table">
             {loading ? (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : (
               <table>
                 <tbody>
