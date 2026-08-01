@@ -1212,7 +1212,7 @@ export default function OrderDetailPage() {
                           {itemTypeLabel}
                         </span>
                       </td>
-                      <td style={{ fontWeight: '500' }}>{prod?.name ?? '—'}</td>
+                      <td style={{ fontWeight: '500' }}>{prod?.name ?? item.custom_specs ?? '—'}</td>
                       <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>{item.size ?? '—'}</td>
                       <td>{item.qty}</td>
                       <td style={{ fontSize: '0.75rem', color: 'var(--neutral-600)', maxWidth: 180 }}>
