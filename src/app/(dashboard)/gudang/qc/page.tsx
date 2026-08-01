@@ -58,11 +58,12 @@ export default function GudangQCPage() {
     } = await supabase.auth.getUser()
 
     await supabase.from('qc_records').insert({
+      order_id: selected.order_id,
       order_item_id: selected.id,
       result: qcForm.result,
       fail_reason: qcForm.fail_reason || null,
       revision_notes: qcForm.revision_notes || null,
-      checked_by: user?.id ?? 'unknown',
+      checked_by: user?.id ?? null,
       checked_at: new Date().toISOString()
     })
 

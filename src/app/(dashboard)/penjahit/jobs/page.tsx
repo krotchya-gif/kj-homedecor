@@ -70,10 +70,20 @@ export default function PenjahitJobsPage() {
   async function submitReport(jobId: string) {
     setSaving(jobId)
     const rf = reportForm[jobId] ?? {}
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const now = new Date()
+    const reportMeta = {
+      penjahit_id: user?.id ?? null,
+      month: now.getMonth() + 1,
+      year: now.getFullYear()
+    }
     // Insert production_reports dengan production_job_id (kolom ada setelah migration 046)
     // TAPI kalau kolom belum ada (sebelum migration di-apply), insert gagal 400 — kita warn user
     const { error: repErr } = await supabase.from('production_reports').insert({
       production_job_id: jobId,
+      ...reportMeta,
       meter_gorden: Number(rf.meter_gorden ?? 0),
       meter_vitras: Number(rf.meter_vitras ?? 0),
       meter_roman: Number(rf.meter_roman ?? 0),
@@ -87,6 +97,7 @@ export default function PenjahitJobsPage() {
       if (repErr.message?.includes('production_job_id') || repErr.code === 'PGRST204') {
         console.warn('[Penjahit Jobs] production_job_id column missing, retrying without it. Apply migration 046!')
         await supabase.from('production_reports').insert({
+          ...reportMeta,
           meter_gorden: Number(rf.meter_gorden ?? 0),
           meter_vitras: Number(rf.meter_vitras ?? 0),
           meter_roman: Number(rf.meter_roman ?? 0),
