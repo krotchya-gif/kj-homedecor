@@ -1618,21 +1618,21 @@ body {
   color: var(--neutral-500);
 }
 .dark .landing-muted {
-  color: var(--neutral-400);   /* user's subtext #6B4A42 — readable on dark */
+  color: var(--neutral-500);   /* #8A6A60 — cukup kontras di atas dark surface */
 }
 
 .landing-card-title {
   color: var(--neutral-800);
 }
 .dark .landing-card-title {
-  color: var(--neutral-200);
+  color: var(--neutral-800);   /* dark --neutral-800 = #E8D8D0 cream terang */
 }
 
 .landing-card-desc {
   color: var(--neutral-500);
 }
 .dark .landing-card-desc {
-  color: var(--neutral-400);  /* user's subtext #6B4A42 */
+  color: var(--neutral-500);  /* #8A6A60 — cukup kontras di atas dark surface */
 }
 
 /* ========== HERO TEXT ========== */
@@ -1736,7 +1736,7 @@ body {
   color: var(--neutral-800);
 }
 .dark .cal-month-label {
-  color: var(--neutral-200);
+  color: var(--neutral-800);
 }
 
 .cal-grid {
@@ -1919,6 +1919,10 @@ body {
   width: 100%;
   max-width: 440px;
   box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+}
+.dark .auth-card {
+  background: var(--neutral-100);
+  border: 1px solid var(--neutral-200);
 }
 
 .auth-logo {
@@ -2513,16 +2517,41 @@ body {
   background: var(--neutral-50);
 }
 
+.dark #products {
+  background: var(--neutral-50);
+}
+
+/* Landing root wrapper — light ikut theme settings admin, dark ikut dark palette */
+.landing-root {
+  background: var(--landing-background, #faf5ee);
+}
+.dark .landing-root {
+  background: var(--neutral-50);
+}
+
+/* CTA banner — gradient brand di light, gelap hangat di dark */
+.landing-cta {
+  background: linear-gradient(
+    135deg,
+    var(--landing-secondary, #c9a98c) 0%,
+    var(--landing-primary, #ddc0b4) 40%,
+    var(--landing-background, #faf5ee) 100%
+  );
+}
+.dark .landing-cta {
+  background: linear-gradient(160deg, #1a0a00 0%, #2d1005 60%, #1a0a00 100%);
+}
+
 .dark .landing-section-label {
   color: var(--brand-500);
 }
 
 .dark .landing-section-title {
-  color: var(--neutral-200);   /* warm cream — readable on dark bg */
+  color: var(--neutral-800);   /* dark --neutral-800 = #E8D8D0 cream terang */
 }
 
 .dark .landing-section-subtitle {
-  color: var(--neutral-400);  /* user's subtext #6B4A42 */
+  color: var(--neutral-500);  /* #8A6A60 — cukup kontras di atas dark surface */
 }
 
 .dark .category-grid > div {

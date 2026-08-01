@@ -48,20 +48,20 @@ export default function CatalogPage() {
   })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--neutral-50)' }}>
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 }}>
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--neutral-200)', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1rem 1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
             <div>
-              <Link href="/" style={{ fontSize: '0.8rem', color: '#6b7280', textDecoration: 'none' }}>
+              <Link href="/" style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', textDecoration: 'none' }}>
                 ← Kembali
               </Link>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#1f2937', marginTop: '0.25rem' }}>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--neutral-800)', marginTop: '0.25rem' }}>
                 Katalog Lengkap
               </h1>
             </div>
-            <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{filtered.length} produk</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>{filtered.length} produk</span>
           </div>
 
           {/* Search + Filter */}
@@ -69,7 +69,7 @@ export default function CatalogPage() {
             <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
               <Search
                 size={16}
-                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}
+                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--neutral-400)' }}
               />
               <input
                 type="text"
@@ -80,7 +80,7 @@ export default function CatalogPage() {
                 style={{
                   width: '100%',
                   padding: '0.625rem 0.75rem 0.625rem 2.5rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
                   outline: 'none'
@@ -92,7 +92,7 @@ export default function CatalogPage() {
               onChange={(e) => setSelectedCategory(e.target.value)}
               style={{
                 padding: '0.625rem 0.75rem',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--input-border)',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
@@ -117,12 +117,12 @@ export default function CatalogPage() {
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.625rem 0.75rem',
-                  background: '#f3f4f6',
-                  border: '1px solid #d1d5db',
+                  background: 'var(--neutral-100)',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.8rem',
                   cursor: 'pointer',
-                  color: '#6b7280'
+                  color: 'var(--neutral-600)'
                 }}
               >
                 <X size={14} /> Reset
@@ -135,9 +135,9 @@ export default function CatalogPage() {
       {/* Product Grid */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '1.5rem' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af' }}>
+          <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--neutral-400)' }}>
             <p>Produk tidak ditemukan</p>
           </div>
         ) : (
@@ -147,7 +147,7 @@ export default function CatalogPage() {
                 key={product.id}
                 className="product-card"
                 style={{
-                  background: '#fff',
+                  background: 'var(--surface)',
                   borderRadius: '0.875rem',
                   overflow: 'hidden',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -159,7 +159,7 @@ export default function CatalogPage() {
                   <div
                     style={{
                       height: 180,
-                      background: '#f3f4f6',
+                      background: 'var(--neutral-100)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -173,7 +173,7 @@ export default function CatalogPage() {
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
-                      <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>No Image</span>
+                      <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>No Image</span>
                     )}
                   </div>
                   <div style={{ padding: '1rem' }}>
@@ -193,7 +193,7 @@ export default function CatalogPage() {
                       style={{
                         fontSize: '0.95rem',
                         fontWeight: '600',
-                        color: '#1f2937',
+                        color: 'var(--neutral-800)',
                         marginBottom: '0.5rem',
                         lineHeight: 1.3
                       }}

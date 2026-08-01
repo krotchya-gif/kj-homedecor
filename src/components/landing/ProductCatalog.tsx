@@ -64,7 +64,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
         /* Search & Filter Bar - Improved */
         <div
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             borderRadius: '1rem',
             padding: '1.25rem',
             border: '1px solid #e5e7eb',
@@ -82,7 +82,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -100,7 +100,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = 'var(--brand-500)')}
-                onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--neutral-200)')}
               />
             </div>
 
@@ -114,13 +114,13 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: '#fff',
+                background: 'var(--surface)',
                 cursor: 'pointer',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 transition: 'border-color 0.15s'
               }}
               onFocus={(e) => (e.target.style.borderColor = 'var(--brand-500)')}
-              onBlur={(e) => (e.target.style.borderColor = '#e5e7eb')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--neutral-200)')}
             >
               <option value="">Semua Kategori</option>
               {categories.map((c) => (
@@ -162,14 +162,14 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               style={{
                 marginLeft: 'auto',
                 fontSize: '0.8rem',
-                color: '#9ca3af',
-                background: '#f9fafb',
+                color: 'var(--neutral-400)',
+                background: 'var(--neutral-100)',
                 padding: '0.5rem 0.875rem',
                 borderRadius: '0.5rem',
                 border: '1px solid #e5e7eb'
               }}
             >
-              <span style={{ fontWeight: '600', color: '#374151' }}>{filtered.length}</span> produk
+              <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{filtered.length}</span> produk
             </div>
           </div>
         </div>
@@ -181,8 +181,8 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
           style={{
             textAlign: 'center',
             padding: '4rem',
-            color: '#9ca3af',
-            background: '#fff',
+            color: 'var(--neutral-400)',
+            background: 'var(--surface)',
             borderRadius: '1rem',
             border: '1px solid #e5e7eb'
           }}
@@ -205,14 +205,14 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
           style={{
             textAlign: 'center',
             padding: '4rem',
-            color: '#9ca3af',
-            background: '#fff',
+            color: 'var(--neutral-400)',
+            background: 'var(--surface)',
             borderRadius: '1rem',
             border: '1px solid #e5e7eb'
           }}
         >
           <Package size={40} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
-          <p style={{ fontSize: '1rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem' }}>
+          <p style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>
             Tidak ada produk ditemukan
           </p>
           <p style={{ fontSize: '0.875rem' }}>Coba ubah kata kunci atau filter kategori</p>
@@ -224,7 +224,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               <div
                 key={p.id}
                 style={{
-                  background: '#fff',
+                  background: 'var(--surface)',
                   borderRadius: '1rem',
                   overflow: 'hidden',
                   border: '1px solid #e5e7eb',
@@ -245,7 +245,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   <div
                     style={{
                       aspectRatio: '4/3',
-                      background: 'linear-gradient(135deg, #fdf8f3 0%, #f5e6d3 100%)',
+                      background: 'linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -290,7 +290,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                       style={{
                         fontSize: '1rem',
                         fontWeight: '700',
-                        color: '#1f2937',
+                        color: 'var(--neutral-800)',
                         marginBottom: '0.5rem',
                         lineHeight: 1.3
                       }}
@@ -302,7 +302,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                     style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1rem' }}
                   >
                     {formatRp(p.price)}
-                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6b7280', marginLeft: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--neutral-600)', marginLeft: '0.25rem' }}>
                       /unit
                     </span>
                   </div>

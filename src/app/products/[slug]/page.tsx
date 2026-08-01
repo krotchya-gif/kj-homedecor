@@ -40,12 +40,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
   const whatsAppUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsAppMsg)}`
 
   return (
-    <div style={{ background: '#fafafa', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ background: 'var(--neutral-50)', minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}>
       {/* Navbar */}
       <nav
         style={{
-          background: '#fff',
-          borderBottom: '1px solid #e5e7eb',
+          background: 'var(--surface)',
+          borderBottom: '1px solid var(--neutral-200)',
           padding: '0.75rem 1.5rem',
           display: 'flex',
           alignItems: 'center',
@@ -58,7 +58,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             display: 'flex',
             alignItems: 'center',
             gap: '0.375rem',
-            color: '#374151',
+            color: 'var(--neutral-700)',
             textDecoration: 'none',
             fontSize: '0.875rem'
           }}
@@ -66,12 +66,12 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <ArrowLeft size={16} />
           Kembali
         </Link>
-        <span style={{ color: '#d1d5db' }}>|</span>
-        <Link href="/#products" style={{ fontSize: '0.8rem', color: '#9ca3af', textDecoration: 'none' }}>
+        <span style={{ color: 'var(--neutral-300)' }}>|</span>
+        <Link href="/#products" style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', textDecoration: 'none' }}>
           Produk
         </Link>
-        <span style={{ color: '#d1d5db' }}>|</span>
-        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{p.category?.name ?? 'Produk'}</span>
+        <span style={{ color: 'var(--neutral-300)' }}>|</span>
+        <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>{p.category?.name ?? 'Produk'}</span>
       </nav>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '2rem 1.5rem' }}>
@@ -106,7 +106,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               style={{
                 fontSize: 'clamp(1.5rem, 3vw, 2rem)',
                 fontWeight: '700',
-                color: '#1f2937',
+                color: 'var(--neutral-800)',
                 marginBottom: '0.75rem',
                 lineHeight: 1.3
               }}
@@ -114,7 +114,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
               {p.name}
             </h1>
 
-            {p.sku && <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '1rem' }}>SKU: {p.sku}</div>}
+            {p.sku && <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginBottom: '1rem' }}>SKU: {p.sku}</div>}
 
             <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1.5rem' }}>
               {formatRp(p.price)}
@@ -134,7 +134,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <>
                   <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e' }} />
                   <span style={{ color: '#16a34a', fontWeight: '600' }}>Tersedia</span>
-                  <span style={{ color: '#9ca3af' }}>({p.stock_toko} unit di toko)</span>
+                  <span style={{ color: 'var(--neutral-400)' }}>({p.stock_toko} unit di toko)</span>
                 </>
               ) : (
                 <>
@@ -179,7 +179,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   justifyContent: 'center',
                   gap: '0.5rem',
                   padding: '0.875rem 1.5rem',
-                  background: '#fff',
+                  background: 'var(--surface)',
                   color: 'var(--brand-500)',
                   border: '2px solid var(--brand-500)',
                   borderRadius: '0.5rem',
@@ -199,7 +199,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '0.75rem',
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 borderRadius: '0.75rem',
                 padding: '1rem 1.25rem',
                 border: '1px solid #e5e7eb',
@@ -219,7 +219,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                     alignItems: 'center',
                     gap: '0.625rem',
                     fontSize: '0.85rem',
-                    color: '#374151'
+                    color: 'var(--neutral-700)'
                   }}
                 >
                   <span style={{ color: 'var(--brand-500)' }}>{item.icon}</span>
@@ -230,7 +230,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
             {/* Product details */}
             {p.kode_kain && (
-              <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+              <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '0.5rem' }}>
                 <strong>Kode Kain:</strong> {p.kode_kain}
               </div>
             )}
@@ -241,15 +241,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 style={{
                   marginTop: '1.5rem',
                   padding: '1rem',
-                  background: '#f9fafb',
+                  background: 'var(--neutral-100)',
                   borderRadius: '0.75rem',
                   border: '1px solid #e5e7eb'
                 }}
               >
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
                   Deskripsi
                 </div>
-                <div style={{ fontSize: '0.875rem', color: '#6b7280', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                   {(p as any).description}
                 </div>
               </div>
@@ -258,8 +258,8 @@ export default async function ProductDetailPage({ params }: PageProps) {
         </div>
 
         {/* Related products placeholder */}
-        <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid #e5e7eb' }}>
-          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#374151', marginBottom: '1.25rem' }}>
+        <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px solid var(--neutral-200)' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '1.25rem' }}>
             Produk Lainnya
           </h2>
           <Link
@@ -269,10 +269,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
               alignItems: 'center',
               gap: '0.375rem',
               padding: '0.625rem 1.25rem',
-              background: '#fff',
-              border: '1px solid #d1d5db',
+              background: 'var(--surface)',
+              border: '1px solid var(--input-border)',
               borderRadius: '0.5rem',
-              color: '#374151',
+              color: 'var(--neutral-700)',
               textDecoration: 'none',
               fontSize: '0.875rem',
               fontWeight: '600'

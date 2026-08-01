@@ -36,7 +36,7 @@ export default function ProductImageGallery({ images, productName }: Props) {
         <div
           onClick={() => openLightbox(0)}
           style={{
-            background: '#fff',
+            background: 'var(--surface)',
             borderRadius: '0.875rem',
             overflow: 'hidden',
             marginBottom: '1rem',
@@ -44,7 +44,7 @@ export default function ProductImageGallery({ images, productName }: Props) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--neutral-200)',
             cursor: images.length > 0 ? 'zoom-in' : 'default'
           }}
         >
@@ -55,7 +55,7 @@ export default function ProductImageGallery({ images, productName }: Props) {
               style={{ width: '100%', height: 'auto', objectFit: 'contain', maxHeight: 500 }}
             />
           ) : (
-            <div style={{ color: '#d1d5db', textAlign: 'center' }}>
+            <div style={{ color: 'var(--neutral-300)', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '0.5rem' }}>🪟</div>
               <span style={{ fontSize: '0.85rem' }}>Tidak ada foto</span>
             </div>
@@ -74,7 +74,7 @@ export default function ProductImageGallery({ images, productName }: Props) {
                   height: 80,
                   borderRadius: '0.5rem',
                   overflow: 'hidden',
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--neutral-200)',
                   cursor: 'pointer'
                 }}
               >

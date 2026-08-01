@@ -79,7 +79,7 @@ export default async function LandingPage() {
         }
       `}</style>
 
-      <div style={{ background: themeBackground, fontFamily: 'Inter, sans-serif' }}>
+      <div className="landing-root" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* ===== NAVBAR ===== */}
         <ScrollNav whatsappNumber={whatsappNumber} whatsappMessage={whatsappMessage} />
 
@@ -95,13 +95,7 @@ export default async function LandingPage() {
         />
 
         {/* ===== CATEGORIES ===== */}
-        <section
-          id="categories"
-          style={{
-            padding: '5rem 0',
-            background: `color-mix(in srgb, ${themeBackground} 95%, ${themePrimary} 5%)`
-          }}
-        >
+        <section id="categories" style={{ padding: '5rem 0' }}>
           <div className="landing-section" style={{ padding: '0 1.5rem' }}>
             <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
               <div className="landing-section-label" style={{ color: themePrimary }}>
@@ -109,23 +103,11 @@ export default async function LandingPage() {
               </div>
               <h2
                 className="landing-section-title"
-                style={{
-                  textAlign: 'center',
-                  margin: '0 auto 0.75rem',
-                  color: themeText
-                }}
+                style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}
               >
                 {settings?.categories_title ?? 'Temukan Gaya Favoritmu'}
               </h2>
-              <p
-                className="landing-muted"
-                style={{
-                  fontSize: '0.95rem',
-                  maxWidth: 480,
-                  margin: '0 auto',
-                  color: `${themeText}99`
-                }}
-              >
+              <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
                 {settings?.categories_subtitle ?? 'Pilihan gorden dan aksesoris premium untuk setiap ruangan'}
               </p>
             </div>
@@ -190,24 +172,16 @@ export default async function LandingPage() {
         </section>
 
         {/* ===== PRODUCT CATALOG (Featured Only) ===== */}
-        <section id="products" style={{ padding: '6rem 0', background: themeBackground }}>
+        <section id="products" style={{ padding: '6rem 0' }}>
           <div className="landing-section" style={{ padding: '0 1.5rem' }}>
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
               <div className="landing-section-label" style={{ color: themePrimary }}>
                 Rekomendasi
               </div>
-              <h2 className="landing-section-title" style={{ margin: '0 auto 0.75rem', color: themeText }}>
+              <h2 className="landing-section-title" style={{ margin: '0 auto 0.75rem' }}>
                 Produk Pilihan
               </h2>
-              <p
-                className="landing-muted"
-                style={{
-                  fontSize: '0.95rem',
-                  maxWidth: 480,
-                  margin: '0 auto',
-                  color: `${themeText}99`
-                }}
-              >
+              <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
                 Pilihan gorden, vitras, roman blind, dan aksesoris berkualitas tinggi
               </p>
             </div>
@@ -303,13 +277,7 @@ export default async function LandingPage() {
         </section>
 
         {/* ===== PORTFOLIO ===== */}
-        <section
-          id="portfolio"
-          style={{
-            padding: '6rem 0',
-            background: `color-mix(in srgb, ${themeBackground} 95%, ${themePrimary} 5%)`
-          }}
-        >
+        <section id="portfolio" style={{ padding: '6rem 0' }}>
           <div className="landing-section" style={{ padding: '0 1.5rem' }}>
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
               <div className="landing-section-label" style={{ color: themePrimary }}>
@@ -317,23 +285,11 @@ export default async function LandingPage() {
               </div>
               <h2
                 className="landing-section-title"
-                style={{
-                  textAlign: 'center',
-                  margin: '0 auto 0.75rem',
-                  color: themeText
-                }}
+                style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}
               >
                 {settings?.portfolio_title ?? 'Portofolio Kami'}
               </h2>
-              <p
-                className="landing-muted"
-                style={{
-                  fontSize: '0.95rem',
-                  maxWidth: 480,
-                  margin: '0 auto',
-                  color: `${themeText}99`
-                }}
-              >
+              <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
                 {settings?.portfolio_subtitle ?? 'Hasil karya dan instalasi dari tim profesional KJ Homedecor'}
               </p>
             </div>
@@ -375,24 +331,10 @@ export default async function LandingPage() {
                         </div>
                       </div>
                       <div style={{ padding: '1.25rem' }}>
-                        <h3
-                          className="landing-card-title"
-                          style={{
-                            fontWeight: '700',
-                            marginBottom: '0.4rem',
-                            fontSize: '1.05rem',
-                            color: themeText
-                          }}
-                        >
+                        <h3 className="landing-card-title" style={{ fontWeight: '700', marginBottom: '0.4rem', fontSize: '1.05rem' }}>
                           {title}
                         </h3>
-                        <p
-                          className="landing-card-desc"
-                          style={{
-                            fontSize: '0.85rem',
-                            color: `${themeText}99`
-                          }}
-                        >
+                        <p className="landing-card-desc" style={{ fontSize: '0.85rem' }}>
                           Hasil pemasangan terbaru oleh tim KJ Homedecor
                         </p>
                       </div>
@@ -455,18 +397,10 @@ export default async function LandingPage() {
                       </div>
                     </div>
                     <div style={{ padding: '1.25rem' }}>
-                      <h3
-                        className="landing-card-title"
-                        style={{
-                          fontWeight: '700',
-                          marginBottom: '0.4rem',
-                          fontSize: '1.05rem',
-                          color: themeText
-                        }}
-                      >
+                      <h3 className="landing-card-title" style={{ fontWeight: '700', marginBottom: '0.4rem', fontSize: '1.05rem' }}>
                         {post.title}
                       </h3>
-                      <p className="landing-card-desc" style={{ fontSize: '0.85rem', color: `${themeText}99` }}>
+                      <p className="landing-card-desc" style={{ fontSize: '0.85rem' }}>
                         {new Date(post.created_at).toLocaleDateString('id-ID', {
                           day: 'numeric',
                           month: 'long',
@@ -483,8 +417,8 @@ export default async function LandingPage() {
 
         {/* ===== CTA Banner ===== */}
         <section
+          className="landing-cta"
           style={{
-            background: `linear-gradient(135deg, var(--landing-secondary, #C9A98C) 0%, var(--landing-primary, #DDC0B4) 40%, ${themeBackground} 100%)`,
             padding: '6rem 1.5rem',
             textAlign: 'center',
             position: 'relative',

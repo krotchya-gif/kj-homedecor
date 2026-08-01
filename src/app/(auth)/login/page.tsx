@@ -109,7 +109,7 @@ export default function LoginPage() {
                 display: 'block',
                 fontSize: '0.875rem',
                 fontWeight: '500',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -123,7 +123,7 @@ export default function LoginPage() {
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -136,14 +136,14 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.5rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
                   transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#cc7030')}
-                onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--input-border)')}
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ export default function LoginPage() {
                 display: 'block',
                 fontSize: '0.875rem',
                 fontWeight: '500',
-                color: '#374151',
+                color: 'var(--neutral-700)',
                 marginBottom: '0.375rem'
               }}
             >
@@ -170,7 +170,7 @@ export default function LoginPage() {
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af'
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -183,14 +183,14 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 2.5rem 0.75rem 2.5rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
                   transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#cc7030')}
-                onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--input-border)')}
               />
               <button
                 type="button"
@@ -203,7 +203,7 @@ export default function LoginPage() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#9ca3af',
+                  color: 'var(--neutral-400)',
                   padding: 0
                 }}
               >
@@ -219,8 +219,8 @@ export default function LoginPage() {
             style={{
               width: '100%',
               padding: '0.875rem',
-              background: loading ? '#e5e7eb' : isLocked ? '#e5e7eb' : '#cc7030',
-              color: loading ? '#9ca3af' : isLocked ? '#9ca3af' : '#fff',
+              background: loading ? 'var(--neutral-300)' : isLocked ? 'var(--neutral-300)' : '#cc7030',
+              color: loading ? 'var(--neutral-400)' : isLocked ? 'var(--neutral-400)' : '#fff',
               border: 'none',
               borderRadius: '0.5rem',
               fontSize: '0.95rem',
@@ -250,7 +250,7 @@ export default function LoginPage() {
           style={{
             textAlign: 'center',
             fontSize: '0.78rem',
-            color: '#9ca3af',
+            color: 'var(--neutral-400)',
             marginTop: '1.5rem'
           }}
         >

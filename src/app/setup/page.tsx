@@ -105,7 +105,7 @@ export default function SetupPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: '#f9fafb'
+          background: 'var(--neutral-100)'
         }}
       >
         <div style={{ textAlign: 'center' }}>
@@ -120,7 +120,7 @@ export default function SetupPage() {
               margin: '0 auto 1rem'
             }}
           />
-          <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Memeriksa kondisi sistem...</p>
+          <p style={{ color: 'var(--neutral-600)', fontSize: '0.9rem' }}>Memeriksa kondisi sistem...</p>
         </div>
       </div>
     )
@@ -139,7 +139,7 @@ export default function SetupPage() {
     >
       <div
         style={{
-          background: '#fff',
+          background: 'var(--surface)',
           borderRadius: '1rem',
           padding: '2rem',
           width: '100%',
@@ -174,7 +174,7 @@ export default function SetupPage() {
           >
             KJ Homedecor
           </h1>
-          <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>Setup Akun Initial</p>
+          <p style={{ color: 'var(--neutral-600)', fontSize: '0.875rem', margin: 0 }}>Setup Akun Initial</p>
         </div>
 
         {result?.error ? (
@@ -192,7 +192,7 @@ export default function SetupPage() {
             >
               {result.error}
             </div>
-            <p style={{ color: '#6b7280', fontSize: '0.85rem', textAlign: 'center' }}>
+            <p style={{ color: 'var(--neutral-600)', fontSize: '0.85rem', textAlign: 'center' }}>
               Pastikan migration sudah dijalankan di Supabase SQL Editor.
               <br />
               Lalu buka <strong>/login</strong> untuk masuk.
@@ -214,26 +214,26 @@ export default function SetupPage() {
               </div>
               {result.admin && (
                 <div
-                  style={{ marginBottom: '0.5rem', padding: '0.625rem', background: '#fff', borderRadius: '0.5rem' }}
+                  style={{ marginBottom: '0.5rem', padding: '0.625rem', background: 'var(--surface)', borderRadius: '0.5rem' }}
                 >
-                  <div style={{ fontWeight: '600', fontSize: '0.82rem', color: '#374151' }}>🔐 Admin</div>
-                  <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                  <div style={{ fontWeight: '600', fontSize: '0.82rem', color: 'var(--neutral-700)' }}>🔐 Admin</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)', marginTop: '0.2rem' }}>
                     Email: <strong>{result.admin.email}</strong>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                     Password: <strong>{result.admin.password}</strong>
                   </div>
                 </div>
               )}
               {result.owner && (
                 <div
-                  style={{ marginBottom: '0.5rem', padding: '0.625rem', background: '#fff', borderRadius: '0.5rem' }}
+                  style={{ marginBottom: '0.5rem', padding: '0.625rem', background: 'var(--surface)', borderRadius: '0.5rem' }}
                 >
-                  <div style={{ fontWeight: '600', fontSize: '0.82rem', color: '#374151' }}>👑 Owner</div>
-                  <div style={{ fontSize: '0.78rem', color: '#6b7280', marginTop: '0.2rem' }}>
+                  <div style={{ fontWeight: '600', fontSize: '0.82rem', color: 'var(--neutral-700)' }}>👑 Owner</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)', marginTop: '0.2rem' }}>
                     Email: <strong>{result.owner.email}</strong>
                   </div>
-                  <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                     Password: <strong>{result.owner.password}</strong>
                   </div>
                 </div>
@@ -275,14 +275,14 @@ export default function SetupPage() {
           <div>
             <div
               style={{
-                background: '#f9fafb',
+                background: 'var(--neutral-100)',
                 borderRadius: '0.75rem',
                 padding: '1rem',
                 marginBottom: '1.5rem',
                 border: '1px solid #e5e7eb'
               }}
             >
-              <div style={{ fontSize: '0.82rem', color: '#6b7280', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', lineHeight: 1.6 }}>
                 <strong>Petunjuk:</strong>
                 <br />
                 1. Pastikan <strong>migration SQL</strong> sudah dijalankan di Supabase
@@ -306,7 +306,7 @@ export default function SetupPage() {
                     border: '1px solid #e5e7eb',
                     borderRadius: '0.75rem',
                     padding: '1rem',
-                    background: '#fafafa'
+                    background: 'var(--neutral-50)'
                   }}
                 >
                   <div style={{ fontWeight: '700', fontSize: '0.9rem', color: r.color, marginBottom: '0.75rem' }}>
