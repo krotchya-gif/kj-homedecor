@@ -42,7 +42,7 @@ export default function LaundryPayrollPage() {
     const [staffRes, ordersRes, rateRes, payrollRes] = await Promise.all([
       supabase.from('users').select('*').eq('role', 'laundry').eq('status', 'active'),
       supabase.from('laundry_orders').select('*').eq('status', 'done'),
-      supabase.from('laundry_rates').select('*').eq('is_active', true).single(),
+      supabase.from('laundry_rates').select('*').eq('is_active', true).maybeSingle(),
       supabase.from('laundry_payroll').select('*').eq('period_month', selectedMonth).eq('period_year', selectedYear)
     ])
     setStaff((staffRes.data as User[]) ?? [])

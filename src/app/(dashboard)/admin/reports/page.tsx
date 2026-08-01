@@ -84,7 +84,7 @@ export default function AdminReportsPage() {
     setLoading(true)
     const query = supabase
       .from('orders')
-      .select('*, order_items(product_id, price, qty, custom_specs, product(name))')
+      .select('*, order_items(product_id, price, qty, custom_specs, product:products(name))')
       .order('created_at', { ascending: false })
       .limit(200)
 

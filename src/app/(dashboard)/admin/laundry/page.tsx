@@ -49,7 +49,7 @@ export default function AdminLaundryPage() {
     const [ordersRes, staffRes, rateRes] = await Promise.all([
       supabase.from('laundry_orders').select('*').order('created_at', { ascending: false }).limit(100),
       supabase.from('users').select('*').eq('role', 'laundry').eq('status', 'active'),
-      supabase.from('laundry_rates').select('*').eq('is_active', true).single()
+      supabase.from('laundry_rates').select('*').eq('is_active', true).maybeSingle()
     ])
     setOrders((ordersRes.data as LaundryOrder[]) ?? [])
     setLaundryStaff((staffRes.data as UserType[]) ?? [])

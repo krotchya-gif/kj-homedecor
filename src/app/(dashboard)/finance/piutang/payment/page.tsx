@@ -18,7 +18,7 @@ export default function PaymentPage() {
     setLoading(true)
     const { data } = await supabase
       .from('payments')
-      .select('*, customer:customers(name), staff:users(name)')
+      .select('*, order:orders(customer:customers(name)), staff:users(name)')
       .order('created_at', { ascending: false })
       .limit(50)
     setPayments(data ?? [])
@@ -56,7 +56,7 @@ export default function PaymentPage() {
               {payments.map((p) => (
                 <tr key={p.id}>
                   <td style={{ color: 'var(--neutral-600)' }}>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
-                  <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
+                  <td style={{ fontWeight: '500' }}>{p.order?.customer?.name ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#16a34a', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{p.type ?? 'dp'}</td>
                   <td style={{ color: 'var(--neutral-600)' }}>{p.staff?.name ?? '—'}</td>

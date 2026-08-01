@@ -1,0 +1,264 @@
+{
+  "total": 100,
+  "ok": 84,
+  "problems": [
+    {
+      "p": "/catalog",
+      "status": 200,
+      "ms": 3728,
+      "finalUrl": "/catalog",
+      "h1": "Katalog Lengkap",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requestFailures": [],
+      "responseErrors": [
+        "404 http://localhost:3100/uploads/products/1780051104494-xkt24o.jpg",
+        "404 http://localhost:3100/uploads/products/1780283270576-4vd7kk.jpg"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/admin/catalog/products",
+      "status": 200,
+      "ms": 3991,
+      "finalUrl": "/admin/catalog/products",
+      "h1": "Produk",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/products?select=id :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [
+        "404 http://localhost:3100/uploads/products/1780283270576-4vd7kk.jpg"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/admin/orders",
+      "status": 200,
+      "ms": 4014,
+      "finalUrl": "/admin/orders",
+      "h1": "Pesanan",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/orders?select=id :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/admin/customers",
+      "status": 200,
+      "ms": 3958,
+      "finalUrl": "/admin/customers",
+      "h1": "Pelanggan",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/customers?select=id :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/admin/reports",
+      "status": 200,
+      "ms": 4446,
+      "finalUrl": "/admin/reports",
+      "h1": "Laporan",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "requestFailures": [],
+      "responseErrors": [
+        "400 https://glblgsfenarnztawtpmu.supabase.co/rest/v1/orders?select=*%2Corder_items%28product_id%2Cprice%2Cqty%2Ccustom_specs"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/admin/staff",
+      "status": 200,
+      "ms": 4095,
+      "finalUrl": "/admin/staff",
+      "h1": "Manajemen Staff",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/users?select=id :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/admin/laundry",
+      "status": 200,
+      "ms": 3977,
+      "finalUrl": "/admin/laundry",
+      "h1": "Laundry Orders",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 406 ()"
+      ],
+      "requestFailures": [],
+      "responseErrors": [
+        "406 https://glblgsfenarnztawtpmu.supabase.co/rest/v1/laundry_rates?select=*&is_active=eq.true"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/admin/landing-settings",
+      "status": 200,
+      "ms": 3985,
+      "finalUrl": "/admin/landing-settings",
+      "h1": "Landing Page Settings",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://link.kjhomedecor.com/uploads/1746074110281-c87xa4.jpg :: net::ERR_BLOCKED_BY_ORB"
+      ],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/finance/journal/reports/cogs-chronology",
+      "status": 200,
+      "ms": 3957,
+      "finalUrl": "/finance/journal/reports/cogs-chronology",
+      "h1": "Kronologi HPP",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "requestFailures": [],
+      "responseErrors": [
+        "400 https://glblgsfenarnztawtpmu.supabase.co/rest/v1/orders?select=order_number%2Ccreated_at%2Ctotal_amount%2Chpp_calculated"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/finance/laporan/kronologi-hpp",
+      "status": 200,
+      "ms": 3965,
+      "finalUrl": "/finance/laporan/kronologi-hpp",
+      "h1": "Kronologi HPP",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `"
+      ],
+      "requestFailures": [],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/finance/laundry-payroll",
+      "status": 200,
+      "ms": 3907,
+      "finalUrl": "/finance/laundry-payroll",
+      "h1": "Laundry Payroll",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 406 ()"
+      ],
+      "requestFailures": [],
+      "responseErrors": [
+        "406 https://glblgsfenarnztawtpmu.supabase.co/rest/v1/laundry_rates?select=*&is_active=eq.true"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/finance/piutang/payment",
+      "status": 200,
+      "ms": 3996,
+      "finalUrl": "/finance/piutang/payment",
+      "h1": "Pembayaran Piutang",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "requestFailures": [],
+      "responseErrors": [
+        "400 https://glblgsfenarnztawtpmu.supabase.co/rest/v1/payments?select=*%2Ccustomer%3Acustomers%28name%29%2Cstaff%3Ausers%28na"
+      ],
+      "problem": true
+    },
+    {
+      "p": "/gudang/stock",
+      "status": 200,
+      "ms": 3993,
+      "finalUrl": "/gudang/stock",
+      "h1": "Posisi Stok",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/products?select=id :: net::ERR_ABORTED",
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/materials?select=id :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/owner/laporan/kronologi-hpp",
+      "status": 200,
+      "ms": 3936,
+      "finalUrl": "/owner/laporan/kronologi-hpp",
+      "h1": "Kronologi HPP",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [
+        "Each child in a list should have a unique \"key\" prop.%s%s See https://react.dev/link/warning-keys for more information. \n\nCheck the render method of `"
+      ],
+      "requestFailures": [],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/owner/materials",
+      "status": 200,
+      "ms": 3912,
+      "finalUrl": "/owner/materials",
+      "h1": "BOM & Material",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/materials?select=id :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [],
+      "problem": true
+    },
+    {
+      "p": "/owner/tiktok",
+      "status": 200,
+      "ms": 3927,
+      "finalUrl": "/owner/tiktok",
+      "h1": "TikTok Shop",
+      "boundary": false,
+      "toLogin": false,
+      "consoleErrors": [],
+      "requestFailures": [
+        "https://glblgsfenarnztawtpmu.supabase.co/rest/v1/tiktok_shop_orders?select=* :: net::ERR_ABORTED"
+      ],
+      "responseErrors": [],
+      "problem": true
+    }
+  ]
+}

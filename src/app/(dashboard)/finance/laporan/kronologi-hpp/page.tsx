@@ -24,7 +24,7 @@ export default function KronologiHPPPage() {
     setLoading(true)
     const { data } = await supabase
       .from('orders')
-      .select('order_number, created_at, total_amount, payment_status')
+      .select('id, order_number, created_at, total_amount, payment_status')
       .gte('created_at', startDate)
       .lte('created_at', endDate + 'T23:59:59')
       .order('created_at', { ascending: false })
