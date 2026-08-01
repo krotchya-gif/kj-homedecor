@@ -61,7 +61,7 @@ export default function BookingPage() {
       const { data } = await supabase
         .from('landing_settings')
         .select('whatsapp_number, whatsapp_message')
-        .eq('id', 'hero')
+        .eq('key', 'hero')
         .single()
       if (data) {
         if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number)

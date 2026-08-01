@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 export async function GET() {
   try {
     const supabase = await createClient()
-    const { data } = await supabase.from('landing_settings').select('*').eq('id', 'hero').single()
+    const { data } = await supabase.from('landing_settings').select('*').eq('key', 'hero').single()
 
     return NextResponse.json({ data: data ?? null, error: null })
   } catch (err) {
@@ -177,7 +177,7 @@ export async function PUT(request: Request) {
         theme_font_body,
         updated_at: new Date().toISOString()
       })
-      .eq('id', 'hero')
+      .eq('key', 'hero')
       .select()
       .single()
 

@@ -34,7 +34,7 @@ export default async function LandingPage() {
   const [categoriesRes, portfolioRes, settingsRes] = await Promise.all([
     supabase.from('categories').select('*').is('parent_id', null).limit(6),
     supabase.from('portfolio_posts').select('*').order('created_at', { ascending: false }).limit(3),
-    supabase.from('landing_settings').select('*').eq('id', 'hero').single()
+    supabase.from('landing_settings').select('*').eq('key', 'hero').single()
   ])
 
   const categories = (categoriesRes.data ?? []) as Category[]

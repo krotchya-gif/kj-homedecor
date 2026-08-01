@@ -168,7 +168,7 @@ export default function AdminLandingSettingsPage() {
 
   async function loadSettings() {
     setLoading(true)
-    const { data } = await supabase.from('landing_settings').select('*').eq('id', 'hero').single()
+    const { data } = await supabase.from('landing_settings').select('*').eq('key', 'hero').single()
 
     if (data) {
       setSettings(data as LandingSettings)
@@ -281,7 +281,7 @@ export default function AdminLandingSettingsPage() {
         theme_font_body: form.theme_font_body,
         updated_at: new Date().toISOString()
       })
-      .eq('id', 'hero')
+      .eq('key', 'hero')
 
     setSaving(false)
     if (!error) {

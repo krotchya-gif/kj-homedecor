@@ -13,7 +13,7 @@ export default function SeoScripts() {
     supabase
       .from('landing_settings')
       .select('seo_pixel_id, seo_ga4_id')
-      .eq('id', 'hero')
+      .eq('key', 'hero')
       .single()
       .then(({ data }) => {
         if (data) {

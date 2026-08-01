@@ -46,7 +46,7 @@ export default function AdminSeoPage() {
     const { data } = await supabase
       .from('landing_settings')
       .select('id, seo_pixel_id, seo_ga4_id, seo_title, seo_description, seo_keywords, seo_og_image')
-      .eq('id', 'hero')
+      .eq('key', 'hero')
       .single()
 
     if (data) {
@@ -76,7 +76,7 @@ export default function AdminSeoPage() {
         seo_og_image: form.seo_og_image || null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', 'hero')
+      .eq('key', 'hero')
 
     setSaving(false)
     if (!error) {

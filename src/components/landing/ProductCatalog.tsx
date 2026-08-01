@@ -30,7 +30,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   }, [])
 
   async function fetchSettings() {
-    const { data } = await supabase.from('landing_settings').select('whatsapp_number').eq('id', 'hero').single()
+    const { data } = await supabase.from('landing_settings').select('whatsapp_number').eq('key', 'hero').single()
     if (data?.whatsapp_number) setWhatsappNumber(data.whatsapp_number)
   }
 
