@@ -1705,8 +1705,8 @@ body {
   font-family: var(--font-sans);
 }
 .dark .booking-calendar {
-  background: var(--neutral-900);
-  border-color: var(--neutral-700);
+  background: var(--surface);
+  border-color: var(--input-border);
 }
 
 .booking-calendar-header {
@@ -1792,10 +1792,10 @@ body {
   background: var(--neutral-100);
 }
 .dark .cal-date-btn {
-  color: var(--neutral-300);
+  color: var(--neutral-700);
 }
 .dark .cal-date-btn:hover:not(:disabled) {
-  background: var(--neutral-800);
+  background: var(--neutral-200);
 }
 
 .cal-today {
