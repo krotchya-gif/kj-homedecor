@@ -31,6 +31,7 @@ interface Order {
     product_id: string
     price: number
     qty: number
+    custom_specs?: string
     product?: { name: string }
   }>
 }
@@ -83,7 +84,7 @@ export default function AdminReportsPage() {
     setLoading(true)
     const query = supabase
       .from('orders')
-      .select('*, order_items(product_id, price, qty, product(name))')
+      .select('*, order_items(product_id, price, qty, custom_specs, product(name))')
       .order('created_at', { ascending: false })
       .limit(200)
 

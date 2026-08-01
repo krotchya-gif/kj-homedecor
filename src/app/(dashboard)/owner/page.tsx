@@ -44,7 +44,7 @@ interface Order {
   source: string
   created_at: string
   order_date?: string
-  order_items?: Array<{ qty: number; price: number; product?: { name: string } }>
+  order_items?: Array<{ qty: number; price: number; custom_specs?: string; product?: { name: string } }>
 }
 
 export default function OwnerDashboard() {
@@ -69,7 +69,7 @@ export default function OwnerDashboard() {
     const [{ data }, { data: installData }] = await Promise.all([
       supabase
         .from('orders')
-        .select('*, order_items(qty, price, product:products(name))')
+        .select('*, order_items(qty, price, custom_specs, product:products(name))')
         .order('created_at', { ascending: false }),
       supabase
         .from('install_bookings')
