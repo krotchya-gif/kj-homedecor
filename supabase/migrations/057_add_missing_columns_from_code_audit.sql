@@ -51,3 +51,6 @@ ALTER TABLE public.production_reports ADD COLUMN IF NOT EXISTS meter_kupu_kupu N
 ALTER TABLE public.production_reports ADD COLUMN IF NOT EXISTS poni_lurus NUMERIC DEFAULT 0;
 ALTER TABLE public.production_reports ADD COLUMN IF NOT EXISTS poni_gel NUMERIC DEFAULT 0;
 ALTER TABLE public.production_reports ADD COLUMN IF NOT EXISTS notes TEXT;
+
+-- 11. customers.email — select api/xendit/create-payment (payer_email invoice; schema lama cuma name/phone/address)
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS email TEXT;
