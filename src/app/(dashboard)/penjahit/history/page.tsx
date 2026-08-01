@@ -72,7 +72,7 @@ export default function PenjahitHistoryPage() {
               {jobs.map((job) => {
                 // order_items nested di order.order_items (array, bukan single object)
                 const firstItem = job.order?.order_items?.[0]
-                const productName = firstItem?.product?.name
+                const productName = firstItem?.product?.name ?? firstItem?.custom_specs
                 const itemSize = firstItem?.size
                 return (
                   <tr key={job.id}>

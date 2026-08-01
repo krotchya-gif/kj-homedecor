@@ -69,7 +69,7 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
     head: [['No', 'Produk', 'Qty', 'Ukuran', 'Harga', 'Total']],
     body: items.map((item, i) => [
       String(i + 1),
-      item.product?.name ?? '—',
+      item.product?.name ?? item.custom_specs ?? '—',
       String(item.qty),
       item.size ?? '—',
       fmt(item.price),
@@ -170,7 +170,7 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
     head: [['No', 'Produk', 'Qty', 'Ukuran', 'Berat (kg)', 'Catatan']],
     body: items.map((item, i) => [
       String(i + 1),
-      item.product?.name ?? '—',
+      item.product?.name ?? item.custom_specs ?? '—',
       String(item.qty),
       item.size ?? '—',
       item.meter_gorden ? `${(Number(item.meter_gorden) * 0.4).toFixed(2)} kg` : '—',

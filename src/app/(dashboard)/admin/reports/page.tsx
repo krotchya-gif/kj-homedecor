@@ -163,7 +163,7 @@ export default function AdminReportsPage() {
   const productRevenue: Record<string, TopProduct> = {}
   orders.forEach((o) => {
     ;(o.order_items ?? []).forEach((item) => {
-      const name = item.product?.name ?? 'Unknown'
+      const name = item.product?.name ?? item.custom_specs ?? 'Unknown'
       if (!productRevenue[name]) productRevenue[name] = { name, count: 0, revenue: 0 }
       productRevenue[name].count += item.qty ?? 1
       productRevenue[name].revenue += (item.price ?? 0) * (item.qty ?? 1)

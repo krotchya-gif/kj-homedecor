@@ -71,7 +71,7 @@ export default function GudangQCPage() {
       await supabase.from('order_logs').insert({
         order_id: selected.order_id,
         action: 'qc_pass',
-        notes: `QC Pass oleh Gudang — item: ${selected.product?.name ?? selected.id.slice(0, 8)}`,
+        notes: `QC Pass oleh Gudang — item: ${selected.product?.name ?? selected.custom_specs ?? selected.id.slice(0, 8)}`,
         staff_id: user?.id ?? null
       })
     } else {
@@ -313,7 +313,7 @@ export default function GudangQCPage() {
                     .filter((i) => !i.ready)
                     .map((item) => (
                       <tr key={item.id}>
-                        <td style={{ fontWeight: '500' }}>{item.product?.name ?? '—'}</td>
+                        <td style={{ fontWeight: '500' }}>{item.product?.name ?? item.custom_specs ?? '—'}</td>
                         <td style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                           {item.order?.id?.slice(0, 8)}
                         </td>
@@ -515,7 +515,7 @@ export default function GudangQCPage() {
           <>
             <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '0.5rem' }}>QC Check</h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.25rem' }}>
-              {selected.product?.name} — {selected.size ?? 'tanpa ukuran'}
+              {selected.product?.name ?? selected.custom_specs} — {selected.size ?? 'tanpa ukuran'}
             </p>
             <form onSubmit={handleQC} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>

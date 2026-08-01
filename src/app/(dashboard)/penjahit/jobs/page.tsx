@@ -147,7 +147,7 @@ export default function PenjahitJobsPage() {
           {jobs.map((job) => {
             // order_items sekarang nested di order.order_items (array, bukan single)
             const firstItem = job.order?.order_items?.[0]
-            const productName = firstItem?.product?.name
+            const productName = firstItem?.product?.name ?? firstItem?.custom_specs
             const itemSize = firstItem?.size
             return (
               <div

@@ -53,7 +53,7 @@ export default function OwnerProductsPage() {
       if (!stats[item.product_id]) {
         stats[item.product_id] = {
           id: item.product_id,
-          name: item.product?.name ?? 'Unknown',
+          name: item.product?.name ?? item.custom_specs ?? 'Unknown',
           sku: item.product?.sku ?? '',
           total_qty: 0,
           total_revenue: 0

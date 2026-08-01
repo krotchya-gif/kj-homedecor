@@ -144,7 +144,7 @@ export default function InstallerReportsPage() {
             <tbody>
               {bookings.map((b) => {
                 const items = b.order?.order_items ?? []
-                const productNames = items.map((i: any) => i.product?.name ?? 'Produk').filter(Boolean)
+                const productNames = items.map((i: any) => i.product?.name ?? i.custom_specs ?? 'Produk').filter(Boolean)
                 return (
                   <tr key={b.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>
