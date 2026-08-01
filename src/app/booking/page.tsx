@@ -405,6 +405,7 @@ export default function BookingPage() {
                   key={s.value}
                   style={{
                     display: 'flex',
+                    alignItems: 'center',
                     gap: '0.75rem',
                     padding: '1rem',
                     border: `2px solid ${form.service_type === s.value ? 'var(--brand-500)' : 'var(--neutral-200)'}`,
@@ -420,7 +421,7 @@ export default function BookingPage() {
                     value={s.value}
                     checked={form.service_type === s.value}
                     onChange={handleChange}
-                    style={{ accentColor: 'var(--brand-500)', marginTop: 3 }}
+                    style={{ accentColor: 'var(--brand-500)', marginTop: 3, flexShrink: 0, alignSelf: 'flex-start' }}
                   />
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ color: form.service_type === s.value ? 'var(--brand-500)' : 'var(--neutral-600)' }}>
