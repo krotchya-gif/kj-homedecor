@@ -96,8 +96,9 @@ export default function CustomersPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    let err: { message: string } | null = null
     if (editCustomer) {
-      await supabase
+      const res = await supabase
         .from('customers')
         .update({
           name: form.name,
@@ -106,15 +107,18 @@ export default function CustomersPage() {
           notes: form.notes || null
         })
         .eq('id', editCustomer.id)
+      err = res.error
     } else {
-      await supabase.from('customers').insert({
+      const res = await supabase.from('customers').insert({
         name: form.name,
         phone: form.phone,
         address: form.address || null,
         notes: form.notes || null
       })
+      err = res.error
     }
     setSaving(false)
+    if (err) { alert('Gagal simpan customer: ' + err.message); return }
     setShowForm(false)
     setEditCustomer(null)
     setForm({ name: '', phone: '', address: '', notes: '' })

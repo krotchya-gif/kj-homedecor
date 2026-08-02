@@ -71,7 +71,7 @@ export default function AdminLaundryPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase.from('laundry_orders').insert({
+    const { error: createErr } = await supabase.from('laundry_orders').insert({
       customer_name: form.customer_name,
       customer_phone: form.customer_phone || null,
       kg: Number(form.kg) || 0,
@@ -82,6 +82,7 @@ export default function AdminLaundryPage() {
       created_by: user?.id ?? null,
       received_at: new Date().toISOString()
     })
+    if (createErr) { setSaving(false); alert('Gagal buat laundry: ' + createErr.message); return }
     setSaving(false)
     setShowForm(false)
     setForm({
@@ -98,7 +99,8 @@ export default function AdminLaundryPage() {
   async function handleUpdateStatus(id: string, status: 'pending' | 'in_progress' | 'done') {
     const updates: Record<string, unknown> = { status }
     if (status === 'done') updates.completed_at = new Date().toISOString()
-    await supabase.from('laundry_orders').update(updates).eq('id', id)
+    const { error } = await supabase.from('laundry_orders').update(updates).eq('id', id)
+    if (error) { alert('Gagal update status laundry: ' + error.message); return }
     fetchData()
   }
 
@@ -106,23 +108,27 @@ export default function AdminLaundryPage() {
     e.preventDefault()
     setRateSaving(true)
     const rateValue = Number(rateForm.rate_per_kg) || 0
+    let err: { message: string } | null = null
     if (rate) {
-      await supabase
+      const res = await supabase
         .from('laundry_rates')
         .update({
           rate_per_kg: rateValue,
           updated_at: new Date().toISOString()
         })
         .eq('id', rate.id)
+      err = res.error
     } else {
-      await supabase.from('laundry_rates').insert({
+      const res = await supabase.from('laundry_rates').insert({
         name: 'Default Rate',
         rate_per_kg: rateValue,
         is_active: true,
         updated_at: new Date().toISOString()
       })
+      err = res.error
     }
     setRateSaving(false)
+    if (err) { alert('Gagal simpan rate laundry: ' + err.message); return }
     setShowRateModal(false)
     fetchData()
   }

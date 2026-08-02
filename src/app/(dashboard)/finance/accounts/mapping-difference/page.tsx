@@ -78,9 +78,17 @@ export default function MappingDifferencePage() {
       description: form.description || 'Pemetaan selisih kurs/selisih harga'
     }
     if (editItem) {
-      await supabase.from('account_mappings').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('account_mappings').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('account_mappings').insert(payload)
+
+      const { error } = await supabase.from('account_mappings').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -89,7 +97,9 @@ export default function MappingDifferencePage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus mapping ini?')) return
-    await supabase.from('account_mappings').delete().eq('id', id)
+    const { error } = await supabase.from('account_mappings').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

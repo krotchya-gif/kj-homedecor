@@ -78,16 +78,18 @@ export default function AdminShippingPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase
+    const { error: packErr } = await supabase
       .from('orders')
       .update({ status: 'packed', packed_at: new Date().toISOString(), packed_by: user?.id ?? null })
       .eq('id', orderId)
-    await supabase.from('order_logs').insert({
+    if (packErr) { alert('Gagal mark packed: ' + packErr.message); return }
+    const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: orderId,
       action: 'packed',
       notes: 'Marked as packed from shipping page',
       staff_id: user?.id ?? null
     })
+    if (logErr) { console.error('Gagal catat log packed:', logErr) }
     loadOrders()
   }
 

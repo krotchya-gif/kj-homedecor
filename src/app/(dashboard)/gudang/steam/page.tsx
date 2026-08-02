@@ -124,13 +124,14 @@ export default function GudangSteamPage() {
   async function handleLaundrySave(e: React.FormEvent) {
     e.preventDefault()
     setLaundrySaving(true)
-    await supabase.from('laundry_records').insert({
+    const { error } = await supabase.from('laundry_records').insert({
       date: laundryForm.date,
       customer_name: laundryForm.customer_name,
       kg: Number(laundryForm.kg) || 0,
       meter: Number(laundryForm.meter) || 0,
       description: laundryForm.description || null
     })
+    if (error) { setLaundrySaving(false); alert('Gagal simpan laundry: ' + error.message); return }
     setLaundrySaving(false)
     setShowLaundryForm(false)
     setLaundryForm({
@@ -153,7 +154,7 @@ export default function GudangSteamPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase
+    const { error: jobErr } = await supabase
       .from('steam_jobs')
       .update({
         status: 'done',
@@ -162,21 +163,24 @@ export default function GudangSteamPage() {
         checked_by: user?.id ?? null
       })
       .eq('id', job.id)
+    if (jobErr) { setPassSaving(false); alert('Gagal update steam job: ' + jobErr.message); return }
     // V3: insert order_progress_photos dengan stage='steam' (V3 foto bukti)
-    await supabase.from('order_progress_photos').insert({
+    const { error: photoErr } = await supabase.from('order_progress_photos').insert({
       order_id: job.order_id,
       stage: 'steam',
       photo_url: steamPassPhoto,
       uploaded_by: user?.id ?? null,
       notes: `Steam QC Pass — foto bukti hasil pengerjaan (V3)`
     })
+    if (photoErr) { setPassSaving(false); alert('Gagal simpan foto bukti: ' + photoErr.message); return }
     // Log
-    await supabase.from('order_logs').insert({
+    const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: job.order_id,
       action: 'steam_qc_pass',
       notes: `Steam/QC Passed oleh Gudang`,
       staff_id: user?.id ?? null
     })
+    if (logErr) { console.error('Gagal catat log steam pass:', logErr) }
 
     // 2026-07-31: steam → ready dilakukan manual di order detail (Gudang/Admin klik "Lanjut").
     // payment_ok sudah dipindah ke DEPAN (new→payment_ok, approve finance sebelum produksi),
@@ -204,16 +208,17 @@ export default function GudangSteamPage() {
     const failReasonText = failReason
 
     // V3: insert order_progress_photos dengan stage='steam' (foto bukti fail)
-    await supabase.from('order_progress_photos').insert({
+    const { error: photoErr } = await supabase.from('order_progress_photos').insert({
       order_id: orderId,
       stage: 'steam',
       photo_url: steamFailPhoto,
       uploaded_by: user?.id ?? null,
       notes: `Steam QC Fail — foto bukti (V3). Alasan: ${failReasonText}`
     })
+    if (photoErr) { setFailSaving(false); alert('Gagal simpan foto bukti fail: ' + photoErr.message); return }
 
     // 1. Mark steam_job as revision (audit trail)
-    await supabase
+    const { error: jobFailErr } = await supabase
       .from('steam_jobs')
       .update({
         status: 'revision',
@@ -222,6 +227,7 @@ export default function GudangSteamPage() {
         checked_by: user?.id ?? null
       })
       .eq('id', steamJobId)
+    if (jobFailErr) { setFailSaving(false); alert('Gagal update steam job: ' + jobFailErr.message); return }
 
     // 2. Get original production_job to preserve penjahit_id
     let originalPenjahitId: string | null = null
@@ -265,15 +271,17 @@ export default function GudangSteamPage() {
     }
 
     // 5. Update order status back to 'production' (re-queue ke Penjahit)
-    await supabase.from('orders').update({ status: 'production' }).eq('id', orderId)
+    const { error: reorderErr } = await supabase.from('orders').update({ status: 'production' }).eq('id', orderId)
+    if (reorderErr) { setFailSaving(false); alert('Job revisi dibuat, tapi gagal re-queue order: ' + reorderErr.message); return }
 
     // 6. Log the revision re-queue
-    await supabase.from('order_logs').insert({
+    const { error: revLogErr } = await supabase.from('order_logs').insert({
       order_id: orderId,
       action: 'steam_revision_requeue',
       notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${failReasonText}. Job revisi: ${newJob.id.slice(0, 8)}`,
       staff_id: user?.id ?? null
     })
+    if (revLogErr) { console.error('Gagal catat log revisi:', revLogErr) }
 
     setFailSaving(false)
     setShowFailModal(null)

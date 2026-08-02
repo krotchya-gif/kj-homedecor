@@ -102,7 +102,7 @@ export default function InstallerSchedulePage() {
       alert('Tambahkan alasan revisi minimal 1 kalimat.')
       return
     }
-    await supabase
+    const { error: revErr } = await supabase
       .from('install_bookings')
       .update({
         status: 'revision',
@@ -110,16 +110,18 @@ export default function InstallerSchedulePage() {
         revision_photos: revPhotos.length > 0 ? revPhotos : null
       })
       .eq('id', revBooking.id)
+    if (revErr) { alert('Gagal submit revisi: ' + revErr.message); return }
 
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase.from('order_logs').insert({
+    const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: revBooking.order_id,
       action: 'install_revision',
       notes: `Installer melaporkan masalah: ${revReason.trim()}`,
       staff_id: user?.id ?? null
     })
+    if (logErr) { console.error('Gagal catat log revisi install:', logErr) }
 
     setShowRevision(false)
     setRevBooking(null)

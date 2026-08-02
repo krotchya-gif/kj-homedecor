@@ -221,7 +221,8 @@ export default function TikTokDashboardPage() {
 
   async function handleDelete(shopId: string) {
     if (!confirm('Hapus TikTok Shop ini? Data orders & statements tetap tersimpan.')) return
-    await supabase.from('tiktok_shop_settings').delete().eq('id', shopId)
+    const { error } = await supabase.from('tiktok_shop_settings').delete().eq('id', shopId)
+    if (error) { alert('Gagal hapus shop: ' + error.message); return }
     fetchData()
   }
 

@@ -107,9 +107,17 @@ export default function SuppliersPage() {
       notes: form.notes || null
     }
     if (editItem) {
-      await supabase.from('suppliers').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('suppliers').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('suppliers').insert(payload)
+
+      const { error } = await supabase.from('suppliers').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -118,7 +126,9 @@ export default function SuppliersPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus supplier ini?')) return
-    await supabase.from('suppliers').delete().eq('id', id)
+    const { error } = await supabase.from('suppliers').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     load()
   }
 
@@ -157,13 +167,14 @@ export default function SuppliersPage() {
     e.preventDefault()
     if (!selectedPR) return
     setPoSaving(true)
-    await supabase.from('purchase_orders').insert({
+    const { error } = await supabase.from('purchase_orders').insert({
       pr_id: selectedPR.id,
       supplier_id: poForm.supplier_id,
       actual_cost: Number(poForm.actual_cost),
       status: 'pending',
       invoice_document: poForm.invoice_document || null
     })
+    if (error) { setPoSaving(false); alert('Gagal buat PO: ' + error.message); return }
     // Update PR status to approved (already done by admin)
     setPoSaving(false)
     setShowPOForm(false)
@@ -182,7 +193,8 @@ export default function SuppliersPage() {
       updates.paid_at = new Date().toISOString()
       updates.paid_by = user?.id
     }
-    await supabase.from('purchase_orders').update(updates).eq('id', poId)
+    const { error } = await supabase.from('purchase_orders').update(updates).eq('id', poId)
+    if (error) { alert('Gagal update PO: ' + error.message); return }
     loadPOs()
   }
 

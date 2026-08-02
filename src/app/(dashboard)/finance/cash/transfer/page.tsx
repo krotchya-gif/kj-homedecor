@@ -84,14 +84,16 @@ export default function TransferPage() {
     const json = await res.json()
     if (!json.error) {
       // Update both balances directly
-      await supabase
+      const { error: fromErr } = await supabase
         .from('cash_accounts')
         .update({ balance: fromAcc.balance - amount })
         .eq('id', form.from_account_id)
-      await supabase
+      if (fromErr) { console.error('Update balance akun asal gagal:', fromErr) }
+      const { error: toErr } = await supabase
         .from('cash_accounts')
         .update({ balance: toAcc.balance + amount })
         .eq('id', form.to_account_id)
+      if (toErr) { console.error('Update balance akun tujuan gagal:', toErr) }
     }
     setSaving(false)
     setShowForm(false)

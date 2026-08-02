@@ -101,9 +101,17 @@ export default function HutangPage() {
       notes: form.notes || null
     }
     if (editItem) {
-      await supabase.from('hutang').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('hutang').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('hutang').insert(payload)
+
+      const { error } = await supabase.from('hutang').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -112,7 +120,9 @@ export default function HutangPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus tagihan ini?')) return
-    await supabase.from('hutang').delete().eq('id', id)
+    const { error } = await supabase.from('hutang').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchData()
   }
 
@@ -131,13 +141,14 @@ export default function HutangPage() {
     const newPaidAmount = (paymentItem.paid_amount ?? 0) + payAmount
     const sisa = (paymentItem.amount ?? 0) - newPaidAmount - (paymentItem.return_amount ?? 0)
     const newStatus = sisa <= 0 ? 'paid' : 'partial'
-    await supabase
+    const { error } = await supabase
       .from('hutang')
       .update({
         paid_amount: newPaidAmount,
         status: newStatus
       })
       .eq('id', paymentItem.id)
+    if (error) { setSaving(false); alert('Gagal simpan pembayaran hutang: ' + error.message); return }
     setSaving(false)
     setShowPayment(false)
     fetchData()

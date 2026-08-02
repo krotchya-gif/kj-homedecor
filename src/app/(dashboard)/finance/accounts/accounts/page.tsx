@@ -109,9 +109,17 @@ export default function AccountsListPage() {
       description: form.description || null
     }
     if (editItem) {
-      await supabase.from('accounts').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('accounts').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('accounts').insert(payload)
+
+      const { error } = await supabase.from('accounts').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -120,7 +128,9 @@ export default function AccountsListPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus akun ini?')) return
-    await supabase.from('accounts').delete().eq('id', id)
+    const { error } = await supabase.from('accounts').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchAccounts()
   }
 

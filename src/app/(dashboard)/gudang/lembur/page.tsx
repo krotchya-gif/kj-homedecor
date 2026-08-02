@@ -37,12 +37,13 @@ export default function GudangLemburPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from('lembur_records').insert({
+    const { error } = await supabase.from('lembur_records').insert({
       staff_id: form.staff_id || null,
       date: form.date,
       jam: Number(form.jam),
       keterangan: form.keterangan || null
     })
+    if (error) { setSaving(false); alert('Gagal simpan lembur: ' + error.message); return }
     setSaving(false)
     setShowForm(false)
     setForm({ staff_id: '', date: new Date().toISOString().slice(0, 10), jam: '', keterangan: '' })

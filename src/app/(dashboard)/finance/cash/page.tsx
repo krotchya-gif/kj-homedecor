@@ -88,9 +88,17 @@ export default function CashPage() {
       balance: Number(form.balance) || 0
     }
     if (editItem) {
-      await supabase.from('cash_accounts').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('cash_accounts').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('cash_accounts').insert(payload)
+
+      const { error } = await supabase.from('cash_accounts').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -99,7 +107,9 @@ export default function CashPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus akun kas ini?')) return
-    await supabase.from('cash_accounts').delete().eq('id', id)
+    const { error } = await supabase.from('cash_accounts').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

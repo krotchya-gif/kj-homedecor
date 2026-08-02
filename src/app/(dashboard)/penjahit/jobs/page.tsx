@@ -59,10 +59,11 @@ export default function PenjahitJobsPage() {
 
   async function startJob(id: string) {
     setSaving(id)
-    await supabase
+    const { error } = await supabase
       .from('production_jobs')
       .update({ status: 'in_progress', started_at: new Date().toISOString() })
       .eq('id', id)
+    if (error) { setSaving(null); alert('Gagal mulai job: ' + error.message); return }
     setSaving(null)
     load()
   }
@@ -96,7 +97,7 @@ export default function PenjahitJobsPage() {
       // Fallback kalau kolom production_job_id belum ada (migration 046 belum di-apply)
       if (repErr.message?.includes('production_job_id') || repErr.code === 'PGRST204') {
         console.warn('[Penjahit Jobs] production_job_id column missing, retrying without it. Apply migration 046!')
-        await supabase.from('production_reports').insert({
+        const { error: retryErr } = await supabase.from('production_reports').insert({
           ...reportMeta,
           meter_gorden: Number(rf.meter_gorden ?? 0),
           meter_vitras: Number(rf.meter_vitras ?? 0),
@@ -106,27 +107,31 @@ export default function PenjahitJobsPage() {
           poni_gel: Number(rf.poni_gel ?? 0),
           notes: rf.notes || null
         } as any)
+        if (retryErr) { alert('⚠️ Gagal submit laporan: ' + retryErr.message); setSaving(null); return }
       } else {
         alert('⚠️ Gagal submit laporan: ' + repErr.message)
         setSaving(null)
         return
       }
     }
-    await supabase
+    const { error: jobDoneErr } = await supabase
       .from('production_jobs')
       .update({ status: 'done', completed_at: new Date().toISOString() })
       .eq('id', jobId)
+    if (jobDoneErr) { alert('⚠️ Laporan tersimpan, tapi gagal update job: ' + jobDoneErr.message); setSaving(null); return }
 
     // Auto-create steam_jobs entry and advance order to steam after penjahit finishes
     const { data: jobData } = await supabase.from('production_jobs').select('order_id').eq('id', jobId).single()
     if (jobData?.order_id) {
-      await supabase.from('steam_jobs').insert({
+      const { error: steamErr } = await supabase.from('steam_jobs').insert({
         order_id: jobData.order_id,
         production_job_id: jobId,
         status: 'pending'
       })
+      if (steamErr) { console.error('Gagal auto-create steam job:', steamErr) }
       // Auto-transition order status from production to steam
-      await supabase.from('orders').update({ status: 'steam' }).eq('id', jobData.order_id)
+      const { error: orderErr } = await supabase.from('orders').update({ status: 'steam' }).eq('id', jobData.order_id)
+      if (orderErr) { console.error('Gagal auto-transition order ke steam:', orderErr) }
     }
 
     setSaving(null)

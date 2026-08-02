@@ -308,12 +308,16 @@ export default function ProductsPage() {
       weight: form.weight ? Number(form.weight) : null,
       images: form.images
     }
+    let err: { message: string } | null = null
     if (editProduct) {
-      await supabase.from('products').update(payload).eq('id', editProduct.id)
+      const res = await supabase.from('products').update(payload).eq('id', editProduct.id)
+      err = res.error
     } else {
-      await supabase.from('products').insert(payload)
+      const res = await supabase.from('products').insert(payload)
+      err = res.error
     }
     setSaving(false)
+    if (err) { toast('error', 'Gagal simpan produk: ' + err.message); return }
     setShowForm(false)
     toast('success', editProduct ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan')
     fetchProducts()

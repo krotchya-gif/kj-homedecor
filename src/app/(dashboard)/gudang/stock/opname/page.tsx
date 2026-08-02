@@ -110,11 +110,16 @@ export default function GudangStockOpnamePage() {
     } = await supabase.auth.getUser()
 
     // Create session
-    const { data: session } = await supabase
+    const { data: session, error: sessionErr } = await supabase
       .from('stock_opname_sessions')
       .insert({ created_by: user?.id ?? null, notes: newNotes || null, status: 'open' })
       .select()
       .single()
+    if (sessionErr || !session) {
+      setCreating(false)
+      alert('Gagal buat sesi opname: ' + (sessionErr?.message ?? 'unknown'))
+      return
+    }
 
     if (session) {
       // Create items for all materials with current stock
@@ -125,7 +130,8 @@ export default function GudangStockOpnamePage() {
         counted_qty: m.stock_gudang,
         difference: 0
       }))
-      await supabase.from('stock_opname_items').insert(itemRows)
+      const { error: insErr } = await supabase.from('stock_opname_items').insert(itemRows)
+      if (insErr) { alert('Gagal buat item opname: ' + insErr.message); setCreating(false); return }
     }
     setCreating(false)
     setNewNotes('')
@@ -140,16 +146,18 @@ export default function GudangStockOpnamePage() {
     for (const item of items) {
       const counted = countItems[item.material_id] ?? item.counted_qty
       const diff = counted - item.system_qty
-      await supabase
+      const { error } = await supabase
         .from('stock_opname_items')
         .update({
           counted_qty: counted,
           difference: diff
         })
         .eq('id', item.id)
+      if (error) { alert('Gagal simpan hitungan item: ' + error.message); setCounting(false); return }
     }
     // Update session status to submitted
-    await supabase.from('stock_opname_sessions').update({ status: 'submitted' }).eq('id', activeSession.id)
+    const { error: sessErr } = await supabase.from('stock_opname_sessions').update({ status: 'submitted' }).eq('id', activeSession.id)
+    if (sessErr) { alert('Gagal submit sesi opname: ' + sessErr.message); setCounting(false); return }
     setCounting(false)
     setCountDone(true)
   }
@@ -157,7 +165,8 @@ export default function GudangStockOpnamePage() {
   async function approveSessionFinal(s: OpnameSession, approve: boolean) {
     if (!approve) {
       // Reject — back to open
-      await supabase.from('stock_opname_sessions').update({ status: 'open' }).eq('id', s.id)
+      const { error: rejErr } = await supabase.from('stock_opname_sessions').update({ status: 'open' }).eq('id', s.id)
+      if (rejErr) { alert('Gagal reject sesi: ' + rejErr.message); return }
       load()
       setApproveSession(null)
       return
@@ -179,8 +188,9 @@ export default function GudangStockOpnamePage() {
       const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', item.material_id).single()
       if (mat) {
         const newStock = Math.max(0, (mat.stock_gudang ?? 0) + item.difference)
-        await supabase.from('materials').update({ stock_gudang: newStock }).eq('id', item.material_id)
-        await supabase.from('inventory_movements').insert({
+        const { error: matErr } = await supabase.from('materials').update({ stock_gudang: newStock }).eq('id', item.material_id)
+        if (matErr) { alert('Gagal adjust stok material: ' + matErr.message); setApproving(false); return }
+        const { error: movErr } = await supabase.from('inventory_movements').insert({
           material_id: item.material_id,
           type: item.difference > 0 ? 'in' : 'out',
           qty: Math.abs(item.difference),
@@ -188,10 +198,11 @@ export default function GudangStockOpnamePage() {
           notes: approveNote || null,
           created_by: user?.id ?? null
         })
+        if (movErr) { console.error('Gagal catat mutasi opname:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       }
     }
 
-    await supabase
+    const { error: approveErr } = await supabase
       .from('stock_opname_sessions')
       .update({
         status: 'approved',
@@ -199,6 +210,7 @@ export default function GudangStockOpnamePage() {
         approved_at: new Date().toISOString()
       })
       .eq('id', s.id)
+    if (approveErr) { alert('Gagal approve sesi: ' + approveErr.message); setApproving(false); return }
 
     setApproving(false)
     setApproveSession(null)

@@ -41,13 +41,16 @@ export default function CategoriesPage() {
     e.preventDefault()
     setSaving(true)
 
+    let err: { message: string } | null = null
     if (editing) {
-      await supabase.from('categories').update({ name: form.name, slug: form.slug }).eq('id', editing.id)
+      const res = await supabase.from('categories').update({ name: form.name, slug: form.slug }).eq('id', editing.id)
+      err = res.error
     } else {
-      await supabase.from('categories').insert({ name: form.name, slug: form.slug })
+      const res = await supabase.from('categories').insert({ name: form.name, slug: form.slug })
+      err = res.error
     }
-
     setSaving(false)
+    if (err) { alert('Gagal simpan kategori: ' + err.message); return }
     setShowForm(false)
     setEditing(null)
     setForm({ name: '', slug: '' })
@@ -57,8 +60,9 @@ export default function CategoriesPage() {
   async function handleDelete(id: string) {
     if (!confirm('Yakin hapus kategori ini?')) return
     setDeleting(id)
-    await supabase.from('categories').delete().eq('id', id)
-    setDeleting(null)
+    const { error } = await supabase.from('categories').delete().eq('id', id)
+
+    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
     loadCategories()
   }
 

@@ -157,12 +157,13 @@ export default function GudangProductionPage() {
       alert('⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek RLS policy atau koneksi database.')
     }
 
-    await supabase.from('order_logs').insert({
+    const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: job?.order_id,
       action: status === 'in_progress' ? 'production_started' : 'production_done',
       notes: status === 'in_progress' ? `Produksi dimulai oleh Gudang` : `Produksi selesai — siap QC`,
       staff_id: user?.id ?? null
     })
+    if (logErr) { console.error('Gagal catat log produksi:', logErr) }
     load()
   }
 
@@ -190,12 +191,13 @@ export default function GudangProductionPage() {
       return
     }
     const selectedPenjahit = penjahits.find((p: UserType) => p.id === penjahitId)
-    await supabase.from('order_logs').insert({
+    const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: assignJob.order_id,
       action: 'penjahit_assigned',
       notes: `Job diserahkan ke penjahit: ${selectedPenjahit?.name ?? penjahitId} (penjahit_id: ${updated.penjahit_id.slice(0, 8)})`,
       staff_id: user?.id ?? null
     })
+    if (logErr) { console.error('Gagal catat log assign:', logErr) }
     setAssigning(false)
     setAssignJob(null)
     load()

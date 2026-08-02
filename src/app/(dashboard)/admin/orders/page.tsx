@@ -151,7 +151,7 @@ export default function OrdersPage() {
       if (existingCust) {
         customerId = existingCust.id
         // Update customer info if edited
-        await supabase
+        const { error: custUpdErr } = await supabase
           .from('customers')
           .update({
             name: nameTrimmed,
@@ -159,8 +159,9 @@ export default function OrdersPage() {
             address: form.customer_address?.trim() || null
           })
           .eq('id', customerId)
+        if (custUpdErr) { console.error('Update customer gagal:', custUpdErr) }
       } else {
-        const { data: cust } = await supabase
+        const { data: cust, error: custInsErr } = await supabase
           .from('customers')
           .insert({
             name: nameTrimmed,
@@ -171,10 +172,11 @@ export default function OrdersPage() {
           .single()
         customerId = cust?.id ?? null
         customerWasCreated = !!customerId
+        if (custInsErr) { console.error('Insert customer gagal:', custInsErr) }
       }
     } else if (customerId) {
       // Update selected customer info if edited
-      await supabase
+      const { error: updErr } = await supabase
         .from('customers')
         .update({
           name: form.customer_name.trim() || undefined,
@@ -182,6 +184,7 @@ export default function OrdersPage() {
           address: form.customer_address?.trim() || undefined
         })
         .eq('id', customerId)
+      if (updErr) { console.error('Update customer gagal:', updErr) }
     }
 
     const dpAmt = Number(form.dp_amount) || 0
@@ -207,7 +210,8 @@ export default function OrdersPage() {
     if (orderError || !newOrder) {
       // Rollback: delete orphaned customer if it was just created
       if (customerId && customerWasCreated) {
-        await supabase.from('customers').delete().eq('id', customerId)
+        const { error: rollbackErr } = await supabase.from('customers').delete().eq('id', customerId)
+        if (rollbackErr) console.error('Rollback delete customer gagal:', rollbackErr)
       }
       setSaving(false)
       alert(orderError?.message ?? 'Gagal membuat pesanan')
@@ -217,13 +221,14 @@ export default function OrdersPage() {
     // Auto-create verified payment for marketplace orders that are fully paid
     const marketplaceSources = ['shopee', 'tokopedia', 'tiktok']
     if (newOrder && marketplaceSources.includes(form.source) && dpAmt >= totalAmt && totalAmt > 0) {
-      await supabase.from('payments').insert({
+      const { error: payErr } = await supabase.from('payments').insert({
         order_id: newOrder.id,
         type: dpAmt === totalAmt ? 'lunas' : 'dp',
         amount: dpAmt === totalAmt ? totalAmt : dpAmt,
         date: new Date().toISOString(),
         notes: `Auto-verified: Order dari ${form.source}`
       })
+      if (payErr) { console.error('Auto-create payment gagal:', payErr); alert('⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message) }
     }
 
     setSaving(false)

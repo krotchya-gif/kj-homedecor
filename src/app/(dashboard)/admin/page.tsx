@@ -242,7 +242,8 @@ export default function AdminDashboardPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id }).eq('id', id)
+    const { error } = await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id }).eq('id', id)
+    if (error) { setApproving(null); alert('Gagal approve PR: ' + error.message); return }
     setApproving(null)
     loadData()
   }
@@ -253,7 +254,8 @@ export default function AdminDashboardPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id }).eq('id', id)
+    const { error } = await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id }).eq('id', id)
+    if (error) { setRejecting(null); alert('Gagal tolak PR: ' + error.message); return }
     setRejecting(null)
     loadData()
   }

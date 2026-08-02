@@ -110,9 +110,17 @@ export default function AssetsPage() {
       current_value: Number(form.current_value) || 0
     }
     if (editItem) {
-      await supabase.from('assets').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('assets').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('assets').insert(payload)
+
+      const { error } = await supabase.from('assets').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -121,7 +129,9 @@ export default function AssetsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus aset ini?')) return
-    await supabase.from('assets').delete().eq('id', id)
+    const { error } = await supabase.from('assets').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

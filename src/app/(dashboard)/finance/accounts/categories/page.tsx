@@ -63,9 +63,17 @@ export default function CategoriesPage() {
     setSaving(true)
     const payload = { name: form.name, type: form.type, description: form.description || null }
     if (editItem) {
-      await supabase.from('account_categories').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('account_categories').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('account_categories').insert(payload)
+
+      const { error } = await supabase.from('account_categories').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -74,7 +82,9 @@ export default function CategoriesPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus kategori ini?')) return
-    await supabase.from('account_categories').delete().eq('id', id)
+    const { error } = await supabase.from('account_categories').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchCategories()
   }
 

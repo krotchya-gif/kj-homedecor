@@ -110,13 +110,14 @@ export default function InstallerChecklistPage() {
     }
 
     // Update booking status to done
-    await supabase
+    const { error: doneErr } = await supabase
       .from('install_bookings')
       .update({
         status: 'done',
         actual_date: new Date().toISOString()
       })
       .eq('id', selectedBooking)
+    if (doneErr) { console.error(doneErr); alert('Checklist tersimpan, tapi gagal update status booking: ' + doneErr.message); setSubmitting(false); return }
 
     setSaved(true)
     setSubmitting(false)

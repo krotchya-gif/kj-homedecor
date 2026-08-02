@@ -107,9 +107,17 @@ export default function FakturPage() {
       notes: form.notes || null
     }
     if (editItem) {
-      await supabase.from('piutang').update(payload).eq('id', editItem.id)
+
+      const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     } else {
-      await supabase.from('piutang').insert(payload)
+
+      const { error } = await supabase.from('piutang').insert(payload)
+
+      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+
     }
     setSaving(false)
     setShowForm(false)
@@ -118,7 +126,9 @@ export default function FakturPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus faktur ini?')) return
-    await supabase.from('piutang').delete().eq('id', id)
+    const { error } = await supabase.from('piutang').delete().eq('id', id)
+
+    if (error) { alert('Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

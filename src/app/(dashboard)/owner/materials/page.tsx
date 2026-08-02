@@ -137,7 +137,7 @@ export default function MaterialsPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await supabase.from('materials').insert({
+    const { error } = await supabase.from('materials').insert({
       name: form.name,
       unit: form.unit,
       cost_per_unit: Number(form.cost_per_unit),
@@ -145,6 +145,7 @@ export default function MaterialsPage() {
       stock_toko: Number(form.stock_toko) || 0,
       min_stock_level: Number(form.min_stock_level) || 0
     })
+    if (error) { setSaving(false); alert('Gagal simpan material: ' + error.message); return }
     setSaving(false)
     setShowForm(false)
     setForm({ name: '', unit: 'meter', cost_per_unit: '', stock_gudang: '', stock_toko: '', min_stock_level: '' })

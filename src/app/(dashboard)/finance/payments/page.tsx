@@ -122,7 +122,7 @@ export default function FinancePaymentsPage() {
     setSaving(true)
     const amount = Number(payForm.amount)
     const now = new Date().toISOString()
-    await supabase.from('payments').insert({
+    const { error: payErr } = await supabase.from('payments').insert({
       order_id: selected.id,
       type: payForm.type,
       amount,
@@ -130,6 +130,7 @@ export default function FinancePaymentsPage() {
       verified_by: currentUser?.id ?? null,
       verified_at: now
     })
+    if (payErr) { setSaving(false); alert('Gagal catat pembayaran: ' + payErr.message); return }
 
     // Auto-create journal entry for payment
     try {
@@ -155,18 +156,19 @@ export default function FinancePaymentsPage() {
           'Bisa karena: account_mappings belum di-setup. Lihat /finance/accounts/mapping'
       )
     }
-    await supabase.from('order_logs').insert({
+    const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: selected.id,
       action: 'payment_input',
       notes: `Input ${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} Rp${amount.toLocaleString('id-ID')} oleh ${currentUser?.name ?? 'Finance'}`,
       staff_id: currentUser?.id
     })
+    if (logErr) { console.error('Gagal catat log pembayaran:', logErr) }
     const newDp = payForm.type === 'dp' ? selected.dp_amount + amount : selected.dp_amount
     const newLunas = payForm.type === 'lunas' ? selected.lunas_amount + amount : selected.lunas_amount
     const total = selected.total_amount
     const paidSum = newDp + newLunas
     const newPayStatus = paidSum >= total && total > 0 ? 'paid' : paidSum > 0 ? 'partial' : 'pending'
-    await supabase
+    const { error: ordErr } = await supabase
       .from('orders')
       .update({
         dp_amount: newDp,
@@ -174,6 +176,7 @@ export default function FinancePaymentsPage() {
         payment_status: newPayStatus
       })
       .eq('id', selected.id)
+    if (ordErr) { setSaving(false); alert('Pembayaran tercatat, tapi gagal update order: ' + ordErr.message); return }
     setSaving(false)
     setSelected(null)
     setPayForm({
@@ -230,12 +233,13 @@ export default function FinancePaymentsPage() {
         toast('error', 'Gagal update ke Cek Bayar: ' + step1Err.message)
         return
       }
-      await supabase.from('order_logs').insert({
+      const { error: logErr } = await supabase.from('order_logs').insert({
         order_id: freshOrder.id,
         action: 'payment_verified',
         notes: `Payment verified oleh ${currentUser?.name ?? 'Finance'} — pembayaran (DP/lunas) sudah masuk Rp${paidSum.toLocaleString('id-ID')}. Status: Baru → Cek Bayar. Lanjut Gudang sortir.`,
         staff_id: currentUser?.id
       })
+      if (logErr) { console.error('Gagal catat log verify:', logErr) }
       toast('success', '✅ Pembayaran diverifikasi! Status: Baru → Cek Bayar. Lanjut Gudang untuk sortir.')
     } else if (freshOrder.status === 'payment_ok') {
       // Sudah di Cek Bayar — gudang yang lanjut ke sortir
@@ -295,13 +299,15 @@ export default function FinancePaymentsPage() {
       )
       return
     }
-    await supabase.from('orders').update({ status: 'ready' }).eq('id', order.id).eq('status', 'steam')
-    await supabase.from('order_logs').insert({
+    const { error: qcErr } = await supabase.from('orders').update({ status: 'ready' }).eq('id', order.id).eq('status', 'steam')
+    if (qcErr) { toast('error', 'Gagal update status ke Siap: ' + qcErr.message); return }
+    const { error: qcLogErr } = await supabase.from('order_logs').insert({
       order_id: order.id,
       action: 'payment_approved',
       notes: `QC Approved — Finance approve oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}`,
       staff_id: currentUser?.id
     })
+    if (qcLogErr) { console.error('Gagal catat log approve:', qcLogErr) }
     toast('success', 'Order berhasil diapprove! Status berubah menjadi "Siap Kirim". Order siap dikemas dan dikirim.')
     load()
   }
@@ -321,7 +327,7 @@ export default function FinancePaymentsPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase.from('payments').insert({
+    const { error: refundErr } = await supabase.from('payments').insert({
       order_id: returnRecord.order_id,
       type: 'refund',
       amount: returnRecord.refund_amount,
@@ -330,13 +336,16 @@ export default function FinancePaymentsPage() {
       verified_at: new Date().toISOString(),
       notes: `Refund untuk return: ${returnRecord.reason}`
     })
-    await supabase.from('returns').update({ refund_status: 'completed' }).eq('id', returnRecord.id)
-    await supabase.from('order_logs').insert({
+    if (refundErr) { setProcessingRefund(null); toast('error', 'Gagal catat refund: ' + refundErr.message); return }
+    const { error: retUpdErr } = await supabase.from('returns').update({ refund_status: 'completed' }).eq('id', returnRecord.id)
+    if (retUpdErr) { setProcessingRefund(null); toast('error', 'Refund tercatat, tapi gagal update status return: ' + retUpdErr.message); return }
+    const { error: refundLogErr } = await supabase.from('order_logs').insert({
       order_id: returnRecord.order_id,
       action: 'refund_issued',
       notes: `Refund Rp${fmt(returnRecord.refund_amount)} diproses oleh Finance. Alasan return: ${returnRecord.reason}`,
       staff_id: user?.id ?? null
     })
+    if (refundLogErr) { console.error('Gagal catat log refund:', refundLogErr) }
     setProcessingRefund(null)
     toast('success', `Refund ${fmt(returnRecord.refund_amount)} berhasil diproses!`)
     load()

@@ -60,14 +60,17 @@ export default function FinanceSettingsPage() {
 
   async function handleSaveCashBalances() {
     setSaving(true)
+    let hadError: { message: string } | null = null
     for (const [id, balance] of Object.entries(cashForm)) {
-      await supabase
+      const { error } = await supabase
         .from('cash_accounts')
         .update({ balance: Number(balance) || 0 })
         .eq('id', id)
+      if (error) hadError = error
     }
     await fetchData()
     setSaving(false)
+    if (hadError) { alert('⚠️ Beberapa saldo gagal disimpan: ' + hadError.message) }
     alert('Saldo kas/bank berhasil disimpan!')
   }
 

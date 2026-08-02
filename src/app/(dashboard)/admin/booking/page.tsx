@@ -160,7 +160,7 @@ export default function AdminBookingPage() {
     e.preventDefault()
     setSaving(true)
 
-    await supabase.from('install_bookings').insert({
+    const { error } = await supabase.from('install_bookings').insert({
       customer_name: form.customer_name,
       customer_phone: form.customer_phone,
       address: form.type === 'survey' ? null : form.address,
@@ -172,6 +172,7 @@ export default function AdminBookingPage() {
       status: form.scheduled_date && form.installer_id ? 'scheduled' : 'pending',
       source: 'manual'
     })
+    if (error) { setSaving(false); alert('Gagal buat booking: ' + error.message); return }
 
     setSaving(false)
     setShowForm(false)
@@ -192,7 +193,7 @@ export default function AdminBookingPage() {
     if (!selectedBooking) return
     setSaving(true)
 
-    await supabase
+    const { error: acceptErr } = await supabase
       .from('install_bookings')
       .update({
         scheduled_date: acceptForm.scheduled_date,
@@ -201,6 +202,7 @@ export default function AdminBookingPage() {
         status: 'scheduled'
       })
       .eq('id', selectedBooking.id)
+    if (acceptErr) { setSaving(false); alert('Gagal accept booking: ' + acceptErr.message); return }
 
     setSaving(false)
     setShowAcceptModal(false)

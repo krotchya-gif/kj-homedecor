@@ -57,7 +57,7 @@ export default function GudangQCPage() {
       data: { user }
     } = await supabase.auth.getUser()
 
-    await supabase.from('qc_records').insert({
+    const { error: qcErr } = await supabase.from('qc_records').insert({
       order_id: selected.order_id,
       order_item_id: selected.id,
       result: qcForm.result,
@@ -66,22 +66,26 @@ export default function GudangQCPage() {
       checked_by: user?.id ?? null,
       checked_at: new Date().toISOString()
     })
+    if (qcErr) { setSaving(false); alert('Gagal simpan QC: ' + qcErr.message); return }
 
     if (qcForm.result === 'pass') {
-      await supabase.from('order_items').update({ ready: true }).eq('id', selected.id)
-      await supabase.from('order_logs').insert({
+      const { error: itemErr } = await supabase.from('order_items').update({ ready: true }).eq('id', selected.id)
+      if (itemErr) { setSaving(false); alert('QC tercatat, tapi gagal update item: ' + itemErr.message); return }
+      const { error: passLogErr } = await supabase.from('order_logs').insert({
         order_id: selected.order_id,
         action: 'qc_pass',
         notes: `QC Pass oleh Gudang — item: ${selected.product?.name ?? selected.custom_specs ?? selected.id.slice(0, 8)}`,
         staff_id: user?.id ?? null
       })
+      if (passLogErr) { console.error('Gagal catat log QC pass:', passLogErr) }
     } else {
-      await supabase.from('order_logs').insert({
+      const { error: failLogErr } = await supabase.from('order_logs').insert({
         order_id: selected.order_id,
         action: 'qc_fail',
         notes: `QC Fail — alasan: ${qcForm.fail_reason || 'n/a'}${qcForm.revision_notes ? ' | Catatan revisi: ' + qcForm.revision_notes : ''}`,
         staff_id: user?.id ?? null
       })
+      if (failLogErr) { console.error('Gagal catat log QC fail:', failLogErr) }
     }
 
     setSaving(false)
@@ -101,7 +105,7 @@ export default function GudangQCPage() {
     const isGood = returForm.condition === 'good'
 
     // Update return record — final condition determined by Gudang
-    await supabase
+    const { error: retUpdErr } = await supabase
       .from('returns')
       .update({
         condition: returForm.condition,
@@ -110,6 +114,7 @@ export default function GudangQCPage() {
         resolved_at: new Date().toISOString()
       })
       .eq('id', selectedReturn.id)
+    if (retUpdErr) { setSaving(false); alert('Gagal update return: ' + retUpdErr.message); return }
 
     // If good → stock in, if damaged → dispose
     if (isGood) {
@@ -126,29 +131,32 @@ export default function GudangQCPage() {
             .eq('order_id', selectedReturn.order_id)
       for (const item of itemsToReturn ?? []) {
         if (item.product_id) {
-          await supabase.from('inventory_movements').insert({
+          const { error: movErr } = await supabase.from('inventory_movements').insert({
             product_id: item.product_id,
             type: 'return_in',
             qty: item.qty ?? 1,
             reason: `Return confirmed GOOD oleh Gudang — order ${selectedReturn.order_id.slice(0, 8)}`,
             created_by: user?.id ?? null
           })
+          if (movErr) { setSaving(false); alert('Gagal catat stok masuk return: ' + movErr.message); return }
           // increment stock_toko
           const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', item.product_id).single()
           if (prod) {
-            await supabase
+            const { error: prodErr } = await supabase
               .from('products')
               .update({ stock_toko: (prod.stock_toko ?? 0) + (item.qty ?? 1) })
               .eq('id', item.product_id)
+            if (prodErr) { setSaving(false); alert('Stok tercatat, tapi gagal update stok produk: ' + prodErr.message); return }
           }
         }
       }
-      await supabase.from('order_logs').insert({
+      const { error: stockLogErr } = await supabase.from('order_logs').insert({
         order_id: selectedReturn.order_id,
         action: 'return_stock_in',
         notes: `Return confirmed GOOD oleh Gudang — stock masuk ke toko. Foto: ${returForm.photos.length} bukti.`,
         staff_id: user?.id ?? null
       })
+      if (stockLogErr) { console.error('Gagal catat log return stock:', stockLogErr) }
     } else {
       // For damaged dispose, we need to know which product - use order_item_id from returns
       const { data: returnItem } = await supabase
@@ -163,28 +171,31 @@ export default function GudangQCPage() {
           .eq('id', returnItem.order_item_id)
           .single()
         if (item?.product_id) {
-          await supabase.from('inventory_movements').insert({
+          const { error: disposeErr } = await supabase.from('inventory_movements').insert({
             product_id: item.product_id,
             type: 'dispose',
             qty: item.qty ?? 1,
             reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
             created_by: user?.id ?? null
           })
+          if (disposeErr) { setSaving(false); alert('Gagal catat disposal: ' + disposeErr.message); return }
         }
       } else {
-        await supabase.from('inventory_movements').insert({
+        const { error: disposeErr } = await supabase.from('inventory_movements').insert({
           type: 'dispose',
           qty: selectedReturn.qty ?? 1,
           reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
           created_by: user?.id ?? null
         })
+        if (disposeErr) { setSaving(false); alert('Gagal catat disposal: ' + disposeErr.message); return }
       }
-      await supabase.from('order_logs').insert({
+      const { error: disposeLogErr } = await supabase.from('order_logs').insert({
         order_id: selectedReturn.order_id,
         action: 'return_disposed',
         notes: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}.`,
         staff_id: user?.id ?? null
       })
+      if (disposeLogErr) { console.error('Gagal catat log disposal:', disposeLogErr) }
     }
 
     setSaving(false)

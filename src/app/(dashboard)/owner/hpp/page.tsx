@@ -91,15 +91,17 @@ export default function HPPPage() {
   async function saveBOM() {
     if (!selectedProduct) return
     // Delete old BOM for this product
-    await supabase.from('bom').delete().eq('product_id', selectedProduct.id)
+    const { error: delErr } = await supabase.from('bom').delete().eq('product_id', selectedProduct.id)
+    if (delErr) { alert('Gagal hapus BOM lama: ' + delErr.message); return }
     // Insert new lines
     if (lines.length > 0) {
-      await supabase
+      const { error: insErr } = await supabase
         .from('bom')
         .insert(lines.map((l) => ({ product_id: selectedProduct.id, material_id: l.material_id, qty_per_unit: l.qty })))
+      if (insErr) { alert('Gagal simpan BOM: ' + insErr.message); return }
     }
     // Update product: hpp_calculated (auto), hpp_manual (if manual mode), price
-    await supabase
+    const { error: prodErr } = await supabase
       .from('products')
       .update({
         hpp_calculated: Math.round(autoHpp),
@@ -107,6 +109,7 @@ export default function HPPPage() {
         price: Math.round(hargaJual)
       })
       .eq('id', selectedProduct.id)
+    if (prodErr) { alert('BOM tersimpan, tapi gagal update harga: ' + prodErr.message); return }
     alert(`BOM disimpan & harga jual produk diupdate ke ${fmt(Math.round(hargaJual))}`)
     load()
   }

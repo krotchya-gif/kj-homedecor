@@ -62,11 +62,12 @@ export default function BannersPage() {
 
     setSaving(true)
     const maxSeq = Math.max(...banners.map((b) => b.sequence), 0)
-    await supabase.from('banners').insert({
+    const { error } = await supabase.from('banners').insert({
       image_url: uploadedUrl,
       sequence: maxSeq + 1,
       is_active: true
     })
+    if (error) { setSaving(false); alert('Gagal simpan banner: ' + error.message); return }
 
     setSaving(false)
     setShowForm(false)
@@ -77,13 +78,15 @@ export default function BannersPage() {
   async function handleDelete(id: string) {
     if (!confirm('Yakin hapus banner ini?')) return
     setDeleting(id)
-    await supabase.from('banners').delete().eq('id', id)
-    setDeleting(null)
+    const { error } = await supabase.from('banners').delete().eq('id', id)
+
+    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
     loadBanners()
   }
 
   async function toggleActive(banner: Banner) {
-    await supabase.from('banners').update({ is_active: !banner.is_active }).eq('id', banner.id)
+    const { error } = await supabase.from('banners').update({ is_active: !banner.is_active }).eq('id', banner.id)
+    if (error) { alert('Gagal toggle banner: ' + error.message); return }
     loadBanners()
   }
 

@@ -72,7 +72,7 @@ export default function LaundryPayrollPage() {
 
       const existing = payrolls.find((p) => p.staff_id === s.id)
       if (existing) {
-        await supabase
+        const { error: updErr } = await supabase
           .from('laundry_payroll')
           .update({
             total_kg: totalKg,
@@ -80,8 +80,9 @@ export default function LaundryPayrollPage() {
             total_amount: totalAmount
           })
           .eq('id', existing.id)
+        if (updErr) { alert('Gagal update payroll: ' + updErr.message); return }
       } else {
-        await supabase.from('laundry_payroll').insert({
+        const { error } = await supabase.from('laundry_payroll').insert({
           staff_id: s.id,
           period_month: selectedMonth,
           period_year: selectedYear,
@@ -90,6 +91,7 @@ export default function LaundryPayrollPage() {
           total_amount: totalAmount,
           status: 'pending'
         })
+        if (error) { alert('Gagal simpan payroll: ' + error.message); return }
       }
     }
     fetchData()
@@ -97,7 +99,8 @@ export default function LaundryPayrollPage() {
 
   async function markAsPaid(payrollId: string) {
     setSaving(true)
-    await supabase.from('laundry_payroll').update({ status: 'paid' }).eq('id', payrollId)
+    const { error } = await supabase.from('laundry_payroll').update({ status: 'paid' }).eq('id', payrollId)
+    if (error) { setSaving(false); alert('Gagal mark paid: ' + error.message); return }
     setSaving(false)
     setShowPaidModal(null)
     fetchData()

@@ -90,8 +90,9 @@ export default function AdminPortfolioPage() {
     e.preventDefault()
     setSaving(true)
 
+    let err: { message: string } | null = null
     if (editingPost) {
-      await supabase
+      const res = await supabase
         .from('portfolio_posts')
         .update({
           title: form.title,
@@ -99,15 +100,18 @@ export default function AdminPortfolioPage() {
           images: form.images
         })
         .eq('id', editingPost.id)
+      err = res.error
     } else {
-      await supabase.from('portfolio_posts').insert({
+      const res = await supabase.from('portfolio_posts').insert({
         title: form.title,
         content: form.content,
         images: form.images
       })
+      err = res.error
     }
 
     setSaving(false)
+    if (err) { alert('Gagal simpan post: ' + err.message); return }
     setShowForm(false)
     loadPosts()
   }
@@ -115,8 +119,9 @@ export default function AdminPortfolioPage() {
   async function handleDelete(id: string) {
     if (!confirm('Yakin hapus post ini?')) return
     setDeleting(id)
-    await supabase.from('portfolio_posts').delete().eq('id', id)
-    setDeleting(null)
+    const { error } = await supabase.from('portfolio_posts').delete().eq('id', id)
+
+    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
     loadPosts()
   }
 

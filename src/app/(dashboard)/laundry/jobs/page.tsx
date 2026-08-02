@@ -58,17 +58,19 @@ export default function LaundryJobsPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    await supabase
+    const { error } = await supabase
       .from('laundry_orders')
       .update({ assigned_to: user?.id ?? null })
       .eq('id', id)
+    if (error) { alert('Gagal self-assign: ' + error.message); return }
     await loadUnassigned()
     load()
   }
 
   async function startWork(id: string) {
     setSaving(id)
-    await supabase.from('laundry_orders').update({ status: 'in_progress' }).eq('id', id)
+    const { error } = await supabase.from('laundry_orders').update({ status: 'in_progress' }).eq('id', id)
+    if (error) { setSaving(null); alert('Gagal mulai kerja: ' + error.message); return }
     setSaving(null)
     load()
   }
@@ -76,7 +78,7 @@ export default function LaundryJobsPage() {
   async function completeWork(id: string) {
     if (!completedKg.trim()) return
     setSaving(id)
-    await supabase
+    const { error } = await supabase
       .from('laundry_orders')
       .update({
         status: 'done',
@@ -84,6 +86,7 @@ export default function LaundryJobsPage() {
         completed_at: new Date().toISOString()
       })
       .eq('id', id)
+    if (error) { setSaving(null); alert('Gagal complete laundry: ' + error.message); return }
     setSaving(null)
     setShowDoneModal(null)
     setCompletedKg('')

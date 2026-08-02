@@ -139,11 +139,12 @@ export default function GudangStockPage() {
           .eq('id', mutasiItem)
           .single()
         const matAny = mat as any
-        await supabase
+        const { error: matUpdErr } = await supabase
           .from('materials')
           .update({ [field]: (matAny?.[field] ?? 0) + qty })
           .eq('id', mutasiItem)
-        await supabase.from('inventory_movements').insert({
+        if (matUpdErr) { alert('Gagal update stok material: ' + matUpdErr.message); return }
+        const { error: movErr } = await supabase.from('inventory_movements').insert({
           material_id: mutasiItem,
           type: 'in',
           qty,
@@ -152,14 +153,16 @@ export default function GudangStockPage() {
           notes: mutasiNotes || null,
           created_by: user?.id ?? null
         })
+        if (movErr) { console.error('Gagal catat mutasi:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       } else {
         const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', mutasiItem).single()
         const prodAny = prod as any
-        await supabase
+        const { error: prodUpdErr } = await supabase
           .from('products')
           .update({ stock_toko: (prodAny?.stock_toko ?? 0) + qty })
           .eq('id', mutasiItem)
-        await supabase.from('inventory_movements').insert({
+        if (prodUpdErr) { alert('Gagal update stok produk: ' + prodUpdErr.message); return }
+        const { error: movErr } = await supabase.from('inventory_movements').insert({
           product_id: mutasiItem,
           type: 'in',
           qty,
@@ -168,6 +171,7 @@ export default function GudangStockPage() {
           notes: mutasiNotes || null,
           created_by: user?.id ?? null
         })
+        if (movErr) { console.error('Gagal catat mutasi:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       }
       setMutasiSuccess(true)
       setTimeout(() => setMutasiSuccess(false), 2500)
@@ -201,11 +205,12 @@ export default function GudangStockPage() {
         .single()
       const matAny = mat as any
       const newVal = direction === 'add' ? (matAny?.[field] ?? 0) + qty : Math.max(0, (matAny?.[field] ?? 0) - qty)
-      await supabase
+      const { error: matUpdErr } = await supabase
         .from('materials')
         .update({ [field]: newVal })
         .eq('id', itemId)
-      await supabase.from('inventory_movements').insert({
+      if (matUpdErr) { alert('Gagal adjust stok material: ' + matUpdErr.message); return }
+      const { error: movErr } = await supabase.from('inventory_movements').insert({
         material_id: itemId,
         type: direction === 'add' ? 'in' : 'out',
         qty,
@@ -214,13 +219,15 @@ export default function GudangStockPage() {
         reason,
         created_by: user?.id ?? null
       })
+      if (movErr) { console.error('Gagal catat mutasi:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
     } else {
       const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', itemId).single()
       const prodAny = prod as any
       const newVal =
         direction === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
-      await supabase.from('products').update({ stock_toko: newVal }).eq('id', itemId)
-      await supabase.from('inventory_movements').insert({
+      const { error: prodUpdErr } = await supabase.from('products').update({ stock_toko: newVal }).eq('id', itemId)
+      if (prodUpdErr) { alert('Gagal adjust stok produk: ' + prodUpdErr.message); return }
+      const { error: movErr } = await supabase.from('inventory_movements').insert({
         product_id: itemId,
         type: direction === 'add' ? 'in' : 'out',
         qty,
@@ -229,6 +236,7 @@ export default function GudangStockPage() {
         reason,
         created_by: user?.id ?? null
       })
+      if (movErr) { console.error('Gagal catat mutasi:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
     }
     load()
   }
@@ -262,11 +270,12 @@ export default function GudangStockPage() {
           .single()
         const matAny = mat as any
         const newVal = editMode === 'add' ? (matAny?.[field] ?? 0) + qty : Math.max(0, (matAny?.[field] ?? 0) - qty)
-        await supabase
+        const { error: matUpdErr } = await supabase
           .from('materials')
           .update({ [field]: newVal })
           .eq('id', editItem.id)
-        await supabase.from('inventory_movements').insert({
+        if (matUpdErr) { alert('Gagal update stok material: ' + matUpdErr.message); return }
+        const { error: movErr } = await supabase.from('inventory_movements').insert({
           material_id: editItem.id,
           type: editMode === 'add' ? 'in' : 'out',
           qty,
@@ -276,13 +285,15 @@ export default function GudangStockPage() {
           notes: editNotes || null,
           created_by: user?.id ?? null
         })
+        if (movErr) { console.error('Gagal catat mutasi:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       } else {
         const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', editItem.id).single()
         const prodAny = prod as any
         const newVal =
           editMode === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
-        await supabase.from('products').update({ stock_toko: newVal }).eq('id', editItem.id)
-        await supabase.from('inventory_movements').insert({
+        const { error: prodUpdErr } = await supabase.from('products').update({ stock_toko: newVal }).eq('id', editItem.id)
+        if (prodUpdErr) { alert('Gagal update stok produk: ' + prodUpdErr.message); return }
+        const { error: movErr } = await supabase.from('inventory_movements').insert({
           product_id: editItem.id,
           type: editMode === 'add' ? 'in' : 'out',
           qty,
@@ -292,6 +303,7 @@ export default function GudangStockPage() {
           notes: editNotes || null,
           created_by: user?.id ?? null
         })
+        if (movErr) { console.error('Gagal catat mutasi:', movErr); alert('⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       }
       setEditItem(null)
       load()

@@ -26,12 +26,13 @@ export default function GudangAlertsPage() {
     setCreating(material.id)
     const needed = material.min_stock_level - material.stock_gudang + 10
     const estimatedCost = needed * (material.cost_per_unit ?? 0)
-    await supabase.from('purchase_requests').insert({
+    const { error } = await supabase.from('purchase_requests').insert({
       material_id: material.id,
       qty: needed,
       estimated_cost: estimatedCost,
       status: 'pending'
     })
+    if (error) { setCreating(null); alert('Gagal buat PR: ' + error.message); return }
     setCreating(null)
     alert(`Purchase Request untuk "${material.name}" berhasil dibuat! (${needed} unit)`)
   }

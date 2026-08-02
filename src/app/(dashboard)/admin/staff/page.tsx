@@ -126,8 +126,9 @@ export default function StaffPage() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Hapus staff "${name}"?`)) return
     setDeleting(id)
-    await supabase.from('users').delete().eq('id', id)
-    setDeleting(null)
+    const { error } = await supabase.from('users').delete().eq('id', id)
+
+    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
     fetchStaff()
     setSuccess(`Staff "${name}" berhasil dihapus`)
   }
@@ -140,7 +141,7 @@ export default function StaffPage() {
   async function saveEdit() {
     if (!editingId) return
     setSaving(true)
-    await supabase
+    const { error } = await supabase
       .from('users')
       .update({
         name: editForm.name,
@@ -148,6 +149,7 @@ export default function StaffPage() {
         status: editForm.status
       })
       .eq('id', editingId)
+    if (error) { setSaving(false); alert('Gagal simpan staff: ' + error.message); return }
     setSaving(false)
     setEditingId(null)
     fetchStaff()
