@@ -87,10 +87,11 @@ export default function IncomePage() {
     const json = await res.json()
     if (!json.error) {
       // Update cash account balance
-      await supabase.rpc('update_cash_account_balance', {
+      const { error: rpcErr } = await supabase.rpc('update_cash_account_balance', {
         p_id: form.cash_account_id,
         p_amount: amount
       })
+      if (rpcErr) { console.error('RPC update_cash_account_balance gagal:', rpcErr); alert('⚠️ Jurnal tercatat, tapi saldo kas TIDAK ter-update: ' + rpcErr.message) }
     }
     setSaving(false)
     setShowForm(false)
