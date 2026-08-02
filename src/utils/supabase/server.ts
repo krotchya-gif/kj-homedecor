@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -19,6 +20,18 @@ export const createClient = async () => {
           // Called from Server Component — ignored if middleware refreshes session
         }
       }
+    }
+  })
+}
+
+// Service-role client: bypasses RLS. ONLY for server-to-server endpoints
+// (webhooks, OAuth callbacks, cron/sync engines) that have NO user session.
+// NEVER use in browser code or in routes reachable by end users directly.
+export const createServiceClient = () => {
+  return createSupabaseClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
     }
   })
 }

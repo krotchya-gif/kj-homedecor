@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 import { type NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'
 
@@ -12,7 +12,9 @@ export async function GET(req: NextRequest) {
     const state = searchParams.get('state') // shop_id passed during redirect
     const shopCipherFromUrl = searchParams.get('shop_cipher') // TikTok returns shop_cipher in redirect URL
 
-    const supabase = await createClient()
+    // OAuth callback — exchange code for access token.
+    // Redirect from TikTok (server-to-server flow, may have no session) → service client
+    const supabase = createServiceClient()
     const {
       data: { user }
     } = await supabase.auth.getUser()

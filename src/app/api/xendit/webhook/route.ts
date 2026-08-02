@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServiceClient } from '@/utils/supabase/server'
 import crypto from 'crypto'
 
 // Xendit webhook handler
 export async function POST(request: Request) {
   try {
     const rawBody = await request.text()
-    const supabase = await createClient()
+    // Server-to-server: no user session → service-role client (bypasses RLS)
+    const supabase = createServiceClient()
 
     // Verify HMAC SHA256 signature (Xendit sends signature in header)
     const xenditSignature = request.headers.get('x-xendit-signature')
