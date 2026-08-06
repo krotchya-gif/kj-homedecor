@@ -62,6 +62,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     },
     { label: 'Pelanggan', href: '/admin/customers', icon: <Users size={18} /> },
     { label: 'Booking', href: '/admin/booking', icon: <Calendar size={18} /> },
+    { label: 'Survey', href: '/admin/surveys', icon: <ClipboardList size={18} /> },
     {
       label: 'Portofolio',
       href: '/admin/portfolio',
@@ -226,6 +227,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
       href: '/admin/orders',
       icon: <ShoppingCart size={18} />
     },
+    { label: 'Survey', href: '/owner/surveys', icon: <ClipboardList size={18} /> },
     { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={18} /> },
     {
       label: 'Material',

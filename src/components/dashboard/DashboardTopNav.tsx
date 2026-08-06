@@ -58,6 +58,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={18} /> },
     { label: 'Pelanggan', href: '/admin/customers', icon: <Users size={18} /> },
     { label: 'Booking', href: '/admin/booking', icon: <Calendar size={18} /> },
+    { label: 'Survey', href: '/admin/surveys', icon: <ClipboardList size={18} /> },
     { label: 'Portofolio', href: '/admin/portfolio', icon: <ImageIcon size={18} /> },
     { label: 'Laporan', href: '/admin/reports', icon: <BarChart3 size={18} /> },
     { label: 'Staff', href: '/admin/staff', icon: <Users size={18} /> },
@@ -105,6 +106,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   owner: [
     { label: 'Overview', href: '/owner', icon: <Eye size={18} /> },
     { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={18} /> },
+    { label: 'Survey', href: '/owner/surveys', icon: <ClipboardList size={18} /> },
     { label: 'Pengiriman', href: '/admin/shipping', icon: <Truck size={18} /> },
     { label: 'Material', href: '/owner/materials', icon: <Package size={18} /> },
     { label: 'HPP', href: '/owner/hpp', icon: <DollarSign size={18} /> },

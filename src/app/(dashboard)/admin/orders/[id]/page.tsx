@@ -154,6 +154,10 @@ export default function OrderDetailPage() {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null)
   const [progressPhotos, setProgressPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  // survey link (fitur "hasil survey masuk invoice")
+  const [surveyLinkOpen, setSurveyLinkOpen] = useState(false)
+  const [surveyCandidates, setSurveyCandidates] = useState<any[]>([])
+  const [surveyLoading, setSurveyLoading] = useState(false)
   const [showCancelForm, setShowCancelForm] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [showReturnForm, setShowReturnForm] = useState(false)
@@ -626,6 +630,41 @@ export default function OrderDetailPage() {
     setSavingItem(false)
     setShowItemForm(false)
     resetForm()
+    load()
+  }
+
+  // ---------- link survey (fitur "hasil survey masuk invoice") ----------
+  async function openSurveyLink() {
+    setSurveyLinkOpen(true)
+    setSurveyLoading(true)
+    setSurveyCandidates([])
+    try {
+      const res = await fetch('/api/surveys?status=tersimpan&limit=20')
+      const json = await res.json()
+      if (res.ok) setSurveyCandidates(json.data ?? [])
+      else alert(json.error?.message ?? 'Gagal load survey')
+    } finally {
+      setSurveyLoading(false)
+    }
+  }
+
+  async function linkSurvey(surveyId: string) {
+    const { error } = await supabase.from('orders').update({ survey_id: surveyId }).eq('id', id)
+    if (error) {
+      alert('Gagal link survey: ' + error.message)
+      return
+    }
+    setSurveyLinkOpen(false)
+    load()
+  }
+
+  async function unlinkSurvey() {
+    if (!confirm('Lepas survey dari order ini?')) return
+    const { error } = await supabase.from('orders').update({ survey_id: null }).eq('id', id)
+    if (error) {
+      alert('Gagal lepas survey: ' + error.message)
+      return
+    }
     load()
   }
 
@@ -1168,6 +1207,92 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Hasil Survey (fitur "hasil survey masuk invoice") */}
+      <div className="form-section" style={{ marginBottom: '1rem' }}>
+        <div className="form-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Hasil Survey</span>
+          {order.survey ? (
+            <button
+              onClick={unlinkSurvey}
+              style={{ padding: '0.3rem 0.625rem', border: '1px solid #fecaca', borderRadius: '0.375rem', background: '#fef2f2', color: '#dc2626', fontSize: '0.7rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              Lepas Survey
+            </button>
+          ) : (
+            <button
+              onClick={openSurveyLink}
+              style={{ padding: '0.3rem 0.625rem', border: 'none', borderRadius: '0.375rem', background: '#cc7030', color: '#fff', fontSize: '0.7rem', fontWeight: '600', cursor: 'pointer' }}
+            >
+              🔗 Pilih Survey
+            </button>
+          )}
+        </div>
+        {order.survey ? (
+          <div style={{ fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            <div>
+              <span style={{ color: 'var(--neutral-400)' }}>No: </span>
+              <strong>{order.survey.survey_number ?? '—'}</strong>{' '}
+              <a href={`/surveyor/survey/${order.survey.id}`} style={{ color: '#cc7030', fontSize: '0.8rem' }}>
+                lihat detail →
+              </a>
+            </div>
+            <div>
+              <span style={{ color: 'var(--neutral-400)' }}>Client: </span>
+              {order.survey.client_name}
+              {order.survey.client_address ? ' — ' + order.survey.client_address : ''}
+            </div>
+            <div>
+              <span style={{ color: 'var(--neutral-400)' }}>Ruangan: </span>
+              {order.survey.rooms?.length ?? 0} ruangan · Tanggal {order.survey.survey_date}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '600' }}>
+              Blok HASIL SURVEY akan otomatis masuk ke Invoice PDF.
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
+            Belum ada survey ter-link. Pilih survey untuk menampilkan hasilnya di invoice.
+          </div>
+        )}
+      </div>
+
+      {/* Modal pilih survey */}
+      <Modal open={surveyLinkOpen} onClose={() => setSurveyLinkOpen(false)} maxWidth={560}>
+        <div style={{ padding: '1.25rem' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Pilih Survey</h3>
+          {surveyLoading ? (
+            <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+          ) : surveyCandidates.length === 0 ? (
+            <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
+              Belum ada survey ber-status Tersimpan. Buat survey dulu di menu Survey.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 320, overflowY: 'auto' }}>
+              {surveyCandidates.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => linkSurvey(s.id)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '0.75rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.5rem',
+                    background: 'var(--surface)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  <strong>{s.survey_number ?? '—'}</strong> · {s.client_name}
+                  <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>
+                    ({s.rooms?.[0]?.count ?? 0} ruangan · {s.survey_date})
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       {/* Order Items */}
       <div style={{ marginBottom: '1rem' }}>
