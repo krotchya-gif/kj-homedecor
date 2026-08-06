@@ -28,7 +28,10 @@ import {
   ArrowLeftRight,
   LandPlot,
   FileText,
-  ShoppingBag
+  ShoppingBag,
+  ClipboardPlus,
+  History,
+  ClipboardList
 } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -203,6 +206,19 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
       icon: <BarChart3 size={18} />
     }
   ],
+  surveyor: [
+    { label: 'Dashboard', href: '/surveyor', icon: <LayoutDashboard size={18} /> },
+    {
+      label: 'Survey Baru',
+      href: '/surveyor/survey/new',
+      icon: <ClipboardPlus size={18} />
+    },
+    {
+      label: 'Riwayat Survey',
+      href: '/surveyor/history',
+      icon: <History size={18} />
+    }
+  ],
   owner: [
     { label: 'Overview', href: '/owner', icon: <Eye size={18} /> },
     {
@@ -258,6 +274,7 @@ const ROLE_LABELS: Record<string, string> = {
   penjahit: 'Penjahit',
   finance: 'Finance',
   installer: 'Installer',
+  surveyor: 'Surveyor',
   owner: 'Owner'
 }
 

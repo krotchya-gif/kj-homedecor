@@ -19,7 +19,8 @@ export async function uploadToLocal(
     | 'order_progress'
     | 'returns'
     | 'qc'
-    | 'install',
+    | 'install'
+    | 'survey',
   options?: { compress?: boolean; maxSizeMB?: number }
 ): Promise<UploadResult> {
   const { compress = true, maxSizeMB = 1 } = options || {}

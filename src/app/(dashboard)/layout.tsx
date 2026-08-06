@@ -9,6 +9,7 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   gudang: '/gudang',
   penjahit: '/penjahit',
   installer: '/installer',
+  surveyor: '/surveyor',
   owner: '/owner'
 }
 

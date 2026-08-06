@@ -11,6 +11,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   penjahit: '/penjahit',
   finance: '/finance',
   installer: '/installer',
+  surveyor: '/surveyor',
   owner: '/owner'
 }
 

@@ -27,7 +27,10 @@ import {
   CreditCard,
   ArrowLeftRight,
   LandPlot,
-  FileText
+  FileText,
+  ClipboardPlus,
+  History,
+  ClipboardList
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -94,6 +97,11 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Jadwal', href: '/installer', icon: <Calendar size={18} /> },
     { label: 'Laporan', href: '/installer/reports', icon: <BarChart3 size={18} /> }
   ],
+  surveyor: [
+    { label: 'Dashboard', href: '/surveyor', icon: <LayoutDashboard size={18} /> },
+    { label: 'Survey Baru', href: '/surveyor/survey/new', icon: <ClipboardPlus size={18} /> },
+    { label: 'Riwayat Survey', href: '/surveyor/history', icon: <History size={18} /> }
+  ],
   owner: [
     { label: 'Overview', href: '/owner', icon: <Eye size={18} /> },
     { label: 'Pesanan', href: '/admin/orders', icon: <ShoppingCart size={18} /> },
@@ -116,6 +124,7 @@ const ROLE_LABELS: Record<string, string> = {
   penjahit: 'Penjahit',
   finance: 'Finance',
   installer: 'Installer',
+  surveyor: 'Surveyor',
   owner: 'Owner'
 }
 

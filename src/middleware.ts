@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/middleware'
 
-const DASHBOARD_ROUTES = ['/admin', '/gudang', '/penjahit', '/finance', '/installer', '/owner']
+const DASHBOARD_ROUTES = ['/admin', '/gudang', '/penjahit', '/finance', '/installer', '/surveyor', '/owner']
 
 const PUBLIC_ROUTES = ['/', '/login']
 
@@ -52,6 +52,7 @@ export async function middleware(request: NextRequest) {
       '/gudang': ['gudang', 'owner'],
       '/penjahit': ['penjahit', 'owner'],
       '/installer': ['installer', 'owner'],
+      '/surveyor': ['surveyor', 'owner'],
       '/owner': ['owner']
     }
 
@@ -70,6 +71,7 @@ export async function middleware(request: NextRequest) {
         penjahit: '/penjahit',
         finance: '/finance',
         installer: '/installer',
+        surveyor: '/surveyor',
         owner: '/owner'
       }
       return NextResponse.redirect(new URL(dashboards[userRole] ?? '/login', request.url))
