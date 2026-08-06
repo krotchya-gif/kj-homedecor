@@ -25,6 +25,8 @@ export default function DaftarJurnalPage() {
     const { data } = await supabase
       .from('journal_entries')
       .select('*, lines:journal_lines(*, account:accounts(code, name))')
+      .gte('entry_date', startDate)
+      .lte('entry_date', endDate)
       .order('entry_date', { ascending: false })
       .limit(100)
     setEntries(data ?? [])

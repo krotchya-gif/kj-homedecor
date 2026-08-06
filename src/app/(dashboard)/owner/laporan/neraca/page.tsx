@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { fetchAccountBalances } from '@/lib/ledger'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
@@ -28,7 +29,7 @@ export default function NeracaPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase.from('accounts').select('*').order('code')
+    const { data } = await fetchAccountBalances(supabase, startDate, endDate)
     setAccounts(data ?? [])
     setLoading(false)
   }

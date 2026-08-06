@@ -90,6 +90,23 @@ export default function HPPPage() {
 
   async function saveBOM() {
     if (!selectedProduct) return
+    // Validasi: jangan pernah simpan price 0 / HPP 0 (pernah terjadi: mode manual
+    // dgn manualHpp 0 menimpa harga jual produk jadi Rp0 → produk "gak muncul" di katalog)
+    if (mode === 'manual') {
+      if (!manualHpp || manualHpp <= 0) {
+        alert('HPP Manual wajib diisi lebih dari 0 sebelum menyimpan.')
+        return
+      }
+    } else {
+      const totalMat = lines.reduce((sum, line) => {
+        const mat = getMaterial(line.material_id)
+        return sum + (mat?.cost_per_unit ?? 0) * line.qty
+      }, 0)
+      if (totalMat <= 0) {
+        alert('BOM masih kosong. Tambah material (dan pastikan cost_per_unit terisi) sebelum menyimpan.')
+        return
+      }
+    }
     // Delete old BOM for this product
     const { error: delErr } = await supabase.from('bom').delete().eq('product_id', selectedProduct.id)
     if (delErr) { alert('Gagal hapus BOM lama: ' + delErr.message); return }

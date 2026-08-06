@@ -95,10 +95,20 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
 
   // Footer note
   const finalY = (doc as any).lastAutoTable.finalY + 10
+  // Catatan order (notes) — permintaan: "catatannya ga ikut masuk"
+  if (order.notes) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(51, 51, 51)
+    doc.text('Catatan:', 20, finalY)
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(String(order.notes), 170)
+    doc.text(lines, 20, finalY + 5)
+  }
   doc.setFontSize(8)
   doc.setTextColor(120)
-  doc.text('Pembayaran dianggap lunas setelah invoice ini dilunasi.', 20, finalY)
-  doc.text('Terima kasih atas kepercayaan Anda.', 20, finalY + 5)
+  doc.text('Pembayaran dianggap lunas setelah invoice ini dilunasi.', 20, finalY + 15)
+  doc.text('Terima kasih atas kepercayaan Anda.', 20, finalY + 20)
 
   doc.save(`kj-invoice-${orderNumber}.pdf`)
 }
@@ -189,10 +199,20 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
   })
 
   const finalY = (doc as any).lastAutoTable.finalY + 10
+  // Catatan order (notes) — permintaan: "catatannya ga ikut masuk"
+  if (order.notes) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(51, 51, 51)
+    doc.text('Catatan:', 20, finalY)
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(String(order.notes), 170)
+    doc.text(lines, 20, finalY + 5)
+  }
   doc.setFontSize(8)
   doc.setTextColor(120)
-  doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, finalY)
-  doc.text('KJ HOMEDECOR — Packing List', 130, finalY)
+  doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, finalY + 15)
+  doc.text('KJ HOMEDECOR — Packing List', 130, finalY + 15)
 
   doc.save(`kj-packinglist-${orderNumber}.pdf`)
 }

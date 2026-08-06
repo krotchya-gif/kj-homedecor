@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { fetchAccountBalances } from '@/lib/ledger'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
@@ -22,7 +23,7 @@ export default function LabaRugiPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase.from('accounts').select('*').in('type', ['revenue', 'expense']).order('code')
+    const { data } = await fetchAccountBalances(supabase, startDate, endDate, ['revenue', 'expense'])
     setAccounts(data ?? [])
     setLoading(false)
   }
