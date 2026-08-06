@@ -192,7 +192,13 @@ export default function OrderDetailPage() {
       if (userData) setCurrentUserRole(userData.role)
     }
     const [orderRes, itemsRes, prodsRes, logsRes, checklistRes, photosRes, bomsRes, matsRes] = await Promise.all([
-      supabase.from('orders').select('*, customer:customers(name,phone,address)').eq('id', id).single(),
+      supabase
+        .from('orders')
+        .select(
+          '*, customer:customers(name,phone,address), survey:surveys(*, surveyor:users(name), rooms:survey_rooms(*, photos:survey_room_photos(url, sort_order)))'
+        )
+        .eq('id', id)
+        .single(),
       supabase.from('order_items').select('*, product:products(name,sku)').eq('order_id', id),
       supabase.from('products').select('id,name,sku,price').order('name'),
       supabase

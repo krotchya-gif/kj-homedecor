@@ -93,8 +93,60 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
     }
   })
 
+  // ============ HASIL SURVEY GORDEN (SRS 2026-08-03) ============
+  // Tampil kalau order punya survey ter-link (orders.survey_id). Format copy
+  // mengikuti SRS section 10 supaya konsisten antara invoice & format WA.
+  const survey = order.survey as any
+  let surveyEndY = (doc as any).lastAutoTable.finalY + 10
+  if (survey?.rooms?.length) {
+    const startY = surveyEndY
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(51, 51, 51)
+    doc.text('HASIL SURVEY GORDEN', 20, startY)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(120)
+    const surveyMeta = `No: ${survey.survey_number ?? '-'}  |  Tanggal: ${survey.survey_date ?? '-'}  |  Surveyor: ${survey.surveyor?.name ?? '-'}`
+    doc.text(surveyMeta, 20, startY + 5)
+
+    let y = startY + 12
+    ;(survey.rooms as any[]).forEach((r: any, i: number) => {
+      if (y > 270) {
+        doc.addPage()
+        y = 20
+      }
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(51, 51, 51)
+      doc.text(`RUANGAN ${i + 1}: ${r.room_name ?? '-'}`, 20, y)
+      y += 5
+      doc.setFont('helvetica', 'normal')
+      const size = r.width_cm || r.height_cm ? `${r.width_cm ?? '-'} × ${r.height_cm ?? '-'} cm` : '-'
+      const detailRows = [
+        `Ukuran      : ${size}`,
+        `Model Gorden: ${r.model_gorden ?? '-'}`,
+        `Jenis Kain  : ${r.fabric_name ?? '-'}`,
+        `Jenis Vitras: ${r.vitras_name ?? '-'}`,
+        `Rel Gorden  : ${r.rel_gorden ?? '-'}`,
+        `Rel Vitras  : ${r.rel_vitras ?? '-'}`,
+        `Hook        : ${r.hook ?? '-'}`,
+        `Catatan     : ${r.notes ?? '-'}`
+      ]
+      for (const line of detailRows) {
+        doc.text(line, 25, y)
+        y += 4.5
+      }
+      y += 5
+    })
+    surveyEndY = y
+    doc.setDrawColor(204, 112, 48)
+    doc.setLineWidth(0.3)
+    doc.line(20, surveyEndY - 3, 190, surveyEndY - 3)
+  }
+
   // Footer note
-  const finalY = (doc as any).lastAutoTable.finalY + 10
+  const finalY = surveyEndY
   // Catatan order (notes) — permintaan: "catatannya ga ikut masuk"
   if (order.notes) {
     doc.setFontSize(9)

@@ -147,6 +147,48 @@ export interface Order {
   created_at: string
   customer?: Customer
   order_items?: OrderItem[]
+  survey?: Survey | null
+}
+
+// Aplikasi Survey Gorden (SRS 2026-08-03) — tabel: surveys, survey_rooms, survey_room_photos
+export interface SurveyRoomPhoto {
+  id: string
+  url: string
+  sort_order?: number
+}
+
+export interface SurveyRoom {
+  id: string
+  survey_id: string
+  room_name: string
+  width_cm?: number
+  height_cm?: number
+  model_gorden?: string
+  fabric_name?: string
+  fabric_photo?: string
+  vitras_name?: string
+  vitras_photo?: string
+  rel_gorden?: string
+  rel_vitras?: string
+  hook?: string
+  notes?: string
+  sort_order?: number
+  photos?: SurveyRoomPhoto[]
+}
+
+export interface Survey {
+  id: string
+  survey_number?: string
+  client_name: string
+  client_address?: string
+  survey_date: string
+  surveyor_id?: string
+  status: 'draft' | 'tersimpan' | 'diproses' | 'selesai'
+  gps_lat?: number
+  gps_lng?: number
+  notes?: string
+  created_at: string
+  rooms?: SurveyRoom[]
 }
 
 export interface OrderItem {
