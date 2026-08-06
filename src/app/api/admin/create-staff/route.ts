@@ -7,7 +7,7 @@ const CreateStaffSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter').max(100),
   email: z.string().email('Email tidak valid'),
   password: z.string().min(6, 'Password minimal 6 karakter').max(100),
-  role: z.enum(['admin', 'gudang', 'penjahit', 'finance', 'installer', 'owner'], {
+  role: z.enum(['admin', 'gudang', 'penjahit', 'finance', 'installer', 'surveyor', 'owner'], {
     message: 'Role tidak valid'
   })
 })

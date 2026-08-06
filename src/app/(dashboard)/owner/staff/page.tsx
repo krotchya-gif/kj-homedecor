@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import Link from 'next/link'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -21,6 +22,7 @@ const ROLE_LABELS: Record<string, string> = {
   penjahit: 'Penjahit',
   finance: 'Finance',
   installer: 'Installer',
+  surveyor: 'Surveyor',
   owner: 'Owner'
 }
 
@@ -70,7 +72,27 @@ export default function OwnerStaffPage() {
 
   return (
     <div>
-      <PageHeader title="Manajemen Staff" subtitle="Semua akun staff dan peran mereka" />
+      <PageHeader
+        title="Manajemen Staff"
+        subtitle="Semua akun staff dan peran mereka"
+        action={
+          <Link
+            href="/admin/staff"
+            style={{
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.85rem',
+              textDecoration: 'none',
+              display: 'inline-block'
+            }}
+          >
+            ➕ Kelola Staff
+          </Link>
+        }
+      />
 
       {/* Stats */}
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>

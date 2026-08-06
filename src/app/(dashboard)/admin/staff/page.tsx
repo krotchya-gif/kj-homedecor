@@ -28,6 +28,7 @@ const ROLES = [
   { value: 'penjahit', label: 'Penjahit', desc: 'Job queue, meter tracking', color: '#16a34a' },
   { value: 'finance', label: 'Finance', desc: 'BOM, HPP, pembayaran', color: '#f59e0b' },
   { value: 'installer', label: 'Installer', desc: 'Jadwal pemasangan', color: '#8b5cf6' },
+  { value: 'surveyor', label: 'Surveyor', desc: 'Catat hasil survey di lokasi', color: '#cc7030' },
   { value: 'owner', label: 'Owner', desc: 'Overview semua modul', color: '#0d9488' }
 ]
 
@@ -42,6 +43,7 @@ const ROLE_COLORS: Record<string, string> = {
   penjahit: '#16a34a',
   finance: '#f59e0b',
   installer: '#8b5cf6',
+  surveyor: '#cc7030',
   owner: '#0d9488'
 }
 
