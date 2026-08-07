@@ -70,9 +70,10 @@ export default function InstallerSchedulePage() {
       toast('error', '⚠️ Gagal update status: ' + (json.error?.message ?? 'unknown error'))
       return
     }
-    // Refresh data
-    load()
-  }
+    // Optimistic update: booking langsung pindah tab (upcoming/done) tanpa refetch
+    setBookings((curr) => curr.map((b) => (b.id === id ? { ...b, status } : b)))
+    toast('success', `Status booking → ${status}`)
+    }
 
   function openRevision(booking: any) {
     setRevBooking(booking)
@@ -127,8 +128,10 @@ export default function InstallerSchedulePage() {
 
     setShowRevision(false)
     setRevBooking(null)
-    load()
-  }
+    // Optimistic update: booking status langsung berubah tanpa refetch
+    setBookings((curr) => curr.map((b) => (b.id === revBooking.id ? { ...b, status: 'revision' } : b)))
+    toast('success', 'Revisi install dilaporkan')
+    }
 
   return (
     <div>

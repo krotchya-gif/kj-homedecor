@@ -128,7 +128,9 @@ export default function InstallerChecklistPage() {
       setSelectedBooking('')
       setChecklist((prev) => prev.map((item) => ({ ...item, completed: false })))
       setPhotos([])
-      loadBookings()
+      // Optimistic update: booking pindah ke tab done tanpa refetch
+      setBookings((curr) => curr.map((b) => (b.id === selectedBooking ? { ...b, status: 'done' } : b)))
+      toast('success', 'Checklist selesai — booking ditandai selesai')
     }, 1500)
   }
 

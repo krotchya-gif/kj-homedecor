@@ -164,7 +164,9 @@ export default function HutangPage() {
     if (error) { setSaving(false); toast('error', 'Gagal simpan pembayaran hutang: ' + error.message); return }
     setSaving(false)
     setShowPayment(false)
-    fetchData()
+    // Optimistic update: sisa hutang langsung berubah tanpa refetch
+    setHutang((curr) => curr.map((h) => (h.id === paymentItem.id ? { ...h, paid_amount: newPaidAmount, status: newStatus } : h)))
+    toast('success', 'Pembayaran hutang dicatat')
   }
 
   return (

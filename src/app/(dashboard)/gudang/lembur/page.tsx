@@ -39,17 +39,39 @@ export default function GudangLemburPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('lembur_records').insert({
+    // CREATE optimistic: id sementara dulu, diganti id asli dari server
+    const tempId = crypto.randomUUID()
+    const tempItem = {
+      id: tempId,
       staff_id: form.staff_id || null,
       date: form.date,
       jam: Number(form.jam),
       keterangan: form.keterangan || null
-    })
-    if (error) { setSaving(false); toast('error', 'Gagal simpan lembur: ' + error.message); return }
+    }
+    setRecords((curr) => [tempItem, ...curr])
+    const { data, error } = await supabase
+      .from('lembur_records')
+      .insert({
+        staff_id: form.staff_id || null,
+        date: form.date,
+        jam: Number(form.jam),
+        keterangan: form.keterangan || null
+      })
+      .select('id')
+      .single()
+    if (error) {
+      setRecords((curr) => curr.filter((r) => r.id !== tempId))
+      setSaving(false)
+      toast('error', 'Gagal simpan lembur: ' + error.message)
+      return
+    }
+    if (data?.id) {
+      setRecords((curr) => curr.map((r) => (r.id === tempId ? { ...r, id: data.id } : r)))
+    }
     setSaving(false)
     setShowForm(false)
     setForm({ staff_id: '', date: new Date().toISOString().slice(0, 10), jam: '', keterangan: '' })
-    load()
+    toast('success', 'Lembur berhasil ditambahkan')
   }
 
   // Group by month for summary

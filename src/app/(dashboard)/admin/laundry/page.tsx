@@ -150,19 +150,36 @@ export default function AdminLaundryPage() {
         })
         .eq('id', rate.id)
       err = res.error
+      if (!res.error) {
+        // Optimistic update: rate di state langsung berubah
+        setRate((prev) => (prev ? { ...prev, rate_per_kg: rateValue, updated_at: new Date().toISOString() } : prev))
+      }
     } else {
-      const res = await supabase.from('laundry_rates').insert({
-        name: 'Default Rate',
-        rate_per_kg: rateValue,
-        is_active: true,
-        updated_at: new Date().toISOString()
-      })
+      const res = await supabase
+        .from('laundry_rates')
+        .insert({
+          name: 'Default Rate',
+          rate_per_kg: rateValue,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .select('id')
+        .single()
       err = res.error
+      if (!res.error && res.data) {
+        setRate({
+          id: res.data.id,
+          name: 'Default Rate',
+          rate_per_kg: rateValue,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        } as LaundryRate)
+      }
     }
     setRateSaving(false)
     if (err) { toast('error', 'Gagal simpan rate laundry: ' + err.message); return }
     setShowRateModal(false)
-    fetchData()
+    toast('success', 'Rate laundry tersimpan')
   }
 
   const filtered = orders.filter((o) => {
