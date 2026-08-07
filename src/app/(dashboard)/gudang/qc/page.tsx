@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -302,7 +303,32 @@ export default function GudangQCPage() {
             ))}
           </div>
 
-          <div className="data-table">
+                {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : pendingReturns.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={pendingReturns} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Order</span>
+                  <span className="mobile-card-value">r.order?.order_number ?? r.order_id?.slice(0, 8)</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Alasan</span>
+                  <span className="mobile-card-value">r.reason</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Qty</span>
+                  <span className="mobile-card-value">r.qty ?? r.quantity</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {loading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : items.filter((i) => !i.ready).length === 0 ? (

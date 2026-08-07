@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -154,7 +155,32 @@ export default function OwnerProductsPage() {
                 Top 10 Produk (Revenue)
               </h2>
             </div>
-            <div className="data-table">
+                  {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : paginatedProducts.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={paginatedProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Produk</span>
+                  <span className="mobile-card-value">p.name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Harga</span>
+                  <span className="mobile-card-value">p.price</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Stok Toko</span>
+                  <span className="mobile-card-value">p.stock_toko</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
               <table>
                 <thead>
                   <tr>

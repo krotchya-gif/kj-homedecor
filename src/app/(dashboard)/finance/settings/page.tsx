@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -132,7 +133,32 @@ export default function FinanceSettingsPage() {
                 Atur saldo awal untuk setiap akun kas, bank, dan e-wallet. Gunakan fitur ini saat pertama kali
                 menggunakan sistem keuangan.
               </p>
-              <div className="data-table">
+                    {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : cashAccounts.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={cashAccounts} keyOf={(c: any) => c.id} renderCard={(c: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Bank</span>
+                  <span className="mobile-card-value">c.bank_name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No. Rekening</span>
+                  <span className="mobile-card-value">c.account_number</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Saldo</span>
+                  <span className="mobile-card-value">c.balance</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
                 <table>
                   <thead>
                     <tr>

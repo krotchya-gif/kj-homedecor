@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { useToast } from '@/components/ui/Toast'
 
@@ -181,7 +182,32 @@ export default function PenjahitReportsPage() {
       </div>
 
       {/* Detail table */}
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : reports.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={reports} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Order</span>
+                  <span className="mobile-card-value">r.order_number ?? r.order?.order_number</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Meter Gorden</span>
+                  <span className="mobile-card-value">r.meter_gorden</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">r.created_at</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : reports.length === 0 ? (

@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -106,7 +107,28 @@ export default function MaterialHistoryPage() {
             </div>
           </div>
 
-          <div className="data-table" style={{ maxHeight: 600, overflowY: 'auto' }}>
+                {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : history.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={history} keyOf={(h: any) => h.id} renderCard={(h: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">{h.changed_at ?? h.created_at}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Harga</span>
+                  <span className="mobile-card-value">{h.new_price ?? h.cost_per_unit}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only" style={{ maxHeight: 600, overflowY: 'auto' }}>
             {loading ? (
               <TableSkeleton rows={8} cols={3} />
             ) : filteredMaterials.length === 0 ? (

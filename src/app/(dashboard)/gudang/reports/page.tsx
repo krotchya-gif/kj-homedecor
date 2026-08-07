@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -307,7 +308,33 @@ export default function GudangReportsPage() {
             <p>Tidak ada data pergerakan bulan ini</p>
           </div>
         ) : (
-          <div className="data-table">
+          <>
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : movements.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={movements} keyOf={(m: any) => m.id} renderCard={(m: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Material</span>
+                  <span className="mobile-card-value">m.material_name ?? m.name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Qty</span>
+                  <span className="mobile-card-value">m.qty ?? m.quantity</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tipe</span>
+                  <span className="mobile-card-value">m.type ?? m.movement_type</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             <table>
               <thead>
                 <tr>
@@ -363,6 +390,7 @@ export default function GudangReportsPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

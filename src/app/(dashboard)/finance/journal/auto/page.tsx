@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -30,7 +31,36 @@ export default function AutoJournalPage() {
     <div>
       <PageHeader title="Jurnal Otomatis" subtitle="Journal entries dari sistem" />
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : entries.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={entries} keyOf={(e: any) => e.id} renderCard={(e: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">e.entry_date ?? e.created_at</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Keterangan</span>
+                  <span className="mobile-card-value">e.description ?? e.notes</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Debit</span>
+                  <span className="mobile-card-value">e.total_debit ?? e.debit</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Kredit</span>
+                  <span className="mobile-card-value">e.total_credit ?? e.credit</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : entries.length === 0 ? (

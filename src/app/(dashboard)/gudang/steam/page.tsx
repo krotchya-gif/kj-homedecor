@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -360,7 +361,32 @@ export default function GudangSteamPage() {
             </button>
           </div>
 
-          <div className="data-table">
+                {/* Mobile: card list */}
+                <div className="mobile-only">
+                  {laundryLoading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : laundryRecords.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={laundryRecords} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Customer</span>
+                  <span className="mobile-card-value">r.customer_name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Kg</span>
+                  <span className="mobile-card-value">r.kg</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">r.status</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {laundryLoading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : laundryRecords.length === 0 ? (

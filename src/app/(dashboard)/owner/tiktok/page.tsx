@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -828,7 +829,32 @@ export default function TikTokDashboardPage() {
                 <option value="100">100</option>
               </select>
             </div>
-            <div className="data-table">
+                  {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : orders.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={orders} keyOf={(o: any) => o.id} renderCard={(o: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Order</span>
+                  <span className="mobile-card-value">o.order_number ?? o.tiktok_order_id ?? o.id.slice(0, 8)</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">o.order_status ?? o.status</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Total</span>
+                  <span className="mobile-card-value">o.total_amount</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
               <table>
                 <thead>
                   <tr>

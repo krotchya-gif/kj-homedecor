@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -162,7 +163,33 @@ export default function OwnerMarketplacePage() {
             <p>Tidak ada data pesanan</p>
           </div>
         ) : (
-          <div className="data-table">
+          <>
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : topSources.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={topSources} keyOf={(src: any) => src.id} renderCard={(src: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Sumber</span>
+                  <span className="mobile-card-value">src.source</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Order</span>
+                  <span className="mobile-card-value">src.count ?? src.orders</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Omzet</span>
+                  <span className="mobile-card-value">src.revenue ?? src.total</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             <table>
               <thead>
                 <tr>
@@ -220,6 +247,7 @@ export default function OwnerMarketplacePage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
