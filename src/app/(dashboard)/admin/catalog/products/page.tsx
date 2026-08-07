@@ -309,19 +309,36 @@ export default function ProductsPage() {
       weight: form.weight ? Number(form.weight) : null,
       images: form.images
     }
-    let err: { message: string } | null = null
     if (editProduct) {
+      // UPDATE optimistic: update UI dulu, rollback kalau server error
+      const prev = products
+      setProducts((curr) => curr.map((p) => (p.id === editProduct.id ? { ...p, ...(payload as Partial<Product>) } : p)))
       const res = await supabase.from('products').update(payload).eq('id', editProduct.id)
-      err = res.error
+      if (res.error) {
+        setProducts(prev)
+        setSaving(false)
+        toast('error', 'Gagal simpan produk: ' + res.error.message)
+        return
+      }
     } else {
-      const res = await supabase.from('products').insert(payload)
-      err = res.error
+      // CREATE optimistic: item id sementara masuk UI dulu, diganti id asli dari server
+      const tempId = crypto.randomUUID()
+      const tempItem = { id: tempId, ...(payload as Record<string, unknown>) } as Product
+      setProducts((curr) => [tempItem, ...curr])
+      const res = await supabase.from('products').insert(payload).select('id').single()
+      if (res.error) {
+        setProducts((curr) => curr.filter((p) => p.id !== tempId))
+        setSaving(false)
+        toast('error', 'Gagal simpan produk: ' + res.error.message)
+        return
+      }
+      if (res.data?.id) {
+        setProducts((curr) => curr.map((p) => (p.id === tempId ? { ...p, id: res.data.id } : p)))
+      }
     }
     setSaving(false)
-    if (err) { toast('error', 'Gagal simpan produk: ' + err.message); return }
     setShowForm(false)
     toast('success', editProduct ? 'Produk berhasil diperbarui' : 'Produk berhasil ditambahkan')
-    fetchProducts()
   }
 
   async function handleDelete(id: string) {

@@ -140,19 +140,43 @@ export default function MaterialsPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { error } = await supabase.from('materials').insert({
+    // CREATE optimistic: id sementara dulu, diganti id asli dari server
+    const tempId = crypto.randomUUID()
+    const tempItem = {
+      id: tempId,
       name: form.name,
       unit: form.unit,
       cost_per_unit: Number(form.cost_per_unit),
       stock_gudang: Number(form.stock_gudang) || 0,
       stock_toko: Number(form.stock_toko) || 0,
       min_stock_level: Number(form.min_stock_level) || 0
-    })
-    if (error) { setSaving(false); toast('error', 'Gagal simpan material: ' + error.message); return }
+    } as Material
+    setMaterials((curr) => [tempItem, ...curr])
+    const { data, error } = await supabase
+      .from('materials')
+      .insert({
+        name: form.name,
+        unit: form.unit,
+        cost_per_unit: Number(form.cost_per_unit),
+        stock_gudang: Number(form.stock_gudang) || 0,
+        stock_toko: Number(form.stock_toko) || 0,
+        min_stock_level: Number(form.min_stock_level) || 0
+      })
+      .select('id')
+      .single()
+    if (error) {
+      setMaterials((curr) => curr.filter((m) => m.id !== tempId))
+      setSaving(false)
+      toast('error', 'Gagal simpan material: ' + error.message)
+      return
+    }
+    if (data?.id) {
+      setMaterials((curr) => curr.map((m) => (m.id === tempId ? { ...m, id: data.id } : m)))
+    }
     setSaving(false)
     setShowForm(false)
     setForm({ name: '', unit: 'meter', cost_per_unit: '', stock_gudang: '', stock_toko: '', min_stock_level: '' })
-    fetchMaterials()
+    toast('success', 'Material berhasil ditambahkan')
   }
 
   return (

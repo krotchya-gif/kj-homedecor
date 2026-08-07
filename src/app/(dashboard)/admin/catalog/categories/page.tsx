@@ -43,30 +43,52 @@ export default function CategoriesPage() {
     e.preventDefault()
     setSaving(true)
 
-    let err: { message: string } | null = null
     if (editing) {
+      // UPDATE optimistic
+      const prev = categories
+      setCategories((curr) => curr.map((c) => (c.id === editing.id ? { ...c, name: form.name, slug: form.slug } : c)))
       const res = await supabase.from('categories').update({ name: form.name, slug: form.slug }).eq('id', editing.id)
-      err = res.error
+      if (res.error) {
+        setCategories(prev)
+        setSaving(false)
+        toast('error', 'Gagal simpan kategori: ' + res.error.message)
+        return
+      }
     } else {
-      const res = await supabase.from('categories').insert({ name: form.name, slug: form.slug })
-      err = res.error
+      // CREATE optimistic: id sementara dulu, diganti id asli dari server
+      const tempId = crypto.randomUUID()
+      const tempItem = { id: tempId, name: form.name, slug: form.slug } as Category
+      setCategories((curr) => [tempItem, ...curr])
+      const res = await supabase.from('categories').insert({ name: form.name, slug: form.slug }).select('id').single()
+      if (res.error) {
+        setCategories((curr) => curr.filter((c) => c.id !== tempId))
+        setSaving(false)
+        toast('error', 'Gagal simpan kategori: ' + res.error.message)
+        return
+      }
+      if (res.data?.id) {
+        setCategories((curr) => curr.map((c) => (c.id === tempId ? { ...c, id: res.data.id } : c)))
+      }
     }
     setSaving(false)
-    if (err) { toast('error', 'Gagal simpan kategori: ' + err.message); return }
     setShowForm(false)
     setEditing(null)
     setForm({ name: '', slug: '' })
-    loadCategories()
-  }
+    toast('success', editing ? 'Kategori berhasil diperbarui' : 'Kategori berhasil ditambahkan')
+    }
 
-  async function handleDelete(id: string) {
+    async function handleDelete(id: string) {
     if (!confirm('Yakin hapus kategori ini?')) return
     setDeleting(id)
+    // Optimistic delete: hapus dari UI dulu, rollback kalau server error
+    const prev = categories
+    setCategories((curr) => curr.filter((c) => c.id !== id))
     const { error } = await supabase.from('categories').delete().eq('id', id)
 
-    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
-    loadCategories()
-  }
+    if (error) { setCategories(prev); setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
+    setDeleting(null)
+    toast('success', 'Kategori berhasil dihapus')
+    }
 
   function openEdit(cat: Category) {
     setEditing(cat)

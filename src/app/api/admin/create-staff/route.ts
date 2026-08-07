@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: `Akun ${name} berhasil dibuat` })
+    return NextResponse.json({ success: true, message: `Akun ${name} berhasil dibuat`, user: { id: authData.user!.id } })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -117,10 +117,19 @@ export default function StaffPage() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Gagal membuat akun')
+      // CREATE optimistic: item masuk UI dulu, id asli di-replace dari response
+      const tempId = crypto.randomUUID()
+      const tempItem = { id: tempId, name: form.name, email: form.email, role: form.role, status: 'active', created_at: new Date().toISOString() } as StaffUser
+      setStaff((curr) => [tempItem, ...curr])
+      if (json.user?.id) {
+        setStaff((curr) => curr.map((s) => (s.id === tempId ? { ...s, id: json.user.id } : s)))
+      } else {
+        // fallback: kalau response tanpa id, refetch
+        fetchStaff()
+      }
       setSuccess(`Akun ${form.name} (${form.role}) berhasil dibuat!`)
       toast('success', `Akun ${form.name} (${form.role}) berhasil dibuat!`)
       setForm({ name: '', email: '', password: '', role: 'gudang' })
-      fetchStaff()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
       toast('error', err instanceof Error ? err.message : 'Terjadi kesalahan')
@@ -151,6 +160,11 @@ export default function StaffPage() {
   async function saveEdit() {
     if (!editingId) return
     setSaving(true)
+    // UPDATE optimistic
+    const prev = staff
+    setStaff((curr) =>
+      curr.map((s) => (s.id === editingId ? { ...s, name: editForm.name, role: editForm.role, status: editForm.status } : s))
+    )
     const { error } = await supabase
       .from('users')
       .update({
@@ -159,10 +173,9 @@ export default function StaffPage() {
         status: editForm.status
       })
       .eq('id', editingId)
-    if (error) { setSaving(false); toast('error', 'Gagal simpan staff: ' + error.message); return }
+    if (error) { setStaff(prev); setSaving(false); toast('error', 'Gagal simpan staff: ' + error.message); return }
     setSaving(false)
     setEditingId(null)
-    fetchStaff()
     setSuccess('Data staff berhasil diperbarui')
     toast('success', 'Data staff berhasil diperbarui')
   }

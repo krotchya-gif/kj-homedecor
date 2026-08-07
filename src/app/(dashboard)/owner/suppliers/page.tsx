@@ -109,21 +109,32 @@ export default function SuppliersPage() {
       notes: form.notes || null
     }
     if (editItem) {
-
+      // UPDATE optimistic
+      const prev = suppliers
+      setSuppliers((curr) => curr.map((s) => (s.id === editItem.id ? { ...s, ...payload } : s)))
       const { error } = await supabase.from('suppliers').update(payload).eq('id', editItem.id)
 
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
+      if (error) { setSuppliers(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
     } else {
+      // CREATE optimistic: id sementara dulu, diganti id asli dari server
+      const tempId = crypto.randomUUID()
+      const tempItem = { id: tempId, ...payload }
+      setSuppliers((curr) => [tempItem, ...curr])
+      const { data, error } = await supabase.from('suppliers').insert(payload).select('id').single()
 
-      const { error } = await supabase.from('suppliers').insert(payload)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
+      if (error) {
+        setSuppliers((curr) => curr.filter((s) => s.id !== tempId))
+        setSaving(false)
+        toast('error', 'Gagal simpan: ' + error.message)
+        return
+      }
+      if (data?.id) {
+        setSuppliers((curr) => curr.map((s) => (s.id === tempId ? { ...s, id: data.id } : s)))
+      }
     }
     setSaving(false)
     setShowForm(false)
-    load()
+    toast('success', editItem ? 'Supplier berhasil diperbarui' : 'Supplier berhasil ditambahkan')
   }
 
   async function handleDelete(id: string) {

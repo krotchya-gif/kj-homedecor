@@ -99,8 +99,12 @@ export default function CustomersPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    let err: { message: string } | null = null
     if (editCustomer) {
+      // UPDATE optimistic
+      const prev = customers
+      setCustomers((curr) =>
+        curr.map((c) => (c.id === editCustomer.id ? { ...c, name: form.name, phone: form.phone, address: form.address || undefined, notes: form.notes || undefined } : c))
+      )
       const res = await supabase
         .from('customers')
         .update({
@@ -110,22 +114,48 @@ export default function CustomersPage() {
           notes: form.notes || null
         })
         .eq('id', editCustomer.id)
-      err = res.error
+      if (res.error) {
+        setCustomers(prev)
+        setSaving(false)
+        toast('error', 'Gagal simpan customer: ' + res.error.message)
+        return
+      }
     } else {
-      const res = await supabase.from('customers').insert({
+      // CREATE optimistic: id sementara dulu, diganti id asli dari server
+      const tempId = crypto.randomUUID()
+      const tempItem = {
+        id: tempId,
         name: form.name,
         phone: form.phone,
-        address: form.address || null,
-        notes: form.notes || null
-      })
-      err = res.error
+        address: form.address || undefined,
+        notes: form.notes || undefined
+      } as Customer
+      setCustomers((curr) => [tempItem, ...curr])
+      const res = await supabase
+        .from('customers')
+        .insert({
+          name: form.name,
+          phone: form.phone,
+          address: form.address || null,
+          notes: form.notes || null
+        })
+        .select('id')
+        .single()
+      if (res.error) {
+        setCustomers((curr) => curr.filter((c) => c.id !== tempId))
+        setSaving(false)
+        toast('error', 'Gagal simpan customer: ' + res.error.message)
+        return
+      }
+      if (res.data?.id) {
+        setCustomers((curr) => curr.map((c) => (c.id === tempId ? { ...c, id: res.data.id } : c)))
+      }
     }
     setSaving(false)
-    if (err) { toast('error', 'Gagal simpan customer: ' + err.message); return }
     setShowForm(false)
     setEditCustomer(null)
     setForm({ name: '', phone: '', address: '', notes: '' })
-    fetchCustomers()
+    toast('success', editCustomer ? 'Customer berhasil diperbarui' : 'Customer berhasil ditambahkan')
   }
 
   function openEdit(c: Customer) {

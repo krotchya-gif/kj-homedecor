@@ -92,8 +92,12 @@ export default function AdminPortfolioPage() {
     e.preventDefault()
     setSaving(true)
 
-    let err: { message: string } | null = null
     if (editingPost) {
+      // UPDATE optimistic
+      const prev = posts
+      setPosts((curr) =>
+        curr.map((p) => (p.id === editingPost.id ? { ...p, title: form.title, content: form.content, images: form.images } : p))
+      )
       const res = await supabase
         .from('portfolio_posts')
         .update({
@@ -102,30 +106,54 @@ export default function AdminPortfolioPage() {
           images: form.images
         })
         .eq('id', editingPost.id)
-      err = res.error
+      if (res.error) {
+        setPosts(prev)
+        setSaving(false)
+        toast('error', 'Gagal simpan post: ' + res.error.message)
+        return
+      }
     } else {
-      const res = await supabase.from('portfolio_posts').insert({
-        title: form.title,
-        content: form.content,
-        images: form.images
-      })
-      err = res.error
+      // CREATE optimistic: id sementara dulu, diganti id asli dari server
+      const tempId = crypto.randomUUID()
+      const tempItem = { id: tempId, title: form.title, content: form.content, images: form.images } as PortfolioPost
+      setPosts((curr) => [tempItem, ...curr])
+      const res = await supabase
+        .from('portfolio_posts')
+        .insert({
+          title: form.title,
+          content: form.content,
+          images: form.images
+        })
+        .select('id')
+        .single()
+      if (res.error) {
+        setPosts((curr) => curr.filter((p) => p.id !== tempId))
+        setSaving(false)
+        toast('error', 'Gagal simpan post: ' + res.error.message)
+        return
+      }
+      if (res.data?.id) {
+        setPosts((curr) => curr.map((p) => (p.id === tempId ? { ...p, id: res.data.id } : p)))
+      }
     }
 
     setSaving(false)
-    if (err) { toast('error', 'Gagal simpan post: ' + err.message); return }
     setShowForm(false)
-    loadPosts()
-  }
+    toast('success', editingPost ? 'Post berhasil diperbarui' : 'Post berhasil ditambahkan')
+    }
 
-  async function handleDelete(id: string) {
+    async function handleDelete(id: string) {
     if (!confirm('Yakin hapus post ini?')) return
     setDeleting(id)
+    // Optimistic delete
+    const prev = posts
+    setPosts((curr) => curr.filter((p) => p.id !== id))
     const { error } = await supabase.from('portfolio_posts').delete().eq('id', id)
 
-    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
-    loadPosts()
-  }
+    if (error) { setPosts(prev); setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
+    setDeleting(null)
+    toast('success', 'Post berhasil dihapus')
+    }
 
   function removeImage(idx: number) {
     setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }))

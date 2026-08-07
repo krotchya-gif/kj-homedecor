@@ -64,33 +64,55 @@ export default function BannersPage() {
 
     setSaving(true)
     const maxSeq = Math.max(...banners.map((b) => b.sequence), 0)
-    const { error } = await supabase.from('banners').insert({
-      image_url: uploadedUrl,
-      sequence: maxSeq + 1,
-      is_active: true
-    })
-    if (error) { setSaving(false); toast('error', 'Gagal simpan banner: ' + error.message); return }
+    // CREATE optimistic: id sementara dulu, diganti id asli dari server
+    const tempId = crypto.randomUUID()
+    const tempItem = { id: tempId, image_url: uploadedUrl, sequence: maxSeq + 1, is_active: true } as Banner
+    setBanners((curr) => [tempItem, ...curr])
+    const { data, error } = await supabase
+      .from('banners')
+      .insert({
+        image_url: uploadedUrl,
+        sequence: maxSeq + 1,
+        is_active: true
+      })
+      .select('id')
+      .single()
+    if (error) {
+      setBanners((curr) => curr.filter((b) => b.id !== tempId))
+      setSaving(false)
+      toast('error', 'Gagal simpan banner: ' + error.message)
+      return
+    }
+    if (data?.id) {
+      setBanners((curr) => curr.map((b) => (b.id === tempId ? { ...b, id: data.id } : b)))
+    }
 
     setSaving(false)
     setShowForm(false)
     setUploadedUrl('')
-    loadBanners()
-  }
+    toast('success', 'Banner berhasil ditambahkan')
+    }
 
-  async function handleDelete(id: string) {
+    async function handleDelete(id: string) {
     if (!confirm('Yakin hapus banner ini?')) return
     setDeleting(id)
+    // Optimistic delete
+    const prev = banners
+    setBanners((curr) => curr.filter((b) => b.id !== id))
     const { error } = await supabase.from('banners').delete().eq('id', id)
 
-    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
-    loadBanners()
-  }
+    if (error) { setBanners(prev); setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
+    setDeleting(null)
+    toast('success', 'Banner berhasil dihapus')
+    }
 
-  async function toggleActive(banner: Banner) {
+    async function toggleActive(banner: Banner) {
+    // Optimistic toggle + rollback
+    const prev = banners
+    setBanners((curr) => curr.map((b) => (b.id === banner.id ? { ...b, is_active: !banner.is_active } : b)))
     const { error } = await supabase.from('banners').update({ is_active: !banner.is_active }).eq('id', banner.id)
-    if (error) { toast('error', 'Gagal toggle banner: ' + error.message); return }
-    loadBanners()
-  }
+    if (error) { setBanners(prev); toast('error', 'Gagal toggle banner: ' + error.message); return }
+    }
 
   return (
     <div>
