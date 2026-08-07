@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useToast } from '@/components/ui/Toast'
 import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
@@ -7,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Clock } from 'lucide-react'
 
 export default function GudangLemburPage() {
+  const { toast } = useToast()
   const [records, setRecords] = useState<any[]>([])
   const [staff, setStaff] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,7 +45,7 @@ export default function GudangLemburPage() {
       jam: Number(form.jam),
       keterangan: form.keterangan || null
     })
-    if (error) { setSaving(false); alert('Gagal simpan lembur: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal simpan lembur: ' + error.message); return }
     setSaving(false)
     setShowForm(false)
     setForm({ staff_id: '', date: new Date().toISOString().slice(0, 10), jam: '', keterangan: '' })

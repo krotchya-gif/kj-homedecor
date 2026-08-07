@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Edit, Trash2, X, Loader2, Tag } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 interface Category {
   id: string
@@ -16,6 +17,7 @@ interface Category {
 }
 
 export default function CategoriesPage() {
+  const { toast } = useToast()
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -50,7 +52,7 @@ export default function CategoriesPage() {
       err = res.error
     }
     setSaving(false)
-    if (err) { alert('Gagal simpan kategori: ' + err.message); return }
+    if (err) { toast('error', 'Gagal simpan kategori: ' + err.message); return }
     setShowForm(false)
     setEditing(null)
     setForm({ name: '', slug: '' })
@@ -62,7 +64,7 @@ export default function CategoriesPage() {
     setDeleting(id)
     const { error } = await supabase.from('categories').delete().eq('id', id)
 
-    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
+    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
     loadCategories()
   }
 

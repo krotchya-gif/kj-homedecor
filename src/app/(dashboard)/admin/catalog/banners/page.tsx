@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Edit, Trash2, X, Loader2, ImageIcon } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import { useToast } from '@/components/ui/Toast'
 
 interface Banner {
   id: string
@@ -16,6 +17,7 @@ interface Banner {
 }
 
 export default function BannersPage() {
+  const { toast } = useToast()
   const [banners, setBanners] = useState<Banner[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -47,7 +49,7 @@ export default function BannersPage() {
       setUploadedUrl(result.url)
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('Gagal upload gambar')
+      toast('error', 'Gagal upload gambar')
     } finally {
       setUploading(false)
     }
@@ -56,7 +58,7 @@ export default function BannersPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     if (!uploadedUrl) {
-      alert('Upload gambar terlebih dahulu')
+      toast('info', 'Upload gambar terlebih dahulu')
       return
     }
 
@@ -67,7 +69,7 @@ export default function BannersPage() {
       sequence: maxSeq + 1,
       is_active: true
     })
-    if (error) { setSaving(false); alert('Gagal simpan banner: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal simpan banner: ' + error.message); return }
 
     setSaving(false)
     setShowForm(false)
@@ -80,13 +82,13 @@ export default function BannersPage() {
     setDeleting(id)
     const { error } = await supabase.from('banners').delete().eq('id', id)
 
-    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
+    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
     loadBanners()
   }
 
   async function toggleActive(banner: Banner) {
     const { error } = await supabase.from('banners').update({ is_active: !banner.is_active }).eq('id', banner.id)
-    if (error) { alert('Gagal toggle banner: ' + error.message); return }
+    if (error) { toast('error', 'Gagal toggle banner: ' + error.message); return }
     loadBanners()
   }
 

@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, GitBranch } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 interface Mapping {
   id: string
@@ -17,6 +18,7 @@ interface Mapping {
 }
 
 export default function MappingDifferencePage() {
+  const { toast } = useToast()
   const [mappings, setMappings] = useState<Mapping[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,13 +83,13 @@ export default function MappingDifferencePage() {
 
       const { error } = await supabase.from('account_mappings').update(payload).eq('id', editItem.id)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     } else {
 
       const { error } = await supabase.from('account_mappings').insert(payload)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     }
     setSaving(false)
@@ -99,7 +101,7 @@ export default function MappingDifferencePage() {
     if (!confirm('Hapus mapping ini?')) return
     const { error } = await supabase.from('account_mappings').delete().eq('id', id)
 
-    if (error) { alert('Gagal hapus: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

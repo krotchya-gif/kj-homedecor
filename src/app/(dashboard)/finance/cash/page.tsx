@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, LandPlot } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -21,6 +22,7 @@ interface CashAccount {
 }
 
 export default function CashPage() {
+  const { toast } = useToast()
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
   const [accounts, setAccounts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -91,13 +93,13 @@ export default function CashPage() {
 
       const { error } = await supabase.from('cash_accounts').update(payload).eq('id', editItem.id)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     } else {
 
       const { error } = await supabase.from('cash_accounts').insert(payload)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     }
     setSaving(false)
@@ -109,7 +111,7 @@ export default function CashPage() {
     if (!confirm('Hapus akun kas ini?')) return
     const { error } = await supabase.from('cash_accounts').delete().eq('id', id)
 
-    if (error) { alert('Gagal hapus: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

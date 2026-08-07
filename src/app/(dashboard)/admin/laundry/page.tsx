@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, WashingMachine, CheckCircle2, Clock, User } from 'lucide-react'
 import type { LaundryOrder, LaundryRate, User as UserType } from '@/types'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e', label: 'Pending' },
@@ -21,6 +22,7 @@ const fmt = (n: number) =>
   }).format(n)
 
 export default function AdminLaundryPage() {
+  const { toast } = useToast()
   const [orders, setOrders] = useState<LaundryOrder[]>([])
   const [laundryStaff, setLaundryStaff] = useState<UserType[]>([])
   const [rate, setRate] = useState<LaundryRate | null>(null)
@@ -82,7 +84,7 @@ export default function AdminLaundryPage() {
       created_by: user?.id ?? null,
       received_at: new Date().toISOString()
     })
-    if (createErr) { setSaving(false); alert('Gagal buat laundry: ' + createErr.message); return }
+    if (createErr) { setSaving(false); toast('error', 'Gagal buat laundry: ' + createErr.message); return }
     setSaving(false)
     setShowForm(false)
     setForm({
@@ -100,7 +102,7 @@ export default function AdminLaundryPage() {
     const updates: Record<string, unknown> = { status }
     if (status === 'done') updates.completed_at = new Date().toISOString()
     const { error } = await supabase.from('laundry_orders').update(updates).eq('id', id)
-    if (error) { alert('Gagal update status laundry: ' + error.message); return }
+    if (error) { toast('error', 'Gagal update status laundry: ' + error.message); return }
     fetchData()
   }
 
@@ -128,7 +130,7 @@ export default function AdminLaundryPage() {
       err = res.error
     }
     setRateSaving(false)
-    if (err) { alert('Gagal simpan rate laundry: ' + err.message); return }
+    if (err) { toast('error', 'Gagal simpan rate laundry: ' + err.message); return }
     setShowRateModal(false)
     fetchData()
   }

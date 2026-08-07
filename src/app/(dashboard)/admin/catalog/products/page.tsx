@@ -34,6 +34,7 @@ const IMPORT_COLUMNS = [
 ]
 
 export default function ProductsPage() {
+  const { toast } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -75,7 +76,6 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false)
 
   const supabase = createClient()
-  const { toast } = useToast()
 
   async function fetchProducts() {
     setLoading(true)

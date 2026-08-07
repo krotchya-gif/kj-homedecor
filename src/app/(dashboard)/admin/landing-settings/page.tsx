@@ -28,6 +28,7 @@ import {
 import { uploadToLocal } from '@/lib/upload'
 import ColorPicker from '@/components/ui/ColorPicker'
 import ThemePresetCard, { THEME_PRESETS, type ThemePreset } from '@/components/ui/ThemePresetCard'
+import { useToast } from '@/components/ui/Toast'
 
 interface TrustBadge {
   icon: string
@@ -99,6 +100,7 @@ const ICON_OPTIONS = [
 ]
 
 export default function AdminLandingSettingsPage() {
+  const { toast } = useToast()
   const [settings, setSettings] = useState<LandingSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -285,9 +287,9 @@ export default function AdminLandingSettingsPage() {
 
     setSaving(false)
     if (!error) {
-      alert('Settings saved successfully!')
+      toast('info', 'Settings saved successfully!')
     } else {
-      alert('Failed to save: ' + error.message)
+      toast('error', 'Failed to save: ' + error.message)
     }
   }
 
@@ -303,7 +305,7 @@ export default function AdminLandingSettingsPage() {
       const result = await uploadToLocal(file, 'banners', { compress: true, maxSizeMB: 2 })
       setForm((f) => ({ ...f, hero_image_url: result.url }))
     } catch (err) {
-      alert('Gagal upload gambar hero')
+      toast('error', 'Gagal upload gambar hero')
     } finally {
       setHeroImageUploading(false)
     }
@@ -317,7 +319,7 @@ export default function AdminLandingSettingsPage() {
       const result = await uploadToLocal(file, 'videos', { compress: false })
       setForm((f) => ({ ...f, hero_video_url: result.url }))
     } catch (err) {
-      alert('Gagal upload video hero')
+      toast('error', 'Gagal upload video hero')
     } finally {
       setHeroVideoUploading(false)
     }

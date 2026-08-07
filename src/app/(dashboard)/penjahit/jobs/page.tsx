@@ -4,8 +4,10 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Scissors, CheckCircle2, Clock } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 export default function PenjahitJobsPage() {
+  const { toast } = useToast()
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -39,7 +41,7 @@ export default function PenjahitJobsPage() {
       .order('created_at', { ascending: true })
     if (error) {
       console.error('[Penjahit Jobs] Query error:', error)
-      alert('⚠️ Gagal load job: ' + error.message)
+      toast('error', '⚠️ Gagal load job: ' + error.message)
     } else {
       console.log(`[Penjahit Jobs] Found ${data?.length ?? 0} jobs for user.id=${user.id}`)
     }
@@ -63,7 +65,7 @@ export default function PenjahitJobsPage() {
       .from('production_jobs')
       .update({ status: 'in_progress', started_at: new Date().toISOString() })
       .eq('id', id)
-    if (error) { setSaving(null); alert('Gagal mulai job: ' + error.message); return }
+    if (error) { setSaving(null); toast('error', 'Gagal mulai job: ' + error.message); return }
     setSaving(null)
     load()
   }
@@ -107,9 +109,9 @@ export default function PenjahitJobsPage() {
           poni_gel: Number(rf.poni_gel ?? 0),
           notes: rf.notes || null
         } as any)
-        if (retryErr) { alert('⚠️ Gagal submit laporan: ' + retryErr.message); setSaving(null); return }
+        if (retryErr) { toast('error', '⚠️ Gagal submit laporan: ' + retryErr.message); setSaving(null); return }
       } else {
-        alert('⚠️ Gagal submit laporan: ' + repErr.message)
+        toast('warning', '⚠️ Gagal submit laporan: ' + repErr.message)
         setSaving(null)
         return
       }
@@ -118,7 +120,7 @@ export default function PenjahitJobsPage() {
       .from('production_jobs')
       .update({ status: 'done', completed_at: new Date().toISOString() })
       .eq('id', jobId)
-    if (jobDoneErr) { alert('⚠️ Laporan tersimpan, tapi gagal update job: ' + jobDoneErr.message); setSaving(null); return }
+    if (jobDoneErr) { toast('error', '⚠️ Laporan tersimpan, tapi gagal update job: ' + jobDoneErr.message); setSaving(null); return }
 
     // Auto-create steam_jobs entry and advance order to steam after penjahit finishes
     const { data: jobData } = await supabase.from('production_jobs').select('order_id').eq('id', jobId).single()

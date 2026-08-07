@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { useToast } from '@/components/ui/Toast'
 
 const PAGE_SIZE = 20
 
@@ -57,6 +58,7 @@ interface StaffUser {
 }
 
 export default function StaffPage() {
+  const { toast } = useToast()
   const [staff, setStaff] = useState<StaffUser[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -130,7 +132,7 @@ export default function StaffPage() {
     setDeleting(id)
     const { error } = await supabase.from('users').delete().eq('id', id)
 
-    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
+    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
     fetchStaff()
     setSuccess(`Staff "${name}" berhasil dihapus`)
   }
@@ -151,7 +153,7 @@ export default function StaffPage() {
         status: editForm.status
       })
       .eq('id', editingId)
-    if (error) { setSaving(false); alert('Gagal simpan staff: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal simpan staff: ' + error.message); return }
     setSaving(false)
     setEditingId(null)
     fetchStaff()

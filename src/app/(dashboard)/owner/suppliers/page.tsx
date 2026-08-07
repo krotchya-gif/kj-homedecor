@@ -7,8 +7,10 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, Users, FileText, Loader2, Download, Upload } from 'lucide-react'
 import ImportModal from '@/components/ui/ImportModal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
+import { useToast } from '@/components/ui/Toast'
 
 export default function SuppliersPage() {
+  const { toast } = useToast()
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -110,13 +112,13 @@ export default function SuppliersPage() {
 
       const { error } = await supabase.from('suppliers').update(payload).eq('id', editItem.id)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     } else {
 
       const { error } = await supabase.from('suppliers').insert(payload)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     }
     setSaving(false)
@@ -128,7 +130,7 @@ export default function SuppliersPage() {
     if (!confirm('Hapus supplier ini?')) return
     const { error } = await supabase.from('suppliers').delete().eq('id', id)
 
-    if (error) { alert('Gagal hapus: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
     load()
   }
 
@@ -174,7 +176,7 @@ export default function SuppliersPage() {
       status: 'pending',
       invoice_document: poForm.invoice_document || null
     })
-    if (error) { setPoSaving(false); alert('Gagal buat PO: ' + error.message); return }
+    if (error) { setPoSaving(false); toast('error', 'Gagal buat PO: ' + error.message); return }
     // Update PR status to approved (already done by admin)
     setPoSaving(false)
     setShowPOForm(false)
@@ -194,7 +196,7 @@ export default function SuppliersPage() {
       updates.paid_by = user?.id
     }
     const { error } = await supabase.from('purchase_orders').update(updates).eq('id', poId)
-    if (error) { alert('Gagal update PO: ' + error.message); return }
+    if (error) { toast('error', 'Gagal update PO: ' + error.message); return }
     loadPOs()
   }
 

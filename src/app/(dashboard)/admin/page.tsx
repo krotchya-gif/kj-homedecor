@@ -36,6 +36,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
 import { SectionCard } from '@/components/ui/SectionCard'
+import { useToast } from '@/components/ui/Toast'
 
 interface Order {
   id: string
@@ -119,6 +120,7 @@ const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function AdminDashboardPage() {
+  const { toast } = useToast()
   const router = useRouter()
   const [data, setData] = useState<StatData | null>(null)
   const [installBookings, setInstallBookings] = useState<InstallBooking[]>([])
@@ -243,7 +245,7 @@ export default function AdminDashboardPage() {
       data: { user }
     } = await supabase.auth.getUser()
     const { error } = await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id }).eq('id', id)
-    if (error) { setApproving(null); alert('Gagal approve PR: ' + error.message); return }
+    if (error) { setApproving(null); toast('error', 'Gagal approve PR: ' + error.message); return }
     setApproving(null)
     loadData()
   }
@@ -255,7 +257,7 @@ export default function AdminDashboardPage() {
       data: { user }
     } = await supabase.auth.getUser()
     const { error } = await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id }).eq('id', id)
-    if (error) { setRejecting(null); alert('Gagal tolak PR: ' + error.message); return }
+    if (error) { setRejecting(null); toast('error', 'Gagal tolak PR: ' + error.message); return }
     setRejecting(null)
     loadData()
   }

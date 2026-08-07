@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useToast } from '@/components/ui/Toast'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -36,6 +37,7 @@ const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function MaterialsPage() {
+  const { toast } = useToast()
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -145,7 +147,7 @@ export default function MaterialsPage() {
       stock_toko: Number(form.stock_toko) || 0,
       min_stock_level: Number(form.min_stock_level) || 0
     })
-    if (error) { setSaving(false); alert('Gagal simpan material: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal simpan material: ' + error.message); return }
     setSaving(false)
     setShowForm(false)
     setForm({ name: '', unit: 'meter', cost_per_unit: '', stock_gudang: '', stock_toko: '', min_stock_level: '' })

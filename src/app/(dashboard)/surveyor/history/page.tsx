@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import BackButton from '@/components/ui/BackButton'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#b45309',
@@ -25,6 +26,7 @@ interface Row {
 }
 
 export default function SurveyHistoryPage() {
+  const { toast } = useToast()
   const [rows, setRows] = useState<Row[]>([])
   const [count, setCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -60,7 +62,7 @@ export default function SurveyHistoryPage() {
     const json = await res.json()
     if (res.ok && json.data) {
       await navigator.clipboard.writeText(formatSurveyText(json.data))
-      alert('✅ Hasil survey tersalin — tinggal Paste di WhatsApp.')
+      toast('info', '✅ Hasil survey tersalin — tinggal Paste di WhatsApp.')
     }
   }
 

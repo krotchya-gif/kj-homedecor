@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#b45309',
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function SurveyList({ basePath }: Props) {
+  const { toast } = useToast()
   const [rows, setRows] = useState<Row[]>([])
   const [count, setCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -64,7 +66,7 @@ export default function SurveyList({ basePath }: Props) {
     const res = await fetch(`/api/surveys/${row.id}`, { method: 'DELETE' })
     const json = await res.json()
     if (!res.ok) {
-      alert(json.error?.message ?? 'Gagal hapus')
+      toast('error', json.error?.message ?? 'Gagal hapus')
       return
     }
     load()
@@ -75,7 +77,7 @@ export default function SurveyList({ basePath }: Props) {
     const json = await res.json()
     if (res.ok && json.data) {
       await navigator.clipboard.writeText(formatSurveyText(json.data))
-      alert('✅ Hasil survey tersalin.')
+      toast('info', '✅ Hasil survey tersalin.')
     }
   }
 

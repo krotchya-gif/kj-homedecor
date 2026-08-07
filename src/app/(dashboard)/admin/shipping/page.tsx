@@ -8,6 +8,7 @@ import { Truck, Package, Search, Check, X, ExternalLink, Printer, Upload, Camera
 import Link from 'next/link'
 import type { Order } from '@/types'
 import { STATUS_LABELS } from '@/types'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, string> = {
   ready: 'badge-ready',
@@ -27,6 +28,7 @@ const COURIERS = [
 ]
 
 export default function AdminShippingPage() {
+  const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -50,7 +52,7 @@ export default function AdminShippingPage() {
       setShippedPhoto(result.url)
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('⚠️ Gagal upload foto: ' + (err as Error).message)
+      toast('error', '⚠️ Gagal upload foto: ' + (err as Error).message)
     } finally {
       setUploadingShippedPhoto(false)
     }
@@ -82,7 +84,7 @@ export default function AdminShippingPage() {
       .from('orders')
       .update({ status: 'packed', packed_at: new Date().toISOString(), packed_by: user?.id ?? null })
       .eq('id', orderId)
-    if (packErr) { alert('Gagal mark packed: ' + packErr.message); return }
+    if (packErr) { toast('error', 'Gagal mark packed: ' + packErr.message); return }
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: orderId,
       action: 'packed',
@@ -97,7 +99,7 @@ export default function AdminShippingPage() {
     if (!selectedOrder || !resiForm.courier || !resiForm.tracking_number) return
     // V3: foto bukti WAJIB untuk 'shipped' (per PHOTO_REQUIRED_STAGES)
     if (!shippedPhoto) {
-      alert('⚠️ Wajib upload foto bukti pengiriman untuk stage "shipped" (V3 accountability).')
+      toast('info', '⚠️ Wajib upload foto bukti pengiriman untuk stage "shipped" (V3 accountability).')
       return
     }
     setSaving(true)
@@ -122,7 +124,7 @@ export default function AdminShippingPage() {
     })
     const apiJson = await apiRes.json()
     if (!apiRes.ok) {
-      alert('⚠️ ' + (apiJson.error?.message ?? 'Gagal update order'))
+      toast('error', '⚠️ ' + (apiJson.error?.message ?? 'Gagal update order'))
       setSaving(false)
       return
     }

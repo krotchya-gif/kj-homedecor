@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -27,6 +28,7 @@ const formatRp = (n: number) =>
   }).format(n)
 
 export default function TikTokDashboardPage() {
+  const { toast } = useToast()
   const [settings, setSettings] = useState<any[]>([])
   const [orders, setOrders] = useState<any[]>([])
   const [statements, setStatements] = useState<any[]>([])
@@ -222,7 +224,7 @@ export default function TikTokDashboardPage() {
   async function handleDelete(shopId: string) {
     if (!confirm('Hapus TikTok Shop ini? Data orders & statements tetap tersimpan.')) return
     const { error } = await supabase.from('tiktok_shop_settings').delete().eq('id', shopId)
-    if (error) { alert('Gagal hapus shop: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus shop: ' + error.message); return }
     fetchData()
   }
 

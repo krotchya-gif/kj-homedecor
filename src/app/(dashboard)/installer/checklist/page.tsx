@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, Circle, Camera, Loader2 } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import { useToast } from '@/components/ui/Toast'
 
 interface ChecklistItem {
   id: string
@@ -28,6 +29,7 @@ interface BookingWithRelations {
 }
 
 export default function InstallerChecklistPage() {
+  const { toast } = useToast()
   const [bookings, setBookings] = useState<BookingWithRelations[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedBooking, setSelectedBooking] = useState<string>('')
@@ -76,7 +78,7 @@ export default function InstallerChecklistPage() {
       setPhotos((prev) => [...prev, result.url])
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('Gagal upload foto')
+      toast('error', 'Gagal upload foto')
     } finally {
       setUploading(false)
     }
@@ -104,7 +106,7 @@ export default function InstallerChecklistPage() {
 
     if (checklistError) {
       console.error(checklistError)
-      alert('Gagal menyimpan checklist')
+      toast('error', 'Gagal menyimpan checklist')
       setSubmitting(false)
       return
     }
@@ -117,7 +119,7 @@ export default function InstallerChecklistPage() {
         actual_date: new Date().toISOString()
       })
       .eq('id', selectedBooking)
-    if (doneErr) { console.error(doneErr); alert('Checklist tersimpan, tapi gagal update status booking: ' + doneErr.message); setSubmitting(false); return }
+    if (doneErr) { console.error(doneErr); toast('error', 'Checklist tersimpan, tapi gagal update status booking: ' + doneErr.message); setSubmitting(false); return }
 
     setSaved(true)
     setSubmitting(false)

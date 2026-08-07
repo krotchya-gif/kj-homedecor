@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useToast } from '@/components/ui/Toast'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -8,6 +9,7 @@ import { BarChart3 } from 'lucide-react'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
 export default function PenjahitReportsPage() {
+  const { toast } = useToast()
   const [reports, setReports] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().getMonth())
@@ -37,7 +39,7 @@ export default function PenjahitReportsPage() {
         .order('created_at', { ascending: false })
       if (error) {
         console.error('[Penjahit Reports] Query error:', error)
-        alert('⚠️ Gagal load rekap: ' + error.message)
+        toast('warning', '⚠️ Gagal load rekap: ' + error.message)
       }
       // filter by month & year (di client-side karena schema TIDAK punya kolom month/year
       // yang bisa di-query efficient — pakai created_at)

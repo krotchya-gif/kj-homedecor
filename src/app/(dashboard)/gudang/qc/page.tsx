@@ -6,11 +6,13 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, XCircle, AlertTriangle, RefreshCw, Package, Upload, Camera } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import { useToast } from '@/components/ui/Toast'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function GudangQCPage() {
+  const { toast } = useToast()
   const [tab, setTab] = useState<'qc' | 'retur'>('qc')
   const [items, setItems] = useState<any[]>([])
   const [returns, setReturns] = useState<any[]>([])
@@ -66,11 +68,11 @@ export default function GudangQCPage() {
       checked_by: user?.id ?? null,
       checked_at: new Date().toISOString()
     })
-    if (qcErr) { setSaving(false); alert('Gagal simpan QC: ' + qcErr.message); return }
+    if (qcErr) { setSaving(false); toast('error', 'Gagal simpan QC: ' + qcErr.message); return }
 
     if (qcForm.result === 'pass') {
       const { error: itemErr } = await supabase.from('order_items').update({ ready: true }).eq('id', selected.id)
-      if (itemErr) { setSaving(false); alert('QC tercatat, tapi gagal update item: ' + itemErr.message); return }
+      if (itemErr) { setSaving(false); toast('error', 'QC tercatat, tapi gagal update item: ' + itemErr.message); return }
       const { error: passLogErr } = await supabase.from('order_logs').insert({
         order_id: selected.order_id,
         action: 'qc_pass',
@@ -114,7 +116,7 @@ export default function GudangQCPage() {
         resolved_at: new Date().toISOString()
       })
       .eq('id', selectedReturn.id)
-    if (retUpdErr) { setSaving(false); alert('Gagal update return: ' + retUpdErr.message); return }
+    if (retUpdErr) { setSaving(false); toast('error', 'Gagal update return: ' + retUpdErr.message); return }
 
     // If good → stock in, if damaged → dispose
     if (isGood) {
@@ -138,7 +140,7 @@ export default function GudangQCPage() {
             reason: `Return confirmed GOOD oleh Gudang — order ${selectedReturn.order_id.slice(0, 8)}`,
             created_by: user?.id ?? null
           })
-          if (movErr) { setSaving(false); alert('Gagal catat stok masuk return: ' + movErr.message); return }
+          if (movErr) { setSaving(false); toast('error', 'Gagal catat stok masuk return: ' + movErr.message); return }
           // increment stock_toko
           const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', item.product_id).single()
           if (prod) {
@@ -146,7 +148,7 @@ export default function GudangQCPage() {
               .from('products')
               .update({ stock_toko: (prod.stock_toko ?? 0) + (item.qty ?? 1) })
               .eq('id', item.product_id)
-            if (prodErr) { setSaving(false); alert('Stok tercatat, tapi gagal update stok produk: ' + prodErr.message); return }
+            if (prodErr) { setSaving(false); toast('error', 'Stok tercatat, tapi gagal update stok produk: ' + prodErr.message); return }
           }
         }
       }
@@ -178,7 +180,7 @@ export default function GudangQCPage() {
             reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
             created_by: user?.id ?? null
           })
-          if (disposeErr) { setSaving(false); alert('Gagal catat disposal: ' + disposeErr.message); return }
+          if (disposeErr) { setSaving(false); toast('error', 'Gagal catat disposal: ' + disposeErr.message); return }
         }
       } else {
         const { error: disposeErr } = await supabase.from('inventory_movements').insert({
@@ -187,7 +189,7 @@ export default function GudangQCPage() {
           reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
           created_by: user?.id ?? null
         })
-        if (disposeErr) { setSaving(false); alert('Gagal catat disposal: ' + disposeErr.message); return }
+        if (disposeErr) { setSaving(false); toast('error', 'Gagal catat disposal: ' + disposeErr.message); return }
       }
       const { error: disposeLogErr } = await supabase.from('order_logs').insert({
         order_id: selectedReturn.order_id,
@@ -213,7 +215,7 @@ export default function GudangQCPage() {
       setReturForm((f) => ({ ...f, photos: [...f.photos, result.url] }))
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('Gagal upload foto')
+      toast('error', 'Gagal upload foto')
     }
     setUploadingPhoto(false)
   }

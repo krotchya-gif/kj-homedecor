@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
 
 interface SteamJob {
   id: string
@@ -46,6 +47,7 @@ const fmt = (n: number) =>
   }).format(n)
 
 export default function GudangSteamPage() {
+  const { toast } = useToast()
   const [tab, setTab] = useState<'laundry' | 'steam'>('laundry')
   const supabase = createClient()
 
@@ -86,7 +88,7 @@ export default function GudangSteamPage() {
       else setSteamFailPhoto(result.url)
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('⚠️ Gagal upload foto: ' + (err as Error).message)
+      toast('error', '⚠️ Gagal upload foto: ' + (err as Error).message)
     } finally {
       setUploadingSteamPhoto(false)
     }
@@ -131,7 +133,7 @@ export default function GudangSteamPage() {
       meter: Number(laundryForm.meter) || 0,
       description: laundryForm.description || null
     })
-    if (error) { setLaundrySaving(false); alert('Gagal simpan laundry: ' + error.message); return }
+    if (error) { setLaundrySaving(false); toast('error', 'Gagal simpan laundry: ' + error.message); return }
     setLaundrySaving(false)
     setShowLaundryForm(false)
     setLaundryForm({
@@ -147,7 +149,7 @@ export default function GudangSteamPage() {
   async function handleSteamPass(job: SteamJob) {
     // V3: foto bukti WAJIB untuk stage 'steam' (per PHOTO_REQUIRED_STAGES)
     if (!steamPassPhoto) {
-      alert('⚠️ Wajib upload foto bukti QC Steam (V3 accountability) sebelum konfirmasi Pass.')
+      toast('warning', '⚠️ Wajib upload foto bukti QC Steam (V3 accountability) sebelum konfirmasi Pass.')
       return
     }
     setPassSaving(true)
@@ -163,7 +165,7 @@ export default function GudangSteamPage() {
         checked_by: user?.id ?? null
       })
       .eq('id', job.id)
-    if (jobErr) { setPassSaving(false); alert('Gagal update steam job: ' + jobErr.message); return }
+    if (jobErr) { setPassSaving(false); toast('error', 'Gagal update steam job: ' + jobErr.message); return }
     // V3: insert order_progress_photos dengan stage='steam' (V3 foto bukti)
     const { error: photoErr } = await supabase.from('order_progress_photos').insert({
       order_id: job.order_id,
@@ -172,7 +174,7 @@ export default function GudangSteamPage() {
       uploaded_by: user?.id ?? null,
       notes: `Steam QC Pass — foto bukti hasil pengerjaan (V3)`
     })
-    if (photoErr) { setPassSaving(false); alert('Gagal simpan foto bukti: ' + photoErr.message); return }
+    if (photoErr) { setPassSaving(false); toast('error', 'Gagal simpan foto bukti: ' + photoErr.message); return }
     // Log
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: job.order_id,
@@ -196,7 +198,7 @@ export default function GudangSteamPage() {
     if (!showFailModal || !failReason.trim()) return
     // V3: foto bukti WAJIB untuk stage 'steam' (saat fail/revisi)
     if (!steamFailPhoto) {
-      alert('⚠️ Wajib upload foto bukti QC Steam Fail (V3 accountability) sebelum konfirmasi Revisi.')
+      toast('warning', '⚠️ Wajib upload foto bukti QC Steam Fail (V3 accountability) sebelum konfirmasi Revisi.')
       return
     }
     setFailSaving(true)
@@ -215,7 +217,7 @@ export default function GudangSteamPage() {
       uploaded_by: user?.id ?? null,
       notes: `Steam QC Fail — foto bukti (V3). Alasan: ${failReasonText}`
     })
-    if (photoErr) { setFailSaving(false); alert('Gagal simpan foto bukti fail: ' + photoErr.message); return }
+    if (photoErr) { setFailSaving(false); toast('error', 'Gagal simpan foto bukti fail: ' + photoErr.message); return }
 
     // 1. Mark steam_job as revision (audit trail)
     const { error: jobFailErr } = await supabase
@@ -227,7 +229,7 @@ export default function GudangSteamPage() {
         checked_by: user?.id ?? null
       })
       .eq('id', steamJobId)
-    if (jobFailErr) { setFailSaving(false); alert('Gagal update steam job: ' + jobFailErr.message); return }
+    if (jobFailErr) { setFailSaving(false); toast('error', 'Gagal update steam job: ' + jobFailErr.message); return }
 
     // 2. Get original production_job to preserve penjahit_id
     let originalPenjahitId: string | null = null
@@ -265,14 +267,14 @@ export default function GudangSteamPage() {
 
     if (newJobErr) {
       console.error('Failed to create revision production_job:', newJobErr)
-      alert('Gagal membuat job revisi: ' + newJobErr.message)
+      toast('error', 'Gagal membuat job revisi: ' + newJobErr.message)
       setFailSaving(false)
       return
     }
 
     // 5. Update order status back to 'production' (re-queue ke Penjahit)
     const { error: reorderErr } = await supabase.from('orders').update({ status: 'production' }).eq('id', orderId)
-    if (reorderErr) { setFailSaving(false); alert('Job revisi dibuat, tapi gagal re-queue order: ' + reorderErr.message); return }
+    if (reorderErr) { setFailSaving(false); toast('error', 'Job revisi dibuat, tapi gagal re-queue order: ' + reorderErr.message); return }
 
     // 6. Log the revision re-queue
     const { error: revLogErr } = await supabase.from('order_logs').insert({

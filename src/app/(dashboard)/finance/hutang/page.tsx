@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -30,6 +31,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function HutangPage() {
+  const { toast } = useToast()
   const [hutang, setHutang] = useState<Hutang[]>([])
   const [suppliers, setSuppliers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,13 +106,13 @@ export default function HutangPage() {
 
       const { error } = await supabase.from('hutang').update(payload).eq('id', editItem.id)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     } else {
 
       const { error } = await supabase.from('hutang').insert(payload)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     }
     setSaving(false)
@@ -122,7 +124,7 @@ export default function HutangPage() {
     if (!confirm('Hapus tagihan ini?')) return
     const { error } = await supabase.from('hutang').delete().eq('id', id)
 
-    if (error) { alert('Gagal hapus: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
     fetchData()
   }
 
@@ -148,7 +150,7 @@ export default function HutangPage() {
         status: newStatus
       })
       .eq('id', paymentItem.id)
-    if (error) { setSaving(false); alert('Gagal simpan pembayaran hutang: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal simpan pembayaran hutang: ' + error.message); return }
     setSaving(false)
     setShowPayment(false)
     fetchData()

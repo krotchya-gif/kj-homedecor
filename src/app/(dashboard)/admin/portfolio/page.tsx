@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Edit, Trash2, X, ImageIcon, Loader2, ExternalLink } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import { useToast } from '@/components/ui/Toast'
 
 interface PortfolioPost {
   id: string
@@ -17,6 +18,7 @@ interface PortfolioPost {
 }
 
 export default function AdminPortfolioPage() {
+  const { toast } = useToast()
   const [posts, setPosts] = useState<PortfolioPost[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -80,7 +82,7 @@ export default function AdminPortfolioPage() {
       setForm((f) => ({ ...f, images: [...f.images, ...uploaded] }))
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('Gagal upload gambar')
+      toast('error', 'Gagal upload gambar')
     } finally {
       setUploading(false)
     }
@@ -111,7 +113,7 @@ export default function AdminPortfolioPage() {
     }
 
     setSaving(false)
-    if (err) { alert('Gagal simpan post: ' + err.message); return }
+    if (err) { toast('error', 'Gagal simpan post: ' + err.message); return }
     setShowForm(false)
     loadPosts()
   }
@@ -121,7 +123,7 @@ export default function AdminPortfolioPage() {
     setDeleting(id)
     const { error } = await supabase.from('portfolio_posts').delete().eq('id', id)
 
-    if (error) { setDeleting(null); alert('Gagal hapus: ' + error.message); return }
+    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
     loadPosts()
   }
 

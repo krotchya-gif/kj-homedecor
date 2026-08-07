@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, LandPlot } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -29,6 +30,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function AssetsPage() {
+  const { toast } = useToast()
   const [assets, setAssets] = useState<Asset[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -113,13 +115,13 @@ export default function AssetsPage() {
 
       const { error } = await supabase.from('assets').update(payload).eq('id', editItem.id)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     } else {
 
       const { error } = await supabase.from('assets').insert(payload)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     }
     setSaving(false)
@@ -131,7 +133,7 @@ export default function AssetsPage() {
     if (!confirm('Hapus aset ini?')) return
     const { error } = await supabase.from('assets').delete().eq('id', id)
 
-    if (error) { alert('Gagal hapus: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
     fetchData()
   }
 

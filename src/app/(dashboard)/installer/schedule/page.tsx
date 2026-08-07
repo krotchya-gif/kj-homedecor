@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Calendar, MapPin, CheckCircle2, Clock, AlertTriangle, X, Upload } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   scheduled: { bg: '#dbeafe', text: '#1e40af' },
@@ -16,6 +17,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function InstallerSchedulePage() {
+  const { toast } = useToast()
   const [bookings, setBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'upcoming' | 'done'>('upcoming')
@@ -65,7 +67,7 @@ export default function InstallerSchedulePage() {
     })
     const json = await res.json()
     if (!res.ok) {
-      alert('⚠️ Gagal update status: ' + (json.error?.message ?? 'unknown error'))
+      toast('error', '⚠️ Gagal update status: ' + (json.error?.message ?? 'unknown error'))
       return
     }
     // Refresh data
@@ -99,7 +101,7 @@ export default function InstallerSchedulePage() {
 
   async function submitRevision() {
     if (!revBooking || !revReason.trim()) {
-      alert('Tambahkan alasan revisi minimal 1 kalimat.')
+      toast('info', 'Tambahkan alasan revisi minimal 1 kalimat.')
       return
     }
     const { error: revErr } = await supabase
@@ -110,7 +112,7 @@ export default function InstallerSchedulePage() {
         revision_photos: revPhotos.length > 0 ? revPhotos : null
       })
       .eq('id', revBooking.id)
-    if (revErr) { alert('Gagal submit revisi: ' + revErr.message); return }
+    if (revErr) { toast('error', 'Gagal submit revisi: ' + revErr.message); return }
 
     const {
       data: { user }

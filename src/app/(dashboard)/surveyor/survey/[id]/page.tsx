@@ -10,6 +10,7 @@ import { LightboxGallery } from '@/components/ui/Lightbox'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
 import { generateSurveyPDF } from '@/lib/survey-pdf'
 import type { Survey } from '@/types'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#b45309',
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function SurveyDetailPage() {
+  const { toast } = useToast()
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -63,7 +65,7 @@ export default function SurveyDetailPage() {
     const res = await fetch(`/api/surveys/${survey.id}`, { method: 'DELETE' })
     const json = await res.json()
     if (!res.ok) {
-      alert(json.error?.message ?? 'Gagal hapus survey')
+      toast('error', json.error?.message ?? 'Gagal hapus survey')
       return
     }
     router.push('/surveyor/history')
@@ -76,7 +78,7 @@ export default function SurveyDetailPage() {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      alert('Gagal menyalin ke clipboard.')
+      toast('error', 'Gagal menyalin ke clipboard.')
     }
   }
 

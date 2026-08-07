@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, Book } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'] as const
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -31,6 +32,7 @@ interface Account {
 }
 
 export default function AccountsListPage() {
+  const { toast } = useToast()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -112,13 +114,13 @@ export default function AccountsListPage() {
 
       const { error } = await supabase.from('accounts').update(payload).eq('id', editItem.id)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     } else {
 
       const { error } = await supabase.from('accounts').insert(payload)
 
-      if (error) { alert('Gagal simpan: ' + error.message); setSaving(false); return }
+      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
 
     }
     setSaving(false)
@@ -130,7 +132,7 @@ export default function AccountsListPage() {
     if (!confirm('Hapus akun ini?')) return
     const { error } = await supabase.from('accounts').delete().eq('id', id)
 
-    if (error) { alert('Gagal hapus: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
     fetchAccounts()
   }
 

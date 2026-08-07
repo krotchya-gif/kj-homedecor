@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Settings, Save, X } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -13,6 +14,7 @@ const formatRp = (n: number) =>
   }).format(n)
 
 export default function FinanceSettingsPage() {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('saldo')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -70,8 +72,8 @@ export default function FinanceSettingsPage() {
     }
     await fetchData()
     setSaving(false)
-    if (hadError) { alert('⚠️ Beberapa saldo gagal disimpan: ' + hadError.message) }
-    alert('Saldo kas/bank berhasil disimpan!')
+    if (hadError) { toast('error', '⚠️ Beberapa saldo gagal disimpan: ' + hadError.message) }
+    toast('success', 'Saldo kas/bank berhasil disimpan!')
   }
 
   const tabs = [

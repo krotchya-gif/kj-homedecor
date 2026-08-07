@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
 import { Modal } from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   waiting: { bg: '#fef2f2', text: '#991b1b' },
@@ -39,6 +40,7 @@ interface JobMaterial {
 }
 
 export default function GudangProductionPage() {
+  const { toast } = useToast()
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
@@ -134,12 +136,12 @@ export default function GudangProductionPage() {
         })
         const consumeJson = await consumeRes.json()
         if (!consumeRes.ok) {
-          alert('⚠️ Gagal consume materials: ' + (consumeJson.error?.message ?? 'unknown error'))
+          toast('error', '⚠️ Gagal consume materials: ' + (consumeJson.error?.message ?? 'unknown error'))
           return // Jangan continue kalau material gagal
         }
         console.log('Material consumption:', consumeJson.data)
       } catch (e) {
-        alert('⚠️ Gagal consume materials: ' + (e as Error).message)
+        toast('error', '⚠️ Gagal consume materials: ' + (e as Error).message)
         return
       }
     }
@@ -154,7 +156,7 @@ export default function GudangProductionPage() {
       })
       .eq('id', jobId)
     if (statusErr) {
-      alert('⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek RLS policy atau koneksi database.')
+      toast('error', '⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek RLS policy atau koneksi database.')
     }
 
     const { error: logErr } = await supabase.from('order_logs').insert({
@@ -181,12 +183,12 @@ export default function GudangProductionPage() {
       .select('id, penjahit_id, status')
       .single()
     if (updateErr) {
-      alert('⚠️ Gagal assign penjahit: ' + updateErr.message + '\n\nCek RLS policy atau koneksi database.')
+      toast('error', '⚠️ Gagal assign penjahit: ' + updateErr.message + '\n\nCek RLS policy atau koneksi database.')
       setAssigning(false)
       return
     }
     if (!updated?.penjahit_id) {
-      alert('⚠️ Update berhasil tapi penjahit_id tidak ter-set. Refresh halaman dan coba lagi.')
+      toast('success', '⚠️ Update berhasil tapi penjahit_id tidak ter-set. Refresh halaman dan coba lagi.')
       setAssigning(false)
       return
     }

@@ -21,6 +21,7 @@ import {
   Edit
 } from 'lucide-react'
 import BookingCalendar from '@/components/ui/BookingCalendar'
+import { useToast } from '@/components/ui/Toast'
 
 interface InstallBooking {
   id: string
@@ -77,6 +78,7 @@ const TYPE_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
 }
 
 export default function AdminBookingPage() {
+  const { toast } = useToast()
   const [bookings, setBookings] = useState<InstallBooking[]>([])
   const [installers, setInstallers] = useState<UserType[]>([])
   const [loading, setLoading] = useState(true)
@@ -172,7 +174,7 @@ export default function AdminBookingPage() {
       status: form.scheduled_date && form.installer_id ? 'scheduled' : 'pending',
       source: 'manual'
     })
-    if (error) { setSaving(false); alert('Gagal buat booking: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal buat booking: ' + error.message); return }
 
     setSaving(false)
     setShowForm(false)
@@ -202,7 +204,7 @@ export default function AdminBookingPage() {
         status: 'scheduled'
       })
       .eq('id', selectedBooking.id)
-    if (acceptErr) { setSaving(false); alert('Gagal accept booking: ' + acceptErr.message); return }
+    if (acceptErr) { setSaving(false); toast('error', 'Gagal accept booking: ' + acceptErr.message); return }
 
     setSaving(false)
     setShowAcceptModal(false)
@@ -223,10 +225,10 @@ export default function AdminBookingPage() {
       })
       const json = await res.json()
       if (!res.ok) {
-        alert('⚠️ ' + (json.error?.message ?? 'Gagal update status booking'))
+        toast('warning', '⚠️ ' + (json.error?.message ?? 'Gagal update status booking'))
       }
     } catch (e) {
-      alert('⚠️ Gagal update status: ' + (e as Error).message)
+      toast('error', '⚠️ Gagal update status: ' + (e as Error).message)
     }
     setSaving(false)
     loadData()

@@ -29,6 +29,7 @@ const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
 }
 
 export default function FinancePaymentsPage() {
+  const { toast } = useToast()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -48,7 +49,6 @@ export default function FinancePaymentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const supabase = createClient()
-  const { toast } = useToast()
 
   async function load() {
     setLoading(true)
@@ -130,7 +130,7 @@ export default function FinancePaymentsPage() {
       verified_by: currentUser?.id ?? null,
       verified_at: now
     })
-    if (payErr) { setSaving(false); alert('Gagal catat pembayaran: ' + payErr.message); return }
+    if (payErr) { setSaving(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
 
     // Auto-create journal entry for payment
     try {
@@ -147,14 +147,13 @@ export default function FinancePaymentsPage() {
       // Alert user, bukan cuma console.warn.
       const errMsg = e instanceof Error ? e.message : String(e)
       console.error('Failed to create journal entry:', errMsg)
-      alert(
+      toast('warning', 
         '⚠️ Pembayaran TERCATAT di payments, TAPI journal entry GAGAL.\n\n' +
           'Error: ' +
           errMsg +
           '\n\n' +
           'Ini masalah akuntansi serius. Hubungi Owner untuk fix double-entry.\n' +
-          'Bisa karena: account_mappings belum di-setup. Lihat /finance/accounts/mapping'
-      )
+          'Bisa karena: account_mappings belum di-setup. Lihat /finance/accounts/mapping')
     }
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: selected.id,
@@ -176,7 +175,7 @@ export default function FinancePaymentsPage() {
         payment_status: newPayStatus
       })
       .eq('id', selected.id)
-    if (ordErr) { setSaving(false); alert('Pembayaran tercatat, tapi gagal update order: ' + ordErr.message); return }
+    if (ordErr) { setSaving(false); toast('error', 'Pembayaran tercatat, tapi gagal update order: ' + ordErr.message); return }
     setSaving(false)
     setSelected(null)
     setPayForm({

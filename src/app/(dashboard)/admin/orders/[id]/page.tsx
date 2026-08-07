@@ -27,6 +27,7 @@ import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { Modal } from '@/components/ui/Modal'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
+import { useToast } from '@/components/ui/Toast'
 
 // V3 Pipeline: ORDER_STATUSES now conditional based on order.classification
 // Use shared util ORDER_STAGES_BY_CLASSIFICATION untuk single source of truth
@@ -91,6 +92,7 @@ function getResponsibleRoles(currentStatus: string): string {
 }
 
 export default function OrderDetailPage() {
+  const { toast } = useToast()
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const supabase = createClient()
@@ -261,7 +263,7 @@ export default function OrderDetailPage() {
       setProgressPhotos((prev) => [...prev, result.url])
     } catch (err) {
       console.error('Upload failed:', err)
-      alert('Gagal upload foto')
+      toast('error', 'Gagal upload foto')
     } finally {
       setUploadingPhoto(false)
     }
@@ -273,7 +275,7 @@ export default function OrderDetailPage() {
     // 2026-07-31: finance approve di DEPAN (new→payment_ok = verifikasi DP/lunas sudah masuk),
     // lunas penuh tetap wajib sebelum packed/dikirim.
     if (['packed', 'shipped', 'done'].includes(newStatus) && order.payment_status !== 'paid') {
-      alert('⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu (status Cek Bayar).')
+      toast('warning', '⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu (status Cek Bayar).')
       return
     }
     setUpdating(true)
@@ -284,7 +286,7 @@ export default function OrderDetailPage() {
     // 1) Update order status (client-side direct, simple & reliable)
     const { error: updateErr } = await supabase.from('orders').update({ status: newStatus }).eq('id', id)
     if (updateErr) {
-      alert('Gagal update status: ' + updateErr.message)
+      toast('error', 'Gagal update status: ' + updateErr.message)
       setUpdating(false)
       return
     }
@@ -363,11 +365,9 @@ export default function OrderDetailPage() {
 
         if (jobErr) {
           // CRITICAL: order stuck di production tapi tidak ada job
-          alert(
-            '⚠️ Order sudah di-update ke production, TAPI gagal membuat production_job: ' +
+          toast('error', '⚠️ Order sudah di-update ke production, TAPI gagal membuat production_job: ' +
               jobErr.message +
-              '\n\nGudang tidak akan melihat order ini di /gudang/production. Hubungi developer untuk fix data integrity.'
-          )
+              '\n\nGudang tidak akan melihat order ini di /gudang/production. Hubungi developer untuk fix data integrity.')
         }
       }
     }
@@ -382,7 +382,7 @@ export default function OrderDetailPage() {
 
   async function handleCancel() {
     if (!order || !cancelReason.trim()) {
-      alert('Alasan pembatalan wajib diisi.')
+      toast('info', 'Alasan pembatalan wajib diisi.')
       return
     }
     const {
@@ -403,7 +403,7 @@ export default function OrderDetailPage() {
         payment_status: 'pending'
       })
       .eq('id', id)
-    if (cancelErr) { alert('Gagal batalkan order: ' + cancelErr.message); return }
+    if (cancelErr) { toast('error', 'Gagal batalkan order: ' + cancelErr.message); return }
     const { error: cancelLogErr } = await supabase.from('order_logs').insert({
       order_id: id,
       action: 'cancelled',
@@ -411,7 +411,7 @@ export default function OrderDetailPage() {
       staff_id: user?.id ?? null
     })
     if (cancelLogErr) { console.error('Gagal catat log cancel:', cancelLogErr) }
-    alert('Order berhasil dibatalkan.')
+    toast('success', 'Order berhasil dibatalkan.')
     setShowCancelForm(false)
     load()
   }
@@ -435,7 +435,7 @@ export default function OrderDetailPage() {
         : await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id)
       const items = itemsToReturn ?? []
       if (items.length === 0) {
-        alert('Tidak ada item untuk diproses return.')
+        toast('info', 'Tidak ada item untuk diproses return.')
         return
       }
       // Process stock updates first
@@ -448,7 +448,7 @@ export default function OrderDetailPage() {
             reason: `Return dari order ${id.slice(0, 8)} — kondisi bagus, masuk stock toko`,
             created_by: user?.id ?? null
           })
-          if (movErr) { alert('Gagal catat pergerakan stok return: ' + movErr.message); return }
+          if (movErr) { toast('error', 'Gagal catat pergerakan stok return: ' + movErr.message); return }
           const { error } = await supabase.rpc('increment_stock_toko', {
             product_id: item.product_id,
             amount: item.qty ?? 1
@@ -459,7 +459,7 @@ export default function OrderDetailPage() {
               .from('products')
               .update({ stock_toko: (item.product?.stock_toko ?? 0) + (item.qty ?? 1) })
               .eq('id', item.product_id)
-            if (fbErr) { console.error('Fallback update stok juga gagal:', fbErr); alert('Gagal menambah stok return: ' + fbErr.message); return }
+            if (fbErr) { console.error('Fallback update stok juga gagal:', fbErr); toast('error', 'Gagal menambah stok return: ' + fbErr.message); return }
           }
         }
       }
@@ -481,7 +481,7 @@ export default function OrderDetailPage() {
       })
       .select()
       .single()
-    if (retErr) { alert('Gagal catat return: ' + retErr.message); return }
+    if (retErr) { toast('error', 'Gagal catat return: ' + retErr.message); return }
 
     // Update order item if specific item selected
     if (returnForm.item_id) {
@@ -489,12 +489,12 @@ export default function OrderDetailPage() {
         .from('order_items')
         .update({ returned_at: new Date().toISOString(), return_reason: returnForm.reason })
         .eq('id', returnForm.item_id)
-      if (itemErr) { alert('Gagal update item return: ' + itemErr.message); return }
+      if (itemErr) { toast('error', 'Gagal update item return: ' + itemErr.message); return }
     }
 
     // Update order status to returned
     const { error: orderErr } = await supabase.from('orders').update({ status: 'returned', return_reason: returnForm.reason }).eq('id', id)
-    if (orderErr) { alert('Gagal update status order: ' + orderErr.message); return }
+    if (orderErr) { toast('error', 'Gagal update status order: ' + orderErr.message); return }
 
     // Log the action
     const { error: retLogErr } = await supabase.from('order_logs').insert({
@@ -505,9 +505,7 @@ export default function OrderDetailPage() {
     })
     if (retLogErr) { console.error('Gagal catat log return:', retLogErr) }
 
-    alert(
-      `Return berhasil dicatat.\nKondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}\nRefund: Rp${refundAmt.toLocaleString('id-ID')}`
-    )
+    toast('success', `Return berhasil dicatat.\nKondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}\nRefund: Rp${refundAmt.toLocaleString('id-ID')}`)
     setShowReturnForm(false)
     setReturnForm({ item_id: '', reason: '', condition: 'good', qty: '1', refund_amount: '' })
     load()
@@ -520,7 +518,7 @@ export default function OrderDetailPage() {
     // Validate qty for non-laundry items
     const qty = Number(itemForm.qty)
     if (itemType !== 'laundry' && (!itemForm.product_id || qty < 1)) {
-      alert('Pilih produk dan qty minimal 1.')
+      toast('info', 'Pilih produk dan qty minimal 1.')
       setSavingItem(false)
       return
     }
@@ -546,7 +544,7 @@ export default function OrderDetailPage() {
         .select('id')
         .single()
       if (laundErr) {
-        alert('Gagal buat laundry order: ' + laundErr.message)
+        toast('error', 'Gagal buat laundry order: ' + laundErr.message)
         setSavingItem(false)
         return
       }
@@ -562,7 +560,7 @@ export default function OrderDetailPage() {
         meter: Number(itemForm.meter_laundry) || null
       })
       if (itemErr) {
-        alert('Gagal tambah item laundry: ' + itemErr.message)
+        toast('error', 'Gagal tambah item laundry: ' + itemErr.message)
         setSavingItem(false)
         return
       }
@@ -597,7 +595,7 @@ export default function OrderDetailPage() {
         weight: itemType === 'perabot' ? (itemForm.weight ? Number(itemForm.weight) : null) : null
       })
       if (itemErr) {
-        alert('Gagal tambah item: ' + itemErr.message)
+        toast('error', 'Gagal tambah item: ' + itemErr.message)
         setSavingItem(false)
         return
       }
@@ -609,7 +607,7 @@ export default function OrderDetailPage() {
       .select('price,qty')
       .eq('order_id', id)
     if (totalErr) {
-      alert('Item tersimpan, tapi gagal hitung ulang total: ' + totalErr.message)
+      toast('error', 'Item tersimpan, tapi gagal hitung ulang total: ' + totalErr.message)
       load()
       setSavingItem(false)
       setShowItemForm(false)
@@ -619,7 +617,7 @@ export default function OrderDetailPage() {
     const total = (newItems ?? []).reduce((s, i) => s + i.price * i.qty, 0)
     const { error: updateErr } = await supabase.from('orders').update({ total_amount: total }).eq('id', id)
     if (updateErr) {
-      alert('Item tersimpan, tapi gagal update total order: ' + updateErr.message)
+      toast('error', 'Item tersimpan, tapi gagal update total order: ' + updateErr.message)
       load()
       setSavingItem(false)
       setShowItemForm(false)
@@ -642,7 +640,7 @@ export default function OrderDetailPage() {
       const res = await fetch('/api/surveys?status=tersimpan&limit=20')
       const json = await res.json()
       if (res.ok) setSurveyCandidates(json.data ?? [])
-      else alert(json.error?.message ?? 'Gagal load survey')
+      else toast('error', json.error?.message ?? 'Gagal load survey')
     } finally {
       setSurveyLoading(false)
     }
@@ -651,7 +649,7 @@ export default function OrderDetailPage() {
   async function linkSurvey(surveyId: string) {
     const { error } = await supabase.from('orders').update({ survey_id: surveyId }).eq('id', id)
     if (error) {
-      alert('Gagal link survey: ' + error.message)
+      toast('error', 'Gagal link survey: ' + error.message)
       return
     }
     setSurveyLinkOpen(false)
@@ -662,7 +660,7 @@ export default function OrderDetailPage() {
     if (!confirm('Lepas survey dari order ini?')) return
     const { error } = await supabase.from('orders').update({ survey_id: null }).eq('id', id)
     if (error) {
-      alert('Gagal lepas survey: ' + error.message)
+      toast('error', 'Gagal lepas survey: ' + error.message)
       return
     }
     load()
@@ -671,20 +669,20 @@ export default function OrderDetailPage() {
   async function removeItem(itemId: string) {
     if (!confirm('Hapus item ini?')) return
     const { error } = await supabase.from('order_items').delete().eq('id', itemId)
-    if (error) { alert('Gagal hapus item: ' + error.message); return }
+    if (error) { toast('error', 'Gagal hapus item: ' + error.message); return }
     load()
   }
 
   async function toggleReady(itemId: string, current: boolean) {
     const { error } = await supabase.from('order_items').update({ ready: !current }).eq('id', itemId)
-    if (error) { alert('Gagal update item: ' + error.message); return }
+    if (error) { toast('error', 'Gagal update item: ' + error.message); return }
     setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, ready: !current } : i)))
   }
 
   async function handleAddPayment(e: React.FormEvent) {
     e.preventDefault()
     if (!order || !paymentForm.amount) {
-      alert('Jumlah pembayaran wajib diisi.')
+      toast('warning', 'Jumlah pembayaran wajib diisi.')
       return
     }
     setSavingPayment(true)
@@ -699,7 +697,7 @@ export default function OrderDetailPage() {
       verified_by: user?.id ?? null,
       verified_at: new Date().toISOString()
     })
-    if (payErr) { setSavingPayment(false); alert('Gagal catat pembayaran: ' + payErr.message); return }
+    if (payErr) { setSavingPayment(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
     // Update order dp/lunas
     const newDp = paymentForm.type === 'dp' ? order.dp_amount + amount : order.dp_amount
     const newLunas =
@@ -717,7 +715,7 @@ export default function OrderDetailPage() {
         payment_status: newPaid
       })
       .eq('id', id)
-    if (ordErr) { setSavingPayment(false); alert('Gagal update status pembayaran: ' + ordErr.message); return }
+    if (ordErr) { setSavingPayment(false); toast('error', 'Gagal update status pembayaran: ' + ordErr.message); return }
     const { error: payLogErr } = await supabase.from('order_logs').insert({
       order_id: id,
       action: 'payment_added',
@@ -725,7 +723,7 @@ export default function OrderDetailPage() {
       staff_id: user?.id ?? null
     })
     if (payLogErr) { console.error('Gagal catat log pembayaran:', payLogErr) }
-    alert('Pembayaran berhasil dicatat.')
+    toast('success', 'Pembayaran berhasil dicatat.')
     setShowPaymentForm(false)
     setPaymentForm({ type: 'dp', amount: '' })
     setSavingPayment(false)

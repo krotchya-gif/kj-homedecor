@@ -10,6 +10,7 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
 
 const PAGE_SIZE = 20
 const formatRp = (n: number) =>
@@ -38,6 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function OrdersPage() {
+  const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -214,7 +216,7 @@ export default function OrdersPage() {
         if (rollbackErr) console.error('Rollback delete customer gagal:', rollbackErr)
       }
       setSaving(false)
-      alert(orderError?.message ?? 'Gagal membuat pesanan')
+      toast('error', orderError?.message ?? 'Gagal membuat pesanan')
       return
     }
 
@@ -228,7 +230,7 @@ export default function OrdersPage() {
         date: new Date().toISOString(),
         notes: `Auto-verified: Order dari ${form.source}`
       })
-      if (payErr) { console.error('Auto-create payment gagal:', payErr); alert('⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message) }
+      if (payErr) { console.error('Auto-create payment gagal:', payErr); toast('error', '⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message) }
     }
 
     setSaving(false)

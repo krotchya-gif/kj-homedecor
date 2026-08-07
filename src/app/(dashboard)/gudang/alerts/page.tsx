@@ -4,8 +4,10 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { AlertTriangle, Plus, ShoppingBag } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 export default function GudangAlertsPage() {
+  const { toast } = useToast()
   const [alerts, setAlerts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState<string | null>(null)
@@ -32,9 +34,9 @@ export default function GudangAlertsPage() {
       estimated_cost: estimatedCost,
       status: 'pending'
     })
-    if (error) { setCreating(null); alert('Gagal buat PR: ' + error.message); return }
+    if (error) { setCreating(null); toast('error', 'Gagal buat PR: ' + error.message); return }
     setCreating(null)
-    alert(`Purchase Request untuk "${material.name}" berhasil dibuat! (${needed} unit)`)
+    toast('success', `Purchase Request untuk "${material.name}" berhasil dibuat! (${needed} unit)`)
   }
 
   return (

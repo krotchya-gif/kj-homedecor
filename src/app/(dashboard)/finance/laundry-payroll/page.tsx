@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Wallet, CheckCircle2, Clock, TrendingUp, Download } from 'lucide-react'
 import type { User, LaundryOrder, LaundryRate, LaundryPayroll } from '@/types'
+import { useToast } from '@/components/ui/Toast'
 
 const MONTHS = [
   'Januari',
@@ -26,6 +27,7 @@ const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function LaundryPayrollPage() {
+  const { toast } = useToast()
   const [staff, setStaff] = useState<User[]>([])
   const [orders, setOrders] = useState<LaundryOrder[]>([])
   const [rate, setRate] = useState<LaundryRate | null>(null)
@@ -80,7 +82,7 @@ export default function LaundryPayrollPage() {
             total_amount: totalAmount
           })
           .eq('id', existing.id)
-        if (updErr) { alert('Gagal update payroll: ' + updErr.message); return }
+        if (updErr) { toast('error', 'Gagal update payroll: ' + updErr.message); return }
       } else {
         const { error } = await supabase.from('laundry_payroll').insert({
           staff_id: s.id,
@@ -91,7 +93,7 @@ export default function LaundryPayrollPage() {
           total_amount: totalAmount,
           status: 'pending'
         })
-        if (error) { alert('Gagal simpan payroll: ' + error.message); return }
+        if (error) { toast('error', 'Gagal simpan payroll: ' + error.message); return }
       }
     }
     fetchData()
@@ -100,7 +102,7 @@ export default function LaundryPayrollPage() {
   async function markAsPaid(payrollId: string) {
     setSaving(true)
     const { error } = await supabase.from('laundry_payroll').update({ status: 'paid' }).eq('id', payrollId)
-    if (error) { setSaving(false); alert('Gagal mark paid: ' + error.message); return }
+    if (error) { setSaving(false); toast('error', 'Gagal mark paid: ' + error.message); return }
     setSaving(false)
     setShowPaidModal(null)
     fetchData()

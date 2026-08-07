@@ -1,11 +1,13 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useToast } from '@/components/ui/Toast'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2 } from 'lucide-react'
 
 export default function PenjahitHistoryPage() {
+  const { toast } = useToast()
   const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -34,7 +36,7 @@ export default function PenjahitHistoryPage() {
         .order('completed_at', { ascending: false })
       if (error) {
         console.error('[Penjahit History] Query error:', error)
-        alert('⚠️ Gagal load history: ' + error.message)
+        toast('warning', '⚠️ Gagal load history: ' + error.message)
       }
       setJobs(data ?? [])
       setLoading(false)

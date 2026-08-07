@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { uploadToLocal } from '@/lib/upload'
 import type { Survey } from '@/types'
+import { useToast } from '@/components/ui/Toast'
 
 const MODEL_GORDEN_OPTIONS = [
   'Smokring',
@@ -78,6 +79,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
+  const { toast } = useToast()
   const supabase = createClient()
   const [clientName, setClientName] = useState(initial?.client_name ?? '')
   const [clientAddress, setClientAddress] = useState(initial?.client_address ?? '')
@@ -145,12 +147,12 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
   // ---------- GPS ----------
   function captureGps() {
     if (!navigator.geolocation) {
-      alert('Browser tidak mendukung GPS.')
+      toast('info', 'Browser tidak mendukung GPS.')
       return
     }
     navigator.geolocation.getCurrentPosition(
       (pos) => setGps({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => alert('Gagal ambil lokasi. Periksa izin lokasi browser.'),
+      () => toast('error', 'Gagal ambil lokasi. Periksa izin lokasi browser.'),
       { enableHighAccuracy: true, timeout: 10000 }
     )
   }
@@ -167,7 +169,7 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
       }
       setRooms((prev) => prev.map((r, i) => (i === roomIdx ? { ...r, photos: [...r.photos, ...urls] } : r)))
     } catch (e) {
-      alert('Gagal upload foto: ' + (e instanceof Error ? e.message : String(e)))
+      toast('error', 'Gagal upload foto: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setUploading(null)
     }
@@ -180,7 +182,7 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
       const res = await uploadToLocal(file, 'survey')
       setRooms((prev) => prev.map((r, i) => (i === roomIdx ? { ...r, [field]: res.url } : r)))
     } catch (e) {
-      alert('Gagal upload foto: ' + (e instanceof Error ? e.message : String(e)))
+      toast('error', 'Gagal upload foto: ' + (e instanceof Error ? e.message : String(e)))
     } finally {
       setUploading(null)
     }
@@ -201,12 +203,12 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
   // ---------- save final ----------
   async function saveFinal() {
     if (!clientName.trim()) {
-      alert('Nama client wajib diisi.')
+      toast('warning', 'Nama client wajib diisi.')
       return
     }
     const validRooms = rooms.filter((r) => r.room_name.trim())
     if (validRooms.length === 0) {
-      alert('Minimal 1 ruangan dengan nama wajib diisi.')
+      toast('info', 'Minimal 1 ruangan dengan nama wajib diisi.')
       return
     }
     setSaving(true)
@@ -256,7 +258,7 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
       }
       if (surveyId) onSaved?.(surveyId)
     } catch (e) {
-      alert(e instanceof Error ? e.message : String(e))
+      toast('error', e instanceof Error ? e.message : String(e))
     } finally {
       setSaving(false)
     }

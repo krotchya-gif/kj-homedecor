@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, TrendingUp, Search, X } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -23,6 +24,7 @@ interface CashAccount {
 }
 
 export default function IncomePage() {
+  const { toast } = useToast()
   const [incomes, setIncomes] = useState<any[]>([])
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
   const [revenueAccounts, setRevenueAccounts] = useState<any[]>([])
@@ -91,7 +93,7 @@ export default function IncomePage() {
         p_id: form.cash_account_id,
         p_amount: amount
       })
-      if (rpcErr) { console.error('RPC update_cash_account_balance gagal:', rpcErr); alert('⚠️ Jurnal tercatat, tapi saldo kas TIDAK ter-update: ' + rpcErr.message) }
+      if (rpcErr) { console.error('RPC update_cash_account_balance gagal:', rpcErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo kas TIDAK ter-update: ' + rpcErr.message) }
     }
     setSaving(false)
     setShowForm(false)

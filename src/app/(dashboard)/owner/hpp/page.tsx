@@ -4,12 +4,14 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Calculator, Plus, Trash2, AlertTriangle } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 const fmtN = (n: number) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(n)
 
 export default function HPPPage() {
+  const { toast } = useToast()
   const [products, setProducts] = useState<any[]>([])
   const [materials, setMaterials] = useState<any[]>([])
   const [boms, setBoms] = useState<any[]>([])
@@ -94,7 +96,7 @@ export default function HPPPage() {
     // dgn manualHpp 0 menimpa harga jual produk jadi Rp0 → produk "gak muncul" di katalog)
     if (mode === 'manual') {
       if (!manualHpp || manualHpp <= 0) {
-        alert('HPP Manual wajib diisi lebih dari 0 sebelum menyimpan.')
+        toast('warning', 'HPP Manual wajib diisi lebih dari 0 sebelum menyimpan.')
         return
       }
     } else {
@@ -103,19 +105,19 @@ export default function HPPPage() {
         return sum + (mat?.cost_per_unit ?? 0) * line.qty
       }, 0)
       if (totalMat <= 0) {
-        alert('BOM masih kosong. Tambah material (dan pastikan cost_per_unit terisi) sebelum menyimpan.')
+        toast('error', 'BOM masih kosong. Tambah material (dan pastikan cost_per_unit terisi) sebelum menyimpan.')
         return
       }
     }
     // Delete old BOM for this product
     const { error: delErr } = await supabase.from('bom').delete().eq('product_id', selectedProduct.id)
-    if (delErr) { alert('Gagal hapus BOM lama: ' + delErr.message); return }
+    if (delErr) { toast('error', 'Gagal hapus BOM lama: ' + delErr.message); return }
     // Insert new lines
     if (lines.length > 0) {
       const { error: insErr } = await supabase
         .from('bom')
         .insert(lines.map((l) => ({ product_id: selectedProduct.id, material_id: l.material_id, qty_per_unit: l.qty })))
-      if (insErr) { alert('Gagal simpan BOM: ' + insErr.message); return }
+      if (insErr) { toast('error', 'Gagal simpan BOM: ' + insErr.message); return }
     }
     // Update product: hpp_calculated (auto), hpp_manual (if manual mode), price
     const { error: prodErr } = await supabase
@@ -126,8 +128,8 @@ export default function HPPPage() {
         price: Math.round(hargaJual)
       })
       .eq('id', selectedProduct.id)
-    if (prodErr) { alert('BOM tersimpan, tapi gagal update harga: ' + prodErr.message); return }
-    alert(`BOM disimpan & harga jual produk diupdate ke ${fmt(Math.round(hargaJual))}`)
+    if (prodErr) { toast('error', 'BOM tersimpan, tapi gagal update harga: ' + prodErr.message); return }
+    toast('success', `BOM disimpan & harga jual produk diupdate ke ${fmt(Math.round(hargaJual))}`)
     load()
   }
 

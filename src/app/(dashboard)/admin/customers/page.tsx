@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import ImportModal from '@/components/ui/ImportModal'
 import { Modal } from '@/components/ui/Modal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
+import { useToast } from '@/components/ui/Toast'
 
 const PAGE_SIZE = 20
 
@@ -28,6 +29,7 @@ const EXPORT_COLUMNS = [
 ]
 
 export default function CustomersPage() {
+  const { toast } = useToast()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -118,7 +120,7 @@ export default function CustomersPage() {
       err = res.error
     }
     setSaving(false)
-    if (err) { alert('Gagal simpan customer: ' + err.message); return }
+    if (err) { toast('error', 'Gagal simpan customer: ' + err.message); return }
     setShowForm(false)
     setEditCustomer(null)
     setForm({ name: '', phone: '', address: '', notes: '' })
