@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useToast } from '@/components/ui/Toast'
 import BackButton from '@/components/ui/BackButton'
 import SurveyForm from '@/components/survey/SurveyForm'
 import type { Survey } from '@/types'
@@ -15,6 +16,7 @@ export default function SurveyEditPage() {
   const [survey, setSurvey] = useState<Survey | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { toast } = useToast()
 
   useEffect(() => {
     ;(async () => {
@@ -26,6 +28,7 @@ export default function SurveyEditPage() {
         .single()
       if (error) {
         setError(error.message.includes('row-level security') || error.code === 'PGRST116' ? 'Survey tidak ditemukan atau bukan milik Anda.' : error.message)
+        toast('error', error.message.includes('row-level security') || error.code === 'PGRST116' ? 'Survey tidak ditemukan atau bukan milik Anda.' : error.message)
       } else {
         setSurvey(data)
       }

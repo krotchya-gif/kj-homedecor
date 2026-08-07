@@ -118,10 +118,12 @@ export default function StaffPage() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Gagal membuat akun')
       setSuccess(`Akun ${form.name} (${form.role}) berhasil dibuat!`)
+      toast('success', `Akun ${form.name} (${form.role}) berhasil dibuat!`)
       setForm({ name: '', email: '', password: '', role: 'gudang' })
       fetchStaff()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
+      toast('error', err instanceof Error ? err.message : 'Terjadi kesalahan')
     } finally {
       setSaving(false)
     }
@@ -135,6 +137,7 @@ export default function StaffPage() {
     if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
     fetchStaff()
     setSuccess(`Staff "${name}" berhasil dihapus`)
+    toast('success', `Staff "${name}" berhasil dihapus`)
   }
 
   function startEdit(s: StaffUser) {
@@ -158,6 +161,7 @@ export default function StaffPage() {
     setEditingId(null)
     fetchStaff()
     setSuccess('Data staff berhasil diperbarui')
+    toast('success', 'Data staff berhasil diperbarui')
   }
 
   return (

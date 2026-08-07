@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Calendar, Clock, MessageCircle, CheckCircle, AlertCircle, Home, MapPinned } from 'lucide-react'
 import Link from 'next/link'
 import BookingCalendar from '@/components/ui/BookingCalendar'
+import { useToast } from '@/components/ui/Toast'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
 
@@ -19,6 +20,7 @@ const SERVICE_TYPES = [
 ]
 
 export default function BookingPage() {
+  const { toast } = useToast()
   const [form, setForm] = useState({
     name: '',
     phone: '',
@@ -96,6 +98,7 @@ export default function BookingPage() {
       }
 
       setSuccess(true)
+      toast('success', 'Booking berhasil dikirim! Kami akan konfirmasi via WhatsApp.')
 
       const bookingRef = `BOOK-${Date.now().toString(36).toUpperCase()}`
       const serviceLabel = form.service_type === 'survey' ? 'Visit Toko' : 'Pemasangan'
@@ -103,6 +106,7 @@ export default function BookingPage() {
       window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(waMessage)}`, '_blank')
     } catch (err) {
       setError('Terjadi kesalahan. Silakan coba lagi atau hubungi via WhatsApp.')
+      toast('error', 'Terjadi kesalahan. Silakan coba lagi atau hubungi via WhatsApp.')
     } finally {
       setLoading(false)
     }

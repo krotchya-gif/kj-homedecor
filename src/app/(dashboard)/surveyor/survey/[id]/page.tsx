@@ -40,6 +40,7 @@ export default function SurveyDetailPage() {
       .single()
     if (error) {
       setError(error.code === 'PGRST116' || error.message.includes('row-level') ? 'Survey tidak ditemukan atau bukan milik Anda.' : error.message)
+      toast('error', error.code === 'PGRST116' || error.message.includes('row-level') ? 'Survey tidak ditemukan atau bukan milik Anda.' : error.message)
     } else {
       setSurvey(data)
     }

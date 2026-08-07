@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const ROLE_DASHBOARDS: Record<string, string> = {
   admin: '/admin',
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [attempts, setAttempts] = useState(0)
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const { toast } = useToast()
 
   const isLocked = lockedUntil !== null && Date.now() < lockedUntil
 
@@ -33,6 +35,7 @@ export default function LoginPage() {
     if (isLocked) {
       const remaining = Math.ceil((lockedUntil - Date.now()) / 1000)
       setError(`Terlalu banyak percobaan. Coba lagi dalam ${remaining} detik.`)
+      toast('error', `Terlalu banyak percobaan. Coba lagi dalam ${remaining} detik.`)
       return
     }
 
@@ -54,9 +57,11 @@ export default function LoginPage() {
           const lockout = Date.now() + 5 * 60 * 1000 // 5 minutes
           setLockedUntil(lockout)
           setError('Terlalu banyak percobaan login. Kunci selama 5 menit.')
+          toast('error', 'Terlalu banyak percobaan login. Kunci selama 5 menit.')
           setAttempts(0)
         } else {
           setError(`Email atau password salah. Sisa percobaan: ${5 - newAttempts}`)
+          toast('error', `Email atau password salah. Sisa percobaan: ${5 - newAttempts}`)
         }
         return
       }
@@ -72,6 +77,7 @@ export default function LoginPage() {
       }
     } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.')
+      toast('error', 'Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
