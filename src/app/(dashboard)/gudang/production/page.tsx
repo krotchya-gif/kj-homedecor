@@ -53,8 +53,8 @@ export default function GudangProductionPage() {
   const [warningMats, setWarningMats] = useState<JobMaterial[]>([])
   const supabase = createClient()
 
-  async function load() {
-    setLoading(true)
+  async function load(showLoading = true) {
+    if (showLoading) setLoading(true)
     // Load production_jobs dengan order info lengkap (status, order_number, customer)
     // agar Gudang bisa lihat konteks pipeline + assign penjahit.
     const [{ data }, { data: penjahitData }] = await Promise.all([
@@ -107,8 +107,8 @@ export default function GudangProductionPage() {
     // Realtime: auto-refresh saat ada job baru atau status berubah
     const channel = supabase
       .channel('production_jobs_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load(false))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load(false))
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -147,6 +147,20 @@ export default function GudangProductionPage() {
     }
 
     // CRITICAL: error handling + ALERT kalau update gagal
+    // Optimistic update + rollback
+    const prev = jobs
+    setJobs((curr) =>
+      curr.map((j) =>
+        j.id === jobId
+          ? {
+              ...j,
+              status,
+              ...(status === 'in_progress' ? { started_at: new Date().toISOString() } : {}),
+              ...(status === 'done' ? { completed_at: new Date().toISOString() } : {})
+            }
+          : j
+      )
+    )
     const { error: statusErr } = await supabase
       .from('production_jobs')
       .update({
@@ -156,7 +170,9 @@ export default function GudangProductionPage() {
       })
       .eq('id', jobId)
     if (statusErr) {
+      setJobs(prev)
       toast('error', '⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek koneksi database atau hubungi admin.')
+      return
     }
 
     const { error: logErr } = await supabase.from('order_logs').insert({
@@ -166,8 +182,8 @@ export default function GudangProductionPage() {
       staff_id: user?.id ?? null
     })
     if (logErr) { console.error('Gagal catat log produksi:', logErr) }
-    load()
-  }
+    toast('success', status === 'in_progress' ? 'Job produksi dimulai' : 'Job produksi selesai')
+    }
 
   async function handleAssignPenjahit(penjahitId: string) {
     if (!assignJob) return
@@ -202,8 +218,10 @@ export default function GudangProductionPage() {
     if (logErr) { console.error('Gagal catat log assign:', logErr) }
     setAssigning(false)
     setAssignJob(null)
-    load()
-  }
+    // Optimistic: penjahit langsung tampil di job tanpa refetch
+    setJobs((curr) => curr.map((j) => (j.id === assignJob.id ? { ...j, penjahit_id: penjahitId } : j)))
+    toast('success', 'Penjahit ditugaskan')
+    }
 
   const filtered = filter ? jobs.filter((j) => j.status === filter) : jobs
 

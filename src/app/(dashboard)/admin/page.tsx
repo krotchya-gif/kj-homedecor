@@ -139,16 +139,17 @@ export default function AdminDashboardPage() {
     const channel = supabase
       .channel('admin-orders-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        loadData()
+        // Background refresh tanpa spinner — jangan ganggu interaksi user
+        loadData(false)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_logs' }, () => {
-        loadData()
+        loadData(false)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_progress_photos' }, () => {
-        loadData()
+        loadData(false)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'install_bookings' }, () => {
-        loadData()
+        loadData(false)
       })
       .subscribe()
 
@@ -183,8 +184,8 @@ export default function AdminDashboardPage() {
     loadTrend()
   }, [])
 
-  async function loadData() {
-    setLoading(true)
+  async function loadData(showLoading = true) {
+    if (showLoading) setLoading(true)
     // Fetch recent orders with their recent logs (max 10 orders, 5 logs each)
     const { data: ordersWithLogsData } = await supabase
       .from('orders')
@@ -244,10 +245,12 @@ export default function AdminDashboardPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    const { error } = await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id }).eq('id', id)
+    const { error } = await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id ?? null }).eq('id', id)
     if (error) { setApproving(null); toast('error', 'Gagal approve PR: ' + error.message); return }
     setApproving(null)
-    loadData()
+    // Optimistic: PR hilang dari daftar pending tanpa refetch (realtime tetap sync)
+    setData((prev) => (prev ? { ...prev, pendingPRs: prev.pendingPRs.filter((p) => p.id !== id) } : prev))
+    toast('success', 'PR disetujui')
   }
 
   async function rejectPR(id: string) {
@@ -256,10 +259,12 @@ export default function AdminDashboardPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    const { error } = await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id }).eq('id', id)
+    const { error } = await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id ?? null }).eq('id', id)
     if (error) { setRejecting(null); toast('error', 'Gagal tolak PR: ' + error.message); return }
     setRejecting(null)
-    loadData()
+    // Optimistic: PR hilang dari daftar pending tanpa refetch
+    setData((prev) => (prev ? { ...prev, pendingPRs: prev.pendingPRs.filter((p) => p.id !== id) } : prev))
+    toast('success', 'PR ditolak')
   }
 
   if (loading || !data) {

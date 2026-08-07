@@ -15,8 +15,8 @@ export default function PenjahitJobsPage() {
   const [showReport, setShowReport] = useState<string | null>(null)
   const supabase = createClient()
 
-  async function load() {
-    setLoading(true)
+  async function load(showLoading = true) {
+    if (showLoading) setLoading(true)
     const {
       data: { user }
     } = await supabase.auth.getUser()
@@ -52,7 +52,7 @@ export default function PenjahitJobsPage() {
     load()
     const channel = supabase
       .channel('penjahit-jobs')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load(false))
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -61,13 +61,16 @@ export default function PenjahitJobsPage() {
 
   async function startJob(id: string) {
     setSaving(id)
+    // Optimistic update + rollback
+    const prev = jobs
+    setJobs((curr) => curr.map((j) => (j.id === id ? { ...j, status: 'in_progress', started_at: new Date().toISOString() } : j)))
     const { error } = await supabase
       .from('production_jobs')
       .update({ status: 'in_progress', started_at: new Date().toISOString() })
       .eq('id', id)
-    if (error) { setSaving(null); toast('error', 'Gagal mulai job: ' + error.message); return }
+    if (error) { setJobs(prev); setSaving(null); toast('error', 'Gagal mulai job: ' + error.message); return }
     setSaving(null)
-    load()
+    toast('success', 'Pekerjaan dimulai')
   }
 
   async function submitReport(jobId: string) {
@@ -138,8 +141,10 @@ export default function PenjahitJobsPage() {
 
     setSaving(null)
     setShowReport(null)
-    load()
-  }
+    // Optimistic: job selesai langsung hilang dari antrian tanpa refetch (realtime tetap sync)
+    setJobs((curr) => curr.filter((j) => j.id !== jobId))
+    toast('success', 'Laporan dikirim — job selesai')
+    }
 
   return (
     <div>
