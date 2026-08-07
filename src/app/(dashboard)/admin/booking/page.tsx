@@ -121,7 +121,8 @@ export default function AdminBookingPage() {
     const channel = supabase
       .channel('admin-booking-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'install_bookings' }, () => {
-        loadData()
+        // Background refresh tanpa spinner (jangan ganggu interaksi user)
+        loadData(false)
         fetchOccupiedDates()
       })
       .subscribe()
@@ -147,8 +148,8 @@ export default function AdminBookingPage() {
     }
   }
 
-  async function loadData() {
-    setLoading(true)
+  async function loadData(showLoading = true) {
+    if (showLoading) setLoading(true)
     const [{ data: bookingsData }, { data: installersData }] = await Promise.all([
       supabase.from('install_bookings').select('*, installer:users(name)').order('created_at', { ascending: false }),
       supabase.from('users').select('id, name, role').eq('role', 'installer')
@@ -162,7 +163,13 @@ export default function AdminBookingPage() {
     e.preventDefault()
     setSaving(true)
 
-    const { error } = await supabase.from('install_bookings').insert({
+    const newStatus = form.scheduled_date && form.installer_id ? 'scheduled' : 'pending'
+    // CREATE optimistic: booking langsung masuk daftar, id asli di-replace dari server
+    const tempId = crypto.randomUUID()
+    const tempItem = {
+      id: tempId,
+      order_id: null,
+      customer_id: null,
       customer_name: form.customer_name,
       customer_phone: form.customer_phone,
       address: form.type === 'survey' ? null : form.address,
@@ -171,11 +178,37 @@ export default function AdminBookingPage() {
       type: form.type,
       installer_id: form.installer_id || null,
       notes: form.notes,
-      status: form.scheduled_date && form.installer_id ? 'scheduled' : 'pending',
-      source: 'manual'
-    })
-    if (error) { setSaving(false); toast('error', 'Gagal buat booking: ' + error.message); return }
+      status: newStatus,
+      source: 'manual',
+      created_at: new Date().toISOString()
+    } as InstallBooking
+    setBookings((curr) => [tempItem, ...curr])
 
+    const { data: newBooking, error } = await supabase
+      .from('install_bookings')
+      .insert({
+        customer_name: form.customer_name,
+        customer_phone: form.customer_phone,
+        address: form.type === 'survey' ? null : form.address,
+        scheduled_date: form.scheduled_date || null,
+        scheduled_time: form.scheduled_time || null,
+        type: form.type,
+        installer_id: form.installer_id || null,
+        notes: form.notes,
+        status: newStatus,
+        source: 'manual'
+      })
+      .select('id')
+      .single()
+    if (error) {
+      setBookings((curr) => curr.filter((b) => b.id !== tempId))
+      setSaving(false)
+      toast('error', 'Gagal buat booking: ' + error.message)
+      return
+    }
+    if (newBooking?.id) {
+      setBookings((curr) => curr.map((b) => (b.id === tempId ? { ...b, id: newBooking.id } : b)))
+    }
     setSaving(false)
     setShowForm(false)
     setForm({
@@ -188,13 +221,28 @@ export default function AdminBookingPage() {
       installer_id: '',
       notes: ''
     })
-    loadData()
+    toast('success', 'Booking berhasil dibuat')
   }
 
   async function handleAcceptBooking() {
     if (!selectedBooking) return
     setSaving(true)
 
+    // Optimistic update + rollback
+    const prev = bookings
+    setBookings((curr) =>
+      curr.map((b) =>
+        b.id === selectedBooking.id
+          ? {
+              ...b,
+              scheduled_date: acceptForm.scheduled_date,
+              scheduled_time: acceptForm.scheduled_time,
+              installer_id: acceptForm.installer_id,
+              status: 'scheduled'
+            }
+          : b
+      )
+    )
     const { error: acceptErr } = await supabase
       .from('install_bookings')
       .update({
@@ -204,19 +252,27 @@ export default function AdminBookingPage() {
         status: 'scheduled'
       })
       .eq('id', selectedBooking.id)
-    if (acceptErr) { setSaving(false); toast('error', 'Gagal accept booking: ' + acceptErr.message); return }
+    if (acceptErr) {
+      setBookings(prev)
+      setSaving(false)
+      toast('error', 'Gagal accept booking: ' + acceptErr.message)
+      return
+    }
 
     setSaving(false)
     setShowAcceptModal(false)
     setSelectedBooking(null)
     setAcceptForm({ scheduled_date: '', scheduled_time: '', installer_id: '' })
-    loadData()
+    toast('success', 'Booking diterima & dijadwalkan')
   }
 
   async function handleUpdateStatus(bookingId: string, newStatus: string) {
     // pakai API route (server-side RPC advance_install_booking_status)
     // Auto-cascade ke orders.status kalau booking type='pasang' & order classification='pasang'
     setSaving(true)
+    // Optimistic update + rollback
+    const prev = bookings
+    setBookings((curr) => curr.map((b) => (b.id === bookingId ? { ...b, status: newStatus } : b)))
     try {
       const res = await fetch(`/api/install-bookings/${bookingId}`, {
         method: 'PUT',
@@ -225,13 +281,18 @@ export default function AdminBookingPage() {
       })
       const json = await res.json()
       if (!res.ok) {
+        setBookings(prev)
+        setSaving(false)
         toast('warning', '⚠️ ' + (json.error?.message ?? 'Gagal update status booking'))
+        return
       }
+      setSaving(false)
+      toast('success', `Status booking → ${newStatus === 'done' ? 'Selesai' : newStatus === 'cancelled' ? 'Dibatalkan' : newStatus}`)
     } catch (e) {
+      setBookings(prev)
+      setSaving(false)
       toast('error', '⚠️ Gagal update status: ' + (e as Error).message)
     }
-    setSaving(false)
-    loadData()
   }
 
   function openAcceptModal(booking: InstallBooking) {
