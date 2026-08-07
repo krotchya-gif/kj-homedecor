@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import BookingCalendar from '@/components/ui/BookingCalendar'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 interface InstallBooking {
   id: string
@@ -742,59 +743,20 @@ export default function AdminBookingPage() {
                     </td>
                     <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                       {booking.status === 'pending' && (
-                        <button
-                          onClick={() => openAcceptModal(booking)}
-                          style={{
-                            padding: '0.5rem 0.875rem',
-                            background: '#22c55e',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.375rem'
-                          }}
-                        >
-                          <Check size={14} /> Accept
-                        </button>
+                        <ActionMenu
+                          items={[
+                            { label: 'Terima & Jadwalkan', icon: <Check size={14} />, onClick: () => openAcceptModal(booking) },
+                            { label: 'Batal', icon: <X size={14} />, onClick: () => handleUpdateStatus(booking.id, 'cancelled'), danger: true }
+                          ]}
+                        />
                       )}
                       {booking.status === 'scheduled' && (
-                        <button
-                          onClick={() => handleUpdateStatus(booking.id, 'done')}
-                          style={{
-                            padding: '0.5rem 0.875rem',
-                            background: '#16a34a',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ✓ Selesai
-                        </button>
-                      )}
-                      {booking.status !== 'done' && booking.status !== 'cancelled' && (
-                        <button
-                          onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
-                          style={{
-                            padding: '0.5rem 0.875rem',
-                            background: 'var(--surface)',
-                            color: '#dc2626',
-                            border: '1px solid #fecaca',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            marginLeft: '0.375rem'
-                          }}
-                        >
-                          ✕
-                        </button>
+                        <ActionMenu
+                          items={[
+                            { label: 'Selesai', icon: <Check size={14} />, onClick: () => handleUpdateStatus(booking.id, 'done') },
+                            { label: 'Batal', icon: <X size={14} />, onClick: () => handleUpdateStatus(booking.id, 'cancelled'), danger: true }
+                          ]}
+                        />
                       )}
                     </td>
                   </tr>
