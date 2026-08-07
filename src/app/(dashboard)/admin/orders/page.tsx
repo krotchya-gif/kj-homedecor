@@ -195,10 +195,16 @@ export default function OrdersPage() {
     const totalAmt = Number(form.total_amount) || 0
     const paymentStatus = dpAmt >= totalAmt && totalAmt > 0 ? 'paid' : dpAmt > 0 ? 'partial' : 'pending'
 
+    // Generate nomor pesanan (RPC — sama seperti API route api/orders)
+    const { data: orderNum } = await supabase.rpc('generate_order_number')
+    const orderNumber = orderNum ?? null
+    if (!orderNumber) console.error('generate_order_number gagal — order_number null')
+
     // Insert order
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
       .insert({
+        order_number: orderNumber,
         source: form.source,
         classification: form.classification,
         customer_id: customerId,
