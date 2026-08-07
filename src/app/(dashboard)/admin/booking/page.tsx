@@ -449,7 +449,7 @@ export default function AdminBookingPage() {
         ))}
       </div>
 
-      {/* Booking List */}
+      {/* Booking List — mobile: cards, desktop: table */}
       {loading ? (
         <div style={{ padding: '4rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
       ) : filteredBookings.length === 0 ? (
@@ -458,7 +458,8 @@ export default function AdminBookingPage() {
           <p>Tidak ada booking</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+        <>
+        <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
           {filteredBookings.map((booking) => {
             const statusInfo = STATUS_LABELS[booking.status] ?? {
               label: booking.status,
@@ -665,6 +666,144 @@ export default function AdminBookingPage() {
             )
           })}
         </div>
+        {/* Desktop: table */}
+        <div className="desktop-only data-table" style={{ marginTop: '1rem' }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Tipe</th>
+                <th>Jadwal</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredBookings.map((booking) => {
+                const statusInfo = STATUS_LABELS[booking.status] ?? {
+                  label: booking.status,
+                  color: 'var(--neutral-600)',
+                  bg: 'var(--neutral-100)'
+                }
+                const typeInfo = TYPE_LABELS[booking.type] ?? { label: booking.type, icon: null }
+                return (
+                  <tr key={`tbl-${booking.id}`}>
+                    <td>
+                      <div style={{ fontWeight: '500' }}>{booking.customer_name ?? 'Tanpa Nama'}</div>
+                      {booking.customer_phone && (
+                        <a
+                          href={getWhatsAppLink(booking.customer_phone, booking.customer_name ?? '')}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ fontSize: '0.75rem', color: '#16a34a', textDecoration: 'none' }}
+                        >
+                          📱 {booking.customer_phone}
+                        </a>
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          padding: '0.15rem 0.6rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          background: booking.type === 'pasang' ? '#e0e7ff' : '#f0fdf4',
+                          color: booking.type === 'pasang' ? '#3730a3' : '#166534'
+                        }}
+                      >
+                        {typeInfo.icon} {typeInfo.label}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
+                      {booking.scheduled_date ? (
+                        <>
+                          {booking.scheduled_date}
+                          {booking.scheduled_time ? ` • ${booking.scheduled_time}` : ''}
+                          {booking.installer ? <div style={{ fontSize: '0.75rem' }}>Installer: {booking.installer.name}</div> : null}
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          background: statusInfo.bg,
+                          color: statusInfo.color
+                        }}
+                      >
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {booking.status === 'pending' && (
+                        <button
+                          onClick={() => openAcceptModal(booking)}
+                          style={{
+                            padding: '0.5rem 0.875rem',
+                            background: '#22c55e',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.375rem'
+                          }}
+                        >
+                          <Check size={14} /> Accept
+                        </button>
+                      )}
+                      {booking.status === 'scheduled' && (
+                        <button
+                          onClick={() => handleUpdateStatus(booking.id, 'done')}
+                          style={{
+                            padding: '0.5rem 0.875rem',
+                            background: '#16a34a',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ✓ Selesai
+                        </button>
+                      )}
+                      {booking.status !== 'done' && booking.status !== 'cancelled' && (
+                        <button
+                          onClick={() => handleUpdateStatus(booking.id, 'cancelled')}
+                          style={{
+                            padding: '0.5rem 0.875rem',
+                            background: 'var(--surface)',
+                            color: '#dc2626',
+                            border: '1px solid #fecaca',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.8rem',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            marginLeft: '0.375rem'
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+        </>
       )}
 
       {/* Create Manual Modal */}
