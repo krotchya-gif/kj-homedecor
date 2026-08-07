@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { logSurveyActivity } from '@/lib/survey-log'
 
 /** GET /api/surveys/[id] — detail survey (rooms + photos + surveyor) */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -35,7 +36,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   const body = await request.json()
 
   const patch: Record<string, unknown> = {}
-  for (const k of ['client_name', 'client_address', 'survey_date', 'status', 'gps_lat', 'gps_lng', 'notes']) {
+  for (const k of ['client_name', 'client_address', 'survey_date', 'status', 'gps_lat', 'gps_lng', 'notes', 'signature', 'signature_name']) {
     if (k in body) patch[k] = body[k]
   }
   if (Object.keys(patch).length > 0) {
@@ -94,6 +95,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .order('sort_order', { referencedTable: 'survey_rooms' })
     .single()
   if (error) return NextResponse.json({ error: { message: error.message } }, { status: 500 })
+
+  // Log aktivitas: hanya save final (status tersimpan) atau ada tanda tangan — auto-save draft TIDAK di-log (anti-spam)
+  const isFinal = body.status === 'tersimpan' || 'signature' in body || 'signature_name' in body
+  if (isFinal) {
+    await logSurveyActivity(supabase, id, user.id, 'updated', `Data survey diperbarui${body.status === 'tersimpan' ? ' & disimpan' : ''}`)
+  }
+
   return NextResponse.json({ data, error: null })
 }
 
@@ -106,7 +114,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
 
+  const { data: surveyInfo } = await supabase.from('surveys').select('survey_number').eq('id', id).maybeSingle()
   const { error } = await supabase.from('surveys').delete().eq('id', id)
   if (error) return NextResponse.json({ error: { message: 'Gagal hapus survey: ' + error.message } }, { status: 500 })
+  await logSurveyActivity(supabase, id, user.id, 'deleted', `Survey ${surveyInfo?.survey_number ?? ''} dihapus`)
   return NextResponse.json({ data: { ok: true }, error: null })
 }

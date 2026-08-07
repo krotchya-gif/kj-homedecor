@@ -21,6 +21,13 @@ const STATUS_COLORS: Record<string, string> = {
   selesai: '#047857'
 }
 
+const LOG_LABELS: Record<string, string> = {
+  created: 'Survey dibuat',
+  updated: 'Data diperbarui',
+  deleted: 'Survey dihapus',
+  linked_order: 'Di-link ke order'
+}
+
 export default function SurveyDetailPage() {
   const { toast } = useToast()
   const params = useParams<{ id: string }>()
@@ -39,6 +46,9 @@ export default function SurveyDetailPage() {
   const [orderResults, setOrderResults] = useState<any[]>([])
   const [linkingId, setLinkingId] = useState<string | null>(null)
   const [searchingOrders, setSearchingOrders] = useState(false)
+
+  // Riwayat aktivitas
+  const [logs, setLogs] = useState<any[]>([])
 
   // Toast sukses setelah save (datang dari /survey/new & /survey/[id]/edit via ?saved=1),
   // lalu bersihkan param tanpa reload (biar refresh tidak memunculkan toast lagi)
@@ -62,6 +72,16 @@ export default function SurveyDetailPage() {
     } else {
       setSurvey(data)
     }
+
+    // Riwayat aktivitas (log) — non-blocking
+    const { data: logData } = await supabase
+      .from('survey_logs')
+      .select('id, action, detail, created_at, user:users(name)')
+      .eq('survey_id', params.id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+    setLogs(logData ?? [])
+
     setLoading(false)
   }, [params.id, supabase])
 
@@ -304,6 +324,51 @@ export default function SurveyDetailPage() {
           </table>
         </div>
       ))}
+
+      {/* Tanda tangan digital */}
+      {survey.signature && (
+        <div className="section-card" style={{ marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem' }}>✍️ Tanda Tangan Surveyor</h2>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <img
+              src={survey.signature}
+              alt="Tanda tangan surveyor"
+              style={{
+                border: '1px solid var(--neutral-200)',
+                borderRadius: '0.5rem',
+                background: '#fff',
+                maxWidth: 320,
+                maxHeight: 120,
+                padding: '0.5rem'
+              }}
+            />
+            <div style={{ fontSize: '0.85rem' }}>
+              <div style={{ fontWeight: '700' }}>{survey.signature_name || (survey as any).surveyor?.name || 'Surveyor'}</div>
+              <div style={{ color: 'var(--neutral-500)' }}>Menandatangani pada {new Date(survey.created_at).toLocaleString('id-ID')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Riwayat Aktivitas */}
+      {logs.length > 0 && (
+        <div className="section-card" style={{ marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem' }}>🕐 Riwayat Aktivitas</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {logs.map((l) => (
+              <div key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'center', fontSize: '0.85rem' }}>
+                <div>
+                  <span style={{ fontWeight: '600' }}>{LOG_LABELS[l.action] ?? l.action}</span>
+                  {l.detail && <span style={{ color: 'var(--neutral-500)' }}> — {l.detail}</span>}
+                </div>
+                <div style={{ textAlign: 'right', color: 'var(--neutral-400)', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                  {l.user?.name ?? 'Sistem'} · {new Date(l.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal: Link ke Order */}
       <Modal open={linkOpen} onClose={() => setLinkOpen(false)} maxWidth={520} padding="1.5rem">

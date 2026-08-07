@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { logSurveyActivity } from '@/lib/survey-log'
 
 interface RoomPayload {
   id?: string
@@ -27,8 +28,12 @@ export interface SurveyPayload {
   gps_lat?: number | null
   gps_lng?: number | null
   notes?: string | null
+  signature?: string | null
+  signature_name?: string | null
   rooms?: RoomPayload[]
 }
+
+/** Log aktivitas survey (non-blocking — kegagalan log TIDAK menggagalkan operasi utama). */
 
 async function getCurrentUserRole(supabase: any) {
   const {
@@ -69,7 +74,9 @@ export async function POST(request: Request) {
       status: body.status ?? 'draft',
       gps_lat: body.gps_lat ?? null,
       gps_lng: body.gps_lng ?? null,
-      notes: body.notes ?? null
+      notes: body.notes ?? null,
+      signature: body.signature ?? null,
+      signature_name: body.signature_name ?? null
     })
     .select()
     .single()
@@ -82,6 +89,8 @@ export async function POST(request: Request) {
     await supabase.from('surveys').delete().eq('id', survey.id)
     return NextResponse.json({ error: { message: roomsErr } }, { status: 500 })
   }
+
+  await logSurveyActivity(supabase, survey.id, auth.user.id, 'created', `Survey ${surveyNumber} dibuat`)
 
   return NextResponse.json({ data: survey, error: null }, { status: 201 })
 }

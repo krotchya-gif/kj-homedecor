@@ -99,8 +99,19 @@ export function generateSurveyPDF(survey: Survey) {
   doc.setTextColor(51, 51, 51)
   doc.setFont('helvetica', 'bold')
   doc.text('Tanda tangan Surveyor:', 20, y + 10)
-  doc.setDrawColor(120)
-  doc.line(20, y + 14, 90, y + 14)
+  const signature = (survey as any).signature as string | undefined
+  if (signature) {
+    // dataURL dari DB — aman tanpa CORS (beda dengan foto ruangan yang URL eksternal)
+    try {
+      doc.addImage(signature, 'PNG', 20, y + 12, 60, 22)
+    } catch {
+      doc.setDrawColor(120)
+      doc.line(20, y + 14, 90, y + 14)
+    }
+  } else {
+    doc.setDrawColor(120)
+    doc.line(20, y + 14, 90, y + 14)
+  }
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.setTextColor(120)

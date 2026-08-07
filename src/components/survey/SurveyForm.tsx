@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { uploadToLocal } from '@/lib/upload'
+import SignaturePad from '@/components/ui/SignaturePad'
 import type { Survey } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 
@@ -85,6 +86,8 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
   const [clientAddress, setClientAddress] = useState(initial?.client_address ?? '')
   const [surveyDate, setSurveyDate] = useState(initial?.survey_date ?? new Date().toISOString().split('T')[0])
   const [surveyorName, setSurveyorName] = useState((initial as any)?.surveyor?.name ?? '')
+  const [signature, setSignature] = useState<string>((initial as any)?.signature ?? '')
+  const [signatureName, setSignatureName] = useState((initial as any)?.signature_name ?? '')
   const [rooms, setRooms] = useState<RoomForm[]>(() => {
     if (!initial?.rooms?.length) return [emptyRoom()]
     return initial.rooms.map((r) => ({
@@ -220,6 +223,8 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
         status: 'tersimpan',
         gps_lat: gps.lat,
         gps_lng: gps.lng,
+        signature: signature || null,
+        signature_name: signatureName.trim() || null,
         rooms: validRooms.map((r, i) => ({
           room_name: r.room_name,
           width_cm: r.width_cm ? Number(r.width_cm) : null,
@@ -294,6 +299,36 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* Tanda tangan digital */}
+        <div className="section-card" style={{ marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem' }}>✍️ Tanda Tangan Surveyor</h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--neutral-500)', marginBottom: '0.75rem' }}>
+            Tanda tangan sebagai bukti hasil survey. Opsional — bisa dikosongkan.
+          </p>
+          <SignaturePad value={signature} onChange={setSignature} />
+          <div style={{ marginTop: '0.75rem' }}>
+            <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-600)', display: 'block', marginBottom: '0.25rem' }}>
+              Nama Penandatangan
+            </label>
+            <input
+              type="text"
+              placeholder="Nama surveyor yang bertanda tangan"
+              value={signatureName}
+              onChange={(e) => setSignatureName(e.target.value)}
+              style={{
+                width: '100%',
+                maxWidth: 320,
+                padding: '0.55rem 0.75rem',
+                border: '1px solid var(--neutral-200)',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                background: 'var(--surface)',
+                color: 'var(--neutral-800)'
+              }}
+            />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>

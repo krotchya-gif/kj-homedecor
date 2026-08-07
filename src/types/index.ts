@@ -187,6 +187,8 @@ export interface Survey {
   gps_lat?: number
   gps_lng?: number
   notes?: string
+  signature?: string | null
+  signature_name?: string | null
   created_at: string
   rooms?: SurveyRoom[]
 }
