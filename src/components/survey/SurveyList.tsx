@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
 import Pagination from '@/components/ui/Pagination'
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -27,9 +28,10 @@ interface Row {
 
 interface Props {
   basePath: '/admin' | '/owner'
+  showStats?: boolean
 }
 
-export default function SurveyList({ basePath }: Props) {
+export default function SurveyList({ basePath, showStats }: Props) {
   const { toast } = useToast()
   const [rows, setRows] = useState<Row[]>([])
   const [count, setCount] = useState(0)
@@ -40,6 +42,26 @@ export default function SurveyList({ basePath }: Props) {
   const [filterSurveyor, setFilterSurveyor] = useState('')
   const [page, setPage] = useState(0)
   const [PAGE_SIZE, setPageSize] = useState(20)
+  const [surveyorStats, setSurveyorStats] = useState<{ name: string; count: number }[]>([])
+
+  // Statistik per surveyor (hanya untuk owner)
+  useEffect(() => {
+    if (!showStats) return
+    const supabase = createClient()
+    ;(async () => {
+      const { data } = await supabase
+        .from('surveys')
+        .select('surveyor_id, surveyor:users(name)')
+        .not('surveyor_id', 'is', null)
+      const map = new Map<string, number>()
+      for (const s of (data ?? []) as any[]) {
+        const name = s.surveyor?.name ?? 'Tanpa nama'
+        map.set(name, (map.get(name) ?? 0) + 1)
+      }
+      const arr = [...map.entries()].map(([name, c]) => ({ name, count: c })).sort((a, b) => b.count - a.count)
+      setSurveyorStats(arr)
+    })()
+  }, [showStats])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -92,6 +114,22 @@ export default function SurveyList({ basePath }: Props) {
   return (
     <div>
       <PageHeader title="Data Survey" subtitle={`${count} survey dari semua surveyor`} />
+
+      {/* Statistik per surveyor (owner) */}
+      {showStats && (
+        <div className="stat-grid" style={{ marginBottom: '1rem' }}>
+          <div className="stat-card">
+            <div className="stat-card-label">Total Survey</div>
+            <div className="stat-card-value" style={{ color: '#7c3aed' }}>{count}</div>
+          </div>
+          {surveyorStats.map((s) => (
+            <div key={s.name} className="stat-card">
+              <div className="stat-card-label">{s.name}</div>
+              <div className="stat-card-value" style={{ color: '#0d9488' }}>{s.count} survey</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Filter */}
       <div className="section-card" style={{ marginBottom: '1rem' }}>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import {
@@ -27,7 +28,8 @@ import {
   Camera,
   Activity,
   Wrench,
-  AlertCircle
+  AlertCircle,
+  ClipboardList
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
@@ -125,6 +127,7 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<StatData | null>(null)
   const [installBookings, setInstallBookings] = useState<InstallBooking[]>([])
   const [loading, setLoading] = useState(true)
+  const [surveyToday, setSurveyToday] = useState(0)
   const [approving, setApproving] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
   const [trendData, setTrendData] = useState<{ date: string; count: number }[]>([])
@@ -237,6 +240,16 @@ export default function AdminDashboardPage() {
       pendingPRs: pendingPRs ?? [],
       ordersWithLogs: formatted
     })
+
+    // Survey baru hari ini (notifikasi admin)
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const { count: surveyCount } = await supabase
+      .from('surveys')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', todayStart.toISOString())
+    setSurveyToday(surveyCount ?? 0)
+
     setLoading(false)
   }
 
@@ -420,6 +433,18 @@ export default function AdminDashboardPage() {
             delay={0.15}
           />
         )}
+
+        {/* Survey Baru Hari Ini */}
+        <StatCard
+          label="Survey Baru Hari Ini"
+          value={surveyToday}
+          suffix={surveyToday === 1 ? 'survey masuk' : 'survey masuk'}
+          sub={<Link href="/admin/surveys" style={{ color: '#7c3aed', fontWeight: '600' }}>Lihat semua survey →</Link>}
+          icon={ClipboardList}
+          accent="#7c3aed"
+          iconBg="#f5f3ff"
+          delay={0.17}
+        />
 
         {/* Total Orders */}
         <StatCard

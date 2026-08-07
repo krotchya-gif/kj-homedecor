@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { X } from 'lucide-react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
@@ -9,6 +10,7 @@ import BackButton from '@/components/ui/BackButton'
 import { LightboxGallery } from '@/components/ui/Lightbox'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
 import { generateSurveyPDF } from '@/lib/survey-pdf'
+import { Modal } from '@/components/ui/Modal'
 import type { Survey } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 
@@ -30,6 +32,13 @@ export default function SurveyDetailPage() {
   const [error, setError] = useState('')
   const [role, setRole] = useState('')
   const [copied, setCopied] = useState(false)
+
+  // State: Link ke Order
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [orderSearch, setOrderSearch] = useState('')
+  const [orderResults, setOrderResults] = useState<any[]>([])
+  const [linkingId, setLinkingId] = useState<string | null>(null)
+  const [searchingOrders, setSearchingOrders] = useState(false)
 
   // Toast sukses setelah save (datang dari /survey/new & /survey/[id]/edit via ?saved=1),
   // lalu bersihkan param tanpa reload (biar refresh tidak memunculkan toast lagi)
@@ -92,6 +101,45 @@ export default function SurveyDetailPage() {
     } catch {
       toast('error', 'Gagal menyalin ke clipboard.')
     }
+  }
+
+  // Cari order (order_number / nama customer) untuk di-link ke survey ini
+  const searchOrders = useCallback(async (q: string) => {
+    setSearchingOrders(true)
+    try {
+      let query = supabase
+        .from('orders')
+        .select('id, order_number, survey_id, total_amount, customer:customers(name)')
+        .order('created_at', { ascending: false })
+        .limit(15)
+      if (q.trim()) {
+        query = query.or(`order_number.ilike.%${q.trim()}%,customer.name.ilike.%${q.trim()}%`)
+      }
+      const { data, error } = await query
+      if (error) {
+        toast('error', error.message)
+        setOrderResults([])
+      } else {
+        setOrderResults(data ?? [])
+      }
+    } finally {
+      setSearchingOrders(false)
+    }
+  }, [supabase, toast])
+
+  // Link survey ini ke order terpilih
+  async function handleLinkOrder(orderId: string) {
+    if (!survey) return
+    setLinkingId(orderId)
+    const { error } = await supabase.from('orders').update({ survey_id: survey.id }).eq('id', orderId)
+    setLinkingId(null)
+    if (error) {
+      toast('error', 'Gagal link ke order: ' + error.message)
+      return
+    }
+    toast('success', 'Survey ter-link ke order.')
+    setLinkOpen(false)
+    load()
   }
 
   if (loading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
@@ -176,6 +224,18 @@ export default function SurveyDetailPage() {
         <button onClick={() => generateSurveyPDF(survey)} style={actionBtn('#cc7030')}>
           📄 Download PDF
         </button>
+        {(role === 'admin' || role === 'owner') && (
+          <button
+            onClick={() => {
+              setOrderSearch('')
+              setLinkOpen(true)
+              searchOrders('')
+            }}
+            style={actionBtn('#0d9488')}
+          >
+            🔗 Link ke Order
+          </button>
+        )}
         {canEdit && (
           <>
             <Link href={`/surveyor/survey/${survey.id}/edit`} style={actionBtn('#7c3aed')}>
@@ -244,6 +304,85 @@ export default function SurveyDetailPage() {
           </table>
         </div>
       ))}
+
+      {/* Modal: Link ke Order */}
+      <Modal open={linkOpen} onClose={() => setLinkOpen(false)} maxWidth={520} padding="1.5rem">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: '700', margin: 0 }}>Link Survey ke Order</h2>
+          <button onClick={() => setLinkOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--neutral-500)' }}>
+            <X size={20} />
+          </button>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', marginBottom: '0.75rem' }}>
+          Hasil survey ini akan tampil di invoice order yang dipilih.
+        </p>
+        <input
+          type="text"
+          placeholder="Cari nomor pesanan atau nama pelanggan..."
+          value={orderSearch}
+          onChange={(e) => {
+            setOrderSearch(e.target.value)
+            searchOrders(e.target.value)
+          }}
+          style={{
+            width: '100%',
+            padding: '0.625rem',
+            border: '1px solid var(--neutral-200)',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            marginBottom: '0.75rem',
+            background: 'var(--surface)',
+            color: 'var(--neutral-800)'
+          }}
+        />
+        {searchingOrders ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Mencari...</div>
+        ) : orderResults.length === 0 ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Tidak ada order ditemukan.</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 320, overflowY: 'auto' }}>
+            {orderResults.map((o) => (
+              <div
+                key={o.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.625rem 0.875rem',
+                  border: '1px solid var(--neutral-200)',
+                  borderRadius: '0.5rem'
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{o.order_number ?? '(tanpa nomor)'}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--neutral-500)' }}>
+                    {o.customer?.name ?? '—'}
+                    {o.survey_id ? ' • sudah ada survey' : ''}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleLinkOrder(o.id)}
+                  disabled={linkingId === o.id}
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    background: '#0d9488',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.78rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {linkingId === o.id ? '...' : 'Link'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
