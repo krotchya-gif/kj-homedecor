@@ -12,8 +12,10 @@
 | `gudang@kjhomedecor.com`   | admin gudang   | `gudang`   | `gudang789`   |
 | `finance@kjhomedecor.com`  | admin Finance  | `finance`  | `finance321`  |
 | `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` | `penjahit654` |
+| `installer@kjhomedecor.com`| admin installer| `installer` | `installer123` |
+| `surveyor@kjhomedecor.com` | admin surveyor | `surveyor` | `surveyor123` |
 
-> Akun `installer` & `surveyor` **belum dibuat** — buat via menu **Staff** (Admin/Owner → `/admin/staff`). Role `surveyor` tersedia di dropdown Staff sejak commit `9677525`.
+> Akun baru bisa dibuat via menu **Staff** (Admin/Owner → `/admin/staff`).
 
 ## Role Access
 
@@ -24,7 +26,7 @@
 | **gudang**   | Produksi, QC, steam, stock, lembur, alerts                          |
 | **finance**  | Akuntansi, jurnal, kas, hutang, piutang, aset, payroll              |
 | **penjahit** | Jobs, history, reports                                              |
-| **installer**| Jadwal pasang, checklist, laporan (route `/installer/*` — akun belum dibuat) |
+| **installer**| Jadwal pasang, checklist, laporan (`/installer/*`)                   |
 | **surveyor** | Survey: buat/lihat/edit survey sendiri, upload foto, copy ke WA, kirim WA, download PDF |
 
 > Ubah password setelah login pertama.
