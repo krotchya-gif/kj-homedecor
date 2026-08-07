@@ -14,8 +14,6 @@ import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 import { useToast } from '@/components/ui/Toast'
 import Pagination from '@/components/ui/Pagination'
 
-const [PAGE_SIZE, setPageSize] = useState(20)
-
 const IMPORT_COLUMNS = [
   { key: 'name', label: 'Nama', required: true },
   { key: 'phone', label: 'No. HP / WhatsApp', aliases: ['whatsapp', 'telepon', 'no_hp', 'no_telp'] },
@@ -31,6 +29,7 @@ const EXPORT_COLUMNS = [
 ]
 
 export default function CustomersPage() {
+  const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)

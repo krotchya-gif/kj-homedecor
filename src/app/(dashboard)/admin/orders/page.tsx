@@ -14,7 +14,6 @@ import { useToast } from '@/components/ui/Toast'
 import Pagination from '@/components/ui/Pagination'
 import MobileCards from '@/components/ui/MobileCards'
 
-const [PAGE_SIZE, setPageSize] = useState(20)
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
@@ -41,6 +40,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function OrdersPage() {
+  const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)

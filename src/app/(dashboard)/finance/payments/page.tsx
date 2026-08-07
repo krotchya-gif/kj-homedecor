@@ -22,7 +22,6 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0
   }).format(n)
 
-const [PAGE_SIZE, setPageSize] = useState(20)
 
 const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef2f2', text: '#991b1b' },
@@ -32,6 +31,7 @@ const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
 
 export default function FinancePaymentsPage() {
   const { toast } = useToast()
+  const [PAGE_SIZE, setPageSize] = useState(20)
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')

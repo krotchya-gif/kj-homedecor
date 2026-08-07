@@ -20,8 +20,6 @@ import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
-const [PAGE_SIZE, setPageSize] = useState(20)
-
 const IMPORT_COLUMNS = [
   { key: 'name', label: 'Nama', aliases: ['nama_produk'], required: true },
   { key: 'sku', label: 'SKU', aliases: ['kode_sku', 'kode'] },
@@ -37,6 +35,7 @@ const IMPORT_COLUMNS = [
 ]
 
 export default function ProductsPage() {
+  const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')

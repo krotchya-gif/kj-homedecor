@@ -24,8 +24,6 @@ import { useToast } from '@/components/ui/Toast'
 import Pagination from '@/components/ui/Pagination'
 import ActionMenu from '@/components/ui/ActionMenu'
 
-const [PAGE_SIZE, setPageSize] = useState(20)
-
 const ROLES = [
   { value: 'admin', label: 'Admin', desc: 'Catalog, pesanan, pelanggan', color: '#dc2626' },
   { value: 'gudang', label: 'Gudang', desc: 'Produksi, stok, steam', color: '#2563eb' },
@@ -61,6 +59,7 @@ interface StaffUser {
 }
 
 export default function StaffPage() {
+  const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
   const [staff, setStaff] = useState<StaffUser[]>([])
   const [loading, setLoading] = useState(true)
