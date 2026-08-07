@@ -40,7 +40,11 @@ export async function POST(_req: NextRequest) {
         continue
       }
 
+      // Nomor order otomatis (ORD-YYYY-NNNN) — sebelumnya order TikTok order_number NULL
+      const { data: orderNum } = await supabase.rpc('generate_order_number')
+
       const { error: insertErr } = await supabase.from('orders').insert({
+        order_number: orderNum ?? undefined,
         order_id_external: to.tiktok_order_id,
         source: 'tiktok',
         customer_id: null,

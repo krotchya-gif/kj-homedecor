@@ -91,7 +91,9 @@ export async function POST(req: NextRequest) {
         const totalAmount = payment.total_amount ? Number(payment.total_amount) : 0
         const shippingFee = payment.shipping_fee ? Number(payment.shipping_fee) : 0
 
-        await supabase.from('tiktok_shop_orders').insert({
+        // CRITICAL: cek error insert — kalau gagal (constraint/RLS/schema drift),
+        // order hilang dari sync diam-diam + counter `synced` salah. Blokir alur.
+        const { error: insErr } = await supabase.from('tiktok_shop_orders').insert({
           tiktok_order_id: order.id,
           order_status: order.status || order.order_status,
           payment_status: order.status === 'COMPLETED' || order.status === 'DELIVERED' ? 'PAID' : order.status,
@@ -107,6 +109,16 @@ export async function POST(req: NextRequest) {
           order_date: order.create_time ? new Date(order.create_time * 1000).toISOString() : null,
           order_data: order
         })
+        if (insErr) {
+          return NextResponse.json(
+            {
+              error: `Gagal simpan order TikTok ${order.id}: ${insErr.message}`,
+              synced,
+              failedOrderId: order.id
+            },
+            { status: 500 }
+          )
+        }
         synced++
       }
     }

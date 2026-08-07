@@ -108,7 +108,9 @@ export async function POST(req: NextRequest) {
       // Auto-create piutang if enabled (PAID / SETTLED statements)
       const settleStatuses = ['PAID', 'SETTLED', 'COMPLETED']
       if (auto_create_piutang && settleStatuses.includes(payStatus)) {
-        const { data: piutang } = await supabase
+        // CRITICAL: cek error insert — kalau gagal, piutang tidak dibuat diam-diam
+        // (pola `if (data)` swallow). Blokir alur supaya tidak lanjut dengan data setengah.
+        const { data: piutang, error: piutangErr } = await supabase
           .from('piutang')
           .insert({
             customer_id: null,
@@ -125,13 +127,24 @@ export async function POST(req: NextRequest) {
           .select()
           .single()
 
+        if (piutangErr) {
+          return NextResponse.json(
+            {
+              error: `Gagal buat piutang TikTok ${stmtId}: ${piutangErr.message}`,
+              created: created_piutang
+            },
+            { status: 500 }
+          )
+        }
         if (piutang) {
           piutangId = piutang.id
           created_piutang++
         }
       }
 
-      await supabase.from('tiktok_shop_statements').insert({
+      // CRITICAL: cek error insert statement — kalau gagal, statement tidak tercatat
+      // tapi flow lanjut (data settlement hilang diam-diam).
+      const { error: stmtErr } = await supabase.from('tiktok_shop_statements').insert({
         statement_id: stmtId,
         statement_type: 'SETTLEMENT',
         total_amount: Number(settleAmount),
@@ -145,6 +158,16 @@ export async function POST(req: NextRequest) {
         is_synced: true,
         piutang_id: piutangId
       })
+      if (stmtErr) {
+        return NextResponse.json(
+          {
+            error: `Gagal simpan statement TikTok ${stmtId}: ${stmtErr.message}`,
+            synced,
+            created_piutang
+          },
+          { status: 500 }
+        )
+      }
       synced++
     }
 
