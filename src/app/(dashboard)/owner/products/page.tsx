@@ -4,7 +4,8 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Package, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Package, Loader2, Search } from 'lucide-react'
+import Pagination from '@/components/ui/Pagination'
 
 interface Product {
   id: string
@@ -23,9 +24,8 @@ interface ProductStats {
   total_revenue: number
 }
 
-const ITEMS_PER_PAGE = 25
-
 export default function OwnerProductsPage() {
+  const [ITEMS_PER_PAGE, setItemsPerPage] = useState(25)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -318,62 +318,19 @@ export default function OwnerProductsPage() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div
-                style={{
-                  padding: '1rem',
-                  borderTop: '1px solid #e5e7eb',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem'
-                }}
-              >
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    padding: '0.5rem 0.875rem',
-                    background: currentPage === 1 ? 'var(--neutral-100)' : '#fff',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    fontSize: '0.82rem',
-                    color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)',
-                    fontWeight: '600',
-                    opacity: currentPage === 1 ? 0.5 : 1
-                  }}
-                >
-                  <ChevronLeft size={14} /> Prev
-                </button>
-                <span style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', padding: '0 0.5rem' }}>
-                  Halaman {currentPage} dari {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    padding: '0.5rem 0.875rem',
-                    background: currentPage === totalPages ? 'var(--neutral-100)' : '#fff',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.5rem',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    fontSize: '0.82rem',
-                    color: currentPage === totalPages ? 'var(--neutral-400)' : 'var(--neutral-700)',
-                    fontWeight: '600',
-                    opacity: currentPage === totalPages ? 0.5 : 1
-                  }}
-                >
-                  Next <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              pageSize={ITEMS_PER_PAGE}
+              onPageSizeChange={(s) => {
+                setItemsPerPage(s)
+                setCurrentPage(1)
+              }}
+              totalItems={filtered.length}
+              startIndex={startIndex + 1}
+              endIndex={Math.min(endIndex, filtered.length)}
+            />
           </div>
         </>
       )}

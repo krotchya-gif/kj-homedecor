@@ -1,5 +1,6 @@
 'use client'
 import MobileCards from '@/components/ui/MobileCards'
+import Pagination from '@/components/ui/Pagination'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -808,26 +809,6 @@ export default function TikTokDashboardPage() {
                 <option value="CANCELLED">Dibatalkan</option>
               </select>
               <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{orderTotal} order</span>
-              <select
-                value={String(orderPageSize)}
-                onChange={async (e) => {
-                  const v = Number(e.target.value)
-                  setOrderPageSize(v)
-                  fetchData(0, filterStatus, filterPayment, v)
-                }}
-                style={{
-                  padding: '0.35rem 0.6rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.8rem',
-                  marginLeft: 'auto'
-                }}
-              >
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
             </div>
                   {/* Mobile: card list */}
       <div className="mobile-only">
@@ -920,65 +901,19 @@ export default function TikTokDashboardPage() {
         )}
 
         {/* Pagination */}
-        {orderTotal > orderPageSize && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              padding: '0.75rem',
-              borderTop: '1px solid #e5e7eb'
-            }}
-          >
-            <button
-              onClick={() => fetchData(orderPage - 1)}
-              disabled={orderPage === 0}
-              style={{
-                padding: '0.35rem 0.7rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                background: orderPage === 0 ? 'var(--neutral-100)' : '#fff',
-                color: orderPage === 0 ? 'var(--input-border)' : 'var(--neutral-700)',
-                cursor: orderPage === 0 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.8rem'
-              }}
-            >
-              <ChevronLeft size={14} />
-              Prev
-            </button>
-            <span
-              style={{
-                fontSize: '0.8rem',
-                color: 'var(--neutral-600)'
-              }}
-            >
-              {orderPage + 1} of {orderPageCount}
-            </span>
-            <button
-              onClick={() => fetchData(orderPage + 1)}
-              disabled={orderPage >= orderPageCount - 1}
-              style={{
-                padding: '0.35rem 0.7rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                background: orderPage >= orderPageCount - 1 ? 'var(--neutral-100)' : '#fff',
-                color: orderPage >= orderPageCount - 1 ? 'var(--input-border)' : 'var(--neutral-700)',
-                cursor: orderPage >= orderPageCount - 1 ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                fontSize: '0.8rem'
-              }}
-            >
-              Next
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        )}
+        <Pagination
+          currentPage={orderPage + 1}
+          totalPages={orderPageCount}
+          onPageChange={(p) => fetchData(p - 1)}
+          pageSize={orderPageSize}
+          onPageSizeChange={(s) => {
+            setOrderPageSize(s)
+            fetchData(0, filterStatus, filterPayment, s)
+          }}
+          totalItems={orderTotal}
+          startIndex={orderPage * orderPageSize + 1}
+          endIndex={Math.min((orderPage + 1) * orderPageSize, orderTotal)}
+        />
       </div>
       {/* Statements Table */}
       <div

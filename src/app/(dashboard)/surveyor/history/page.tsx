@@ -1,5 +1,6 @@
 'use client'
 import MobileCards from '@/components/ui/MobileCards'
+import Pagination from '@/components/ui/Pagination'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -45,7 +46,7 @@ export default function SurveyHistoryPage() {
   const [filterDate, setFilterDate] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(0)
-  const PAGE_SIZE = 20
+  const [PAGE_SIZE, setPageSize] = useState(20)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -60,7 +61,7 @@ export default function SurveyHistoryPage() {
       setCount(json.count ?? 0)
     }
     setLoading(false)
-  }, [filterClient, filterDate, filterStatus, page])
+  }, [filterClient, filterDate, filterStatus, page, PAGE_SIZE])
 
   useEffect(() => {
     load()
@@ -200,19 +201,19 @@ export default function SurveyHistoryPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '1rem' }}>
-          <button disabled={page === 0} onClick={() => setPage((p) => p - 1)} style={miniBtn('#374151')}>
-            ← Prev
-          </button>
-          <span style={{ fontSize: '0.8rem', alignSelf: 'center' }}>
-            {page + 1} / {totalPages}
-          </span>
-          <button disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} style={miniBtn('#374151')}>
-            Next →
-          </button>
-        </div>
-      )}
+      <Pagination
+          currentPage={page + 1}
+          totalPages={totalPages}
+          onPageChange={(p) => setPage(p - 1)}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={(s) => {
+            setPageSize(s)
+            setPage(0)
+          }}
+          totalItems={count}
+          startIndex={page * PAGE_SIZE + 1}
+          endIndex={Math.min((page + 1) * PAGE_SIZE, count)}
+        />
     </div>
   )
 }

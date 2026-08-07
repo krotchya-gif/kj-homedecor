@@ -21,9 +21,10 @@ import {
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
+import Pagination from '@/components/ui/Pagination'
 import ActionMenu from '@/components/ui/ActionMenu'
 
-const PAGE_SIZE = 20
+const [PAGE_SIZE, setPageSize] = useState(20)
 
 const ROLES = [
   { value: 'admin', label: 'Admin', desc: 'Catalog, pesanan, pelanggan', color: '#dc2626' },
@@ -524,60 +525,21 @@ export default function StaffPage() {
           </div>
 
           {/* Pagination */}
-          {!loading && filtered.length > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginTop: '1rem',
-                padding: '0.75rem 0',
-                borderTop: '1px solid #e5e7eb'
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
-                Halaman {currentPage} dari {Math.max(1, Math.ceil(totalCount / PAGE_SIZE))} — {totalCount} staff
-              </span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    background: 'var(--surface)',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    fontSize: '0.8rem',
-                    color: currentPage === 1 ? 'var(--neutral-400)' : 'var(--neutral-700)'
-                  }}
-                >
-                  <ChevronLeft size={14} /> Sebelumnya
-                </button>
-                <button
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                  disabled={currentPage >= Math.ceil(totalCount / PAGE_SIZE)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.3rem',
-                    padding: '0.4rem 0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    background: 'var(--surface)',
-                    cursor: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'not-allowed' : 'pointer',
-                    fontSize: '0.8rem',
-                    color: currentPage >= Math.ceil(totalCount / PAGE_SIZE) ? 'var(--neutral-400)' : 'var(--neutral-700)'
-                  }}
-                >
-                  Selanjutnya <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
-          )}
+      {!loading && filtered.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}
+          onPageChange={setCurrentPage}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={(s) => {
+            setPageSize(s)
+            setCurrentPage(1)
+          }}
+          totalItems={totalCount}
+          startIndex={(currentPage - 1) * PAGE_SIZE + 1}
+          endIndex={Math.min(currentPage * PAGE_SIZE, totalCount)}
+        />
+      )}
         </div>
 
         {/* RIGHT — Create Form */}

@@ -9,8 +9,7 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
-
-const PAGE_SIZE = 20
+import Pagination from '@/components/ui/Pagination'
 
 const REASON_ADD = ['Restock', 'PO Received', 'Return from Customer', 'Transfer from Toko', 'Adjustment', 'Lainnya']
 const REASON_REDUCE = [
@@ -24,6 +23,7 @@ const REASON_REDUCE = [
 ]
 
 export default function GudangStockPage() {
+  const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
   const [materials, setMaterials] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
@@ -474,6 +474,19 @@ export default function GudangStockPage() {
               </table>
             )}
           </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}
+          onPageChange={setCurrentPage}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={(s) => {
+            setPageSize(s)
+            setCurrentPage(1)
+          }}
+          totalItems={totalCount}
+          startIndex={(currentPage - 1) * PAGE_SIZE + 1}
+          endIndex={Math.min(currentPage * PAGE_SIZE, totalCount)}
+        />
         </>
       )}
 
