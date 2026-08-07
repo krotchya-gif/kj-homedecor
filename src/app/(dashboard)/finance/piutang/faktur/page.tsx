@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, FileText } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -282,33 +283,13 @@ export default function FakturPage() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => openEdit(p)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'var(--neutral-600)',
-                            padding: '0.25rem'
-                          }}
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(p.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#dc2626',
-                            padding: '0.25rem'
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
+                    <ActionMenu
+                      items={[
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(p) },
+                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(p.id), danger: true }
+                      ]}
+                    />
+                  </td>
                   </tr>
                 )
               })}

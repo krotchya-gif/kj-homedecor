@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -305,47 +306,18 @@ export default function HutangPage() {
                       </span>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => openPayment(h)}
-                          style={{
-                            background: '#16a34a',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#fff',
-                            padding: '0.25rem 0.5rem',
-                            borderRadius: '0.375rem',
-                            fontSize: '0.75rem',
-                            fontWeight: '600'
-                          }}
-                        >
-                          Bayar
-                        </button>
-                        <button
-                          onClick={() => openEdit(h)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'var(--neutral-600)',
-                            padding: '0.25rem'
-                          }}
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(h.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#dc2626',
-                            padding: '0.25rem'
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
+                      <ActionMenu
+                        items={[
+                          {
+                            label: 'Bayar',
+                            icon: <CreditCard size={14} />,
+                            onClick: () => openPayment(h),
+                            danger: false
+                          },
+                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(h) },
+                          { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(h.id), danger: true }
+                        ]}
+                      />
                     </td>
                   </tr>
                 )

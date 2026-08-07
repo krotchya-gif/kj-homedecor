@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, Book } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'] as const
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -279,33 +280,13 @@ export default function AccountsListPage() {
                     </td>
                     <td>{a.is_cash_account ? '✓' : '—'}</td>
                     <td>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button
-                          onClick={() => openEdit(a)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: 'var(--neutral-600)',
-                            padding: '0.25rem'
-                          }}
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(a.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#dc2626',
-                            padding: '0.25rem'
-                          }}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
+                    <ActionMenu
+                      items={[
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(a) },
+                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(a.id), danger: true }
+                      ]}
+                    />
+                  </td>
                   </tr>
                 )
               })}

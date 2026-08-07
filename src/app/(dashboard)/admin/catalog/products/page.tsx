@@ -9,6 +9,7 @@ import { Plus, Search, Pencil, Trash2, Package, Star, ChevronLeft, ChevronRight,
 import type { Product, Category } from '@/types'
 import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
@@ -678,34 +679,12 @@ export default function ProductsPage() {
                     )}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => openEdit(p)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: 'var(--neutral-600)',
-                          padding: '0.25rem'
-                        }}
-                        title="Edit"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#dc2626',
-                          padding: '0.25rem'
-                        }}
-                        title="Hapus"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                    <ActionMenu
+                      items={[
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(p) },
+                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(p.id), danger: true }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

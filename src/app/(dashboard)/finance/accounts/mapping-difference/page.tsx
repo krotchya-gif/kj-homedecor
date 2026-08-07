@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, GitBranch } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 interface Mapping {
   id: string
@@ -196,32 +197,12 @@ export default function MappingDifferencePage() {
                   </td>
                   <td style={{ color: 'var(--neutral-600)' }}>{m.description ?? '—'}</td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        onClick={() => openEdit(m)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: 'var(--neutral-600)',
-                          padding: '0.25rem'
-                        }}
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(m.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#dc2626',
-                          padding: '0.25rem'
-                        }}
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
+                    <ActionMenu
+                      items={[
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(m) },
+                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(m.id), danger: true }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}

@@ -21,6 +21,7 @@ import {
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 const PAGE_SIZE = 20
 
@@ -508,46 +509,12 @@ export default function StaffPage() {
                         })}
                       </td>
                       <td>
-                        <div style={{ display: 'flex', gap: '0.375rem', justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => startEdit(s)}
-                            style={{
-                              padding: '0.375rem 0.625rem',
-                              background: '#eff6ff',
-                              color: '#2563eb',
-                              border: 'none',
-                              borderRadius: '0.375rem',
-                              fontSize: '0.75rem',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}
-                          >
-                            <Pencil size={12} /> Edit
-                          </button>
-                          <button
-                            onClick={() => handleDelete(s.id, s.name)}
-                            disabled={deleting === s.id}
-                            style={{
-                              padding: '0.375rem 0.625rem',
-                              background: '#fef2f2',
-                              color: '#dc2626',
-                              border: 'none',
-                              borderRadius: '0.375rem',
-                              fontSize: '0.75rem',
-                              fontWeight: '600',
-                              cursor: deleting === s.id ? 'not-allowed' : 'pointer',
-                              opacity: deleting === s.id ? 0.6 : 1,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.25rem'
-                            }}
-                          >
-                            <Trash2 size={12} /> {deleting === s.id ? '...' : 'Hapus'}
-                          </button>
-                        </div>
+                        <ActionMenu
+                          items={[
+                            { label: 'Edit', icon: <Pencil size={14} />, onClick: () => startEdit(s) },
+                            { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(s.id, s.name), danger: true }
+                          ]}
+                        />
                       </td>
                     </tr>
                   ))}
