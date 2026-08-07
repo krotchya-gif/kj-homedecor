@@ -65,29 +65,40 @@ export default function CategoriesPage() {
     setSaving(true)
     const payload = { name: form.name, type: form.type, description: form.description || null }
     if (editItem) {
-
-      const { error } = await supabase.from('account_categories').update(payload).eq('id', editItem.id)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    } else {
-
-      const { error } = await supabase.from('account_categories').insert(payload)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    }
-    setSaving(false)
-    setShowForm(false)
-    fetchCategories()
+        // UPDATE optimistic
+        const prev = categories
+        setCategories((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        const { error } = await supabase.from('account_categories').update(payload).eq('id', editItem.id)
+        if (error) { setCategories(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
+      } else {
+        // CREATE optimistic: id sementara dulu, diganti id asli dari server
+        const tempId = crypto.randomUUID()
+        const tempItem = { id: tempId, ...payload }
+        setCategories((curr) => [tempItem, ...curr] as any)
+        const { data, error } = await supabase.from('account_categories').insert(payload).select('id').single()
+        if (error) {
+          setCategories((curr) => curr.filter((x) => x.id !== tempId))
+          setSaving(false)
+          toast('error', 'Gagal simpan: ' + error.message)
+          return
+        }
+        if (data?.id) {
+          setCategories((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+        }
+      }
+      setSaving(false)
+      setShowForm(false)
+      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Hapus kategori ini?')) return
-    const { error } = await supabase.from('account_categories').delete().eq('id', id)
-
-    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
-    fetchCategories()
+    if (!confirm('Yakin hapus?')) return
+      // Optimistic delete
+      const prev = categories
+      setCategories((curr) => curr.filter((x) => x.id !== id))
+      const { error } = await supabase.from('account_categories').delete().eq('id', id)
+      if (error) { setCategories(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      toast('success', 'Berhasil dihapus')
   }
 
   return (

@@ -109,29 +109,40 @@ export default function FakturPage() {
       notes: form.notes || null
     }
     if (editItem) {
-
-      const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    } else {
-
-      const { error } = await supabase.from('piutang').insert(payload)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    }
-    setSaving(false)
-    setShowForm(false)
-    fetchData()
+        // UPDATE optimistic
+        const prev = piutang
+        setPiutang((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
+        if (error) { setPiutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
+      } else {
+        // CREATE optimistic: id sementara dulu, diganti id asli dari server
+        const tempId = crypto.randomUUID()
+        const tempItem = { id: tempId, ...payload }
+        setPiutang((curr) => [tempItem, ...curr] as any)
+        const { data, error } = await supabase.from('piutang').insert(payload).select('id').single()
+        if (error) {
+          setPiutang((curr) => curr.filter((x) => x.id !== tempId))
+          setSaving(false)
+          toast('error', 'Gagal simpan: ' + error.message)
+          return
+        }
+        if (data?.id) {
+          setPiutang((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+        }
+      }
+      setSaving(false)
+      setShowForm(false)
+      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Hapus faktur ini?')) return
-    const { error } = await supabase.from('piutang').delete().eq('id', id)
-
-    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
-    fetchData()
+    if (!confirm('Yakin hapus?')) return
+      // Optimistic delete
+      const prev = piutang
+      setPiutang((curr) => curr.filter((x) => x.id !== id))
+      const { error } = await supabase.from('piutang').delete().eq('id', id)
+      if (error) { setPiutang(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      toast('success', 'Berhasil dihapus')
   }
 
   return (

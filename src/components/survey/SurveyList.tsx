@@ -63,13 +63,19 @@ export default function SurveyList({ basePath }: Props) {
 
   async function handleDelete(row: Row) {
     if (!confirm(`Hapus survey ${row.survey_number ?? ''} milik ${row.client_name}?`)) return
+    // Optimistic delete + rollback
+    const prev = rows
+    setRows((curr) => curr.filter((r) => r.id !== row.id))
+    setCount((c) => Math.max(0, c - 1))
     const res = await fetch(`/api/surveys/${row.id}`, { method: 'DELETE' })
     const json = await res.json()
     if (!res.ok) {
+      setRows(prev)
+      setCount((c) => c + 1)
       toast('error', json.error?.message ?? 'Gagal hapus')
       return
     }
-    load()
+    toast('success', `Survey ${row.survey_number ?? ''} berhasil dihapus`)
   }
 
   async function copyRow(row: Row) {

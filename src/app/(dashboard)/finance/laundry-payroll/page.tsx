@@ -101,11 +101,14 @@ export default function LaundryPayrollPage() {
 
   async function markAsPaid(payrollId: string) {
     setSaving(true)
+    // Optimistic update + rollback
+    const prev = payrolls
+    setPayrolls((curr) => curr.map((p) => (p.id === payrollId ? { ...p, status: 'paid' } : p)))
     const { error } = await supabase.from('laundry_payroll').update({ status: 'paid' }).eq('id', payrollId)
-    if (error) { setSaving(false); toast('error', 'Gagal mark paid: ' + error.message); return }
+    if (error) { setPayrolls(prev); setSaving(false); toast('error', 'Gagal mark paid: ' + error.message); return }
     setSaving(false)
     setShowPaidModal(null)
-    fetchData()
+    toast('success', 'Payroll ditandai lunas')
   }
 
   function getStaffSummary(staffId: string) {

@@ -73,7 +73,10 @@ export default function AdminLaundryPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    const { error: createErr } = await supabase.from('laundry_orders').insert({
+    // CREATE optimistic: item masuk UI dulu, id asli di-replace dari server
+    const tempId = crypto.randomUUID()
+    const tempItem = {
+      id: tempId,
       customer_name: form.customer_name,
       customer_phone: form.customer_phone || null,
       kg: Number(form.kg) || 0,
@@ -83,8 +86,32 @@ export default function AdminLaundryPage() {
       assigned_to: form.assigned_to || null,
       created_by: user?.id ?? null,
       received_at: new Date().toISOString()
-    })
-    if (createErr) { setSaving(false); toast('error', 'Gagal buat laundry: ' + createErr.message); return }
+    } as LaundryOrder
+    setOrders((curr) => [tempItem, ...curr])
+    const { data: newOrder, error: createErr } = await supabase
+      .from('laundry_orders')
+      .insert({
+        customer_name: form.customer_name,
+        customer_phone: form.customer_phone || null,
+        kg: Number(form.kg) || 0,
+        meter: Number(form.meter) || 0,
+        description: form.description || null,
+        status: 'pending',
+        assigned_to: form.assigned_to || null,
+        created_by: user?.id ?? null,
+        received_at: new Date().toISOString()
+      })
+      .select('id')
+      .single()
+    if (createErr) {
+      setOrders((curr) => curr.filter((o) => o.id !== tempId))
+      setSaving(false)
+      toast('error', 'Gagal buat laundry: ' + createErr.message)
+      return
+    }
+    if (newOrder?.id) {
+      setOrders((curr) => curr.map((o) => (o.id === tempId ? { ...o, id: newOrder.id } : o)))
+    }
     setSaving(false)
     setShowForm(false)
     setForm({
@@ -95,15 +122,18 @@ export default function AdminLaundryPage() {
       description: '',
       assigned_to: ''
     })
-    fetchData()
+    toast('success', 'Order laundry berhasil dibuat')
   }
 
   async function handleUpdateStatus(id: string, status: 'pending' | 'in_progress' | 'done') {
     const updates: Record<string, unknown> = { status }
     if (status === 'done') updates.completed_at = new Date().toISOString()
+    // Optimistic update + rollback
+    const prev = orders
+    setOrders((curr) => curr.map((o) => (o.id === id ? { ...o, ...updates } : o)))
     const { error } = await supabase.from('laundry_orders').update(updates).eq('id', id)
-    if (error) { toast('error', 'Gagal update status laundry: ' + error.message); return }
-    fetchData()
+    if (error) { setOrders(prev); toast('error', 'Gagal update status laundry: ' + error.message); return }
+    toast('success', `Status laundry → ${status}`)
   }
 
   async function handleUpdateRate(e: React.FormEvent) {

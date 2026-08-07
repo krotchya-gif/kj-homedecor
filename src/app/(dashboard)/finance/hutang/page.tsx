@@ -103,29 +103,40 @@ export default function HutangPage() {
       notes: form.notes || null
     }
     if (editItem) {
-
-      const { error } = await supabase.from('hutang').update(payload).eq('id', editItem.id)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    } else {
-
-      const { error } = await supabase.from('hutang').insert(payload)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    }
-    setSaving(false)
-    setShowForm(false)
-    fetchData()
+        // UPDATE optimistic
+        const prev = hutang
+        setHutang((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        const { error } = await supabase.from('hutang').update(payload).eq('id', editItem.id)
+        if (error) { setHutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
+      } else {
+        // CREATE optimistic: id sementara dulu, diganti id asli dari server
+        const tempId = crypto.randomUUID()
+        const tempItem = { id: tempId, ...payload }
+        setHutang((curr) => [tempItem, ...curr] as any)
+        const { data, error } = await supabase.from('hutang').insert(payload).select('id').single()
+        if (error) {
+          setHutang((curr) => curr.filter((x) => x.id !== tempId))
+          setSaving(false)
+          toast('error', 'Gagal simpan: ' + error.message)
+          return
+        }
+        if (data?.id) {
+          setHutang((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+        }
+      }
+      setSaving(false)
+      setShowForm(false)
+      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Hapus tagihan ini?')) return
-    const { error } = await supabase.from('hutang').delete().eq('id', id)
-
-    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
-    fetchData()
+    if (!confirm('Yakin hapus?')) return
+      // Optimistic delete
+      const prev = hutang
+      setHutang((curr) => curr.filter((x) => x.id !== id))
+      const { error } = await supabase.from('hutang').delete().eq('id', id)
+      if (error) { setHutang(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      toast('success', 'Berhasil dihapus')
   }
 
   function openPayment(h: Hutang) {

@@ -90,29 +90,40 @@ export default function CashPage() {
       balance: Number(form.balance) || 0
     }
     if (editItem) {
-
-      const { error } = await supabase.from('cash_accounts').update(payload).eq('id', editItem.id)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    } else {
-
-      const { error } = await supabase.from('cash_accounts').insert(payload)
-
-      if (error) { toast('error', 'Gagal simpan: ' + error.message); setSaving(false); return }
-
-    }
-    setSaving(false)
-    setShowForm(false)
-    fetchData()
+        // UPDATE optimistic
+        const prev = cashAccounts
+        setCashAccounts((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        const { error } = await supabase.from('cash_accounts').update(payload).eq('id', editItem.id)
+        if (error) { setCashAccounts(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
+      } else {
+        // CREATE optimistic: id sementara dulu, diganti id asli dari server
+        const tempId = crypto.randomUUID()
+        const tempItem = { id: tempId, ...payload }
+        setCashAccounts((curr) => [tempItem, ...curr] as any)
+        const { data, error } = await supabase.from('cash_accounts').insert(payload).select('id').single()
+        if (error) {
+          setCashAccounts((curr) => curr.filter((x) => x.id !== tempId))
+          setSaving(false)
+          toast('error', 'Gagal simpan: ' + error.message)
+          return
+        }
+        if (data?.id) {
+          setCashAccounts((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+        }
+      }
+      setSaving(false)
+      setShowForm(false)
+      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Hapus akun kas ini?')) return
-    const { error } = await supabase.from('cash_accounts').delete().eq('id', id)
-
-    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
-    fetchData()
+    if (!confirm('Yakin hapus?')) return
+      // Optimistic delete
+      const prev = cashAccounts
+      setCashAccounts((curr) => curr.filter((x) => x.id !== id))
+      const { error } = await supabase.from('cash_accounts').delete().eq('id', id)
+      if (error) { setCashAccounts(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      toast('success', 'Berhasil dihapus')
   }
 
   return (

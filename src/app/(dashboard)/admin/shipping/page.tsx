@@ -92,7 +92,9 @@ export default function AdminShippingPage() {
       staff_id: user?.id ?? null
     })
     if (logErr) { console.error('Gagal catat log packed:', logErr) }
-    loadOrders()
+    // Optimistic update
+    setOrders((curr) => curr.map((o) => (o.id === orderId ? { ...o, status: 'packed', packed_at: new Date().toISOString() } : o)))
+    toast('success', 'Order ditandai Dikemas (packed)')
   }
 
   async function handleSaveResi() {
@@ -134,7 +136,15 @@ export default function AdminShippingPage() {
     setSelectedOrder(null)
     setResiForm({ courier: '', tracking_number: '' })
     setShippedPhoto(null) // V3: reset foto
-    loadOrders()
+    // Optimistic update: status order di list langsung berubah
+    setOrders((curr) =>
+      curr.map((o) =>
+        o.id === apiJson.data?.id || o.id === selectedOrder.id
+          ? { ...o, status: 'shipped', courier: resiForm.courier, tracking_number: resiForm.tracking_number }
+          : o
+      )
+    )
+    toast('success', 'Order ditandai Terkirim (shipped)')
   }
 
   function openResiModal(order: Order) {
