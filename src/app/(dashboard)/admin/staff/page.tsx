@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import MobileCards from '@/components/ui/MobileCards'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -282,7 +283,56 @@ export default function StaffPage() {
           )}
 
           {/* Table */}
-          <div className="data-table overflow-x-auto">
+          {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem' }}>
+            <TableSkeleton rows={4} cols={3} />
+          </div>
+        ) : staff.length === 0 ? (
+          <EmptyState icon="👤" title="Belum ada staff" description="Buat akun staff baru dengan form di atas." />
+        ) : (
+          <MobileCards
+            items={staff}
+            keyOf={(s) => s.id}
+            renderCard={(s) => (
+              <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Staff</span>
+                  <span className="mobile-card-value">{s.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Email</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400', fontSize: '0.75rem' }}>{s.email}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Role</span>
+                  <span className="mobile-card-value">
+                    <span style={{ padding: '0.15rem 0.6rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '600', background: `${ROLE_COLORS[s.role] ?? 'var(--neutral-600)'}15`, color: ROLE_COLORS[s.role] ?? 'var(--neutral-600)' }}>
+                      {s.role}
+                    </span>
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>
+                    {s.status === 'active' ? '✅ Aktif' : '⛔ Nonaktif'}
+                  </span>
+                </div>
+                <div className="mobile-card-actions">
+                  <button onClick={() => startEdit(s)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>
+                    <Pencil size={13} /> Edit
+                  </button>
+                  <button onClick={() => handleDelete(s.id, s.name)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>
+                    <Trash2 size={13} /> {deleting === s.id ? '...' : 'Hapus'}
+                  </button>
+                </div>
+              </div>
+            )}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only overflow-x-auto">
             {loading ? (
               <div style={{ padding: '1.5rem' }}>
                 <TableSkeleton rows={8} cols={6} />

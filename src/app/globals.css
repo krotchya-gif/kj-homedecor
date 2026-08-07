@@ -2761,3 +2761,70 @@ section p,
 p.landing-section-subtitle {
   color: #6b7280 !important;
 }
+/* ===== Responsive: mobile card vs desktop table (2026-08-07) ===== */
+.desktop-only { display: none; }
+.mobile-only { display: block; }
+@media (min-width: 769px) {
+  .desktop-only { display: block; }
+  .mobile-only { display: none; }
+}
+
+.mobile-card {
+  background: var(--surface);
+  border: 1px solid var(--input-border);
+  border-radius: 0.75rem;
+  padding: 0.875rem 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+.mobile-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+}
+.mobile-card-label {
+  font-size: 0.72rem;
+  color: var(--neutral-500);
+  flex-shrink: 0;
+}
+.mobile-card-value {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--neutral-800);
+  text-align: right;
+  word-break: break-word;
+}
+.mobile-card-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.625rem;
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--neutral-200);
+}
+.mobile-card-actions button,
+.mobile-card-actions a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex: 1 1 auto;
+}
+
+/* Touch target mobile (Material: >=44px, kompromi 40px di area padat) */
+@media (max-width: 768px) {
+  .data-table td button,
+  .data-table td a {
+    min-height: 40px;
+  }
+  .table-actions button,
+  .table-actions a {
+    min-height: 40px;
+  }
+}

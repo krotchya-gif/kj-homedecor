@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import MobileCards from '@/components/ui/MobileCards'
 import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
@@ -339,7 +340,70 @@ export default function AdminLaundryPage() {
       </div>
 
       {/* Table */}
-      <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
+            <WashingMachine size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
+            <p>Belum ada pesanan laundry</p>
+          </div>
+        ) : (
+          <MobileCards
+            items={filtered}
+            keyOf={(o) => o.id}
+            renderCard={(o) => {
+              const sc = STATUS_COLORS[o.status]
+              const staff = laundryStaff.find((s) => s.id === o.assigned_to)
+              return (
+                <div className="mobile-card">
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Customer</span>
+                    <span className="mobile-card-value">{o.customer_name}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Tanggal</span>
+                    <span className="mobile-card-value" style={{ fontWeight: '400' }}>
+                      {new Date(o.received_at).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Berat</span>
+                    <span className="mobile-card-value">{o.kg} kg{o.meter ? ` · ${o.meter} m` : ''}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Staff</span>
+                    <span className="mobile-card-value" style={{ fontWeight: '400' }}>{staff?.name ?? '—'}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Status</span>
+                    <span className="mobile-card-value">
+                      <span style={{ background: sc.bg, color: sc.text, padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600' }}>
+                        {sc.label}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="mobile-card-actions">
+                    {o.status === 'pending' && (
+                      <button onClick={() => handleUpdateStatus(o.id, 'in_progress')} style={{ background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Proses
+                      </button>
+                    )}
+                    {o.status === 'in_progress' && (
+                      <button onClick={() => handleUpdateStatus(o.id, 'done')} style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Selesai
+                      </button>
+                    )}
+                    {o.status === 'done' && <span style={{ color: '#16a34a', fontWeight: '600', fontSize: '0.8rem' }}>✓ Selesai</span>}
+                  </div>
+                </div>
+              )
+            }}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (

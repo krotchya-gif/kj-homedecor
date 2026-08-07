@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import MobileCards from '@/components/ui/MobileCards'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -275,7 +276,44 @@ export default function CustomersPage() {
         </button>
       </div>
 
-      <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem' }}>
+            <TableSkeleton rows={4} cols={3} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon="👥" title="Belum ada pelanggan" description="Tambah pelanggan baru dengan tombol di atas." />
+        ) : (
+          <MobileCards
+            items={filtered}
+            keyOf={(c) => c.id}
+            renderCard={(c) => (
+              <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Nama</span>
+                  <span className="mobile-card-value">{c.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No. HP</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>{c.phone || '—'}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Alamat</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>{c.address || '—'}</span>
+                </div>
+                {c.notes && (
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Catatan</span>
+                    <span className="mobile-card-value" style={{ fontWeight: '400' }}>{c.notes}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '1.5rem' }}>
             <TableSkeleton rows={8} cols={5} />

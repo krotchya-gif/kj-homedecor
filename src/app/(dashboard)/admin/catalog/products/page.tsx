@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import MobileCards from '@/components/ui/MobileCards'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -519,7 +520,54 @@ export default function ProductsPage() {
       </div>
 
       {/* Table */}
-      <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem' }}>
+            <TableSkeleton rows={4} cols={3} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState icon="📦" title="Belum ada produk" description="Tambah produk baru dengan tombol di atas." />
+        ) : (
+          <MobileCards
+            items={filtered}
+            keyOf={(p) => p.id}
+            renderCard={(p) => (
+              <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Produk</span>
+                  <span className="mobile-card-value">{p.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">SKU</span>
+                  <span className="mobile-card-value" style={{ fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: '400' }}>
+                    {p.sku || '—'}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Harga</span>
+                  <span className="mobile-card-value" style={{ color: '#cc7030' }}>
+                    {formatRp(p.price)}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Stok Toko</span>
+                  <span className="mobile-card-value">{p.stock_toko}</span>
+                </div>
+                <div className="mobile-card-actions">
+                  <button onClick={() => openEdit(p)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>
+                    <Pencil size={13} /> Edit
+                  </button>
+                  <button onClick={() => handleDelete(p.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>
+                    <Trash2 size={13} /> Hapus
+                  </button>
+                </div>
+              </div>
+            )}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '1.5rem' }}>
             <TableSkeleton rows={8} cols={7} />

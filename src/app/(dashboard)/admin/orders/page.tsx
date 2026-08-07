@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import MobileCards from '@/components/ui/MobileCards'
 
 const PAGE_SIZE = 20
 const formatRp = (n: number) =>
@@ -349,7 +350,90 @@ export default function OrdersPage() {
       </div>
 
       {/* Table */}
-      <div className="data-table">
+      {/* Mobile: card list (desktop: tabel di bawah) */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem' }}>
+            <TableSkeleton rows={4} cols={3} />
+          </div>
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon="📦"
+            title="Belum ada pesanan"
+            description="Pesanan baru akan muncul di sini setelah dibuat."
+          />
+        ) : (
+          <MobileCards
+            items={filtered}
+            keyOf={(o) => o.id}
+            renderCard={(o) => (
+              <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No. Pesanan</span>
+                  <span className="mobile-card-value" style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                    {o.order_number || o.id.slice(0, 8)}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Pelanggan</span>
+                  <span className="mobile-card-value">
+                    {(o.customer as { name: string } | null)?.name ?? '—'}
+                    {o.classification === 'pasang' ? ' 📍' : ''}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Jenis</span>
+                  <span className="mobile-card-value">
+                    <span
+                      style={{
+                        padding: '0.15rem 0.6rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        background: o.classification === 'pasang' ? '#e0e7ff' : '#f0fdf4',
+                        color: o.classification === 'pasang' ? '#3730a3' : '#166534'
+                      }}
+                    >
+                      {o.classification === 'pasang' ? '📍 Pasang' : '📦 Kirim'}
+                    </span>
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Total</span>
+                  <span className="mobile-card-value" style={{ color: '#cc7030' }}>
+                    {formatRp(o.total_amount)}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">
+                    <span
+                      className={STATUS_COLORS[o.status]}
+                      style={{
+                        padding: '0.2rem 0.6rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      {STATUS_LABELS[o.status]}
+                    </span>
+                  </span>
+                </div>
+                <div className="mobile-card-actions">
+                  <Link
+                    href={`/admin/orders/${o.id}`}
+                    style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', textDecoration: 'none' }}
+                  >
+                    Detail <ExternalLink size={13} />
+                  </Link>
+                </div>
+              </div>
+            )}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '1.5rem' }}>
             <TableSkeleton rows={8} cols={8} />
