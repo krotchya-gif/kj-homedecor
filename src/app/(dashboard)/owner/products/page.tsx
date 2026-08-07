@@ -254,7 +254,7 @@ export default function OwnerProductsPage() {
               </span>
             </div>
             <div className="mobile-only">
-              <MobileCards items={paginatedProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+              <MobileCards items={filtered} keyOf={(p: any) => p.id} renderCard={(p: any) => (
                 <div className="mobile-card">
                   <div className="mobile-card-row">
                     <span className="mobile-card-label">Produk</span>

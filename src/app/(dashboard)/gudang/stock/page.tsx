@@ -566,6 +566,19 @@ export default function GudangStockPage() {
               </table>
             )}
           </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={Math.max(1, Math.ceil(totalCountProd / PAGE_SIZE))}
+          onPageChange={setCurrentPage}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={(s) => {
+            setPageSize(s)
+            setCurrentPage(1)
+          }}
+          totalItems={totalCountProd}
+          startIndex={(currentPage - 1) * PAGE_SIZE + 1}
+          endIndex={Math.min(currentPage * PAGE_SIZE, totalCountProd)}
+        />
         </>
       )}
 

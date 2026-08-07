@@ -291,11 +291,11 @@ export default function StaffPage() {
           <div style={{ padding: '1.5rem' }}>
             <TableSkeleton rows={4} cols={3} />
           </div>
-        ) : staff.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <EmptyState icon="👤" title="Belum ada staff" description="Buat akun staff baru dengan form di atas." />
         ) : (
           <MobileCards
-            items={staff}
+            items={filtered}
             keyOf={(s) => s.id}
             renderCard={(s) => (
               <div className="mobile-card">
