@@ -459,7 +459,7 @@ export default function AdminBookingPage() {
         </div>
       ) : (
         <>
-        <div className="mobile-only" style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+        <div className="mobile-only mobile-card-list">
           {filteredBookings.map((booking) => {
             const statusInfo = STATUS_LABELS[booking.status] ?? {
               label: booking.status,

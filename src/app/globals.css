@@ -2816,6 +2816,13 @@ p.landing-section-subtitle {
   font-weight: 600;
   flex: 1 1 auto;
 }
+/* Wrapper list kartu mobile (pakai INLINE display flex di komponen? jangan —
+   class ini mengontrol display biar .mobile-only/.desktop-only bisa hide) */
+.mobile-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
 
 /* Touch target mobile (Material: >=44px, kompromi 40px di area padat) */
 @media (max-width: 768px) {
@@ -2826,5 +2833,10 @@ p.landing-section-subtitle {
   .table-actions button,
   .table-actions a {
     min-height: 40px;
+  }
+}
+@media (min-width: 769px) {
+  .mobile-only.mobile-card-list {
+    display: none !important;
   }
 }
