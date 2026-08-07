@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { useToast } from '@/components/ui/Toast'
 
@@ -284,7 +285,40 @@ export default function MaterialsPage() {
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(m) => m.id} renderCard={(m) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Nama</span>
+                  <span className="mobile-card-value">m.name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Unit</span>
+                  <span className="mobile-card-value">m.unit</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Harga/Unit</span>
+                  <span className="mobile-card-value">m.cost_per_unit</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Stok Gudang</span>
+                  <span className="mobile-card-value">m.stock_gudang</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Stok Toko</span>
+                  <span className="mobile-card-value">m.stock_toko</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '1.5rem' }}>
             <TableSkeleton rows={8} cols={6} />

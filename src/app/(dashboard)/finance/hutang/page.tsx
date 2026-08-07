@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -220,7 +221,41 @@ export default function HutangPage() {
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(h) => h.id} renderCard={(h) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No. Invoice</span>
+                  <span className="mobile-card-value">h.invoice_number</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Jumlah</span>
+                  <span className="mobile-card-value">h.amount ?? 0</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Sisa</span>
+                  <span className="mobile-card-value">(h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">h.status === 'paid' ? 'Lunas' : h.status === 'partial' ? 'Sebagian' : 'Belum'</span>
+                </div>
+                <div className="mobile-card-actions">
+                  <button onClick={() => openPayment(h)} style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}>Bayar</button>
+                  <button onClick={() => openEdit(h)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
+                  <button onClick={() => handleDelete(h.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (

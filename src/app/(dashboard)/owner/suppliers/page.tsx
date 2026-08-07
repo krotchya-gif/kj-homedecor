@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -368,7 +369,32 @@ export default function SuppliersPage() {
             </button>
           </div>
 
-          <div className="data-table">
+                {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(s) => s.id} renderCard={(s) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Nama</span>
+                  <span className="mobile-card-value">s.name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Kontak</span>
+                  <span className="mobile-card-value">s.contact_person</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">HP</span>
+                  <span className="mobile-card-value">s.phone</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {loading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : filtered.length === 0 ? (

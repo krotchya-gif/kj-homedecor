@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState, useMemo } from 'react'
@@ -172,7 +173,32 @@ export default function CashMutationPage() {
         </div>
       )}
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : runningBalance.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={runningBalance} keyOf={(j) => j.id} renderCard={(j) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">j.entry_date ?? j.date</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Mutasi</span>
+                  <span className="mobile-card-value">j.debit ?? j.credit ?? j.amount</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Saldo</span>
+                  <span className="mobile-card-value">j.balance</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : runningBalance.length === 0 ? (

@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -142,7 +143,28 @@ export default function MappingPage() {
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : mappings.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={mappings} keyOf={(m) => m.id} renderCard={(m) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Transaksi</span>
+                  <span className="mobile-card-value">m.transaction_type</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Deskripsi</span>
+                  <span className="mobile-card-value">m.description</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : mappings.length === 0 ? (

@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -177,7 +178,36 @@ export default function CashPage() {
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(c) => c.id} renderCard={(c) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Bank</span>
+                  <span className="mobile-card-value">c.bank_name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No. Rekening</span>
+                  <span className="mobile-card-value">c.account_number</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Saldo</span>
+                  <span className="mobile-card-value">c.balance ?? 0</span>
+                </div>
+                <div className="mobile-card-actions">
+                  <button onClick={() => openEdit(c)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
+                  <button onClick={() => handleDelete(c.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (

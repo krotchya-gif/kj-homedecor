@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
 import { useToast } from '@/components/ui/Toast'
+import MobileCards from '@/components/ui/MobileCards'
 
 const STATUS_COLORS: Record<string, string> = {
   draft: '#b45309',
@@ -117,7 +118,77 @@ export default function SurveyList({ basePath }: Props) {
         </div>
       </div>
 
-      <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada survey.</div>
+        ) : (
+          <MobileCards
+            items={rows}
+            keyOf={(r) => r.id}
+            renderCard={(r) => (
+              <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No Survey</span>
+                  <span className="mobile-card-value" style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                    {r.survey_number ?? '—'}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Client</span>
+                  <span className="mobile-card-value">{r.client_name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Surveyor</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>{r.surveyor?.name ?? '-'}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>{r.survey_date}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">
+                    <span
+                      style={{
+                        padding: '0.25rem 0.625rem',
+                        borderRadius: '999px',
+                        background: `${STATUS_COLORS[r.status] ?? '#6b7280'}18`,
+                        color: STATUS_COLORS[r.status] ?? '#6b7280',
+                        fontWeight: '600',
+                        fontSize: '0.7rem',
+                        textTransform: 'capitalize'
+                      }}
+                    >
+                      {r.status}
+                    </span>
+                  </span>
+                </div>
+                <div className="mobile-card-actions">
+                  <Link href={`/surveyor/survey/${r.id}`} style={{ background: 'var(--neutral-100)', color: '#374151', textDecoration: 'none' }}>
+                    Lihat
+                  </Link>
+                  <Link href={`/surveyor/survey/${r.id}/edit`} style={{ background: '#f3e8ff', color: '#7c3aed', textDecoration: 'none' }}>
+                    Edit
+                  </Link>
+                  <button onClick={() => copyRow(r)} style={{ background: 'var(--neutral-100)', color: '#374151', border: 'none', cursor: 'pointer' }}>
+                    Copy
+                  </button>
+                  <a href={buildWhatsAppUrl({ ...(r as any), rooms: [] } as any)} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#166534', textDecoration: 'none' }}>
+                    WA
+                  </a>
+                  <button onClick={() => handleDelete(r)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>
+                    Hapus
+                  </button>
+                </div>
+              </div>
+            )}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : rows.length === 0 ? (

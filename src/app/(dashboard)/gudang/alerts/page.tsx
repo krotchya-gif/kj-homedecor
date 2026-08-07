@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -43,7 +44,32 @@ export default function GudangAlertsPage() {
     <div>
       <PageHeader title="Monitor Stok & Alerts" subtitle="Material di bawah minimum — buat Purchase Request (PR)" />
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : alerts.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={alerts} keyOf={(m) => m.id} renderCard={(m) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Material</span>
+                  <span className="mobile-card-value">m.name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Stok Gudang</span>
+                  <span className="mobile-card-value">m.stock_gudang</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Min. Stok</span>
+                  <span className="mobile-card-value">m.min_stock_level</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : alerts.length === 0 ? (

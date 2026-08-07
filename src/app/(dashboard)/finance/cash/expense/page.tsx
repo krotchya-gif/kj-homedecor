@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -157,7 +158,32 @@ export default function ExpensePage() {
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(j) => j.id} renderCard={(j) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">j.entry_date ?? j.date</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Keterangan</span>
+                  <span className="mobile-card-value">j.description ?? j.notes</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Jumlah</span>
+                  <span className="mobile-card-value">j.debit ?? j.amount</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (

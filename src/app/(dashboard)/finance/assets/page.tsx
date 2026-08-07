@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -199,7 +200,40 @@ export default function AssetsPage() {
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(a) => a.id} renderCard={(a) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Kode</span>
+                  <span className="mobile-card-value">a.code</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Nama</span>
+                  <span className="mobile-card-value">a.name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Kategori</span>
+                  <span className="mobile-card-value">a.category</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Nilai</span>
+                  <span className="mobile-card-value">a.purchase_value</span>
+                </div>
+                <div className="mobile-card-actions">
+                  <button onClick={() => openEdit(a)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
+                  <button onClick={() => handleDelete(a.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : filtered.length === 0 ? (

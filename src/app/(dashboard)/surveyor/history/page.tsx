@@ -1,4 +1,5 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -105,7 +106,36 @@ export default function SurveyHistoryPage() {
       </div>
 
       {/* List */}
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={rows} keyOf={(r) => r.id} renderCard={(r) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">No Survey</span>
+                  <span className="mobile-card-value">r.survey_number ?? '—'</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Client</span>
+                  <span className="mobile-card-value">r.client_name</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">r.survey_date</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">r.status</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
         {loading ? (
           <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : rows.length === 0 ? (
