@@ -1,12 +1,19 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { MoreVertical } from 'lucide-react'
 
 /**
  * ActionMenu — menu 3 titik (kebab) untuk kolom aksi tabel.
- * Best practice Material: kebab menu untuk 2+ aksi per row; touch target >= 40px.
- * Klik di luar menu -> tutup otomatis.
+ *
+ * PENTING (2026-08-07): dropdown di-render dengan `position: fixed` di koordinat tombol
+ * (getBoundingClientRect) — BUKAN absolute di dalam td. Sebab `.data-table` punya
+ * `overflow: hidden` / `overflow-x: auto` → dropdown baris TERAKHIR keluar container
+ * dan TERPOTONG (clip), z-index apa pun tidak menembus clip. Fixed + zIndex 9999:
+ * - tidak kena overflow parent (keluar dari flow container)
+ * - tidak ketutupan elemen lain (stacking paling atas)
+ * - auto-flip ke ATAS kalau ruang di bawah tombol tidak cukup (baris paling bawah)
+ * - close otomatis saat scroll/resize (posisi fixed tidak ikut scroll)
  */
 export interface ActionMenuItem {
   label: string
@@ -15,24 +22,65 @@ export interface ActionMenuItem {
   danger?: boolean
 }
 
+const MENU_WIDTH = 180
+
 export default function ActionMenu({ items }: { items: ActionMenuItem[] }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', close)
-    return () => document.removeEventListener('mousedown', close)
+  const close = useCallback(() => {
+    setOpen(false)
+    setPos(null)
   }, [])
 
+  // hitung posisi fixed: flip ke atas kalau baris dekat bawah viewport
+  const openMenu = useCallback(() => {
+    const btn = btnRef.current
+    if (!btn) return
+    const r = btn.getBoundingClientRect()
+    const menuHeight = items.length * 40 + 12
+    const gap = 4
+    const spaceBelow = window.innerHeight - r.bottom
+    const top = spaceBelow >= menuHeight + gap ? r.bottom + gap : Math.max(8, r.top - menuHeight - gap)
+    const left = Math.min(r.right - MENU_WIDTH, window.innerWidth - MENU_WIDTH - 8)
+    setPos({ top, left: Math.max(8, left) })
+    setOpen(true)
+  }, [items.length])
+
+  // close saat scroll (capture biar keburu sebelum posisi berubah) & resize
+  useEffect(() => {
+    if (!open) return
+    const onScroll = () => close()
+    const onResize = () => close()
+    window.addEventListener('scroll', onScroll, true)
+    window.addEventListener('resize', onResize)
+    return () => {
+      window.removeEventListener('scroll', onScroll, true)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [open, close])
+
+  // close saat klik luar
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (btnRef.current?.contains(e.target as Node)) return
+      if (menuRef.current?.contains(e.target as Node)) return
+      close()
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [close])
+
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
+    <>
       <button
+        ref={btnRef}
         onClick={(e) => {
           e.stopPropagation()
-          setOpen((o) => !o)
+          if (open) close()
+          else openMenu()
         }}
         aria-label="Menu aksi"
         style={{
@@ -46,23 +94,26 @@ export default function ActionMenu({ items }: { items: ActionMenuItem[] }) {
           minWidth: 36,
           display: 'inline-flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          position: 'relative',
+          zIndex: 10
         }}
       >
         <MoreVertical size={18} />
       </button>
-      {open && (
+      {open && pos && (
         <div
+          ref={menuRef}
           style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 4px)',
-            zIndex: 50,
-            minWidth: 180,
+            position: 'fixed',
+            top: pos.top,
+            left: pos.left,
+            zIndex: 9999,
+            minWidth: MENU_WIDTH,
             background: 'var(--surface)',
             border: '1px solid var(--neutral-200)',
             borderRadius: '0.625rem',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
             padding: '0.375rem',
             display: 'flex',
             flexDirection: 'column'
@@ -72,7 +123,7 @@ export default function ActionMenu({ items }: { items: ActionMenuItem[] }) {
             <button
               key={i}
               onClick={() => {
-                setOpen(false)
+                close()
                 it.onClick()
               }}
               style={{
@@ -103,6 +154,6 @@ export default function ActionMenu({ items }: { items: ActionMenuItem[] }) {
           ))}
         </div>
       )}
-    </div>
+    </>
   )
 }
