@@ -320,15 +320,15 @@ export default function GudangReportsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Material</span>
-                  <span className="mobile-card-value">m.material_name ?? m.name</span>
+                  <span className="mobile-card-value">{m.material_name ?? m.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Qty</span>
-                  <span className="mobile-card-value">m.qty ?? m.quantity</span>
+                  <span className="mobile-card-value">{m.qty ?? m.quantity}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tipe</span>
-                  <span className="mobile-card-value">m.type ?? m.movement_type</span>
+                  <span className="mobile-card-value">{m.type ?? m.movement_type}</span>
                 </div>
             </div>
           )} />

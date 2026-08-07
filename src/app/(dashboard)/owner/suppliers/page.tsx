@@ -380,15 +380,15 @@ export default function SuppliersPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">s.name</span>
+                  <span className="mobile-card-value">{s.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Kontak</span>
-                  <span className="mobile-card-value">s.contact_person</span>
+                  <span className="mobile-card-value">{s.contact_person}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">HP</span>
-                  <span className="mobile-card-value">s.phone</span>
+                  <span className="mobile-card-value">{s.phone}</span>
                 </div>
             </div>
           )} />
@@ -485,7 +485,34 @@ export default function SuppliersPage() {
 
       {tab === 'po' && (
         <>
-          <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {poList.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={poList} keyOf={(po: any) => po.id} renderCard={(po: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Supplier</span>
+                  <span className="mobile-card-value">{po.supplier?.name ?? po.supplier_name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Material</span>
+                  <span className="mobile-card-value">{po.material?.name ?? po.material_name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Cost</span>
+                  <span className="mobile-card-value">{po.cost ?? po.amount}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">{po.status}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {poLoading ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
             ) : poList.length === 0 ? (

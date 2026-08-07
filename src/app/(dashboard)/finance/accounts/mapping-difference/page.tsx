@@ -153,11 +153,11 @@ export default function MappingDifferencePage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Transaksi</span>
-                  <span className="mobile-card-value">m.transaction_type</span>
+                  <span className="mobile-card-value">{m.transaction_type}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Deskripsi</span>
-                  <span className="mobile-card-value">m.description</span>
+                  <span className="mobile-card-value">{m.description}</span>
                 </div>
             </div>
           )} />

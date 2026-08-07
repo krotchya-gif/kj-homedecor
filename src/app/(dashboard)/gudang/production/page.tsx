@@ -275,15 +275,15 @@ export default function GudangProductionPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">job.order?.order_number ?? job.id.slice(0, 8)</span>
+                  <span className="mobile-card-value">{job.order?.order_number ?? job.id.slice(0, 8)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">job.status</span>
+                  <span className="mobile-card-value">{job.status}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Penjahit</span>
-                  <span className="mobile-card-value">job.penjahit?.name</span>
+                  <span className="mobile-card-value">{job.penjahit?.name}</span>
                 </div>
             </div>
           )} />

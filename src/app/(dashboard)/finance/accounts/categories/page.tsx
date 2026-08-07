@@ -164,11 +164,11 @@ export default function CategoriesPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">c.name</span>
+                  <span className="mobile-card-value">{c.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tipe</span>
-                  <span className="mobile-card-value">c.type</span>
+                  <span className="mobile-card-value">{c.type}</span>
                 </div>
             </div>
           )} />

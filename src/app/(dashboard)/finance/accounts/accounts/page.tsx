@@ -210,19 +210,19 @@ export default function AccountsListPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Kode</span>
-                  <span className="mobile-card-value">a.code</span>
+                  <span className="mobile-card-value">{a.code}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">a.name</span>
+                  <span className="mobile-card-value">{a.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tipe</span>
-                  <span className="mobile-card-value">a.type</span>
+                  <span className="mobile-card-value">{a.type}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Saldo</span>
-                  <span className="mobile-card-value">a.balance ?? 0</span>
+                  <span className="mobile-card-value">{a.balance ?? 0}</span>
                 </div>
                 <div className="mobile-card-actions">
                   <button onClick={() => openEdit(a)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>

@@ -579,15 +579,15 @@ export default function AdminReportsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Produk</span>
-                  <span className="mobile-card-value">p.name</span>
+                  <span className="mobile-card-value">{p.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Terjual</span>
-                  <span className="mobile-card-value">p.qty ?? p.total_qty</span>
+                  <span className="mobile-card-value">{p.qty ?? p.total_qty}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Omzet</span>
-                  <span className="mobile-card-value">p.revenue ?? p.total</span>
+                  <span className="mobile-card-value">{p.revenue ?? p.total}</span>
                 </div>
             </div>
           )} />
@@ -658,7 +658,30 @@ export default function AdminReportsPage() {
               Produk Terlaris
             </h2>
           </div>
-          <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {topProducts.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={topProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Produk</span>
+                  <span className="mobile-card-value">{p.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Qty</span>
+                  <span className="mobile-card-value">{p.qty ?? p.total_qty}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Revenue</span>
+                  <span className="mobile-card-value">{p.revenue ?? p.total}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {loading ? (
               <div
                 style={{

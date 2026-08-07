@@ -134,15 +134,15 @@ export default function GudangLemburPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">r.date</span>
+                  <span className="mobile-card-value">{r.date}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jam</span>
-                  <span className="mobile-card-value">r.jam</span>
+                  <span className="mobile-card-value">{r.jam}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Keterangan</span>
-                  <span className="mobile-card-value">r.keterangan</span>
+                  <span className="mobile-card-value">{r.keterangan}</span>
                 </div>
             </div>
           )} />

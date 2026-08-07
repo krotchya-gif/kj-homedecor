@@ -193,15 +193,15 @@ export default function PenjahitReportsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">r.order_number ?? r.order?.order_number</span>
+                  <span className="mobile-card-value">{r.order_number ?? r.order?.order_number}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Meter Gorden</span>
-                  <span className="mobile-card-value">r.meter_gorden</span>
+                  <span className="mobile-card-value">{r.meter_gorden}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">r.created_at</span>
+                  <span className="mobile-card-value">{r.created_at}</span>
                 </div>
             </div>
           )} />

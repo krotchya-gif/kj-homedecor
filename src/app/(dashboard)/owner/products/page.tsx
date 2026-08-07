@@ -155,32 +155,36 @@ export default function OwnerProductsPage() {
                 Top 10 Produk (Revenue)
               </h2>
             </div>
-                  {/* Mobile: card list */}
-      <div className="mobile-only">
-        {loading ? (
-          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
-        ) : paginatedProducts.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
-        ) : (
-          <MobileCards items={paginatedProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
-            <div className="mobile-card">
-                <div className="mobile-card-row">
-                  <span className="mobile-card-label">Produk</span>
-                  <span className="mobile-card-value">p.name</span>
-                </div>
-                <div className="mobile-card-row">
-                  <span className="mobile-card-label">Harga</span>
-                  <span className="mobile-card-value">p.price</span>
-                </div>
-                <div className="mobile-card-row">
-                  <span className="mobile-card-label">Stok Toko</span>
-                  <span className="mobile-card-value">p.stock_toko</span>
-                </div>
-            </div>
-          )} />
-        )}
-      </div>
-      <div className="data-table desktop-only">
+                  {/* Mobile: card list — Top Produk */}
+                  <div className="mobile-only">
+                    {loading ? (
+                      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+                    ) : filteredStats.length === 0 ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+                    ) : (
+                      <MobileCards items={filteredStats.slice(0, 10)} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+                        <div className="mobile-card">
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Produk</span>
+                              <span className="mobile-card-value">{p.name}</span>
+                            </div>
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">SKU</span>
+                              <span className="mobile-card-value" style={{ fontWeight: '400' }}>{p.sku}</span>
+                            </div>
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Qty Terjual</span>
+                              <span className="mobile-card-value">{p.qty ?? p.total_qty}</span>
+                            </div>
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Revenue</span>
+                              <span className="mobile-card-value" style={{ color: '#cc7030' }}>{formatRp(p.total_revenue)}</span>
+                            </div>
+                        </div>
+                      )} />
+                    )}
+                  </div>
+                  <div className="data-table desktop-only">
               <table>
                 <thead>
                   <tr>
@@ -249,7 +253,25 @@ export default function OwnerProductsPage() {
                 Menampilkan {startIndex + 1}–{Math.min(endIndex, filtered.length)} dari {filtered.length}
               </span>
             </div>
-            <div className="data-table all-products-table">
+            <div className="mobile-only">
+              <MobileCards items={paginatedProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+                <div className="mobile-card">
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Produk</span>
+                    <span className="mobile-card-value">{p.name}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Harga</span>
+                    <span className="mobile-card-value">{formatRp(p.price)}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Stok Toko</span>
+                    <span className="mobile-card-value">{p.stock_toko}</span>
+                  </div>
+                </div>
+              )} />
+            </div>
+            <div className="data-table all-products-table desktop-only">
               <table>
                 <thead>
                   <tr>

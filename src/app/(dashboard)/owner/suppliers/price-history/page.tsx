@@ -239,6 +239,39 @@ export default function MaterialHistoryPage() {
                     </p>
                   </div>
                 ) : (
+                  <>
+                  <div className="mobile-only">
+                    <MobileCards
+                      items={history}
+                      keyOf={(h: any) => h.id}
+                      renderCard={(h: any) => (
+                        <div className="mobile-card">
+                          <div className="mobile-card-row">
+                            <span className="mobile-card-label">Tanggal</span>
+                            <span className="mobile-card-value" style={{ fontWeight: '400' }}>
+                              {new Date(h.recorded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {h.id === history[0]?.id ? ' • Terkini' : ''}
+                            </span>
+                          </div>
+                          <div className="mobile-card-row">
+                            <span className="mobile-card-label">Harga</span>
+                            <span className="mobile-card-value" style={{ color: '#cc7030' }}>{formatRp(h.price)}</span>
+                          </div>
+                          <div className="mobile-card-row">
+                            <span className="mobile-card-label">Supplier</span>
+                            <span className="mobile-card-value" style={{ fontWeight: '400' }}>{h.supplier_name ?? '—'}</span>
+                          </div>
+                          {h.notes && (
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Notes</span>
+                              <span className="mobile-card-value" style={{ fontWeight: '400' }}>{h.notes}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    />
+                  </div>
+                  <div className="desktop-only">
                   <table>
                     <thead>
                       <tr>
@@ -280,6 +313,8 @@ export default function MaterialHistoryPage() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
+                  </>
                 )}
               </div>
             </div>

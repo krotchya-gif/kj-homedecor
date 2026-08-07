@@ -208,19 +208,19 @@ export default function FakturPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No. Invoice</span>
-                  <span className="mobile-card-value">p.invoice_number</span>
+                  <span className="mobile-card-value">{p.invoice_number}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">p.amount ?? 0</span>
+                  <span className="mobile-card-value">{p.amount ?? 0}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">(p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)</span>
+                  <span className="mobile-card-value">{(p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">p.status === 'paid' ? 'Lunas' : p.status === 'partial' ? 'Sebagian' : 'Belum'</span>
+                  <span className="mobile-card-value">{p.status === 'paid' ? 'Lunas' : p.status === 'partial' ? 'Sebagian' : 'Belum'}</span>
                 </div>
                 <div className="mobile-card-actions">
                   <button onClick={() => openEdit(p)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>

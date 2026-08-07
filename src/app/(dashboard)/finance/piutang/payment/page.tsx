@@ -45,15 +45,15 @@ export default function PaymentPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">p.payment_date ?? p.created_at</span>
+                  <span className="mobile-card-value">{p.payment_date ?? p.created_at}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">p.amount</span>
+                  <span className="mobile-card-value">{p.amount}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Catatan</span>
-                  <span className="mobile-card-value">p.notes</span>
+                  <span className="mobile-card-value">{p.notes}</span>
                 </div>
             </div>
           )} />

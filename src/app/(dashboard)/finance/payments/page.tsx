@@ -498,15 +498,15 @@ export default function FinancePaymentsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">o.order_number ?? o.id.slice(0, 8)</span>
+                  <span className="mobile-card-value">{o.order_number ?? o.id.slice(0, 8)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Customer</span>
-                  <span className="mobile-card-value">o.customer?.name</span>
+                  <span className="mobile-card-value">{o.customer?.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">o.status</span>
+                  <span className="mobile-card-value">{o.status}</span>
                 </div>
             </div>
           )} />
@@ -638,7 +638,30 @@ export default function FinancePaymentsPage() {
             </select>
           </div>
 
-          <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(o: any) => o.id} renderCard={(o: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Pelanggan</span>
+                  <span className="mobile-card-value">{o.customer?.name ?? o.customer_name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Total</span>
+                  <span className="mobile-card-value">{o.total_amount}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">{o.payment_status ?? o.status}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {loading ? (
               <div style={{ padding: '1.5rem' }}>
                 <TableSkeleton rows={8} cols={8} />
@@ -881,7 +904,33 @@ export default function FinancePaymentsPage() {
               <p>Tidak ada order yang menunggu approval</p>
             </div>
           ) : (
-            <div className="data-table">
+            <>
+            <div className="mobile-only">
+              <MobileCards items={qcOrders} keyOf={(qc: any) => qc.id} renderCard={(qc: any) => {
+                const o = qc.order
+                return (
+                  <div className="mobile-card">
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Pelanggan</span>
+                      <span className="mobile-card-value">{o?.customer?.name ?? '—'}</span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Total</span>
+                      <span className="mobile-card-value" style={{ color: '#cc7030' }}>{fmt(o?.total_amount ?? 0)}</span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Sisa</span>
+                      <span className="mobile-card-value">{fmt((o?.total_amount ?? 0) - (o?.dp_amount ?? 0) - (o?.lunas_amount ?? 0))}</span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Status</span>
+                      <span className="mobile-card-value" style={{ fontWeight: '400' }}>{o?.payment_status ?? qc.status}</span>
+                    </div>
+                  </div>
+                )
+              }} />
+            </div>
+            <div className="data-table desktop-only">
               <table>
                 <thead>
                   <tr>
@@ -991,6 +1040,7 @@ export default function FinancePaymentsPage() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       )}

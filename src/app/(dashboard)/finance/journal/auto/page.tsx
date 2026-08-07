@@ -42,19 +42,19 @@ export default function AutoJournalPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">e.entry_date ?? e.created_at</span>
+                  <span className="mobile-card-value">{e.entry_date ?? e.created_at}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Keterangan</span>
-                  <span className="mobile-card-value">e.description ?? e.notes</span>
+                  <span className="mobile-card-value">{e.description ?? e.notes}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Debit</span>
-                  <span className="mobile-card-value">e.total_debit ?? e.debit</span>
+                  <span className="mobile-card-value">{e.total_debit ?? e.debit}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Kredit</span>
-                  <span className="mobile-card-value">e.total_credit ?? e.credit</span>
+                  <span className="mobile-card-value">{e.total_credit ?? e.credit}</span>
                 </div>
             </div>
           )} />

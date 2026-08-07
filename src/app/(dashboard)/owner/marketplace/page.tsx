@@ -175,15 +175,15 @@ export default function OwnerMarketplacePage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sumber</span>
-                  <span className="mobile-card-value">src.source</span>
+                  <span className="mobile-card-value">{src.source}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">src.count ?? src.orders</span>
+                  <span className="mobile-card-value">{src.count ?? src.orders}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Omzet</span>
-                  <span className="mobile-card-value">src.revenue ?? src.total</span>
+                  <span className="mobile-card-value">{src.revenue ?? src.total}</span>
                 </div>
             </div>
           )} />

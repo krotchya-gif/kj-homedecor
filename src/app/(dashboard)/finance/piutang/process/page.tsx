@@ -41,15 +41,15 @@ export default function ProcessReturPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Invoice</span>
-                  <span className="mobile-card-value">p.invoice_number</span>
+                  <span className="mobile-card-value">{p.invoice_number}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">p.amount</span>
+                  <span className="mobile-card-value">{p.amount}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">p.status</span>
+                  <span className="mobile-card-value">{p.status}</span>
                 </div>
             </div>
           )} />

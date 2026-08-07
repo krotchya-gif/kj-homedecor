@@ -55,15 +55,15 @@ export default function GudangAlertsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Material</span>
-                  <span className="mobile-card-value">m.name</span>
+                  <span className="mobile-card-value">{m.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Stok Gudang</span>
-                  <span className="mobile-card-value">m.stock_gudang</span>
+                  <span className="mobile-card-value">{m.stock_gudang}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Min. Stok</span>
-                  <span className="mobile-card-value">m.min_stock_level</span>
+                  <span className="mobile-card-value">{m.min_stock_level}</span>
                 </div>
             </div>
           )} />

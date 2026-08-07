@@ -134,15 +134,15 @@ export default function InstallerReportsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Customer</span>
-                  <span className="mobile-card-value">b.customer_name</span>
+                  <span className="mobile-card-value">{b.customer_name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">b.scheduled_date ?? b.created_at</span>
+                  <span className="mobile-card-value">{b.scheduled_date ?? b.created_at}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Total</span>
-                  <span className="mobile-card-value">b.total_amount ?? b.amount</span>
+                  <span className="mobile-card-value">{b.total_amount ?? b.amount}</span>
                 </div>
             </div>
           )} />

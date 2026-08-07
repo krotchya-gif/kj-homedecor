@@ -840,15 +840,15 @@ export default function TikTokDashboardPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">o.order_number ?? o.tiktok_order_id ?? o.id.slice(0, 8)</span>
+                  <span className="mobile-card-value">{o.order_number ?? o.tiktok_order_id ?? o.id.slice(0, 8)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">o.order_status ?? o.status</span>
+                  <span className="mobile-card-value">{o.order_status ?? o.status}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Total</span>
-                  <span className="mobile-card-value">o.total_amount</span>
+                  <span className="mobile-card-value">{o.total_amount}</span>
                 </div>
             </div>
           )} />
@@ -1017,7 +1017,31 @@ export default function TikTokDashboardPage() {
             <p style={{ fontSize: '0.85rem' }}>Belum ada settlement tersync. Klik "Sync Finance" untuk import.</p>
           </div>
         ) : (
-          <div className="data-table">
+          <>
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {statements.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={statements} keyOf={(st: any) => st.id} renderCard={(st: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Period</span>
+                  <span className="mobile-card-value">{st.start_date ?? st.period}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Amount</span>
+                  <span className="mobile-card-value">{st.total_amount}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">{st.status}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             <table>
               <thead>
                 <tr>
@@ -1073,6 +1097,7 @@ export default function TikTokDashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
       <Modal open={showAddForm} onClose={() => setShowAddForm(false)} maxWidth={480} padding="1.5rem" zIndex={1000}>

@@ -296,23 +296,23 @@ export default function MaterialsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">m.name</span>
+                  <span className="mobile-card-value">{m.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Unit</span>
-                  <span className="mobile-card-value">m.unit</span>
+                  <span className="mobile-card-value">{m.unit}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Harga/Unit</span>
-                  <span className="mobile-card-value">m.cost_per_unit</span>
+                  <span className="mobile-card-value">{m.cost_per_unit}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Stok Gudang</span>
-                  <span className="mobile-card-value">m.stock_gudang</span>
+                  <span className="mobile-card-value">{m.stock_gudang}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Stok Toko</span>
-                  <span className="mobile-card-value">m.stock_toko</span>
+                  <span className="mobile-card-value">{m.stock_toko}</span>
                 </div>
             </div>
           )} />

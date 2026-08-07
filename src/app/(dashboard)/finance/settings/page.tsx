@@ -144,15 +144,15 @@ export default function FinanceSettingsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Bank</span>
-                  <span className="mobile-card-value">c.bank_name</span>
+                  <span className="mobile-card-value">{c.bank_name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No. Rekening</span>
-                  <span className="mobile-card-value">c.account_number</span>
+                  <span className="mobile-card-value">{c.account_number}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Saldo</span>
-                  <span className="mobile-card-value">c.balance</span>
+                  <span className="mobile-card-value">{c.balance}</span>
                 </div>
             </div>
           )} />

@@ -232,19 +232,19 @@ export default function HutangPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No. Invoice</span>
-                  <span className="mobile-card-value">h.invoice_number</span>
+                  <span className="mobile-card-value">{h.invoice_number}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">h.amount ?? 0</span>
+                  <span className="mobile-card-value">{h.amount ?? 0}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">(h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)</span>
+                  <span className="mobile-card-value">{(h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">h.status === 'paid' ? 'Lunas' : h.status === 'partial' ? 'Sebagian' : 'Belum'</span>
+                  <span className="mobile-card-value">{h.status === 'paid' ? 'Lunas' : h.status === 'partial' ? 'Sebagian' : 'Belum'}</span>
                 </div>
                 <div className="mobile-card-actions">
                   <button onClick={() => openPayment(h)} style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}>Bayar</button>

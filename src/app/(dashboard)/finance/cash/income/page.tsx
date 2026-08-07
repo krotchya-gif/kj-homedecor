@@ -172,15 +172,15 @@ export default function IncomePage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">j.entry_date ?? j.date</span>
+                  <span className="mobile-card-value">{j.entry_date ?? j.date}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Keterangan</span>
-                  <span className="mobile-card-value">j.description ?? j.notes</span>
+                  <span className="mobile-card-value">{j.description ?? j.notes}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">j.credit ?? j.amount</span>
+                  <span className="mobile-card-value">{j.credit ?? j.amount}</span>
                 </div>
             </div>
           )} />

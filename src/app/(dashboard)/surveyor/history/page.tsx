@@ -117,19 +117,19 @@ export default function SurveyHistoryPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No Survey</span>
-                  <span className="mobile-card-value">r.survey_number ?? '—'</span>
+                  <span className="mobile-card-value">{r.survey_number ?? '—'}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Client</span>
-                  <span className="mobile-card-value">r.client_name</span>
+                  <span className="mobile-card-value">{r.client_name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">r.survey_date</span>
+                  <span className="mobile-card-value">{r.survey_date}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">r.status</span>
+                  <span className="mobile-card-value">{r.status}</span>
                 </div>
             </div>
           )} />

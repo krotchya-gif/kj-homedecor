@@ -159,15 +159,15 @@ export default function OwnerStaffPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">s.name</span>
+                  <span className="mobile-card-value">{s.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Role</span>
-                  <span className="mobile-card-value">s.role</span>
+                  <span className="mobile-card-value">{s.role}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">s.status</span>
+                  <span className="mobile-card-value">{s.status}</span>
                 </div>
             </div>
           )} />

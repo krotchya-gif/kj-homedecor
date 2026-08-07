@@ -372,15 +372,15 @@ export default function GudangSteamPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Customer</span>
-                  <span className="mobile-card-value">r.customer_name</span>
+                  <span className="mobile-card-value">{r.customer_name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Kg</span>
-                  <span className="mobile-card-value">r.kg</span>
+                  <span className="mobile-card-value">{r.kg}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">r.status</span>
+                  <span className="mobile-card-value">{r.status}</span>
                 </div>
             </div>
           )} />

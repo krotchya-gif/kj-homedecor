@@ -211,19 +211,19 @@ export default function AssetsPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Kode</span>
-                  <span className="mobile-card-value">a.code</span>
+                  <span className="mobile-card-value">{a.code}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">a.name</span>
+                  <span className="mobile-card-value">{a.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Kategori</span>
-                  <span className="mobile-card-value">a.category</span>
+                  <span className="mobile-card-value">{a.category}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nilai</span>
-                  <span className="mobile-card-value">a.purchase_value</span>
+                  <span className="mobile-card-value">{a.purchase_value}</span>
                 </div>
                 <div className="mobile-card-actions">
                   <button onClick={() => openEdit(a)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>

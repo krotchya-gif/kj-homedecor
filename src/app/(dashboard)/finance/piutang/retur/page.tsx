@@ -56,15 +56,15 @@ export default function ReturPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">r.amount</span>
+                  <span className="mobile-card-value">{r.amount}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Alasan</span>
-                  <span className="mobile-card-value">r.reason</span>
+                  <span className="mobile-card-value">{r.reason}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">r.created_at</span>
+                  <span className="mobile-card-value">{r.created_at}</span>
                 </div>
             </div>
           )} />

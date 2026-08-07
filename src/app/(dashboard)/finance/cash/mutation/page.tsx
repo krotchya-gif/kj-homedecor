@@ -184,15 +184,15 @@ export default function CashMutationPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">j.entry_date ?? j.date</span>
+                  <span className="mobile-card-value">{j.entry_date ?? j.date}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Mutasi</span>
-                  <span className="mobile-card-value">j.debit ?? j.credit ?? j.amount</span>
+                  <span className="mobile-card-value">{j.debit ?? j.credit ?? j.amount}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Saldo</span>
-                  <span className="mobile-card-value">j.balance</span>
+                  <span className="mobile-card-value">{j.balance}</span>
                 </div>
             </div>
           )} />

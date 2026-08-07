@@ -401,15 +401,15 @@ export default function GudangStockPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Produk</span>
-                  <span className="mobile-card-value">m.name</span>
+                  <span className="mobile-card-value">{m.name}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Stok Toko</span>
-                  <span className="mobile-card-value">m.stock_toko</span>
+                  <span className="mobile-card-value">{m.stock_toko}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Stok Gudang</span>
-                  <span className="mobile-card-value">m.stock_gudang</span>
+                  <span className="mobile-card-value">{m.stock_gudang}</span>
                 </div>
             </div>
           )} />
@@ -494,7 +494,34 @@ export default function GudangStockPage() {
               width: 280
             }}
           />
-          <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {filteredProd.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filteredProd} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Produk</span>
+                  <span className="mobile-card-value">{p.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Kategori</span>
+                  <span className="mobile-card-value">{p.category?.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">SKU</span>
+                  <span className="mobile-card-value">{p.sku}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Stok</span>
+                  <span className="mobile-card-value">{p.stock_toko}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             {loading ? (
               <div style={{ padding: '1.5rem' }}>
                 <TableSkeleton rows={8} cols={5} />
