@@ -1126,7 +1126,7 @@ export default function TikTokDashboardPage() {
               required
               onChange={(e) => setForm((f) => ({ ...f, app_secret: e.target.value }))}
               type="password"
-              placeholder="Your TikTok Shop App Secret"
+              placeholder="App Secret TikTok Shop"
               style={{
                 width: '100%',
                 padding: '0.6rem',

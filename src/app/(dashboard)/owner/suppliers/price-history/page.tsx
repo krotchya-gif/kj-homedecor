@@ -213,8 +213,7 @@ export default function MaterialHistoryPage() {
                     <Calendar size={28} style={{ margin: '0 auto 0.75rem', opacity: 0.3 }} />
                     <p>Belum ada data riwayat harga untuk material ini.</p>
                     <p style={{ fontSize: '0.8rem', marginTop: '0.5rem' }}>
-                      Jalankan migration <code>033_material_price_history.sql</code> di Supabase, lalu riwayat harga
-                      akan tercatat otomatis setiap kali harga material berubah.
+                      Riwayat harga tercatat otomatis setiap kali harga material diubah.
                     </p>
                   </div>
                 ) : (

@@ -156,7 +156,7 @@ export default function GudangProductionPage() {
       })
       .eq('id', jobId)
     if (statusErr) {
-      toast('error', '⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek RLS policy atau koneksi database.')
+      toast('error', '⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek koneksi database atau hubungi admin.')
     }
 
     const { error: logErr } = await supabase.from('order_logs').insert({
@@ -183,7 +183,7 @@ export default function GudangProductionPage() {
       .select('id, penjahit_id, status')
       .single()
     if (updateErr) {
-      toast('error', '⚠️ Gagal assign penjahit: ' + updateErr.message + '\n\nCek RLS policy atau koneksi database.')
+      toast('error', '⚠️ Gagal assign penjahit: ' + updateErr.message + '\n\nCek koneksi database atau hubungi admin.')
       setAssigning(false)
       return
     }

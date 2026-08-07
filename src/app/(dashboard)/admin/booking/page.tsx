@@ -287,9 +287,8 @@ export default function AdminBookingPage() {
           color: '#1e3a8a'
         }}
       >
-        <strong>ℹ️ Info:</strong> Order <code>pasang</code> dengan status <code>packed</code> akan otomatis dibuat
-        install_bookings di sini (status: <code>pending</code>). Silakan klik <strong>Tambah Manual</strong> atau
-        langsung edit untuk assign installer & tanggal. List ini auto-refresh via realtime subscription.
+        <strong>ℹ️ Info:</strong> Pesanan dengan jasa pasang yang sudah dikemas otomatis masuk ke daftar ini.
+        Klik <strong>Tambah Manual</strong> atau edit untuk mengatur installer dan jadwal pemasangan.
         <button
           onClick={() => setShowForm(true)}
           style={{

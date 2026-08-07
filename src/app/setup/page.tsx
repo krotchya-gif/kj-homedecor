@@ -285,7 +285,7 @@ export default function SetupPage() {
               <div style={{ fontSize: '0.82rem', color: 'var(--neutral-600)', lineHeight: 1.6 }}>
                 <strong>Petunjuk:</strong>
                 <br />
-                1. Pastikan <strong>migration SQL</strong> sudah dijalankan di Supabase
+                1. Pastikan database aplikasi sudah terpasang dengan benar
                 <br />
                 2. Klik <strong>Buat Akun</strong> untuk generate admin & owner
                 <br />
