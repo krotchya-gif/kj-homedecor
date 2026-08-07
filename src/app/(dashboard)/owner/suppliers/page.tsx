@@ -128,10 +128,13 @@ export default function SuppliersPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus supplier ini?')) return
+    // Optimistic update: hapus dari UI dulu, rollback kalau server error
+    const prev = suppliers
+    setSuppliers((curr) => curr.filter((s) => s.id !== id))
     const { error } = await supabase.from('suppliers').delete().eq('id', id)
 
-    if (error) { toast('error', 'Gagal hapus: ' + error.message); return }
-    load()
+    if (error) { setSuppliers(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+    toast('success', 'Supplier berhasil dihapus')
   }
 
   function handleExport() {

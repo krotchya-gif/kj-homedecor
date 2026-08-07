@@ -132,10 +132,13 @@ export default function StaffPage() {
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Hapus staff "${name}"?`)) return
     setDeleting(id)
+    // Optimistic update: hapus dari UI dulu, rollback kalau server error
+    const prev = staff
+    setStaff((curr) => curr.filter((s) => s.id !== id))
     const { error } = await supabase.from('users').delete().eq('id', id)
 
-    if (error) { setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
-    fetchStaff()
+    if (error) { setStaff(prev); setDeleting(null); toast('error', 'Gagal hapus: ' + error.message); return }
+    setDeleting(null)
     setSuccess(`Staff "${name}" berhasil dihapus`)
     toast('success', `Staff "${name}" berhasil dihapus`)
   }

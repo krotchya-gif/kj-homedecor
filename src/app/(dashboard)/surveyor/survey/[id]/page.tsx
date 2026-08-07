@@ -31,6 +31,15 @@ export default function SurveyDetailPage() {
   const [role, setRole] = useState('')
   const [copied, setCopied] = useState(false)
 
+  // Toast sukses setelah save (datang dari /survey/new & /survey/[id]/edit via ?saved=1),
+  // lalu bersihkan param tanpa reload (biar refresh tidak memunculkan toast lagi)
+  useEffect(() => {
+    if (searchParams.get('saved') === '1') {
+      toast('success', 'Survey tersimpan. Hasilnya sudah bisa dilihat Admin & Owner.')
+      router.replace(`/surveyor/survey/${params.id}`)
+    }
+  }, [searchParams, params.id, router, toast])
+
   const load = useCallback(async () => {
     const { data, error } = await supabase
       .from('surveys')
@@ -69,7 +78,9 @@ export default function SurveyDetailPage() {
       toast('error', json.error?.message ?? 'Gagal hapus survey')
       return
     }
-    router.push('/surveyor/history')
+    // Pindah ke riwayat + toast muncul di halaman tujuan (?deleted=1) — toast TIDAK
+    // dipanggil di sini karena navigasi langsung unmount halaman ini (toast hilang)
+    router.push('/surveyor/history?deleted=1')
   }
 
   async function handleCopy() {
@@ -118,12 +129,6 @@ export default function SurveyDetailPage() {
           </span>
         }
       />
-
-      {searchParams.get('saved') === '1' && (
-        <div style={{ background: '#dcfce7', color: '#166534', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem', fontWeight: '600' }}>
-          ✅ Survey tersimpan. Hasilnya sudah bisa dilihat Admin & Owner.
-        </div>
-      )}
 
       {/* Info client */}
       <div className="section-card" style={{ marginBottom: '1rem' }}>

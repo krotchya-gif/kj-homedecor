@@ -326,13 +326,16 @@ export default function ProductsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Hapus produk ini?')) return
+    // Optimistic update: hapus dari UI dulu, rollback kalau server error
+    const prev = products
+    setProducts((curr) => curr.filter((p) => p.id !== id))
     const { error } = await supabase.from('products').delete().eq('id', id)
     if (error) {
+      setProducts(prev)
       toast('error', 'Gagal hapus: ' + error.message)
       return
     }
     toast('success', 'Produk berhasil dihapus')
-    fetchProducts()
   }
 
   return (

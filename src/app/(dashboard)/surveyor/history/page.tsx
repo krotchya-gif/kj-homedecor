@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { PageHeader } from '@/components/ui/PageHeader'
 import BackButton from '@/components/ui/BackButton'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
@@ -27,7 +28,16 @@ interface Row {
 
 export default function SurveyHistoryPage() {
   const { toast } = useToast()
+  const searchParams = useSearchParams()
   const [rows, setRows] = useState<Row[]>([])
+
+  // Toast sukses hapus (datang dari detail survey via ?deleted=1), lalu bersihkan param
+  useEffect(() => {
+    if (searchParams.get('deleted') === '1') {
+      toast('success', 'Survey berhasil dihapus')
+    }
+  }, [searchParams, toast])
+
   const [count, setCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [filterClient, setFilterClient] = useState('')
