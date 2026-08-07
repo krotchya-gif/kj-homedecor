@@ -299,16 +299,49 @@ export default function AdminDashboardPage() {
   })
   const STATUS_LABELS: Record<string, string> = {
     new: 'Baru',
-    sorted: 'Sorted',
-    payment_ok: 'Payment OK',
+    sorted: 'Sudah Disortir',
+    payment_ok: 'Pembayaran OK',
     production: 'Produksi',
     steam: 'Steam/QC',
     ready: 'Siap',
-    packed: 'Packed',
+    packed: 'Dikemas',
     shipped: 'Dikirim',
     done: 'Selesai',
-    cancelled: 'Cancelled',
-    returned: 'Returned'
+    cancelled: 'Dibatalkan',
+    returned: 'Return'
+  }
+  const ACTION_LABELS: Record<string, string> = {
+    status_changed: 'Status Berubah',
+    order_created: 'Pesanan Dibuat',
+    order_deleted: 'Pesanan Dihapus',
+    payment_input: 'Pembayaran Diinput',
+    payment_added: 'Pembayaran Ditambah',
+    payment_approved: 'Pembayaran Disetujui',
+    payment_verified: 'Pembayaran Terverifikasi',
+    refund_issued: 'Refund Dikeluarkan',
+    sorted: 'Disortir',
+    packed: 'Dikemas',
+    shipped: 'Dikirim',
+    production: 'Produksi',
+    production_completed: 'Produksi Selesai',
+    steam: 'Steam/QC',
+    steam_qc_pass: 'Steam/QC Lolos',
+    steam_revision_requeue: 'Steam/QC Revisi',
+    ready: 'Siap',
+    done: 'Selesai',
+    cancelled: 'Dibatalkan',
+    returned: 'Return',
+    return_initiated: 'Return Diajukan',
+    return_stock_in: 'Stok Return Masuk',
+    return_disposed: 'Return Dimusnahkan',
+    qc_pass: 'QC Lolos',
+    qc_fail: 'QC Gagal',
+    penjahit_assigned: 'Penjahit Ditugaskan',
+    install_started: 'Pemasangan Dimulai',
+    install_revision: 'Revisi Pemasangan'
+  }
+  function formatLogAction(action: string): string {
+    return ACTION_LABELS[action] ?? action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   }
   const statusChartData = Object.entries(statusCounts).map(([k, v]) => ({
     name: STATUS_LABELS[k] ?? k,
@@ -764,7 +797,11 @@ export default function AdminDashboardPage() {
                           color: payColor
                         }}
                       >
-                        {order.payment_status === 'partial' ? 'DP' : order.payment_status.toUpperCase()}
+                        {order.payment_status === 'partial'
+            ? 'DP'
+            : order.payment_status === 'paid'
+              ? 'Lunas'
+              : 'Belum Bayar'}
                       </span>
                     </div>
                   </div>
@@ -839,7 +876,7 @@ export default function AdminDashboardPage() {
                                   whiteSpace: 'nowrap'
                                 }}
                               >
-                                {log.action.replace(/_/g, ' ').toUpperCase()}
+                                {formatLogAction(log.action)}
                                 {log.staff && <span style={{ color: 'var(--neutral-400)' }}> — {log.staff.name}</span>}
                               </span>
                               <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)', flexShrink: 0 }}>

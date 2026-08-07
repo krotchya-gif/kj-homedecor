@@ -785,7 +785,7 @@ export default function TikTokDashboardPage() {
                 <option value="">Status: Semua</option>
                 <option value="COMPLETED">Completed</option>
                 <option value="DELIVERED">Delivered</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="CANCELLED">Dibatalkan</option>
               </select>
               <select
                 value={filterPayment}
@@ -803,8 +803,8 @@ export default function TikTokDashboardPage() {
                 }}
               >
                 <option value="">Payment: Semua</option>
-                <option value="PAID">Paid</option>
-                <option value="CANCELLED">Cancelled</option>
+                <option value="PAID">Lunas</option>
+                <option value="CANCELLED">Dibatalkan</option>
               </select>
               <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{orderTotal} order</span>
               <select

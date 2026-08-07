@@ -9,7 +9,7 @@ import type { LaundryOrder, LaundryRate, User as UserType } from '@/types'
 import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: '#fef3c7', text: '#92400e', label: 'Pending' },
+  pending: { bg: '#fef3c7', text: '#92400e', label: 'Menunggu' },
   in_progress: { bg: '#dbeafe', text: '#1e40af', label: 'Diproses' },
   done: { bg: '#d1fae5', text: '#065f46', label: 'Selesai' }
 }
@@ -286,7 +286,7 @@ export default function AdminLaundryPage() {
           }}
         >
           <option value="">Semua Status</option>
-          <option value="pending">Pending</option>
+          <option value="pending">Menunggu</option>
           <option value="in_progress">Diproses</option>
           <option value="done">Selesai</option>
         </select>

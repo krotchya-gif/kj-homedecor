@@ -157,7 +157,7 @@ export default function PenjahitJobsPage() {
         >
           <CheckCircle2 size={40} style={{ color: '#22c55e', margin: '0 auto 1rem' }} />
           <p style={{ fontWeight: '700', color: '#166534', fontSize: '1.1rem' }}>Semua job selesai! 🎉</p>
-          <p style={{ color: '#16a34a', fontSize: '0.875rem' }}>Tidak ada pekerjaan yang pending</p>
+          <p style={{ color: '#16a34a', fontSize: '0.875rem' }}>Tidak ada pekerjaan yang menunggu</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
