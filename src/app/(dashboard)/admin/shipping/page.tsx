@@ -37,11 +37,11 @@ export default function AdminShippingPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [resiForm, setResiForm] = useState({ courier: '', tracking_number: '' })
   const [saving, setSaving] = useState(false)
-  // V3: foto bukti shipped (required per PHOTO_REQUIRED_STAGES)
+  // foto bukti shipped (required per PHOTO_REQUIRED_STAGES)
   const [shippedPhoto, setShippedPhoto] = useState<string | null>(null)
   const [uploadingShippedPhoto, setUploadingShippedPhoto] = useState(false)
 
-  // V3: upload foto untuk resi
+  // upload foto untuk resi
   async function handleShippedPhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !selectedOrder) return
@@ -99,9 +99,9 @@ export default function AdminShippingPage() {
 
   async function handleSaveResi() {
     if (!selectedOrder || !resiForm.courier || !resiForm.tracking_number) return
-    // V3: foto bukti WAJIB untuk 'shipped' (per PHOTO_REQUIRED_STAGES)
+    // foto bukti WAJIB untuk 'shipped' (per PHOTO_REQUIRED_STAGES)
     if (!shippedPhoto) {
-      toast('info', '⚠️ Wajib upload foto bukti pengiriman untuk stage "shipped" (V3 accountability).')
+      toast('info', '⚠️ Wajib upload foto bukti pengiriman untuk stage "shipped".')
       return
     }
     setSaving(true)
@@ -109,7 +109,7 @@ export default function AdminShippingPage() {
       data: { user }
     } = await supabase.auth.getUser()
 
-    // V3: pakai API route (server-side enforcement: role check, transition check)
+    // pakai API route (server-side enforcement: role check, transition check)
     const courierLabel = COURIERS.find((c) => c.value === resiForm.courier)?.label ?? resiForm.courier
     const apiRes = await fetch(`/api/orders/${selectedOrder.id}`, {
       method: 'PUT',
@@ -120,7 +120,7 @@ export default function AdminShippingPage() {
         tracking_number: resiForm.tracking_number,
         shipped_at: new Date().toISOString(),
         shipped_by: user?.id ?? null,
-        photo_urls: [shippedPhoto], // V3: foto bukti
+        photo_urls: [shippedPhoto], // foto bukti
         notes: `Shipped via ${courierLabel}, Resi: ${resiForm.tracking_number}`
       })
     })
@@ -135,7 +135,7 @@ export default function AdminShippingPage() {
     setShowResiModal(false)
     setSelectedOrder(null)
     setResiForm({ courier: '', tracking_number: '' })
-    setShippedPhoto(null) // V3: reset foto
+    setShippedPhoto(null) // reset foto
     // Optimistic update: status order di list langsung berubah
     setOrders((curr) =>
       curr.map((o) =>
@@ -455,7 +455,7 @@ export default function AdminShippingPage() {
                   }}
                 />
               </div>
-              {/* V3: Foto bukti shipped WAJIB (PHOTO_REQUIRED_STAGES) */}
+              {/* Foto bukti shipped WAJIB (PHOTO_REQUIRED_STAGES) */}
               <div>
                 <label
                   style={{

@@ -58,7 +58,7 @@ export default function InstallerSchedulePage() {
   const list = tab === 'upcoming' ? upcoming : done
 
   async function updateStatus(id: string, status: string) {
-    // V3: pakai API route (server-side RPC advance_install_booking_status)
+    // pakai API route (server-side RPC advance_install_booking_status)
     // Auto-cascade ke orders.status (single source of truth)
     const res = await fetch(`/api/install-bookings/${id}`, {
       method: 'PUT',

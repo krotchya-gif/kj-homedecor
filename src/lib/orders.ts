@@ -1,7 +1,7 @@
 import type { OrderClassification, OrderStatus } from '@/types'
 
 /**
- * V3 Pipeline: Single source of truth untuk pipeline stages per classification.
+ * Pipeline: Single source of truth untuk pipeline stages per classification.
  *
  * - 'kirim'  : delivery only (8 stages, last = shipped)
  * - 'pasang' : delivery + installation (9 stages, last = installing -> done)
@@ -22,7 +22,7 @@ export const ORDER_STAGES_BY_CLASSIFICATION: Record<OrderClassification, readonl
  * Stages yang WAJIB upload foto bukti (untuk accountability).
  * Tiap transition ke stage ini butuh minimal 1 foto.
  *
- * V3: tambah 'steam' (QC jahitan) & 'scheduled' (jadwal pasang) untuk
+ * tambah 'steam' (QC jahitan) & 'scheduled' (jadwal pasang) untuk
  * accountability + audit trail yang lebih kuat.
  */
 export const PHOTO_REQUIRED_STAGES: readonly OrderStatus[] = [

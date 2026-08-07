@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 /**
  * POST /api/orders/[id]/consume-materials
  *
- * V3 Pipeline: Server-side atomic material consumption.
+ * Pipeline: Server-side atomic material consumption.
  * Called dari Gudang Production page saat production_jobs.status -> 'done'.
  *
  * Body: { production_job_id: string }

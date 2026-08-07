@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
-// V3 Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
+// Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
 // 2026-07-31: payment_ok dipindah ke depan (new → payment_ok) — finance approve pembayaran
 // SEBELUM produksi (anti bukti transfer palsu, sesuai permintaan finance/customer).
 const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
@@ -11,17 +11,17 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
   production: ['steam', 'cancelled'],
   steam: ['ready', 'cancelled', 'production'], // 'production' = Steam revision re-queue
   ready: ['packed', 'cancelled'],
-  packed: ['shipped', 'scheduled', 'cancelled'], // V3: 'scheduled' untuk alur pasang
+  packed: ['shipped', 'scheduled', 'cancelled'], // 'scheduled' untuk alur pasang
   shipped: ['done'],
-  scheduled: ['installing', 'cancelled'], // V3: alur pasang
-  installing: ['done', 'cancelled'], // V3: alur pasang
+  scheduled: ['installing', 'cancelled'], // alur pasang
+  installing: ['done', 'cancelled'], // alur pasang
   done: [],
   returned: [],
   cancelled: []
 }
 
 // Role-based permissions for status transitions
-// V3: tambah permissions untuk alur pasang (scheduled, installing)
+// tambah permissions untuk alur pasang (scheduled, installing)
 // 2026-07-31: finance approve di DEPAN — new→payment_ok (verifikasi pembayaran sebelum produksi).
 // E-commerce (TikTok/Shopee) masuk langsung 'sorted' via sync (auto-skip, pembayaran platform terverifikasi).
 // admin: all transitions + packed→scheduled (input jadwal pasang untuk admin)
@@ -29,7 +29,7 @@ const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
 // installer: packed→shipped (kirim) + scheduled→installing + installing→done (pasang)
 const ROLE_STATUS_PERMISSIONS: Record<string, string[]> = {
   finance: ['new->payment_ok'],
-  admin: ['packed->scheduled'], // V3: admin bisa input jadwal pasang
+  admin: ['packed->scheduled'], // admin bisa input jadwal pasang
   // 2026-07-31: gudang pegang payment_ok→sorted (sortir setelah approve) + ready→packed (packing setelah Siap)
   gudang: ['payment_ok->sorted', 'production->steam', 'steam->production', 'ready->packed'],
   installer: ['packed->shipped', 'scheduled->installing', 'installing->done']
@@ -264,7 +264,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       })
     }
 
-    // V3 Pipeline: packed → scheduled (alur pasang)
+    // Pipeline: packed → scheduled (alur pasang)
     // Auto-create install_bookings row dengan status 'pending'.
     // Admin akan assign installer + tanggal di /admin/booking.
     if (body.status === 'scheduled' && current.status === 'packed') {

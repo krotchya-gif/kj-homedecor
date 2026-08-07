@@ -72,7 +72,7 @@ export default function GudangSteamPage() {
   const [failSaving, setFailSaving] = useState(false)
   const [showPassDialog, setShowPassDialog] = useState<SteamJob | null>(null)
   const [passSaving, setPassSaving] = useState(false)
-  // V3: foto bukti WAJIB sebelum steam pass/fail (PHOTO_REQUIRED_STAGES include 'steam')
+  // foto bukti WAJIB sebelum steam pass/fail (PHOTO_REQUIRED_STAGES include 'steam')
   const [steamPassPhoto, setSteamPassPhoto] = useState<string | null>(null)
   const [steamFailPhoto, setSteamFailPhoto] = useState<string | null>(null)
   const [uploadingSteamPhoto, setUploadingSteamPhoto] = useState(false)
@@ -147,9 +147,9 @@ export default function GudangSteamPage() {
   }
 
   async function handleSteamPass(job: SteamJob) {
-    // V3: foto bukti WAJIB untuk stage 'steam' (per PHOTO_REQUIRED_STAGES)
+    // foto bukti WAJIB untuk stage 'steam' (per PHOTO_REQUIRED_STAGES)
     if (!steamPassPhoto) {
-      toast('warning', '⚠️ Wajib upload foto bukti QC Steam (V3 accountability) sebelum konfirmasi Pass.')
+      toast('warning', '⚠️ Wajib upload foto bukti QC Steam sebelum konfirmasi Pass.')
       return
     }
     setPassSaving(true)
@@ -166,13 +166,13 @@ export default function GudangSteamPage() {
       })
       .eq('id', job.id)
     if (jobErr) { setPassSaving(false); toast('error', 'Gagal update steam job: ' + jobErr.message); return }
-    // V3: insert order_progress_photos dengan stage='steam' (V3 foto bukti)
+    // insert order_progress_photos dengan stage='steam' (foto bukti)
     const { error: photoErr } = await supabase.from('order_progress_photos').insert({
       order_id: job.order_id,
       stage: 'steam',
       photo_url: steamPassPhoto,
       uploaded_by: user?.id ?? null,
-      notes: `Steam QC Pass — foto bukti hasil pengerjaan (V3)`
+      notes: `Steam QC Pass — foto bukti hasil pengerjaan`
     })
     if (photoErr) { setPassSaving(false); toast('error', 'Gagal simpan foto bukti: ' + photoErr.message); return }
     // Log
@@ -190,15 +190,15 @@ export default function GudangSteamPage() {
 
     setPassSaving(false)
     setShowPassDialog(null)
-    setSteamPassPhoto(null) // V3: reset foto
+    setSteamPassPhoto(null) // reset foto
     loadSteam()
   }
 
   async function handleSteamFail() {
     if (!showFailModal || !failReason.trim()) return
-    // V3: foto bukti WAJIB untuk stage 'steam' (saat fail/revisi)
+    // foto bukti WAJIB untuk stage 'steam' (saat fail/revisi)
     if (!steamFailPhoto) {
-      toast('warning', '⚠️ Wajib upload foto bukti QC Steam Fail (V3 accountability) sebelum konfirmasi Revisi.')
+      toast('warning', '⚠️ Wajib upload foto bukti QC Steam Fail sebelum konfirmasi Revisi.')
       return
     }
     setFailSaving(true)
@@ -209,13 +209,13 @@ export default function GudangSteamPage() {
     const orderId = showFailModal.order_id
     const failReasonText = failReason
 
-    // V3: insert order_progress_photos dengan stage='steam' (foto bukti fail)
+    // insert order_progress_photos dengan stage='steam' (foto bukti fail)
     const { error: photoErr } = await supabase.from('order_progress_photos').insert({
       order_id: orderId,
       stage: 'steam',
       photo_url: steamFailPhoto,
       uploaded_by: user?.id ?? null,
-      notes: `Steam QC Fail — foto bukti (V3). Alasan: ${failReasonText}`
+      notes: `Steam QC Fail — foto bukti. Alasan: ${failReasonText}`
     })
     if (photoErr) { setFailSaving(false); toast('error', 'Gagal simpan foto bukti fail: ' + photoErr.message); return }
 
@@ -288,7 +288,7 @@ export default function GudangSteamPage() {
     setFailSaving(false)
     setShowFailModal(null)
     setFailReason('')
-    setSteamFailPhoto(null) // V3: reset foto
+    setSteamFailPhoto(null) // reset foto
     loadSteam()
   }
 
@@ -781,7 +781,7 @@ export default function GudangSteamPage() {
               siap dikirim ke Finance untuk approval pembayaran?
             </DialogDescription>
           </DialogHeader>
-          {/* V3: Foto bukti WAJIB untuk stage 'steam' */}
+          {/* Foto bukti WAJIB untuk stage 'steam' */}
           <div style={{ marginBottom: '1rem' }}>
             <label
               style={{
@@ -924,7 +924,7 @@ export default function GudangSteamPage() {
               }}
             />
           </div>
-          {/* V3: Foto bukti WAJIB untuk stage 'steam' (saat fail) */}
+          {/* Foto bukti WAJIB untuk stage 'steam' (saat fail) */}
           <div style={{ marginBottom: '1rem' }}>
             <label
               style={{

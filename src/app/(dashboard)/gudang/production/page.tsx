@@ -121,7 +121,7 @@ export default function GudangProductionPage() {
     } = await supabase.auth.getUser()
     const job = jobs.find((j) => j.id === jobId)
 
-    // V3: Panggil API server-side untuk material consumption (atomic)
+    // Panggil API server-side untuk material consumption (atomic)
     // Saat job.status transitions ke 'done', panggil /api/orders/[id]/consume-materials
     // yang internally call RPC consume_materials_for_production.
     // - Decrement stock_gudang (with GREATEST(0) guard)

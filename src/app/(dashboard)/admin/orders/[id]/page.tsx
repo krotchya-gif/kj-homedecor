@@ -29,7 +29,7 @@ import { Modal } from '@/components/ui/Modal'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
 import { useToast } from '@/components/ui/Toast'
 
-// V3 Pipeline: ORDER_STATUSES now conditional based on order.classification
+// Pipeline: ORDER_STATUSES now conditional based on order.classification
 // Use shared util ORDER_STAGES_BY_CLASSIFICATION untuk single source of truth
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   new: { bg: '#dbeafe', text: '#1e40af' },
@@ -59,7 +59,7 @@ const fmt = (n: number) =>
 // Penjual tombol Lanjut: sembunyikan kalau bukan role ini.
 // Stage transition permissions — setiap role hanya boleh klik "Lanjut" di stage yang menjadi tanggung jawabnya.
 // Owner = escape hatch (bisa semua stage). Admin TIDAK escape hatch — hanya di sortir (awal) dan shipping (akhir).
-// Source of truth: matrix di Pipeline V2 docs
+// Source of truth: matrix di dokumentasi pipeline
 const ROLE_NEXT_ALLOWED: Record<string, string[]> = {
   // Admin: sortir order (awal) + shipping akhir + escape hatch pembayaran
   admin: ['new', 'payment_ok', 'sorted', 'packed', 'shipped'],
@@ -770,13 +770,13 @@ export default function OrderDetailPage() {
     return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Order tidak ditemukan.</div>
 
   const customer = order.customer as { name: string; phone: string; address?: string } | null
-  // V3: ORDER_STATUSES now conditional per classification (kirim vs pasang)
+  // ORDER_STATUSES now conditional per classification (kirim vs pasang)
   const orderClassification: 'kirim' | 'pasang' = (order.classification ?? 'kirim') as 'kirim' | 'pasang'
   const ORDER_STATUSES = ORDER_STAGES_BY_CLASSIFICATION[orderClassification] ?? ORDER_STAGES_BY_CLASSIFICATION.kirim
   const statusIdx = (ORDER_STATUSES as readonly string[]).indexOf(order.status)
   const nextStatus: OrderStatus | null =
     statusIdx >= 0 && statusIdx < ORDER_STATUSES.length - 1 ? (ORDER_STATUSES[statusIdx + 1] as OrderStatus) : null
-  // V3: dynamic button label (mis. 'Input Resi' vs 'Jadwalkan Pasang')
+  // dynamic button label (mis. 'Input Resi' vs 'Jadwalkan Pasang')
   const nextStageButtonLabel = nextStatus ? getNextStageButtonLabel(nextStatus, orderClassification) : 'Lanjut'
 
   return (
@@ -2555,7 +2555,7 @@ export default function OrderDetailPage() {
           {pendingStatus && isPhotoRequired(pendingStatus as any) ? (
             <>
               <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> untuk stage{' '}
-              <strong>{STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS]}</strong> (V3 accountability). Foto
+              <strong>{STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS]}</strong> (wajib bukti foto). Foto
               akan tercatat sebagai bukti pengerjaan.
             </>
           ) : (

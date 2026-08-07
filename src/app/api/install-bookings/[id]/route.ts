@@ -28,7 +28,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
 
-  // 2. V3: Kalau status berubah, panggil RPC `advance_install_booking_status`
+  // 2. Kalau status berubah, panggil RPC `advance_install_booking_status`
   //    untuk atomic cascade ke orders.status
   if (body.status && body.status !== undefined) {
     // Auto-set actual_date when marking done

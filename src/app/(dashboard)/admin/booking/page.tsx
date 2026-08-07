@@ -66,7 +66,7 @@ const MONTHS = [
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'Menunggu', color: '#92400e', bg: '#fef3c7' },
   scheduled: { label: 'Terjadwal', color: '#3730a3', bg: '#e0e7ff' },
-  in_progress: { label: 'Sedang Dipasang', color: '#1e40af', bg: '#dbeafe' }, // V3
+  in_progress: { label: 'Sedang Dipasang', color: '#1e40af', bg: '#dbeafe' }, //
   done: { label: 'Selesai', color: '#065f46', bg: '#d1fae5' },
   cancelled: { label: 'Dibatalkan', color: '#991b1b', bg: '#fee2e2' },
   revision: { label: 'Revisi', color: '#92400e', bg: '#fed7aa' }
@@ -115,7 +115,7 @@ export default function AdminBookingPage() {
     loadData()
     fetchOccupiedDates()
 
-    // V3: Realtime subscription untuk auto-refresh saat install_bookings berubah
+    // Realtime subscription untuk auto-refresh saat install_bookings berubah
     // (mis. saat 'packed -> scheduled' auto-create booking di API, atau saat
     // installer update status via /api/install-bookings/[id])
     const channel = supabase
@@ -214,7 +214,7 @@ export default function AdminBookingPage() {
   }
 
   async function handleUpdateStatus(bookingId: string, newStatus: string) {
-    // V3: pakai API route (server-side RPC advance_install_booking_status)
+    // pakai API route (server-side RPC advance_install_booking_status)
     // Auto-cascade ke orders.status kalau booking type='pasang' & order classification='pasang'
     setSaving(true)
     try {
@@ -275,7 +275,7 @@ export default function AdminBookingPage() {
     <div>
       <PageHeader title="Booking & Pemasangan" subtitle="Kelola semua booking dari customer dan manual" />
 
-      {/* V3: Banner info auto-create integration */}
+      {/* Banner info auto-create integration */}
       <div
         style={{
           background: '#dbeafe',
@@ -287,7 +287,7 @@ export default function AdminBookingPage() {
           color: '#1e3a8a'
         }}
       >
-        <strong>ℹ️ V3 Info:</strong> Order <code>pasang</code> dengan status <code>packed</code> akan otomatis dibuat
+        <strong>ℹ️ Info:</strong> Order <code>pasang</code> dengan status <code>packed</code> akan otomatis dibuat
         install_bookings di sini (status: <code>pending</code>). Silakan klik <strong>Tambah Manual</strong> atau
         langsung edit untuk assign installer & tanggal. List ini auto-refresh via realtime subscription.
         <button
