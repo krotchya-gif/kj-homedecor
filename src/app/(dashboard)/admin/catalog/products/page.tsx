@@ -214,6 +214,7 @@ export default function ProductsPage() {
     }
 
     fetchProducts()
+    toast(errors.length > 0 ? 'warning' : 'success', `Import selesai: ${inserted} baru, ${updated} update${errors.length > 0 ? `, ${errors.length} error` : ''}`)
     return { inserted, updated, errors }
   }
 

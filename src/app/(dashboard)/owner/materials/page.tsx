@@ -131,6 +131,7 @@ export default function MaterialsPage() {
       }
     }
     fetchMaterials()
+    toast(errors.length > 0 ? 'warning' : 'success', `Import selesai: ${inserted} data baru${errors.length > 0 ? `, ${errors.length} error` : ''}`)
     return { inserted, updated: 0, errors }
   }
 

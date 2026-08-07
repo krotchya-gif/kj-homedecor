@@ -236,6 +236,7 @@ export default function OrdersPage() {
     setSaving(false)
     setShowForm(false)
     fetchOrders()
+    toast('success', 'Pesanan berhasil dibuat')
   }
 
   return (

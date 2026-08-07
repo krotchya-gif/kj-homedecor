@@ -1,5 +1,6 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { useToast } from '@/components/ui/Toast'
 
 import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -16,6 +17,7 @@ interface SeoSettings {
 }
 
 export default function AdminSeoPage() {
+  const { toast } = useToast()
   const [settings, setSettings] = useState<SeoSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -81,8 +83,10 @@ export default function AdminSeoPage() {
     setSaving(false)
     if (!error) {
       setUploadMsg({ type: 'success', text: 'SEO settings saved successfully!' })
+      toast('success', 'SEO settings berhasil disimpan')
     } else {
       setUploadMsg({ type: 'error', text: 'Failed to save: ' + error.message })
+      toast('error', 'Gagal simpan SEO: ' + error.message)
     }
     setTimeout(() => setUploadMsg(null), 3000)
   }
@@ -98,8 +102,10 @@ export default function AdminSeoPage() {
     setUploadingSitemap(false)
     if (data.success) {
       setUploadMsg({ type: 'success', text: 'sitemap.xml uploaded successfully!' })
+      toast('success', 'sitemap.xml berhasil di-upload')
     } else {
       setUploadMsg({ type: 'error', text: data.error ?? 'Upload failed' })
+      toast('error', 'Gagal upload sitemap: ' + (data.error ?? 'Unknown'))
     }
     setTimeout(() => setUploadMsg(null), 3000)
     if (sitemapRef.current) sitemapRef.current.value = ''
@@ -116,8 +122,10 @@ export default function AdminSeoPage() {
     setUploadingRobots(false)
     if (data.success) {
       setUploadMsg({ type: 'success', text: 'robots.txt uploaded successfully!' })
+      toast('success', 'robots.txt berhasil di-upload')
     } else {
       setUploadMsg({ type: 'error', text: data.error ?? 'Upload failed' })
+      toast('error', 'Gagal upload robots: ' + (data.error ?? 'Unknown'))
     }
     setTimeout(() => setUploadMsg(null), 3000)
     if (robotsRef.current) robotsRef.current.value = ''

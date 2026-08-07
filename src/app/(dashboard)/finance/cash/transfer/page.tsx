@@ -1,6 +1,7 @@
 'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
+import { useToast } from '@/components/ui/Toast'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -22,6 +23,7 @@ interface CashAccount {
 }
 
 export default function TransferPage() {
+  const { toast } = useToast()
   const [transfers, setTransfers] = useState<any[]>([])
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
   const [loading, setLoading] = useState(true)
@@ -88,16 +90,21 @@ export default function TransferPage() {
         .from('cash_accounts')
         .update({ balance: fromAcc.balance - amount })
         .eq('id', form.from_account_id)
-      if (fromErr) { console.error('Update balance akun asal gagal:', fromErr) }
+      if (fromErr) { console.error('Update balance akun asal gagal:', fromErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun asal tidak ter-update: ' + fromErr.message) }
       const { error: toErr } = await supabase
         .from('cash_accounts')
         .update({ balance: toAcc.balance + amount })
         .eq('id', form.to_account_id)
-      if (toErr) { console.error('Update balance akun tujuan gagal:', toErr) }
+      if (toErr) { console.error('Update balance akun tujuan gagal:', toErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun tujuan tidak ter-update: ' + toErr.message) }
+    } else {
+      toast('error', 'Gagal transfer: ' + (json.error?.message ?? 'Terjadi kesalahan'))
+      setSaving(false)
+      return
     }
     setSaving(false)
     setShowForm(false)
     fetchData()
+    toast('success', 'Transfer kas berhasil dicatat')
   }
 
   return (
