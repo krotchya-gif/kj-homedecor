@@ -11,7 +11,7 @@ export function formatSurveyText(survey: Survey): string {
   lines.push(`Nama Client: ${survey.client_name || '-'}`)
   lines.push(`Alamat: ${survey.client_address || '-'}`)
   lines.push(`Tanggal: ${survey.survey_date || '-'}`)
-  lines.push(`Surveyor: ${(survey as any).surveyor?.name || '-'}`)
+  lines.push(`Surveyor: ${survey.surveyor?.name || '-'}`)
   lines.push('')
 
   const rooms = survey.rooms ?? []

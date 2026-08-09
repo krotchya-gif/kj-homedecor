@@ -1,4 +1,5 @@
 'use client'
+import type { JournalEntry, JournalLine } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -13,10 +14,20 @@ const formatRp = (n: number) =>
     maximumFractionDigits: 0
   }).format(n)
 
+interface CashAccountRow {
+  id: string
+  name?: string
+  account_id?: string
+  balance?: number
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+}
+
 export default function CashMutationPage() {
-  const [cashAccounts, setCashAccounts] = useState<any[]>([])
+  const [cashAccounts, setCashAccounts] = useState<CashAccountRow[]>([])
   const [selectedAccount, setSelectedAccount] = useState('')
-  const [journals, setJournals] = useState<any[]>([])
+  const [journals, setJournals] = useState<(JournalLine & { entry?: JournalEntry | null })[]>([])
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState('30')
   const supabase = createClient()
@@ -66,9 +77,9 @@ export default function CashMutationPage() {
     if (!journals.length) return []
     const openingBalance = cashAcc?.balance ?? 0
     // Calculate opening balance before the filtered period
-    const result: any[] = []
+    const result: (JournalLine & { entry?: JournalEntry | null; runningBalance?: number })[] = []
     let balance = 0
-    journals.forEach((j: any) => {
+    journals.forEach((j) => {
       const debit = Number(j.debit ?? 0)
       const credit = Number(j.credit ?? 0)
       balance += debit - credit
@@ -108,7 +119,7 @@ export default function CashMutationPage() {
         >
           {cashAccounts.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.bank_name} — {c.account_number} ({formatRp(c.balance)})
+              {c.bank_name} — {c.account_number} ({formatRp(c.balance ?? 0)})
             </option>
           ))}
         </select>
@@ -169,7 +180,7 @@ export default function CashMutationPage() {
           >
             {cashAcc.account_number} — {cashAcc.account_holder}
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#34d399' }}>{formatRp(cashAcc.balance)}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#34d399' }}>{formatRp(cashAcc.balance ?? 0)}</div>
         </div>
       )}
 
@@ -184,15 +195,15 @@ export default function CashMutationPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{j.entry_date ?? j.date}</span>
+                  <span className="mobile-card-value">{j.entry?.entry_date ?? j.entry?.date ?? '—'}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Mutasi</span>
-                  <span className="mobile-card-value">{j.debit ?? j.credit ?? j.amount}</span>
+                  <span className="mobile-card-value">{j.debit ?? j.credit ?? 0}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Saldo</span>
-                  <span className="mobile-card-value">{j.balance}</span>
+                  <span className="mobile-card-value">{j.runningBalance ?? 0}</span>
                 </div>
             </div>
           )} />
@@ -219,7 +230,7 @@ export default function CashMutationPage() {
               </tr>
             </thead>
             <tbody>
-              {runningBalance.map((j: any, idx) => (
+              {runningBalance.map((j: JournalLine & { entry?: JournalEntry | null; runningBalance?: number }, idx) => (
                 <tr key={j.id ?? idx}>
                   <td style={{ color: 'var(--neutral-600)' }}>
                     {j.entry?.entry_date ? new Date(j.entry.entry_date).toLocaleDateString('id-ID') : '—'}
@@ -244,7 +255,7 @@ export default function CashMutationPage() {
                   >
                     {Number(j.credit) > 0 ? formatRp(Number(j.credit)) : '—'}
                   </td>
-                  <td style={{ fontWeight: '700', textAlign: 'right' }}>{formatRp(j.runningBalance)}</td>
+                  <td style={{ fontWeight: '700', textAlign: 'right' }}>{formatRp(j.runningBalance ?? 0)}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,16 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+interface TikTokLineItem {
+  sale_price?: number | string
+  original_price?: number | string
+  product_name?: string
+  product_id?: string
+  quantity?: number | string
+  sku_id?: string
+  sku_name?: string
+}
+
 export async function POST(_req: NextRequest) {
   const supabase = await createClient()
   const {
@@ -81,7 +91,7 @@ export async function POST(_req: NextRequest) {
 
       // Sync line items dari TikTok ke order_items — root cause "item pesanan ga keluar":
       // sebelumnya order dibuat TANPA order_items sama sekali.
-      const lineItems = (to.order_data as any)?.line_items ?? []
+      const lineItems = (to.order_data as unknown as { line_items?: TikTokLineItem[] } | null)?.line_items ?? []
       let itemCount = 0
       for (const li of lineItems) {
         const price = Number(li.sale_price ?? li.original_price ?? 0)
@@ -113,7 +123,7 @@ export async function POST(_req: NextRequest) {
       total: (tiktokOrders || []).length,
       message: `Linked ${created} TikTok orders to main orders, ${skipped} already linked`
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

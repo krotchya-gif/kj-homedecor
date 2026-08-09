@@ -29,11 +29,45 @@ const formatRp = (n: number) =>
     maximumFractionDigits: 0
   }).format(n)
 
+interface TikTokSetting {
+  id: string
+  shop_name?: string
+  seller_name?: string
+  is_active?: boolean
+  shop_cipher?: string
+  access_token?: string
+  token_expires_at?: string
+}
+
+interface TikTokOrder {
+  id: string
+  order_number?: string
+  tiktok_order_id?: string
+  order_status?: string
+  status?: string
+  payment_status?: string
+  buyer_name?: string
+  order_date?: string
+  created_at?: string
+  total_amount?: number
+}
+
+interface TikTokStatement {
+  id: string
+  statement_id?: string
+  statement_type?: string
+  piutang_id?: string
+  period?: string
+  status?: string
+  start_date?: string
+  total_amount?: number
+}
+
 export default function TikTokDashboardPage() {
   const { toast } = useToast()
-  const [settings, setSettings] = useState<any[]>([])
-  const [orders, setOrders] = useState<any[]>([])
-  const [statements, setStatements] = useState<any[]>([])
+  const [settings, setSettings] = useState<TikTokSetting[]>([])
+  const [orders, setOrders] = useState<TikTokOrder[]>([])
+  const [statements, setStatements] = useState<TikTokStatement[]>([])
   const [loading, setLoading] = useState(true)
   const [orderPage, setOrderPage] = useState(0)
   const [orderTotal, setOrderTotal] = useState(0)
@@ -148,8 +182,8 @@ export default function TikTokDashboardPage() {
           text: json.error || 'Gagal menyimpan settings'
         })
       }
-    } catch (err: any) {
-      setSyncResult({ type: 'error', text: err.message })
+    } catch (err) {
+      setSyncResult({ type: 'error', text: err instanceof Error ? err.message : String(err) })
     }
     setSaving(false)
   }
@@ -174,8 +208,8 @@ export default function TikTokDashboardPage() {
           text: json.error || 'Gagal mendapatkan OAuth URL'
         })
       }
-    } catch (err: any) {
-      setSyncResult({ type: 'error', text: err.message })
+    } catch (err) {
+      setSyncResult({ type: 'error', text: err instanceof Error ? err.message : String(err) })
     }
     setReauthLoading(false)
   }
@@ -230,7 +264,7 @@ export default function TikTokDashboardPage() {
     fetchData()
   }
 
-  function isTokenExpired(shop: any): boolean {
+  function isTokenExpired(shop: TikTokSetting): boolean {
     if (!shop.token_expires_at || !shop.access_token) return true
     return new Date(shop.token_expires_at) < new Date()
   }
@@ -817,7 +851,7 @@ export default function TikTokDashboardPage() {
         ) : orders.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={orders} keyOf={(o: any) => o.id} renderCard={(o: any) => (
+          <MobileCards items={orders} keyOf={(o) => o.id} renderCard={(o) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
@@ -860,8 +894,8 @@ export default function TikTokDashboardPage() {
                             borderRadius: '999px',
                             fontSize: '0.75rem',
                             fontWeight: '600',
-                            background: ['DELIVERED', 'COMPLETED'].includes(o.order_status) ? '#f0fdf4' : '#fef9c3',
-                            color: ['DELIVERED', 'COMPLETED'].includes(o.order_status) ? '#166534' : '#854d0e'
+                            background: ['DELIVERED', 'COMPLETED'].includes(o.order_status ?? '') ? '#f0fdf4' : '#fef9c3',
+                            color: ['DELIVERED', 'COMPLETED'].includes(o.order_status ?? '') ? '#166534' : '#854d0e'
                           }}
                         >
                           {o.order_status || '-'}
@@ -890,7 +924,7 @@ export default function TikTokDashboardPage() {
                               month: 'short',
                               year: 'numeric'
                             })
-                          : new Date(o.created_at).toLocaleDateString('id-ID')}
+                          : new Date(o.created_at ?? '').toLocaleDateString('id-ID')}
                       </td>
                     </tr>
                   ))}
@@ -958,7 +992,7 @@ export default function TikTokDashboardPage() {
         {statements.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={statements} keyOf={(st: any) => st.id} renderCard={(st: any) => (
+          <MobileCards items={statements} keyOf={(st) => st.id} renderCard={(st) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Period</span>
@@ -1001,8 +1035,8 @@ export default function TikTokDashboardPage() {
                           borderRadius: '999px',
                           fontSize: '0.75rem',
                           fontWeight: '600',
-                          background: ['SUCCESS', 'PAID'].includes(st.status) ? '#f0fdf4' : '#fef9c3',
-                          color: ['SUCCESS', 'PAID'].includes(st.status) ? '#166534' : '#854d0e'
+                          background: ['SUCCESS', 'PAID'].includes(st.status ?? '') ? '#f0fdf4' : '#fef9c3',
+                          color: ['SUCCESS', 'PAID'].includes(st.status ?? '') ? '#166534' : '#854d0e'
                         }}
                       >
                         {st.status || '-'}

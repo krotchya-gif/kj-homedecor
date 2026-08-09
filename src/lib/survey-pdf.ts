@@ -10,6 +10,10 @@ const BRAND: [number, number, number] = [204, 112, 48]
  * Catatan: foto ruangan TIDAK disertakan di MVP PDF (CORS untuk canvas/dataURL tidak
  * dijamin) — foto tetap bisa dilihat di detail survey.
  */
+interface AutoTableDoc {
+  lastAutoTable: { finalY: number }
+}
+
 export function generateSurveyPDF(survey: Survey) {
   const doc = new jsPDF()
 
@@ -42,7 +46,7 @@ export function generateSurveyPDF(survey: Survey) {
       ['Nama Client', survey.client_name || '-'],
       ['Alamat', survey.client_address || '-'],
       ['Tanggal Survey', survey.survey_date || '-'],
-      ['Surveyor', (survey as any).surveyor?.name || '-']
+      ['Surveyor', survey.surveyor?.name || '-']
     ],
     theme: 'striped',
     headStyles: { fillColor: BRAND },
@@ -51,7 +55,7 @@ export function generateSurveyPDF(survey: Survey) {
 
   // Rooms
   const rooms = survey.rooms ?? []
-  let y = (doc as any).lastAutoTable.finalY + 8
+  let y = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 8
   if (rooms.length === 0) {
     doc.setFontSize(9)
     doc.setTextColor(120)
@@ -87,7 +91,7 @@ export function generateSurveyPDF(survey: Survey) {
       headStyles: { fillColor: [120, 90, 60] },
       columnStyles: { 0: { cellWidth: 45, fontStyle: 'bold' }, 1: { cellWidth: 125 } }
     })
-    y = (doc as any).lastAutoTable.finalY + 8
+    y = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 8
   })
 
   // Footer tanda tangan
@@ -99,7 +103,7 @@ export function generateSurveyPDF(survey: Survey) {
   doc.setTextColor(51, 51, 51)
   doc.setFont('helvetica', 'bold')
   doc.text('Tanda tangan Surveyor:', 20, y + 10)
-  const signature = (survey as any).signature as string | undefined
+  const signature = survey.signature as string | undefined
   if (signature) {
     // dataURL dari DB — aman tanpa CORS (beda dengan foto ruangan yang URL eksternal)
     try {

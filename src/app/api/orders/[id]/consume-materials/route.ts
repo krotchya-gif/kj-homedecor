@@ -97,7 +97,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       order_id: id,
       order_number: order.order_number,
       production_job_id: productionJobId,
-      ...(rpcResult as any)
+      ...(rpcResult as unknown as Record<string, unknown>)
     },
     error: null
   })

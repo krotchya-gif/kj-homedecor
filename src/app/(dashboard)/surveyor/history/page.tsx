@@ -1,4 +1,5 @@
 'use client'
+import type { Survey } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import Pagination from '@/components/ui/Pagination'
 
@@ -189,7 +190,7 @@ export default function SurveyHistoryPage() {
                     <button onClick={() => copyRow(r)} style={miniBtn('#374151')}>
                       Copy
                     </button>{' '}
-                    <a href={buildWhatsAppUrl({ ...(r as any), rooms: [] } as any)} target="_blank" rel="noreferrer" style={miniBtn('#25D366')}>
+                    <a href={buildWhatsAppUrl({ ...(r as unknown as Survey), rooms: [] })} target="_blank" rel="noreferrer" style={miniBtn('#25D366')}>
                       WA
                     </a>
                   </td>

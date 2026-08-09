@@ -171,7 +171,7 @@ export default function OwnerMarketplacePage() {
         ) : topSources.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={topSources} keyOf={(src: any) => src.id} renderCard={(src: any) => (
+          <MobileCards items={topSources} keyOf={(src) => src.source} renderCard={(src) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sumber</span>
@@ -179,11 +179,11 @@ export default function OwnerMarketplacePage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">{src.count ?? src.orders}</span>
+                  <span className="mobile-card-value">{src.count ?? 0}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Omzet</span>
-                  <span className="mobile-card-value">{src.revenue ?? src.total}</span>
+                  <span className="mobile-card-value">{src.revenue ?? 0}</span>
                 </div>
             </div>
           )} />

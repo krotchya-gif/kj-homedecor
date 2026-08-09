@@ -12,8 +12,8 @@ import ActionMenu from '@/components/ui/ActionMenu'
 interface Mapping {
   id: string
   transaction_type: string
-  debit_account_id: string
-  credit_account_id: string
+  debit_account_id: string | null
+  credit_account_id: string | null
   description?: string
   debit_account?: { code: string; name: string }
   credit_account?: { code: string; name: string }
@@ -22,7 +22,7 @@ interface Mapping {
 export default function MappingDifferencePage() {
   const { toast } = useToast()
   const [mappings, setMappings] = useState<Mapping[]>([])
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<{ id: string; name?: string; code?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<Mapping | null>(null)
@@ -65,8 +65,8 @@ export default function MappingDifferencePage() {
     setEditItem(m)
     setForm({
       transaction_type: m.transaction_type,
-      debit_account_id: m.debit_account_id,
-      credit_account_id: m.credit_account_id,
+      debit_account_id: m.debit_account_id ?? '',
+      credit_account_id: m.credit_account_id ?? '',
       description: m.description ?? ''
     })
     setShowForm(true)
@@ -84,14 +84,14 @@ export default function MappingDifferencePage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = mappings
-        setMappings((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setMappings((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x)))
         const { error } = await supabase.from('account_mappings').update(payload).eq('id', editItem.id)
         if (error) { setMappings(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
-        setMappings((curr) => [tempItem, ...curr] as any)
+        setMappings((curr) => [tempItem, ...curr])
         const { data, error } = await supabase.from('account_mappings').insert(payload).select('id').single()
         if (error) {
           setMappings((curr) => curr.filter((x) => x.id !== tempId))

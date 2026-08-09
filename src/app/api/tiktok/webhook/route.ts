@@ -105,8 +105,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ received: true })
-  } catch (err: any) {
-    console.error('TikTok webhook error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    console.error('TikTok webhook error:', err instanceof Error ? err.message : String(err))
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

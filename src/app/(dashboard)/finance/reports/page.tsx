@@ -12,10 +12,30 @@ const fmt = (n: number) =>
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 const RATES = { gorden: 500, vitras: 300, roman: 600, kupu_kupu: 700, poni_lurus: 2000, poni_gel: 3000 }
 
+interface FinanceReportRow {
+  id?: string
+  created_at?: string
+  date?: string
+  total_amount?: number
+  dp_amount?: number
+  lunas_amount?: number
+  source?: string
+  meter_gorden?: number
+  meter_vitras?: number
+  meter_roman?: number
+  meter_kupu_kupu?: number
+  poni_lurus?: number
+  poni_gel?: number
+  jam?: number
+  staff?: { name?: string } | null
+  job?: { penjahit_id?: string; penjahit?: { name?: string } | null } | null
+  [k: string]: unknown
+}
+
 export default function FinanceReportsPage() {
-  const [orders, setOrders] = useState<any[]>([])
-  const [reports, setReports] = useState<any[]>([])
-  const [lembur, setLembur] = useState<any[]>([])
+  const [orders, setOrders] = useState<FinanceReportRow[]>([])
+  const [reports, setReports] = useState<FinanceReportRow[]>([])
+  const [lembur, setLembur] = useState<FinanceReportRow[]>([])
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
@@ -35,9 +55,9 @@ export default function FinanceReportsPage() {
           .order('created_at', { ascending: false }),
         supabase.from('lembur_records').select('*, staff:users(name)').order('date', { ascending: false })
       ])
-      setOrders(oRes.data ?? [])
-      setReports(rRes.data ?? [])
-      setLembur(lRes.data ?? [])
+      setOrders((oRes.data ?? []) as FinanceReportRow[])
+      setReports((rRes.data ?? []) as FinanceReportRow[])
+      setLembur((lRes.data ?? []) as FinanceReportRow[])
       setLoading(false)
     }
     load()
@@ -58,7 +78,8 @@ export default function FinanceReportsPage() {
   // Platform breakdown
   const bySource: Record<string, number> = {}
   periodOrders.forEach((o) => {
-    bySource[o.source] = (bySource[o.source] ?? 0) + 1
+    const src = String(o.source ?? 'unknown')
+    bySource[src] = (bySource[src] ?? 0) + 1
   })
 
   // Pengupahan penjahit
@@ -310,7 +331,7 @@ export default function FinanceReportsPage() {
                   >
                     <span>
                       {l.staff?.name ?? '—'} —{' '}
-                      {new Date(l.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                      {new Date(l.date ?? '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                     </span>
                     <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{l.jam} jam</span>
                   </div>

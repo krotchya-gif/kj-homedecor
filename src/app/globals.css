@@ -32,8 +32,8 @@
   --info: #3b82f6;
 
   /* Fonts */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
 
   /* ===== Design Tokens (2026-07-31, UI/UX foundation) ===== */
   /* Spacing scale — base 4px. 0.25rem=4 · 0.5=8 · 0.75=12 · 1=16 · 1.25=20 · 1.5=24 · 2=32 · 2.5=40 · 3=48 */
@@ -344,8 +344,45 @@ body {
   font-family: var(--font-sans);
   background-color: var(--neutral-50);
   color: var(--neutral-800);
+  font-size: 16px;
   line-height: 1.6;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========== TYPOGRAPHY SYSTEM (modern: Magic UI / 21st.dev / Motion patterns) ========== */
+/* Heading: tracking ketat (-0.02em), line-height kompak, text-wrap balance (anti orphan/overflow) */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+h4,
+h5,
+h6 {
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Utility anti-overflow (dipakai di elemen label/teks panjang) */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.break-words {
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* ========== SCROLLBAR ========== */
@@ -402,8 +439,9 @@ body {
 
 .topnav-brand {
   font-family: var(--font-serif);
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--brand-700);
   text-decoration: none;
   white-space: nowrap;
@@ -1157,9 +1195,12 @@ body {
 
 .landing-hero-title {
   font-family: var(--font-serif);
-  font-size: clamp(2rem, 8vw, 4.5rem);
+  font-size: clamp(2.25rem, 5.5vw, 4.5rem);
   font-weight: 700;
   line-height: 1.15;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
   margin-bottom: 1rem;
   color: #fff;
   animation: fadeUp 0.7s 0.2s ease both;
@@ -1176,12 +1217,13 @@ body {
 }
 
 .landing-hero-subtitle {
-  font-size: 1.1rem;
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
   color: #fff;
   text-shadow: 0 1px 8px rgba(0,0,0,0.25);
-  max-width: 520px;
+  max-width: 560px;
   margin: 0 auto 2.5rem;
   line-height: 1.8;
+  text-wrap: pretty;
   animation: fadeUp 0.7s 0.35s ease both;
 }
 
@@ -1266,11 +1308,13 @@ body {
 
 .landing-section-title {
   font-family: var(--font-serif);
-  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
   font-weight: 700;
   color: var(--neutral-800);
   margin-bottom: 1rem;
   line-height: 1.2;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
 }
 
 .landing-section-subtitle {
@@ -1278,6 +1322,7 @@ body {
   color: var(--neutral-500);
   max-width: 560px;
   line-height: 1.7;
+  text-wrap: pretty;
 }
 
 /* ========== PRODUCT CARD ========== */

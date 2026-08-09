@@ -5,7 +5,7 @@
 /**
  * Convert array of objects to CSV string and trigger download
  */
-export function exportToCSV<T extends Record<string, unknown>>(
+export function exportToCSV<T extends object>(
   rows: T[],
   columns: { key: keyof T; label: string }[]
 ): void {

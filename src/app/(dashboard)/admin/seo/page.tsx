@@ -54,12 +54,12 @@ export default function AdminSeoPage() {
     if (data) {
       setSettings(data as SeoSettings)
       setForm({
-        seo_pixel_id: (data as any).seo_pixel_id ?? '',
-        seo_ga4_id: (data as any).seo_ga4_id ?? '',
-        seo_title: (data as any).seo_title ?? '',
-        seo_description: (data as any).seo_description ?? '',
-        seo_keywords: (data as any).seo_keywords ?? '',
-        seo_og_image: (data as any).seo_og_image ?? ''
+        seo_pixel_id: data.seo_pixel_id ?? '',
+        seo_ga4_id: data.seo_ga4_id ?? '',
+        seo_title: data.seo_title ?? '',
+        seo_description: data.seo_description ?? '',
+        seo_keywords: data.seo_keywords ?? '',
+        seo_og_image: data.seo_og_image ?? ''
       })
     }
     setLoading(false)

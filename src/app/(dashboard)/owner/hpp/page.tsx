@@ -1,4 +1,5 @@
 'use client'
+import type { Product, Material } from '@/types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -10,15 +11,46 @@ const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 const fmtN = (n: number) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(n)
 
+interface HppProduct {
+  id: string
+  name: string
+  sku?: string
+  price?: number
+  hpp_calculated?: number
+  hpp_manual?: number | null
+}
+
+interface HppMaterial {
+  id: string
+  name: string
+  unit?: string
+  cost_per_unit?: number
+}
+
+interface HppBom {
+  product_id?: string
+  material_id?: string
+  qty_per_unit?: number
+  material?: { name?: string; unit?: string; cost_per_unit?: number }[] | null
+}
+
+interface BomRow {
+  id: string
+  product_id?: string
+  material_id?: string
+  qty_per_unit?: number
+  material?: { name?: string; unit?: string; cost_per_unit?: number } | null
+}
+
 export default function HPPPage() {
   const { toast } = useToast()
-  const [products, setProducts] = useState<any[]>([])
-  const [materials, setMaterials] = useState<any[]>([])
-  const [boms, setBoms] = useState<any[]>([])
+  const [products, setProducts] = useState<HppProduct[]>([])
+  const [materials, setMaterials] = useState<HppMaterial[]>([])
+  const [boms, setBoms] = useState<HppBom[]>([])
   const [loading, setLoading] = useState(true)
 
   // Selected product for calc
-  const [selectedProduct, setSelectedProduct] = useState<any | null>(null)
+  const [selectedProduct, setSelectedProduct] = useState<HppProduct | null>(null)
   const [searchProduct, setSearchProduct] = useState('')
   const [markup, setMarkup] = useState(30) // % markup
   const [extraCost, setExtraCost] = useState(0) // production cost manual
@@ -39,9 +71,9 @@ export default function HPPPage() {
         .from('bom')
         .select('product_id, material_id, qty_per_unit, material:materials(name, unit, cost_per_unit)')
     ])
-    setProducts(pRes.data ?? [])
-    setMaterials(mRes.data ?? [])
-    setBoms(bRes.data ?? [])
+    setProducts((pRes.data ?? []) as HppProduct[])
+    setMaterials((mRes.data ?? []) as HppMaterial[])
+    setBoms((bRes.data ?? []) as HppBom[])
     setLoading(false)
   }
   useEffect(() => {
@@ -57,7 +89,7 @@ export default function HPPPage() {
     const p = products.find((x) => x.id === productId)
     setSelectedProduct(p ?? null)
     const productBom = boms.filter((b) => b.product_id === productId)
-    setLines(productBom.map((b) => ({ material_id: b.material_id, qty: b.qty_per_unit })))
+    setLines(productBom.flatMap((b) => (b.material_id ? [{ material_id: b.material_id, qty: b.qty_per_unit ?? 0 }] : [])))
     setMarkup(30)
     setExtraCost(0)
     setMode(p?.hpp_manual ? 'manual' : 'auto')
@@ -245,12 +277,12 @@ export default function HPPPage() {
                 }}
               >
                 <div>
-                  Harga jual saat ini: <strong style={{ color: '#cc7030' }}>{fmt(selectedProduct.price)}</strong>
+                  Harga jual saat ini: <strong style={{ color: '#cc7030' }}>{fmt(selectedProduct.price ?? 0)}</strong>
                 </div>
-                {selectedProduct.hpp_calculated > 0 && (
+                {(selectedProduct.hpp_calculated ?? 0) > 0 && (
                   <div>
                     HPP kalkulasi:{' '}
-                    <span style={{ color: '#059669', fontWeight: '600' }}>{fmt(selectedProduct.hpp_calculated)}</span>
+                    <span style={{ color: '#059669', fontWeight: '600' }}>{fmt(selectedProduct.hpp_calculated ?? 0)}</span>
                   </div>
                 )}
                 {selectedProduct.hpp_manual && (

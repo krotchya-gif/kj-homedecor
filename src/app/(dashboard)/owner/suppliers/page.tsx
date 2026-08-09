@@ -1,4 +1,5 @@
 'use client'
+import type { Supplier } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
@@ -11,19 +12,39 @@ import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 
+interface POListRow {
+  id: string
+  supplier?: { name?: string } | null
+  supplier_name?: string
+  material?: { name?: string } | null
+  material_name?: string
+  cost?: number
+  amount?: number
+  status?: string
+  actual_cost?: number
+  pr?: { material?: { name?: string; supplier_id?: string } | null } | null
+}
+
+interface PRRow {
+  id: string
+  qty?: number
+  estimated_cost?: number
+  material?: { name?: string; supplier_id?: string } | null
+}
+
 export default function SuppliersPage() {
   const { toast } = useToast()
-  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editItem, setEditItem] = useState<any | null>(null)
+  const [editItem, setEditItem] = useState<Supplier | null>(null)
   const [saving, setSaving] = useState(false)
   const [tab, setTab] = useState<'suppliers' | 'po'>('suppliers')
-  const [poList, setPoList] = useState<any[]>([])
+  const [poList, setPoList] = useState<POListRow[]>([])
   const [poLoading, setPoLoading] = useState(false)
   const [showPOForm, setShowPOForm] = useState(false)
-  const [selectedPR, setSelectedPR] = useState<any | null>(null)
+  const [selectedPR, setSelectedPR] = useState<PRRow | null>(null)
   const [poSaving, setPoSaving] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
 
@@ -53,7 +74,7 @@ export default function SuppliersPage() {
   async function load() {
     setLoading(true)
     const { data } = await supabase.from('suppliers').select('*').order('name')
-    setSuppliers(data ?? [])
+    setSuppliers((data ?? []) as Supplier[])
     setLoading(false)
   }
 
@@ -63,7 +84,7 @@ export default function SuppliersPage() {
       .from('purchase_orders')
       .select('*, supplier:suppliers(name), pr:purchase_requests(material:materials(name))')
       .order('created_at', { ascending: false })
-    setPoList(data ?? [])
+    setPoList((data ?? []) as POListRow[])
     setPoLoading(false)
   }
 
@@ -86,7 +107,7 @@ export default function SuppliersPage() {
     setShowForm(true)
   }
 
-  function openEdit(s: any) {
+  function openEdit(s: Supplier) {
     setEditItem(s)
     setForm({
       name: s.name,
@@ -151,14 +172,14 @@ export default function SuppliersPage() {
   }
 
   function handleExport() {
-    exportToCSV(suppliers as any, EXPORT_COLUMNS)
+    exportToCSV(suppliers, EXPORT_COLUMNS as { key: keyof Supplier; label: string }[])
   }
 
   function handleDownloadTemplate() {
     generateCSVTemplate(IMPORT_COLUMNS)
   }
 
-  async function handleImport(rows: Record<string, string | number | null>[]) {
+  async function handleImport(rows: Record<string, string | number | boolean | null>[]) {
     const errors: string[] = []
     let inserted = 0
     const BATCH = 50
@@ -203,7 +224,7 @@ export default function SuppliersPage() {
   }
 
   async function updatePOStatus(poId: string, status: string) {
-    const updates: any = { status }
+    const updates: Record<string, unknown> = { status }
     if (status === 'received') updates.received_at = new Date().toISOString()
     if (status === 'paid') {
       const {
@@ -217,7 +238,7 @@ export default function SuppliersPage() {
     loadPOs()
   }
 
-  async function openCreatePO(pr: any) {
+  async function openCreatePO(pr: PRRow) {
     setSelectedPR(pr)
     setPoForm({
       supplier_id: pr.material?.supplier_id ?? '',
@@ -471,7 +492,7 @@ export default function SuppliersPage() {
         {poList.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={poList} keyOf={(po: any) => po.id} renderCard={(po: any) => (
+          <MobileCards items={poList} keyOf={(po) => po.id} renderCard={(po) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Supplier</span>
@@ -520,12 +541,12 @@ export default function SuppliersPage() {
                       received: { bg: '#d1fae5', text: '#065f46' },
                       paid: { bg: '#22c55e', text: '#fff' }
                     }
-                    const sc = statusColors[po.status] ?? statusColors.pending
+                    const sc = statusColors[po.status ?? 'pending'] ?? statusColors.pending
                     return (
                       <tr key={po.id}>
                         <td style={{ fontWeight: '600' }}>{po.supplier?.name ?? '—'}</td>
                         <td style={{ color: 'var(--neutral-600)' }}>{po.pr?.material?.name ?? '—'}</td>
-                        <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(po.actual_cost)}</td>
+                        <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(po.actual_cost ?? 0)}</td>
                         <td>
                           <span
                             style={{
@@ -703,7 +724,7 @@ export default function SuppliersPage() {
               <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>Material</div>
               <div style={{ fontWeight: '600' }}>{selectedPR.material?.name ?? '—'}</div>
               <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginTop: '0.5rem' }}>
-                Qty: {selectedPR.qty} | Estimasi: {formatRp(selectedPR.estimated_cost)}
+                Qty: {selectedPR.qty ?? 0} | Estimasi: {formatRp(selectedPR.estimated_cost ?? 0)}
               </div>
             </div>
             <form onSubmit={createPO} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>

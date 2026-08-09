@@ -12,18 +12,54 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function MutasiKasPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [cashAccounts, setCashAccounts] = useState<any[]>([])
+  const [cashAccounts, setCashAccounts] = useState<LooseRow[]>([])
 
   const supabase = createClient()
 
   async function fetchData() {
     setLoading(true)
     const { data } = await supabase.from('cash_accounts').select('*, account:accounts(code, name)').order('bank_name')
-    setCashAccounts(data ?? [])
+    setCashAccounts((data ?? []) as LooseRow[])
     setLoading(false)
   }
 

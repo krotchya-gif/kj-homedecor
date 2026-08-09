@@ -32,6 +32,27 @@ interface UserType {
   name: string
   role: string
 }
+interface ProductionJob {
+  id: string
+  order_id?: string
+  status: string
+  job_number?: string
+  penjahit_id?: string
+  penjahit?: { name?: string } | null
+  revision_round?: number
+  revision_reason?: string
+  meter_gorden?: number
+  meter_vitras?: number
+  meter_roman?: number
+  meter_kupu_kupu?: number
+  order?: {
+    id: string
+    status?: string
+    order_number?: string
+    customer?: { name?: string } | null
+  } | null
+}
+
 interface JobMaterial {
   material_id: string
   material_name: string
@@ -42,15 +63,15 @@ interface JobMaterial {
 
 export default function GudangProductionPage() {
   const { toast } = useToast()
-  const [jobs, setJobs] = useState<any[]>([])
+  const [jobs, setJobs] = useState<ProductionJob[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
   const [penjahits, setPenjahits] = useState<UserType[]>([])
-  const [assignJob, setAssignJob] = useState<any | null>(null)
+  const [assignJob, setAssignJob] = useState<ProductionJob | null>(null)
   const [assigning, setAssigning] = useState(false)
   const [expandedJob, setExpandedJob] = useState<string | null>(null)
   const [jobMaterials, setJobMaterials] = useState<Record<string, JobMaterial[]>>({})
-  const [warningJob, setWarningJob] = useState<any | null>(null)
+  const [warningJob, setWarningJob] = useState<ProductionJob | null>(null)
   const [warningMats, setWarningMats] = useState<JobMaterial[]>([])
   const supabase = createClient()
 
@@ -65,15 +86,15 @@ export default function GudangProductionPage() {
         .order('created_at', { ascending: false }),
       supabase.from('users').select('id, name, role').eq('role', 'penjahit')
     ])
-    setJobs((data ?? []) as any[]) // ← CRITICAL FIX: setJobs() dipanggil agar UI render data
+    setJobs((data ?? []) as ProductionJob[]) // ← CRITICAL FIX: setJobs() dipanggil agar UI render data
     setPenjahits((penjahitData ?? []) as UserType[])
     setLoading(false)
 
     // Pre-load BOM materials for all jobs that are waiting/in_progress
-    const activeJobs = (data ?? []).filter((j: any) => j.status === 'waiting' || j.status === 'in_progress')
+    const activeJobs = ((data ?? []) as ProductionJob[]).filter((j) => j.status === 'waiting' || j.status === 'in_progress')
     const materialsMap: Record<string, JobMaterial[]> = {}
     for (const job of activeJobs) {
-      materialsMap[job.id] = await loadJobMaterials(job.order_id)
+      if (job.order_id) materialsMap[job.id] = await loadJobMaterials(job.order_id)
     }
     setJobMaterials(materialsMap)
   }
@@ -90,7 +111,8 @@ export default function GudangProductionPage() {
         .eq('product_id', item.product_id)
 
       for (const bom of bomItems ?? []) {
-        const mat = (bom as any).material
+        // material join bisa ARRAY (to-many PostgREST) — ambil baris pertama
+        const mat = Array.isArray(bom.material) ? bom.material[0] : bom.material
         materials.push({
           material_id: bom.material_id,
           material_name: mat?.name ?? 'Unknown',
@@ -271,7 +293,7 @@ export default function GudangProductionPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(job: any) => job.id} renderCard={(job: any) => (
+          <MobileCards items={filtered} keyOf={(job) => job.id} renderCard={(job) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>

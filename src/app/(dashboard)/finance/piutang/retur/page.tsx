@@ -33,7 +33,7 @@ export default function ReturPage() {
       .select('*, customer:customers(name)')
       .gt('return_amount', 0)
       .order('created_at', { ascending: false })
-    setRetur((data as any[]) ?? [])
+    setRetur((data ?? []) as Retur[])
     setLoading(false)
   }
 
@@ -52,11 +52,11 @@ export default function ReturPage() {
         ) : retur.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={retur} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+          <MobileCards items={retur} keyOf={(r) => r.id} renderCard={(r) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">{r.amount}</span>
+                  <span className="mobile-card-value">{r.piutang?.amount ?? r.return_amount ?? 0}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Alasan</span>
@@ -64,7 +64,7 @@ export default function ReturPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{r.created_at}</span>
+                  <span className="mobile-card-value">{r.return_date ?? "—"}</span>
                 </div>
             </div>
           )} />

@@ -14,6 +14,15 @@ const formatRp = (n: number) =>
     maximumFractionDigits: 0
   }).format(n)
 
+interface CashAccountRow {
+  id: string
+  name?: string
+  balance?: number
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+}
+
 export default function FinanceSettingsPage() {
   const { toast } = useToast()
   const [activeTab, setActiveTab] = useState('saldo')
@@ -21,7 +30,7 @@ export default function FinanceSettingsPage() {
   const [saving, setSaving] = useState(false)
 
   // Opening balance form
-  const [cashAccounts, setCashAccounts] = useState<any[]>([])
+  const [cashAccounts, setCashAccounts] = useState<CashAccountRow[]>([])
   const [hutangData, setHutangData] = useState({ total: 0, count: 0 })
   const [piutangData, setPiutangData] = useState({ total: 0, count: 0 })
   const [cashForm, setCashForm] = useState<Record<string, string>>({})
@@ -37,19 +46,19 @@ export default function FinanceSettingsPage() {
     ])
     setCashAccounts(cashRes.data ?? [])
     const initForm: Record<string, string> = {}
-    ;(cashRes.data ?? []).forEach((c: any) => {
+    ;((cashRes.data ?? []) as CashAccountRow[]).forEach((c) => {
       initForm[c.id] = String(c.balance ?? 0)
     })
     setCashForm(initForm)
 
     const hutTotal = (hutangRes.data ?? []).reduce(
-      (s: number, h: any) => s + (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0),
+      (s: number, h: { amount?: number; paid_amount?: number; return_amount?: number }) => s + (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0),
       0
     )
     setHutangData({ total: hutTotal, count: (hutangRes.data ?? []).length })
 
     const piuTotal = (piutangRes.data ?? []).reduce(
-      (s: number, p: any) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0),
+      (s: number, p: { amount?: number; paid_amount?: number; return_amount?: number }) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0),
       0
     )
     setPiutangData({ total: piuTotal, count: (piutangRes.data ?? []).length })
@@ -140,7 +149,7 @@ export default function FinanceSettingsPage() {
         ) : cashAccounts.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={cashAccounts} keyOf={(c: any) => c.id} renderCard={(c: any) => (
+          <MobileCards items={cashAccounts} keyOf={(c) => c.id} renderCard={(c) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Bank</span>

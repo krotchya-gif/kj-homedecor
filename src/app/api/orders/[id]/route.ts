@@ -172,13 +172,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
           .eq('order_id', id)
         const totalMeterGorden = (orderItems ?? []).reduce(
-          (s: number, i: any) => s + Number(i.meter_gorden ?? i.meter ?? 0),
+          (s: number, i: { meter_gorden?: number; meter?: number }) => s + Number(i.meter_gorden ?? i.meter ?? 0),
           0
         )
-        const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
-        const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+        const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: { meter_vitras?: number }) => s + Number(i.meter_vitras ?? 0), 0)
+        const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: { meter_roman?: number }) => s + Number(i.meter_roman ?? 0), 0)
         const totalMeterKupuKupu = (orderItems ?? []).reduce(
-          (s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0),
+          (s: number, i: { meter_kupu_kupu?: number }) => s + Number(i.meter_kupu_kupu ?? 0),
           0
         )
 

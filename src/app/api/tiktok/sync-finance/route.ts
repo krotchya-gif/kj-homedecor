@@ -176,7 +176,7 @@ export async function POST(req: NextRequest) {
       created_piutang,
       message: `Synced ${synced} statements, created ${created_piutang} piutang`
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

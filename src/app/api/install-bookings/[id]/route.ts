@@ -53,7 +53,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     // Kalau ada field lain di body (selain status & actual_date), update manual
     // (mis. notes, installer_id, scheduled_date, scheduled_time)
-    const otherFields: Record<string, any> = { ...body }
+    const otherFields: Record<string, unknown> = { ...body }
     delete otherFields.status
     delete otherFields.actual_date
 

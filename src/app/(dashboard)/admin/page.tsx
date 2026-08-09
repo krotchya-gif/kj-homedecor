@@ -71,6 +71,17 @@ interface OrderProgressPhoto {
   notes?: string
   created_at: string
 }
+interface AdminOrderRow {
+  id: string
+  order_number?: string
+  status: string
+  payment_status: string
+  created_at: string
+  customer?: { name: string } | null
+  order_logs?: { id: string; action?: string; notes?: string; created_at: string; staff?: { name?: string } | null }[] | null
+  order_progress_photos?: { id: string; stage?: string; photo_url?: string; notes?: string; created_at: string }[] | null
+}
+
 interface OrderWithLogs {
   id: string
   order_number?: string
@@ -178,7 +189,7 @@ export default function AdminDashboardPage() {
         const key = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
         dailyCount[key] = 0
       }
-      ;(trendOrders ?? []).forEach((o: any) => {
+      ;((trendOrders ?? []) as { created_at: string }[]).forEach((o) => {
         const key = new Date(o.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
         if (dailyCount[key] !== undefined) dailyCount[key]++
       })
@@ -203,10 +214,10 @@ export default function AdminDashboardPage() {
       .order('created_at', { ascending: false })
       .limit(10)
 
-    const formatted = (ordersWithLogsData ?? []).map((o: any) => ({
+    const formatted = ((ordersWithLogsData ?? []) as unknown as AdminOrderRow[]).map((o) => ({
       ...o,
       recentLogs: (o.order_logs ?? [])
-        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .sort((a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 5),
       progressPhotos: o.order_progress_photos ?? []
     }))
@@ -231,14 +242,14 @@ export default function AdminDashboardPage() {
         .in('status', ['scheduled', 'in_progress', 'revision'])
     ])
 
-    setInstallBookings((installsData as any) ?? [])
+    setInstallBookings((installsData ?? []) as InstallBooking[])
     setData({
       orders: (ordersData ?? []) as Order[],
       totalOrders: totalOrders ?? 0,
       totalCustomers: totalCustomers ?? 0,
       totalProducts: totalProducts ?? 0,
       pendingPRs: pendingPRs ?? [],
-      ordersWithLogs: formatted
+      ordersWithLogs: formatted as OrderWithLogs[]
     })
 
     // Survey baru hari ini (notifikasi admin)

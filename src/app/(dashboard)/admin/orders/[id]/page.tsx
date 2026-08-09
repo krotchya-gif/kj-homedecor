@@ -23,6 +23,8 @@ import {
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem, OrderStatus } from '@/types'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, SOURCE_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
+import { Material, Survey } from '@/types'
+
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { Modal } from '@/components/ui/Modal'
@@ -91,6 +93,49 @@ function getResponsibleRoles(currentStatus: string): string {
   return responsibles.join(', ')
 }
 
+
+interface SurveyCand {
+  id: string
+  survey_number?: string
+  client_name: string
+  survey_date: string
+  rooms?: { count?: number }[] | null
+}
+
+type MeterRow = {
+  meter_gorden?: number
+  meter_vitras?: number
+  meter_roman?: number
+  meter_kupu_kupu?: number
+  meter?: number
+}
+
+interface OrderLog {
+  id: string
+  order_id: string
+  action: string
+  notes?: string | null
+  created_at: string
+  staff?: { name: string } | null
+}
+
+interface OrderPhoto {
+  id: string
+  order_id: string
+  photo_url: string
+  stage?: string | null
+  created_at: string
+}
+
+interface BomRow {
+  id: string
+  product_id?: string
+  material_id?: string
+  qty?: number
+  qty_per_unit?: number
+  material?: { name: string; unit?: string; cost_per_unit?: number; stock_gudang?: number; min_stock_level?: number } | null
+}
+
 export default function OrderDetailPage() {
   const { toast } = useToast()
   const { id } = useParams<{ id: string }>()
@@ -100,14 +145,14 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [items, setItems] = useState<OrderItem[]>([])
   const [products, setProducts] = useState<Product[]>([])
-  const [orderLogs, setOrderLogs] = useState<any[]>([])
+  const [orderLogs, setOrderLogs] = useState<OrderLog[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<string>('admin')
 
   // BOM data for material suggestion
-  const [boms, setBoms] = useState<any[]>([])
-  const [materials, setMaterials] = useState<any[]>([])
+  const [boms, setBoms] = useState<BomRow[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
 
   // item type selector
   const [itemType, setItemType] = useState<ItemType>('gorden')
@@ -145,7 +190,7 @@ export default function OrderDetailPage() {
   const [searchProduct, setSearchProduct] = useState('')
 
   // Progress photos
-  const [orderPhotos, setOrderPhotos] = useState<any[]>([])
+  const [orderPhotos, setOrderPhotos] = useState<OrderPhoto[]>([])
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxPhotos, setLightboxPhotos] = useState<string[]>([])
   const [lightboxIndex, setLightboxIndex] = useState(0)
@@ -158,7 +203,7 @@ export default function OrderDetailPage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   // survey link (fitur "hasil survey masuk invoice")
   const [surveyLinkOpen, setSurveyLinkOpen] = useState(false)
-  const [surveyCandidates, setSurveyCandidates] = useState<any[]>([])
+  const [surveyCandidates, setSurveyCandidates] = useState<SurveyCand[]>([])
   const [surveyLoading, setSurveyLoading] = useState(false)
   const [showCancelForm, setShowCancelForm] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
@@ -220,10 +265,10 @@ export default function OrderDetailPage() {
     setOrder(orderRes.data as Order)
     setItems((itemsRes.data as OrderItem[]) ?? [])
     setProducts((prodsRes.data as Product[]) ?? [])
-    setOrderLogs((logsRes.data ?? []) as any[])
-    setOrderPhotos((photosRes.data ?? []) as any[])
-    setBoms((bomsRes.data ?? []) as any[])
-    setMaterials((matsRes.data ?? []) as any[])
+    setOrderLogs((logsRes.data ?? []) as OrderLog[])
+    setOrderPhotos((photosRes.data ?? []) as OrderPhoto[])
+    setBoms((bomsRes.data ?? []) as BomRow[])
+    setMaterials((matsRes.data ?? []) as Material[])
     // Init checklist if not exists
     if (checklistRes.data) {
       setChecklist(checklistRes.data.items as PreparationChecklistItem[])
@@ -247,7 +292,7 @@ export default function OrderDetailPage() {
 
   async function loadRates() {
     const { data: lr } = await supabase.from('laundry_rates').select('rate_per_kg').eq('is_active', true).single()
-    setLaundryRate((lr as any)?.rate_per_kg ?? 0)
+    setLaundryRate(lr?.rate_per_kg ?? 0)
   }
 
   useEffect(() => {
@@ -344,13 +389,13 @@ export default function OrderDetailPage() {
           .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
           .eq('order_id', id)
         const totalMeterGorden = (orderItems ?? []).reduce(
-          (s: number, i: any) => s + Number(i.meter_gorden ?? i.meter ?? 0),
+          (s: number, i: MeterRow) => s + Number(i.meter_gorden ?? i.meter ?? 0),
           0
         )
-        const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_vitras ?? 0), 0)
-        const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: any) => s + Number(i.meter_roman ?? 0), 0)
+        const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: MeterRow) => s + Number(i.meter_vitras ?? 0), 0)
+        const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: MeterRow) => s + Number(i.meter_roman ?? 0), 0)
         const totalMeterKupuKupu = (orderItems ?? []).reduce(
-          (s: number, i: any) => s + Number(i.meter_kupu_kupu ?? 0),
+          (s: number, i: MeterRow) => s + Number(i.meter_kupu_kupu ?? 0),
           0
         )
 
@@ -639,7 +684,7 @@ export default function OrderDetailPage() {
     try {
       const res = await fetch('/api/surveys?status=tersimpan&limit=20')
       const json = await res.json()
-      if (res.ok) setSurveyCandidates(json.data ?? [])
+      if (res.ok) setSurveyCandidates((json.data ?? []) as SurveyCand[])
       else toast('error', json.error?.message ?? 'Gagal load survey')
     } finally {
       setSurveyLoading(false)
@@ -920,7 +965,7 @@ export default function OrderDetailPage() {
             <button
               onClick={() =>
                 generateInvoicePDF({
-                  order: { ...order, order_items: items } as any,
+                  order: { ...order, order_items: items },
                   orderNumber: order.order_number || id.slice(0, 8)
                 })
               }
@@ -943,7 +988,7 @@ export default function OrderDetailPage() {
             <button
               onClick={() =>
                 generatePackingListPDF({
-                  order: { ...order, order_items: items } as any,
+                  order: { ...order, order_items: items },
                   orderNumber: order.order_number || id.slice(0, 8)
                 })
               }
@@ -1757,7 +1802,7 @@ export default function OrderDetailPage() {
                         >
                           {prodBom.map((b) => {
                             const mat = b.material
-                            const isLow = (mat?.stock_gudang ?? 0) < b.qty_per_unit
+                            const isLow = (mat?.stock_gudang ?? 0) < (b.qty_per_unit ?? 0)
                             return (
                               <div
                                 key={b.id}
@@ -1774,7 +1819,7 @@ export default function OrderDetailPage() {
                                     fontWeight: isLow ? '700' : '400'
                                   }}
                                 >
-                                  {mat?.name ?? '—'} × {b.qty_per_unit} {mat?.unit}
+                                  {mat?.name ?? '—'} × {(b.qty_per_unit ?? 0)} {mat?.unit}
                                 </span>
                                 <span style={{ color: isLow ? '#dc2626' : '#059669', fontWeight: '600' }}>
                                   {isLow ? '⚠️ Stok kurang' : '✅ Cukup'}
@@ -2461,7 +2506,7 @@ export default function OrderDetailPage() {
         ) : (
           <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
             <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-              {orderLogs.map((log: any) => (
+              {orderLogs.map((log: OrderLog) => (
                 <div
                   key={log.id}
                   style={{
@@ -2552,7 +2597,7 @@ export default function OrderDetailPage() {
           </button>
         </div>
         <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
-          {pendingStatus && isPhotoRequired(pendingStatus as any) ? (
+          {pendingStatus && isPhotoRequired(pendingStatus as OrderStatus) ? (
             <>
               <strong style={{ color: '#dc2626' }}>WAJIB</strong> upload minimal <strong>1 foto</strong> untuk stage{' '}
               <strong>{STATUS_LABELS[pendingStatus as keyof typeof STATUS_LABELS]}</strong> (wajib bukti foto). Foto
@@ -2787,7 +2832,7 @@ export default function OrderDetailPage() {
               <option value="">Semua item (return entire order)</option>
               {items.map((it) => (
                 <option key={it.id} value={it.id}>
-                  {(it.product as any)?.name ?? 'Item'} — Qty: {it.qty}
+                  {it.product?.name ?? 'Item'} — Qty: {it.qty}
                 </option>
               ))}
             </select>

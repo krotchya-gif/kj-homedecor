@@ -8,10 +8,20 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Clock } from 'lucide-react'
 
+interface LemburRow {
+  id: string
+  date?: string
+  staff_id?: string | null
+  jam?: number
+  hours?: number
+  keterangan?: string | null
+  staff?: { name?: string } | null
+}
+
 export default function GudangLemburPage() {
   const { toast } = useToast()
-  const [records, setRecords] = useState<any[]>([])
-  const [staff, setStaff] = useState<any[]>([])
+  const [records, setRecords] = useState<LemburRow[]>([])
+  const [staff, setStaff] = useState<{ id: string; name?: string; role?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -29,7 +39,7 @@ export default function GudangLemburPage() {
       supabase.from('lembur_records').select('*, staff:users(name)').order('date', { ascending: false }),
       supabase.from('users').select('id,name,role').order('name')
     ])
-    setRecords(recRes.data ?? [])
+    setRecords((recRes.data ?? []) as LemburRow[])
     setStaff(staffRes.data ?? [])
     setLoading(false)
   }
@@ -170,7 +180,7 @@ export default function GudangLemburPage() {
               {records.map((r) => (
                 <tr key={r.id}>
                   <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>
-                    {new Date(r.date).toLocaleDateString('id-ID', {
+                    {new Date(r.date ?? '').toLocaleDateString('id-ID', {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',
@@ -221,7 +231,7 @@ export default function GudangLemburPage() {
               <option value="">— Pilih Staff —</option>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.role})
+                  {s.name}{s.role ? ` (${s.role})` : ''}
                 </option>
               ))}
             </select>

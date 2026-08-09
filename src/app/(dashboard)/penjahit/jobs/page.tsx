@@ -6,12 +6,39 @@ import { createClient } from '@/utils/supabase/client'
 import { Scissors, CheckCircle2, Clock } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
+interface JobRow {
+  id: string
+  job_number?: string
+  status?: string
+  meter_gorden?: number
+  meter_vitras?: number
+  meter_roman?: number
+  meter_kupu_kupu?: number
+  poni_lurus?: boolean
+  poni_gel?: boolean
+  order?: {
+    id?: string
+    order_number?: string
+    customer?: { name?: string } | null
+    order_items?: {
+      product?: { name?: string } | null
+      qty?: number
+      meter_gorden?: number
+      meter_vitras?: number
+      custom_specs?: string | null
+      size?: string | null
+    }[] | null
+  } | null
+}
+
+type ReportForm = Record<string, number | string | undefined>
+
 export default function PenjahitJobsPage() {
   const { toast } = useToast()
-  const [jobs, setJobs] = useState<any[]>([])
+  const [jobs, setJobs] = useState<JobRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
-  const [reportForm, setReportForm] = useState<Record<string, any>>({})
+  const [reportForm, setReportForm] = useState<Record<string, ReportForm>>({})
   const [showReport, setShowReport] = useState<string | null>(null)
   const supabase = createClient()
 
@@ -75,7 +102,7 @@ export default function PenjahitJobsPage() {
 
   async function submitReport(jobId: string) {
     setSaving(jobId)
-    const rf = reportForm[jobId] ?? {}
+    const rf = (reportForm[jobId] ?? {}) as ReportForm
     const {
       data: { user }
     } = await supabase.auth.getUser()
@@ -97,7 +124,7 @@ export default function PenjahitJobsPage() {
       poni_lurus: Number(rf.poni_lurus ?? 0),
       poni_gel: Number(rf.poni_gel ?? 0),
       notes: rf.notes || null
-    } as any)
+    })
     if (repErr) {
       // Fallback kalau kolom production_job_id belum ada (migration 046 belum di-apply)
       if (repErr.message?.includes('production_job_id') || repErr.code === 'PGRST204') {
@@ -111,7 +138,7 @@ export default function PenjahitJobsPage() {
           poni_lurus: Number(rf.poni_lurus ?? 0),
           poni_gel: Number(rf.poni_gel ?? 0),
           notes: rf.notes || null
-        } as any)
+        })
         if (retryErr) { toast('error', '⚠️ Gagal submit laporan: ' + retryErr.message); setSaving(null); return }
       } else {
         toast('warning', '⚠️ Gagal submit laporan: ' + repErr.message)
@@ -201,7 +228,7 @@ export default function PenjahitJobsPage() {
                         { label: 'Roman', val: job.meter_roman },
                         { label: 'Kupu²', val: job.meter_kupu_kupu }
                       ]
-                        .filter((m) => m.val > 0)
+                        .filter((m) => (m.val ?? 0) > 0)
                         .map((m) => (
                           <span
                             key={m.label}

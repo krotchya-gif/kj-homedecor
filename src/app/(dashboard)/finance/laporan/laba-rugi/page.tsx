@@ -1,4 +1,5 @@
 'use client'
+import type { AutoTableDoc } from '@/lib/pdf-types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -13,18 +14,54 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function LabaRugiPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<LooseRow[]>([])
 
   const supabase = createClient()
 
   async function fetchData() {
     setLoading(true)
     const { data } = await fetchAccountBalances(supabase, startDate, endDate, ['revenue', 'expense'])
-    setAccounts(data ?? [])
+    setAccounts((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -52,23 +89,23 @@ export default function LabaRugiPage() {
       startY: 40,
       head: [['Kode', 'Nama Akun', 'Saldo']],
       headStyles: { fillColor: [34, 197, 94] },
-      body: revenues.map((a) => [a.code, a.name, formatRp(a.balance ?? 0)]),
+      body: revenues.map((a) => [a.code ?? '', a.name ?? '', formatRp(a.balance ?? 0)]),
       foot: [['', 'TOTAL PENDAPATAN', formatRp(totalRevenue)]],
       footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold' },
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
     })
 
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
+      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
       head: [['Kode', 'Nama Akun', 'Saldo']],
       headStyles: { fillColor: [220, 38, 38] },
-      body: expenses.map((a) => [a.code, a.name, formatRp(a.balance ?? 0)]),
+      body: expenses.map((a) => [a.code ?? '', a.name ?? '', formatRp(a.balance ?? 0)]),
       foot: [['', 'TOTAL BIAYA', formatRp(totalExpense)]],
       footStyles: { fillColor: [254, 242, 242], textColor: [153, 27, 27], fontStyle: 'bold' },
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
     })
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10
+    const finalY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
     doc.setFillColor(profit >= 0 ? 34 : 220, profit >= 0 ? 197 : 38, profit >= 0 ? 94 : 38)
     doc.rect(14, finalY, 180, 18, 'F')
     doc.setFont('helvetica', 'bold')

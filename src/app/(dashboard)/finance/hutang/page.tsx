@@ -14,15 +14,15 @@ const formatRp = (n: number) =>
 
 interface Hutang {
   id: string
-  supplier_id: string
-  invoice_number: string
-  invoice_date: string
+  supplier_id: string | null
+  invoice_number: string | null
+  invoice_date: string | null
   amount: number
   paid_amount: number
   return_amount: number
   status: string
-  notes?: string
-  supplier?: { name: string; phone: string }
+  notes?: string | null
+  supplier?: { name: string; phone?: string } | null
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -35,7 +35,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 export default function HutangPage() {
   const { toast } = useToast()
   const [hutang, setHutang] = useState<Hutang[]>([])
-  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [suppliers, setSuppliers] = useState<{ id: string; name?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -85,7 +85,7 @@ export default function HutangPage() {
   function openEdit(h: Hutang) {
     setEditItem(h)
     setForm({
-      supplier_id: h.supplier_id,
+      supplier_id: h.supplier_id ?? '',
       invoice_number: h.invoice_number ?? '',
       invoice_date: h.invoice_date ?? '',
       amount: String(h.amount ?? 0),
@@ -107,14 +107,14 @@ export default function HutangPage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = hutang
-        setHutang((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setHutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Hutang) : x)))
         const { error } = await supabase.from('hutang').update(payload).eq('id', editItem.id)
         if (error) { setHutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
-        setHutang((curr) => [tempItem, ...curr] as any)
+        setHutang((curr) => [tempItem as Hutang, ...curr])
         const { data, error } = await supabase.from('hutang').insert(payload).select('id').single()
         if (error) {
           setHutang((curr) => curr.filter((x) => x.id !== tempId))

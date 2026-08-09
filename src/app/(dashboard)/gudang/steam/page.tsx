@@ -38,6 +38,7 @@ interface LaundryRecord {
   meter: number
   description: string | null
   date: string
+  status?: string
 }
 
 const fmt = (n: number) =>
@@ -368,7 +369,7 @@ export default function GudangSteamPage() {
         ) : laundryRecords.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={laundryRecords} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+          <MobileCards items={laundryRecords} keyOf={(r) => r.id} renderCard={(r) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Customer</span>

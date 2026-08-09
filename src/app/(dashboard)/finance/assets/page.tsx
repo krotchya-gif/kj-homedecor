@@ -14,11 +14,11 @@ const formatRp = (n: number) =>
 
 interface Asset {
   id: string
-  code: string
+  code: string | null
   name: string
-  category: string
-  location: string
-  purchase_date: string
+  category: string | null
+  location: string | null
+  purchase_date: string | null
   purchase_value: number
   depreciation_rate: number
   current_value: number
@@ -116,14 +116,14 @@ export default function AssetsPage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = assets
-        setAssets((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setAssets((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x)))
         const { error } = await supabase.from('assets').update(payload).eq('id', editItem.id)
         if (error) { setAssets(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
-        const tempItem = { id: tempId, ...payload }
-        setAssets((curr) => [tempItem, ...curr] as any)
+        const tempItem = { id: tempId, status: 'active', ...payload }
+        setAssets((curr) => [tempItem, ...curr])
         const { data, error } = await supabase.from('assets').insert(payload).select('id').single()
         if (error) {
           setAssets((curr) => curr.filter((x) => x.id !== tempId))

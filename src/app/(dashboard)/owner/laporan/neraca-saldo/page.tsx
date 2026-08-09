@@ -13,18 +13,54 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function NeracaSaldoPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<LooseRow[]>([])
 
   const supabase = createClient()
 
   async function fetchData() {
     setLoading(true)
     const { data } = await fetchAccountBalances(supabase, startDate, endDate)
-    setAccounts(data ?? [])
+    setAccounts((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -36,8 +72,8 @@ export default function NeracaSaldoPage() {
   const isDebit = (type: string) => type === 'asset' || type === 'expense'
   const isCredit = (type: string) => type === 'liability' || type === 'equity' || type === 'revenue'
 
-  const totalDebit = accounts.filter((a) => isDebit(a.type)).reduce((s, a) => s + (a.balance ?? 0), 0)
-  const totalCredit = accounts.filter((a) => isCredit(a.type)).reduce((s, a) => s + (a.balance ?? 0), 0)
+  const totalDebit = accounts.filter((a) => isDebit(a.type ?? '')).reduce((s, a) => s + (a.balance ?? 0), 0)
+  const totalCredit = accounts.filter((a) => isCredit(a.type ?? '')).reduce((s, a) => s + (a.balance ?? 0), 0)
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -50,9 +86,9 @@ export default function NeracaSaldoPage() {
     doc.text('Daftar Aktivitas Akun (Format Debit-Kredit)', 14, 34)
 
     const body = accounts.map((a) => {
-      const debit = isDebit(a.type) ? (a.balance ?? 0) : 0
-      const credit = isCredit(a.type) ? (a.balance ?? 0) : 0
-      return [a.code, a.name, debit > 0 ? formatRp(debit) : '', credit > 0 ? formatRp(credit) : '']
+      const debit = isDebit(a.type ?? '') ? (a.balance ?? 0) : 0
+      const credit = isCredit(a.type ?? '') ? (a.balance ?? 0) : 0
+      return [a.code ?? '', a.name ?? '', debit > 0 ? formatRp(debit) : '', credit > 0 ? formatRp(credit) : '']
     })
 
     autoTable(doc, {
@@ -108,8 +144,8 @@ export default function NeracaSaldoPage() {
             </thead>
             <tbody>
               {accounts.map((a) => {
-                const debit = isDebit(a.type) ? (a.balance ?? 0) : 0
-                const credit = isCredit(a.type) ? (a.balance ?? 0) : 0
+                const debit = isDebit(a.type ?? '') ? (a.balance ?? 0) : 0
+                const credit = isCredit(a.type ?? '') ? (a.balance ?? 0) : 0
                 return (
                   <tr key={a.id}>
                     <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{a.code}</td>

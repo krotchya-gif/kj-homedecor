@@ -85,9 +85,9 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
   const [clientName, setClientName] = useState(initial?.client_name ?? '')
   const [clientAddress, setClientAddress] = useState(initial?.client_address ?? '')
   const [surveyDate, setSurveyDate] = useState(initial?.survey_date ?? new Date().toISOString().split('T')[0])
-  const [surveyorName, setSurveyorName] = useState((initial as any)?.surveyor?.name ?? '')
-  const [signature, setSignature] = useState<string>((initial as any)?.signature ?? '')
-  const [signatureName, setSignatureName] = useState((initial as any)?.signature_name ?? '')
+  const [surveyorName, setSurveyorName] = useState(initial?.surveyor?.name ?? '')
+  const [signature, setSignature] = useState<string>(initial?.signature ?? '')
+  const [signatureName, setSignatureName] = useState(initial?.signature_name ?? '')
   const [rooms, setRooms] = useState<RoomForm[]>(() => {
     if (!initial?.rooms?.length) return [emptyRoom()]
     return initial.rooms.map((r) => ({
@@ -107,8 +107,8 @@ export default function SurveyForm({ initial, onSaved }: SurveyFormProps) {
     }))
   })
   const [gps, setGps] = useState<{ lat: number | null; lng: number | null }>({
-    lat: (initial as any)?.gps_lat ?? null,
-    lng: (initial as any)?.gps_lng ?? null
+    lat: initial?.gps_lat ?? null,
+    lng: initial?.gps_lng ?? null
   })
   const [step, setStep] = useState<'form' | 'review'>('form')
   const [saving, setSaving] = useState(false)

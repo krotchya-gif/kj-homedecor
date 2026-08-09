@@ -39,6 +39,42 @@ const STATUS_COLORS: Record<string, string> = {
   done: 'badge-done'
 }
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function OrdersPage() {
   const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
@@ -63,7 +99,7 @@ export default function OrdersPage() {
     customer_phone: '',
     customer_address: ''
   })
-  const [customers, setCustomers] = useState<any[]>([])
+  const [customers, setCustomers] = useState<{ id: string; name: string; phone?: string | null; address?: string | null }[]>([])
   const [searchCustomer, setSearchCustomer] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
 
@@ -71,7 +107,7 @@ export default function OrdersPage() {
 
   async function fetchCustomers() {
     const { data } = await supabase.from('customers').select('id, name, phone, address').order('name')
-    setCustomers(data ?? [])
+    setCustomers((data ?? []) as { id: string; name: string; phone?: string | null; address?: string | null }[])
   }
 
   function filteredCustomers(search: string) {

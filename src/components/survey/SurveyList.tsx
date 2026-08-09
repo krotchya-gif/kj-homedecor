@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
 import { useToast } from '@/components/ui/Toast'
+import type { Survey } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -54,7 +55,7 @@ export default function SurveyList({ basePath, showStats }: Props) {
         .select('surveyor_id, surveyor:users(name)')
         .not('surveyor_id', 'is', null)
       const map = new Map<string, number>()
-      for (const s of (data ?? []) as any[]) {
+      for (const s of (data ?? []) as { surveyor_id?: string; surveyor?: { name?: string } | null }[]) {
         const name = s.surveyor?.name ?? 'Tanpa nama'
         map.set(name, (map.get(name) ?? 0) + 1)
       }
@@ -215,7 +216,7 @@ export default function SurveyList({ basePath, showStats }: Props) {
                   <button onClick={() => copyRow(r)} style={{ background: 'var(--neutral-100)', color: '#374151', border: 'none', cursor: 'pointer' }}>
                     Copy
                   </button>
-                  <a href={buildWhatsAppUrl({ ...(r as any), rooms: [] } as any)} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#166534', textDecoration: 'none' }}>
+                  <a href={buildWhatsAppUrl({ ...(r as unknown as Survey), rooms: [] })} target="_blank" rel="noreferrer" style={{ background: '#dcfce7', color: '#166534', textDecoration: 'none' }}>
                     WA
                   </a>
                   <button onClick={() => handleDelete(r)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>
@@ -278,7 +279,7 @@ export default function SurveyList({ basePath, showStats }: Props) {
                     <button onClick={() => copyRow(r)} style={miniBtn('#374151')}>
                       Copy
                     </button>{' '}
-                    <a href={buildWhatsAppUrl({ ...(r as any), rooms: [] } as any)} target="_blank" rel="noreferrer" style={miniBtn('#25D366')}>
+                    <a href={buildWhatsAppUrl({ ...(r as unknown as Survey), rooms: [] })} target="_blank" rel="noreferrer" style={miniBtn('#25D366')}>
                       WA
                     </a>{' '}
                     <button onClick={() => handleDelete(r)} style={miniBtn('#dc2626')}>

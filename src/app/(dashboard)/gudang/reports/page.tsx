@@ -20,6 +20,10 @@ interface InventoryMovement {
   created_by: string
   material?: { name: string; unit: string }
   staff?: { name: string }
+  material_name?: string
+  name?: string
+  quantity?: number
+  movement_type?: string
 }
 
 export default function GudangReportsPage() {
@@ -316,7 +320,7 @@ export default function GudangReportsPage() {
         ) : movements.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={movements} keyOf={(m: any) => m.id} renderCard={(m: any) => (
+          <MobileCards items={movements} keyOf={(m) => m.id} renderCard={(m) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Material</span>

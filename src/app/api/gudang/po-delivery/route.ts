@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   if (updateErr) return NextResponse.json({ error: { message: updateErr.message } }, { status: 500 })
 
   // Increment stock_gudang for the material
-  const pr = currentPO.pr as any
+  const pr = currentPO.pr as unknown as { qty?: number; material_id?: string; material?: { name?: string; unit?: string } | null } | null
   if (pr?.material_id) {
     const materialQty = Number(pr.qty)
     if (!isNaN(materialQty) && materialQty > 0) {

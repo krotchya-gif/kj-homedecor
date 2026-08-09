@@ -1,4 +1,5 @@
 'use client'
+import type { AutoTableDoc } from '@/lib/pdf-types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -19,8 +20,44 @@ function formatDateDisplay(dateStr: string) {
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function NeracaPage() {
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
@@ -30,7 +67,7 @@ export default function NeracaPage() {
   async function fetchData() {
     setLoading(true)
     const { data } = await fetchAccountBalances(supabase, startDate, endDate)
-    setAccounts(data ?? [])
+    setAccounts((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -59,7 +96,7 @@ export default function NeracaPage() {
       startY: 40,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
-        ...assets.map((a) => [a.code, a.name, 'Aset', formatRp(a.balance ?? 0)]),
+        ...assets.map((a) => [a.code ?? '', a.name ?? '', 'Aset', formatRp(a.balance ?? 0)]),
         [{ content: 'TOTAL ASET', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalAssets)]
       ],
       theme: 'striped',
@@ -67,10 +104,10 @@ export default function NeracaPage() {
     })
 
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
+      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
-        ...liabilities.map((a) => [a.code, a.name, 'Liabilitas', formatRp(a.balance ?? 0)]),
+        ...liabilities.map((a) => [a.code ?? '', a.name ?? '', 'Liabilitas', formatRp(a.balance ?? 0)]),
         [{ content: 'TOTAL LIABILITAS', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalLiabilities)]
       ],
       theme: 'striped',
@@ -78,10 +115,10 @@ export default function NeracaPage() {
     })
 
     autoTable(doc, {
-      startY: (doc as any).lastAutoTable.finalY + 10,
+      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
-        ...equities.map((a) => [a.code, a.name, 'Ekuitas', formatRp(a.balance ?? 0)]),
+        ...equities.map((a) => [a.code ?? '', a.name ?? '', 'Ekuitas', formatRp(a.balance ?? 0)]),
         [{ content: 'TOTAL EKUITAS', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalEquity)]
       ],
       theme: 'striped',

@@ -155,7 +155,7 @@ export default function OwnerStaffPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(s: any) => s.id} renderCard={(s: any) => (
+          <MobileCards items={filtered} keyOf={(s) => s.id} renderCard={(s) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Nama</span>

@@ -17,10 +17,10 @@ interface ImportModalProps {
   /** CSV column headers → DB column key mapping */
   columns: Column[]
   /** Custom field resolver for complex FK lookups (e.g., category name → id) */
-  resolveField?: (key: string, value: string) => string | number | null
+  resolveField?: (key: string, value: string) => string | number | boolean | null
   /** Called with mapped rows for final import */
   onImport: (
-    rows: Record<string, string | number | null>[]
+    rows: Record<string, string | number | boolean | null>[]
   ) => Promise<{ inserted: number; updated: number; errors: string[] }>
   entityName?: string
 }
@@ -37,7 +37,7 @@ export default function ImportModal({
   const [csvHeaders, setCsvHeaders] = useState<string[]>([])
   const [csvRows, setCsvRows] = useState<string[][]>([])
   const [mapping, setMapping] = useState<Map<string, number | null>>(new Map())
-  const [parsed, setParsed] = useState<Record<string, string | number | null>[]>([])
+  const [parsed, setParsed] = useState<Record<string, string | number | boolean | null>[]>([])
   const [errors, setErrors] = useState<string[]>([])
   const [importing, setImporting] = useState(false)
   const [result, setResult] = useState<{ inserted: number; updated: number; errors: string[] } | null>(null)
@@ -56,7 +56,7 @@ export default function ImportModal({
         setMapping(autoMap)
         // Parse preview rows
         const preview = rows.slice(0, 5).map((row) => {
-          const obj: Record<string, string | number | null> = {}
+          const obj: Record<string, string | number | boolean | null> = {}
           autoMap.forEach((colIdx, key) => {
             if (colIdx !== null && colIdx >= 0) {
               const raw = row[colIdx] ?? ''
@@ -69,8 +69,8 @@ export default function ImportModal({
           return obj
         })
         setParsed(preview)
-      } catch (e: any) {
-        setErrors([`Gagal parse CSV: ${e.message}`])
+      } catch (e) {
+        setErrors([`Gagal parse CSV: ${e instanceof Error ? e.message : String(e)}`])
       }
     },
     [columns, resolveField]
@@ -92,7 +92,7 @@ export default function ImportModal({
     setMapping(newMap)
     // Update preview with new mapping
     const updated = csvRows.slice(0, 5).map((row) => {
-      const obj: Record<string, string | number | null> = {}
+      const obj: Record<string, string | number | boolean | null> = {}
       newMap.forEach((colIdx, k) => {
         if (colIdx !== null && colIdx >= 0) {
           const raw = row[colIdx] ?? ''
@@ -120,7 +120,7 @@ export default function ImportModal({
     setErrors([])
     try {
       const allRows = csvRows.map((row) => {
-        const obj: Record<string, string | number | null> = {}
+        const obj: Record<string, string | number | boolean | null> = {}
         mapping.forEach((colIdx, key) => {
           if (colIdx !== null && colIdx >= 0) {
             const raw = row[colIdx] ?? ''
@@ -134,8 +134,8 @@ export default function ImportModal({
       })
       const res = await onImport(allRows)
       setResult(res)
-    } catch (e: any) {
-      setErrors([e.message])
+    } catch (e) {
+      setErrors([e instanceof Error ? e.message : String(e)])
     } finally {
       setImporting(false)
     }

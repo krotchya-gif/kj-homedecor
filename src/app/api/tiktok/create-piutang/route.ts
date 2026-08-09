@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       total: (statements || []).length,
       message: `Created ${created} piutang, ${skipped} already linked`
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

@@ -1,4 +1,5 @@
 'use client'
+import type { Material } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -11,10 +12,24 @@ import { EmptyState } from '@/components/ui/EmptyState'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface HistoryRow {
+  id: string
+  material_id?: string
+  new_price?: number
+  cost_per_unit?: number
+  price?: number
+  recorded_at?: string
+  changed_at?: string
+  created_at?: string
+  notes?: string
+  supplier_name?: string
+  supplier?: { name?: string } | null
+}
+
 export default function MaterialHistoryPage() {
-  const [materials, setMaterials] = useState<any[]>([])
-  const [history, setHistory] = useState<any[]>([])
-  const [suppliers, setSuppliers] = useState<any[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [history, setHistory] = useState<HistoryRow[]>([])
+  const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [search, setSearch] = useState('')
@@ -31,8 +46,8 @@ export default function MaterialHistoryPage() {
       supabase.from('materials').select('*, supplier:suppliers(id,name)').order('name'),
       supabase.from('suppliers').select('id,name').order('name')
     ])
-    setMaterials(matsRes.data ?? [])
-    setSuppliers(suplRes.data ?? [])
+    setMaterials((matsRes.data ?? []) as Material[])
+    setSuppliers((suplRes.data ?? []) as { id: string; name: string }[])
     setLoading(false)
   }
 
@@ -54,13 +69,13 @@ export default function MaterialHistoryPage() {
   )
 
   const selectedMat = materials.find((m) => m.id === selectedMaterial)
-  const latestPrice = selectedMat?.cost_per_unit
+  const latestPrice = selectedMat?.cost_per_unit ?? 0
 
   // Compute trend
   function getTrend(): { direction: 'up' | 'down' | 'same'; diff: number; pct: number } {
     if (history.length < 2) return { direction: 'same', diff: 0, pct: 0 }
-    const current = history[0].price
-    const previous = history[1].price
+    const current = history[0].price ?? 0
+    const previous = history[1].price ?? 0
     const diff = current - previous
     const pct = previous > 0 ? (diff / previous) * 100 : 0
     return { direction: diff > 0 ? 'up' : diff < 0 ? 'down' : 'same', diff, pct }
@@ -114,7 +129,7 @@ export default function MaterialHistoryPage() {
         ) : history.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={history} keyOf={(h: any) => h.id} renderCard={(h: any) => (
+          <MobileCards items={history} keyOf={(h) => h.id} renderCard={(h) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
@@ -243,19 +258,19 @@ export default function MaterialHistoryPage() {
                   <div className="mobile-only">
                     <MobileCards
                       items={history}
-                      keyOf={(h: any) => h.id}
-                      renderCard={(h: any) => (
+                      keyOf={(h) => h.id}
+                      renderCard={(h) => (
                         <div className="mobile-card">
                           <div className="mobile-card-row">
                             <span className="mobile-card-label">Tanggal</span>
                             <span className="mobile-card-value" style={{ fontWeight: '400' }}>
-                              {new Date(h.recorded_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {new Date(h.recorded_at ?? '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                               {h.id === history[0]?.id ? ' • Terkini' : ''}
                             </span>
                           </div>
                           <div className="mobile-card-row">
                             <span className="mobile-card-label">Harga</span>
-                            <span className="mobile-card-value" style={{ color: '#cc7030' }}>{formatRp(h.price)}</span>
+                            <span className="mobile-card-value" style={{ color: '#cc7030' }}>{formatRp(h.price ?? 0)}</span>
                           </div>
                           <div className="mobile-card-row">
                             <span className="mobile-card-label">Supplier</span>
@@ -285,7 +300,7 @@ export default function MaterialHistoryPage() {
                       {history.map((h, i) => (
                         <tr key={h.id}>
                           <td style={{ whiteSpace: 'nowrap', fontSize: '0.82rem' }}>
-                            {new Date(h.recorded_at).toLocaleDateString('id-ID', {
+                            {new Date(h.recorded_at ?? '').toLocaleDateString('id-ID', {
                               day: 'numeric',
                               month: 'short',
                               year: 'numeric'
@@ -306,7 +321,7 @@ export default function MaterialHistoryPage() {
                               </span>
                             )}
                           </td>
-                          <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(h.price)}</td>
+                          <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(h.price ?? 0)}</td>
                           <td style={{ fontSize: '0.82rem', color: 'var(--neutral-600)' }}>{h.supplier?.name ?? '—'}</td>
                           <td style={{ fontSize: '0.78rem', color: 'var(--neutral-400)' }}>{h.notes ?? '—'}</td>
                         </tr>

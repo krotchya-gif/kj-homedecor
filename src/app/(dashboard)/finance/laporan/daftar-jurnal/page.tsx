@@ -1,4 +1,5 @@
 'use client'
+import type { JournalEntry, JournalLine } from '@/types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -16,7 +17,7 @@ export default function DaftarJurnalPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [entries, setEntries] = useState<any[]>([])
+  const [entries, setEntries] = useState<JournalEntry[]>([])
 
   const supabase = createClient()
 
@@ -47,11 +48,11 @@ export default function DaftarJurnalPage() {
     doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
     doc.text('Journal Entries List', 14, 34)
 
-    const tableBody: any[] = []
+    const tableBody: (string | number)[][] = []
     entries.forEach((e) => {
-      e.lines?.forEach((line: any, idx: number) => {
+      e.lines?.forEach((line: JournalLine, idx: number) => {
         tableBody.push([
-          idx === 0 ? e.entry_date : '',
+          idx === 0 ? (e.entry_date ?? '') : '',
           `${line.account?.code ?? ''} ${line.account?.name ?? ''}`,
           line.debit > 0 ? formatRp(line.debit) : '',
           line.credit > 0 ? formatRp(line.credit) : '',
@@ -113,7 +114,7 @@ export default function DaftarJurnalPage() {
             </thead>
             <tbody>
               {entries.map((e) =>
-                e.lines?.map((line: any, idx: number) => (
+                e.lines?.map((line: JournalLine, idx: number) => (
                   <tr key={`${e.id}-${idx}`}>
                     {idx === 0 && (
                       <td rowSpan={e.lines?.length ?? 1} style={{ color: 'var(--neutral-600)' }}>

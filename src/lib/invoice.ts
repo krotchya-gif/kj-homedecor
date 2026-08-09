@@ -1,9 +1,13 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { Order, OrderItem, Customer } from '@/types'
+import type { Order, OrderItem, Customer , SurveyRoom } from '@/types'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
+interface AutoTableDoc {
+  lastAutoTable: { finalY: number }
+}
 
 interface InvoiceData {
   order: Order & {
@@ -96,8 +100,8 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   // ============ HASIL SURVEY GORDEN (SRS 2026-08-03) ============
   // Tampil kalau order punya survey ter-link (orders.survey_id). Format copy
   // mengikuti SRS section 10 supaya konsisten antara invoice & format WA.
-  const survey = order.survey as any
-  let surveyEndY = (doc as any).lastAutoTable.finalY + 10
+  const survey = order.survey ?? null
+  let surveyEndY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
   if (survey?.rooms?.length) {
     const startY = surveyEndY
     doc.setFont('helvetica', 'bold')
@@ -111,7 +115,7 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
     doc.text(surveyMeta, 20, startY + 5)
 
     let y = startY + 12
-    ;(survey.rooms as any[]).forEach((r: any, i: number) => {
+    ;(survey?.rooms ?? []).forEach((r: SurveyRoom, i: number) => {
       if (y > 270) {
         doc.addPage()
         y = 20
@@ -250,7 +254,7 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
     }
   })
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10
+  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
   // Catatan order (notes) — permintaan: "catatannya ga ikut masuk"
   if (order.notes) {
     doc.setFontSize(9)

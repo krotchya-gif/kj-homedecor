@@ -234,7 +234,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             )}
 
             {/* Description */}
-            {(p as any).description && (
+            {p.description && (
               <div
                 style={{
                   marginTop: '1.5rem',
@@ -248,7 +248,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   Deskripsi
                 </div>
                 <div style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  {(p as any).description}
+                  {p.description}
                 </div>
               </div>
             )}

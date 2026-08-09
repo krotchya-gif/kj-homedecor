@@ -1,4 +1,5 @@
 'use client'
+import type { JournalEntry, JournalLine } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
@@ -26,9 +27,9 @@ interface CashAccount {
 
 export default function ExpensePage() {
   const { toast } = useToast()
-  const [expenses, setExpenses] = useState<any[]>([])
+  const [expenses, setExpenses] = useState<JournalEntry[]>([])
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
-  const [expenseAccounts, setExpenseAccounts] = useState<any[]>([])
+  const [expenseAccounts, setExpenseAccounts] = useState<{ id: string; name?: string; code?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -203,12 +204,12 @@ export default function ExpensePage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((j: any) => {
-                const expenseLine = j.lines?.find((l: any) => l.debit > 0)
-                const cashLine = j.lines?.find((l: any) => l.credit > 0)
+              {filtered.map((j: JournalEntry) => {
+                const expenseLine = j.lines?.find((l: JournalLine) => l.debit > 0)
+                const cashLine = j.lines?.find((l: JournalLine) => l.credit > 0)
                 return (
                   <tr key={j.id}>
-                    <td style={{ color: 'var(--neutral-600)' }}>{new Date(j.entry_date).toLocaleDateString('id-ID')}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{new Date(j.entry_date ?? j.date ?? '').toLocaleDateString('id-ID')}</td>
                     <td style={{ fontWeight: '500' }}>{j.description}</td>
                     <td style={{ color: 'var(--neutral-600)', fontSize: '0.82rem' }}>
                       {expenseLine?.account_id?.substring(0, 8) ?? '—'}

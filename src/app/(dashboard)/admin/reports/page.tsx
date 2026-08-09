@@ -69,6 +69,10 @@ const STATUS_COLORS: Record<string, string> = {
   done: '#22c55e'
 }
 
+interface AutoTableDoc {
+  lastAutoTable: { finalY: number }
+}
+
 export default function AdminReportsPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [prevOrders, setPrevOrders] = useState<Order[]>([])
@@ -237,7 +241,7 @@ export default function AdminReportsPage() {
     })
 
     // Marketplace breakdown
-    const marketStartY = (doc as any).lastAutoTable.finalY + 10
+    const marketStartY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('Per Marketplace', 14, marketStartY)
@@ -256,7 +260,7 @@ export default function AdminReportsPage() {
     })
 
     // Top products
-    const prodStartY = ((doc as any).lastAutoTable.finalY ?? 0) + 10
+    const prodStartY = ((doc as unknown as AutoTableDoc).lastAutoTable.finalY ?? 0) + 10
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('Produk Terlaris', 14, prodStartY)
@@ -575,7 +579,7 @@ export default function AdminReportsPage() {
         ) : topProducts.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={topProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+          <MobileCards items={topProducts} keyOf={(p) => p.name} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Produk</span>
@@ -583,11 +587,11 @@ export default function AdminReportsPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Terjual</span>
-                  <span className="mobile-card-value">{p.qty ?? p.total_qty}</span>
+                  <span className="mobile-card-value">{p.count}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Omzet</span>
-                  <span className="mobile-card-value">{p.revenue ?? p.total}</span>
+                  <span className="mobile-card-value">{p.revenue}</span>
                 </div>
             </div>
           )} />
@@ -663,7 +667,7 @@ export default function AdminReportsPage() {
         {topProducts.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={topProducts} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+          <MobileCards items={topProducts} keyOf={(p) => p.name} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Produk</span>
@@ -671,11 +675,11 @@ export default function AdminReportsPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Qty</span>
-                  <span className="mobile-card-value">{p.qty ?? p.total_qty}</span>
+                  <span className="mobile-card-value">{p.count}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Revenue</span>
-                  <span className="mobile-card-value">{p.revenue ?? p.total}</span>
+                  <span className="mobile-card-value">{p.revenue}</span>
                 </div>
             </div>
           )} />

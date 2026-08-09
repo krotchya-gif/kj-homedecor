@@ -1,4 +1,5 @@
 'use client'
+import type { AutoTableDoc } from '@/lib/pdf-types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -12,11 +13,55 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
+interface HutangRow {
+  id?: string
+  invoice_number?: string
+  invoice_date?: string
+  amount?: number
+  supplier?: { name?: string } | null
+}
+
 export default function UmurHutangPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [hutang, setHutang] = useState<any[]>([])
+  const [hutang, setHutang] = useState<LooseRow[]>([])
 
   const supabase = createClient()
 
@@ -26,7 +71,7 @@ export default function UmurHutangPage() {
       .from('hutang')
       .select('*, supplier:suppliers(name)')
       .order('invoice_date', { ascending: false })
-    setHutang(data ?? [])
+    setHutang((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -43,15 +88,15 @@ export default function UmurHutangPage() {
 
   const today = new Date()
 
-  const enriched = hutang.map((h) => {
-    const days = Math.floor((today.getTime() - new Date(h.invoice_date).getTime()) / (1000 * 60 * 60 * 24))
+  const enriched = hutang.map((h: HutangRow) => {
+    const days = Math.floor((today.getTime() - new Date(h.invoice_date ?? '').getTime()) / (1000 * 60 * 60 * 24))
     const bucket = getBucket(days)
     return { ...h, days, bucket }
   })
 
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
   enriched.forEach((h) => {
-    buckets[h.bucket] += h.amount ?? 0
+    buckets[h.bucket] = (buckets[h.bucket] ?? 0) + (h.amount ?? 0)
   })
 
   const bucketData = Object.entries(buckets).map(([bucket, amount]) => ({ bucket, amount }))
@@ -73,8 +118,8 @@ export default function UmurHutangPage() {
       headStyles: { fillColor: [220, 38, 38] },
       body: enriched.map((h) => [
         h.supplier?.name ?? '—',
-        h.invoice_number ?? h.id.slice(0, 8),
-        new Date(h.invoice_date).toLocaleDateString('id-ID'),
+        h.invoice_number ?? (h.id ?? '').slice(0, 8),
+        new Date(h.invoice_date ?? '').toLocaleDateString('id-ID'),
         formatRp(h.amount ?? 0),
         h.bucket
       ]),
@@ -87,7 +132,7 @@ export default function UmurHutangPage() {
       }
     })
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10
+    const finalY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
     autoTable(doc, {
       startY: finalY,
       head: [['Bucket', 'Total Amount']],
@@ -150,9 +195,9 @@ export default function UmurHutangPage() {
                   <tr key={h.id}>
                     <td style={{ fontWeight: '600' }}>{h.supplier?.name ?? '—'}</td>
                     <td style={{ fontFamily: 'monospace', color: 'var(--neutral-600)' }}>
-                      {h.invoice_number ?? h.id.slice(0, 8)}
+                      {h.invoice_number ?? (h.id ?? '').slice(0, 8)}
                     </td>
-                    <td style={{ color: 'var(--neutral-600)' }}>{new Date(h.invoice_date).toLocaleDateString('id-ID')}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{new Date(h.invoice_date ?? '').toLocaleDateString('id-ID')}</td>
                     <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>
                       {formatRp(h.amount ?? 0)}
                     </td>

@@ -17,8 +17,8 @@ export default function SeoScripts() {
       .single()
       .then(({ data }) => {
         if (data) {
-          setPixelId((data as any).seo_pixel_id ?? '')
-          setGa4Id((data as any).seo_ga4_id ?? '')
+          setPixelId(data?.seo_pixel_id ?? '')
+          setGa4Id(data?.seo_ga4_id ?? '')
         }
       })
   }, [])

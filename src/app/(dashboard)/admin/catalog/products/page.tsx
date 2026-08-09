@@ -115,7 +115,7 @@ export default function ProductsPage() {
   }
 
   // Resolver for import modal (handles FK lookups)
-  function resolveProductField(key: string, value: string): string | number | null {
+  function resolveProductField(key: string, value: string): string | number | boolean | null {
     if (!value && value !== '0') return null
     if (key === 'category_name') return getCategoryId(value)
     if (
@@ -132,14 +132,14 @@ export default function ProductsPage() {
     }
     if (key === 'is_custom' || key === 'is_catalog_visible') {
       const v = value.toLowerCase()
-      return (v === 'true' || v === '1' || v === 'yes' || v === 'ya') as any
+      return v === 'true' || v === '1' || v === 'yes' || v === 'ya'
     }
     return value
   }
 
   // Export current products as CSV
   function handleExport() {
-    const rows = (products as any[]).map((p: any) => ({
+    const rows = products.map((p) => ({
       name: p.name,
       sku: p.sku ?? '',
       kode_kain: p.kode_kain ?? '',
@@ -152,7 +152,7 @@ export default function ProductsPage() {
       is_custom: p.is_custom ? 'true' : 'false',
       is_catalog_visible: p.is_catalog_visible ? 'true' : 'false'
     }))
-    exportToCSV(rows as any, IMPORT_COLUMNS)
+    exportToCSV(rows as Record<string, unknown>[], IMPORT_COLUMNS as { key: string; label: string }[])
   }
 
   // Download blank template
@@ -161,7 +161,7 @@ export default function ProductsPage() {
   }
 
   // Handle import rows
-  async function handleImport(rows: Record<string, string | number | null>[]) {
+  async function handleImport(rows: Record<string, string | number | boolean | null>[]) {
     const errors: string[] = []
     let inserted = 0
     let updated = 0
@@ -209,8 +209,8 @@ export default function ProductsPage() {
             if (error) errors.push(`Insert ${payload.name}: ${error.message}`)
             else inserted++
           }
-        } catch (e: any) {
-          errors.push(`Error: ${e.message}`)
+        } catch (e) {
+          errors.push(`Error: ${e instanceof Error ? e.message : String(e)}`)
         }
       }
     }
@@ -222,7 +222,7 @@ export default function ProductsPage() {
 
   const filtered = products.filter(
     (p) =>
-      (activeTab === 'all' || (p as any).product_type === activeTab) &&
+      (activeTab === 'all' || p.product_type === activeTab) &&
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.sku ?? '').toLowerCase().includes(search.toLowerCase()))
   )
@@ -259,14 +259,14 @@ export default function ProductsPage() {
       name: p.name,
       sku: p.sku ?? '',
       kode_kain: p.kode_kain ?? '',
-      category_id: (p as any).category_id ?? '',
+      category_id: p.category_id ?? '',
       price: String(p.price),
       stock_toko: String(p.stock_toko),
-      description: (p as any).description ?? '',
+      description: p.description ?? '',
       is_featured: p.is_featured,
       is_custom: p.is_custom,
       is_catalog_visible: p.is_catalog_visible !== false,
-      product_type: ((p as any).product_type as 'gorden' | 'perabot') || 'perabot',
+      product_type: p.product_type || 'perabot',
       style_variants: p.style_variants ?? [],
       smokring_colors: p.smokring_colors ?? [],
       color_variants: (p.color_variants ?? []).join(', '),

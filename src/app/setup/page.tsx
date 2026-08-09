@@ -13,7 +13,13 @@ export default function SetupPage() {
   const [step, setStep] = useState<'check' | 'create'>('check')
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
-  const [result, setResult] = useState<{ admin?: any; owner?: any; error?: string } | null>(null)
+  interface SetupResult {
+  admin?: boolean | { role?: string; email?: string; password?: string }
+  owner?: boolean | { role?: string; email?: string; password?: string }
+  error?: string
+}
+
+const [result, setResult] = useState<SetupResult | null>(null)
   const [form, setForm] = useState({
     owner_email: 'owner@kj.com',
     owner_password: 'kjowner123',
@@ -218,10 +224,10 @@ export default function SetupPage() {
                 >
                   <div style={{ fontWeight: '600', fontSize: '0.82rem', color: 'var(--neutral-700)' }}>🔐 Admin</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)', marginTop: '0.2rem' }}>
-                    Email: <strong>{result.admin.email}</strong>
+                    Email: <strong>{typeof result.admin === 'object' ? result.admin.email : ''}</strong>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
-                    Password: <strong>{result.admin.password}</strong>
+                    Password: <strong>{typeof result.admin === 'object' ? result.admin.password : ''}</strong>
                   </div>
                 </div>
               )}
@@ -231,10 +237,10 @@ export default function SetupPage() {
                 >
                   <div style={{ fontWeight: '600', fontSize: '0.82rem', color: 'var(--neutral-700)' }}>👑 Owner</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)', marginTop: '0.2rem' }}>
-                    Email: <strong>{result.owner.email}</strong>
+                    Email: <strong>{typeof result.owner === 'object' ? result.owner.email : ''}</strong>
                   </div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
-                    Password: <strong>{result.owner.password}</strong>
+                    Password: <strong>{typeof result.owner === 'object' ? result.owner.password : ''}</strong>
                   </div>
                 </div>
               )}

@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
       total: orderData.data.orders.length,
       message: `Synced ${synced} new orders`
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
   }
 }

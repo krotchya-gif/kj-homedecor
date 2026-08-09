@@ -38,7 +38,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 export default function FakturPage() {
   const { toast } = useToast()
   const [piutang, setPiutang] = useState<Piutang[]>([])
-  const [customers, setCustomers] = useState<any[]>([])
+  const [customers, setCustomers] = useState<{ id: string; name?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -113,14 +113,14 @@ export default function FakturPage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = piutang
-        setPiutang((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setPiutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Piutang) : x)))
         const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
         if (error) { setPiutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
-        setPiutang((curr) => [tempItem, ...curr] as any)
+        setPiutang((curr) => [tempItem as Piutang, ...curr])
         const { data, error } = await supabase.from('piutang').insert(payload).select('id').single()
         if (error) {
           setPiutang((curr) => curr.filter((x) => x.id !== tempId))

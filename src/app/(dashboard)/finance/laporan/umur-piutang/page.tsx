@@ -12,11 +12,47 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function UmurPiutangPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [orders, setOrders] = useState<any[]>([])
+  const [orders, setOrders] = useState<LooseRow[]>([])
 
   const supabase = createClient()
 
@@ -27,7 +63,7 @@ export default function UmurPiutangPage() {
       .select('id, created_at, total_amount, payment_status, customer:customers(name)')
       .neq('payment_status', 'paid')
       .order('created_at', { ascending: false })
-    setOrders(data ?? [])
+    setOrders((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -46,7 +82,7 @@ export default function UmurPiutangPage() {
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
 
   orders.forEach((o) => {
-    const days = Math.floor((today.getTime() - new Date(o.created_at).getTime()) / (1000 * 60 * 60 * 24))
+    const days = Math.floor((today.getTime() - new Date(o.created_at ?? '').getTime()) / (1000 * 60 * 60 * 24))
     const bucket = getBucket(days)
     buckets[bucket] += o.total_amount ?? 0
   })

@@ -1,4 +1,5 @@
 'use client'
+import type { Material, Product } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -22,11 +23,22 @@ const REASON_REDUCE = [
   'Lainnya'
 ]
 
+
+interface DeliveryPO {
+  id: string
+  supplier?: { name?: string } | null
+  actual_cost?: number
+  pr?: {
+    qty?: number
+    material?: { name?: string; unit?: string } | null
+  } | null
+}
+
 export default function GudangStockPage() {
   const [PAGE_SIZE, setPageSize] = useState(20)
   const { toast } = useToast()
-  const [materials, setMaterials] = useState<any[]>([])
-  const [products, setProducts] = useState<any[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'materials' | 'products' | 'mutasi' | 'edit' | 'delivery'>('materials')
   const [search, setSearch] = useState('')
@@ -49,7 +61,7 @@ export default function GudangStockPage() {
   // Edit state
   const [editTarget, setEditTarget] = useState<'material' | 'produk'>('material')
   const [editSearch, setEditSearch] = useState('')
-  const [editItem, setEditItem] = useState<any | null>(null)
+  const [editItem, setEditItem] = useState<Material | Product | null>(null)
   const [editQty, setEditQty] = useState('')
   const [editMode, setEditMode] = useState<'add' | 'reduce'>('add')
   const [editLocation, setEditLocation] = useState<'gudang' | 'toko'>('gudang')
@@ -58,7 +70,7 @@ export default function GudangStockPage() {
   const [savingEdit, setSavingEdit] = useState(false)
 
   // Delivery state
-  const [deliveryPOs, setDeliveryPOs] = useState<any[]>([])
+  const [deliveryPOs, setDeliveryPOs] = useState<DeliveryPO[]>([])
   const [loadingDelivery, setLoadingDelivery] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
@@ -80,9 +92,9 @@ export default function GudangStockPage() {
       supabase.from('materials').select('id', { count: 'exact', head: true }),
       supabase.from('products').select('id', { count: 'exact', head: true })
     ])
-    setMaterials(mRes.data ?? [])
+    setMaterials((mRes.data ?? []) as Material[])
     setTotalCount(mCountRes.count ?? 0)
-    setProducts(pRes.data ?? [])
+    setProducts((pRes.data ?? []) as Product[])
     setTotalCountProd(pCountRes.count ?? 0)
     setLoading(false)
   }
@@ -99,7 +111,7 @@ export default function GudangStockPage() {
     try {
       const res = await fetch('/api/gudang/po-delivery')
       const json = await res.json()
-      setDeliveryPOs(json.data ?? [])
+      setDeliveryPOs((json.data ?? []) as DeliveryPO[])
     } catch {
       setDeliveryPOs([])
     }
@@ -120,8 +132,8 @@ export default function GudangStockPage() {
     }
   }
 
-  function filteredItems(list: any[], searchVal: string) {
-    return list.filter((it: any) => it.name.toLowerCase().includes(searchVal.toLowerCase()))
+  function filteredItems<T extends { name: string }>(list: T[], searchVal: string): T[] {
+    return list.filter((it) => it.name.toLowerCase().includes(searchVal.toLowerCase()))
   }
 
   async function handleMutasiSubmit(e: React.FormEvent) {
@@ -141,7 +153,7 @@ export default function GudangStockPage() {
           .select('stock_gudang, stock_toko')
           .eq('id', mutasiItem)
           .single()
-        const matAny = mat as any
+        const matAny = (mat ?? {}) as { stock_gudang: number; stock_toko: number }
         const { error: matUpdErr } = await supabase
           .from('materials')
           .update({ [field]: (matAny?.[field] ?? 0) + qty })
@@ -159,7 +171,7 @@ export default function GudangStockPage() {
         if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       } else {
         const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', mutasiItem).single()
-        const prodAny = prod as any
+        const prodAny = (prod ?? {}) as { stock_toko: number }
         const { error: prodUpdErr } = await supabase
           .from('products')
           .update({ stock_toko: (prodAny?.stock_toko ?? 0) + qty })
@@ -206,7 +218,7 @@ export default function GudangStockPage() {
         .select('stock_gudang, stock_toko')
         .eq('id', itemId)
         .single()
-      const matAny = mat as any
+      const matAny = (mat ?? {}) as { stock_gudang: number; stock_toko: number }
       const newVal = direction === 'add' ? (matAny?.[field] ?? 0) + qty : Math.max(0, (matAny?.[field] ?? 0) - qty)
       const { error: matUpdErr } = await supabase
         .from('materials')
@@ -225,7 +237,7 @@ export default function GudangStockPage() {
       if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
     } else {
       const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', itemId).single()
-      const prodAny = prod as any
+      const prodAny = (prod ?? {}) as { stock_toko: number }
       const newVal =
         direction === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
       const { error: prodUpdErr } = await supabase.from('products').update({ stock_toko: newVal }).eq('id', itemId)
@@ -244,7 +256,7 @@ export default function GudangStockPage() {
     load()
   }
 
-  function openEditModal(item: any, target: 'material' | 'produk') {
+  function openEditModal(item: Material | Product, target: 'material' | 'produk') {
     setEditItem(item)
     setEditTarget(target)
     setEditQty('')
@@ -271,7 +283,7 @@ export default function GudangStockPage() {
           .select('stock_gudang, stock_toko')
           .eq('id', editItem.id)
           .single()
-        const matAny = mat as any
+        const matAny = (mat ?? {}) as { stock_gudang: number; stock_toko: number }
         const newVal = editMode === 'add' ? (matAny?.[field] ?? 0) + qty : Math.max(0, (matAny?.[field] ?? 0) - qty)
         const { error: matUpdErr } = await supabase
           .from('materials')
@@ -291,7 +303,7 @@ export default function GudangStockPage() {
         if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
       } else {
         const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', editItem.id).single()
-        const prodAny = prod as any
+        const prodAny = (prod ?? {}) as { stock_toko: number }
         const newVal =
           editMode === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
         const { error: prodUpdErr } = await supabase.from('products').update({ stock_toko: newVal }).eq('id', editItem.id)
@@ -319,7 +331,7 @@ export default function GudangStockPage() {
   const filteredProd = filteredItems(products, search)
   const mutasiItemList =
     mutasiTarget === 'material' ? filteredItems(materials, mutasiSearch) : filteredItems(products, mutasiSearch)
-  const selectedMutasiItem = mutasiItemList.find((it: any) => it.id === mutasiItem)
+  const selectedMutasiItem = mutasiItemList.find((it) => it.id === mutasiItem)
 
   const editReasonOptions = editMode === 'add' ? REASON_ADD : REASON_REDUCE
 
@@ -512,7 +524,7 @@ export default function GudangStockPage() {
         {filteredProd.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filteredProd} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+          <MobileCards items={filteredProd} keyOf={(p) => p.id} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Produk</span>
@@ -691,7 +703,7 @@ export default function GudangStockPage() {
                       zIndex: 10
                     }}
                   >
-                    {mutasiItemList.map((it: any) => (
+                    {mutasiItemList.map((it) => (
                       <div
                         key={it.id}
                         onClick={() => {
@@ -709,7 +721,7 @@ export default function GudangStockPage() {
                       >
                         <div style={{ fontWeight: '500' }}>{it.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
-                          {mutasiTarget === 'material'
+                          {mutasiTarget === 'material' && 'stock_gudang' in it
                             ? `Gudang: ${it.stock_gudang} | Toko: ${it.stock_toko}`
                             : `Stok Toko: ${it.stock_toko}`}
                         </div>
@@ -731,7 +743,7 @@ export default function GudangStockPage() {
                   }}
                 >
                   &#10003; <strong>{selectedMutasiItem.name}</strong>
-                  {mutasiTarget === 'material'
+                  {mutasiTarget === 'material' && 'stock_gudang' in selectedMutasiItem
                     ? ` — Gudang: ${selectedMutasiItem.stock_gudang} | Toko: ${selectedMutasiItem.stock_toko}`
                     : ` — Stok Toko: ${selectedMutasiItem.stock_toko}`}
                 </div>
@@ -1111,7 +1123,7 @@ export default function GudangStockPage() {
             <div style={{ padding: '0.75rem', background: 'var(--neutral-100)', borderRadius: '0.5rem', marginBottom: '1rem' }}>
               <strong>{editItem.name}</strong>
               <div style={{ color: 'var(--neutral-600)', marginTop: '0.25rem' }}>
-                {editTarget === 'material'
+                {editTarget === 'material' && 'stock_gudang' in editItem
                   ? `Stok saat ini — Gudang: ${editItem.stock_gudang} | Toko: ${editItem.stock_toko}`
                   : `Stok Toko: ${editItem.stock_toko}`}
               </div>
@@ -1313,7 +1325,7 @@ export default function GudangStockPage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
               {deliveryPOs.map((po) => {
-                const pr = po.pr as any
+                const pr = po.pr
                 const material = pr?.material
                 return (
                   <div

@@ -1,3 +1,4 @@
+
 'use client'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -5,6 +6,13 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Calendar, MapPin, Package, TrendingUp } from 'lucide-react'
+
+type BookingItem = {
+  product?: { name?: string } | null
+  qty?: number
+  meter_gorden?: number
+  custom_specs?: string | null
+}
 
 interface CompletedBooking {
   id: string
@@ -130,19 +138,19 @@ export default function InstallerReportsPage() {
         ) : bookings.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={bookings} keyOf={(b: any) => b.id} renderCard={(b: any) => (
+          <MobileCards items={bookings} keyOf={(b) => b.id} renderCard={(b) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Customer</span>
-                  <span className="mobile-card-value">{b.customer_name}</span>
+                  <span className="mobile-card-value">{b.order?.customer?.name ?? "—"}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{b.scheduled_date ?? b.created_at}</span>
+                  <span className="mobile-card-value">{b.scheduled_date ?? "—"}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Total</span>
-                  <span className="mobile-card-value">{b.total_amount ?? b.amount}</span>
+                  <span className="mobile-card-value">{b.order?.total_amount ?? 0}</span>
                 </div>
             </div>
           )} />
@@ -170,7 +178,7 @@ export default function InstallerReportsPage() {
             <tbody>
               {bookings.map((b) => {
                 const items = b.order?.order_items ?? []
-                const productNames = items.map((i: any) => i.product?.name ?? i.custom_specs ?? 'Produk').filter(Boolean)
+                const productNames = items.map((i: BookingItem) => i.product?.name ?? i.custom_specs ?? 'Produk').filter(Boolean)
                 return (
                   <tr key={b.id}>
                     <td style={{ whiteSpace: 'nowrap' }}>
@@ -207,7 +215,7 @@ export default function InstallerReportsPage() {
                         )}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
-                        {items.length} item • {items.reduce((sum: number, i: any) => sum + (i.meter_gorden ?? 0), 0)}m
+                        {items.length} item • {items.reduce((sum: number, i: BookingItem) => sum + (i.meter_gorden ?? 0), 0)}m
                         gorden
                       </div>
                     </td>

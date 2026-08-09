@@ -7,9 +7,51 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2 } from 'lucide-react'
 
+interface LooseRow {
+  id: string
+  completed_at?: string
+  order?: {
+    order_number?: string
+    order_items?: { product?: { name?: string } | null; qty?: number; size?: string | null; custom_specs?: string | null }[] | null
+    customer?: { name?: string } | null
+  } | null
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function PenjahitHistoryPage() {
   const { toast } = useToast()
-  const [jobs, setJobs] = useState<any[]>([])
+  const [jobs, setJobs] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -39,7 +81,7 @@ export default function PenjahitHistoryPage() {
         console.error('[Penjahit History] Query error:', error)
         toast('warning', '⚠️ Gagal load history: ' + error.message)
       }
-      setJobs(data ?? [])
+      setJobs((data ?? []) as LooseRow[])
       setLoading(false)
     }
     load()
@@ -102,7 +144,7 @@ export default function PenjahitHistoryPage() {
                   <tr key={job.id}>
                     <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                       {job.completed_at
-                        ? new Date(job.completed_at).toLocaleDateString('id-ID', {
+                        ? new Date(job.completed_at ?? '').toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'

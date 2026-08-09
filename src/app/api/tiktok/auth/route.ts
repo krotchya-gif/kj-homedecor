@@ -104,14 +104,14 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.redirect(new URL('/owner/tiktok?success=connected', BASE_URL))
-      } catch (err: any) {
-        return NextResponse.redirect(new URL(`/owner/tiktok?error=${encodeURIComponent(err.message)}`, BASE_URL))
+      } catch (err) {
+        return NextResponse.redirect(new URL(`/owner/tiktok?error=${encodeURIComponent(err instanceof Error ? err.message : String(err))}`, BASE_URL))
       }
     }
 
     return NextResponse.json({ error: 'Missing code or state parameter' }, { status: 400 })
-  } catch (err: any) {
-    return NextResponse.json({ error: `Invalid request: ${err.message}` }, { status: 400 })
+  } catch (err) {
+    return NextResponse.json({ error: `Invalid request: ${err instanceof Error ? err.message : String(err)}` }, { status: 400 })
   }
 }
 
@@ -172,7 +172,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 })
   }
 
-  const updates: Record<string, any> = {}
+  const updates: Record<string, unknown> = {}
   if (shop_name) updates.shop_name = shop_name
   if (app_key) updates.app_key = app_key
   if (app_secret) updates.app_secret = app_secret

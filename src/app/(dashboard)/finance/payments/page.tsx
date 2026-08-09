@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, DollarSign, Search, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
+import type { Order, Customer } from '@/types'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { useToast } from '@/components/ui/Toast'
 import Pagination from '@/components/ui/Pagination'
@@ -29,25 +30,50 @@ const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
   paid: { bg: '#d1fae5', text: '#065f46' }
 }
 
+
+interface VerifiedPayment {
+  verified_by: string
+  verified_at: string
+  amount: number
+  type: string
+}
+
+interface ReturnRow {
+  id: string
+  order_id: string
+  refund_amount: number
+  refund_status?: string
+  reason?: string
+  status?: string
+  order?: { id: string; customer?: { name?: string } | null } | null
+}
+
+interface QcJob {
+  id: string
+  result?: string
+  status?: string
+  order?: (Order & { customer?: Customer }) | null
+}
+
 export default function FinancePaymentsPage() {
   const { toast } = useToast()
   const [PAGE_SIZE, setPageSize] = useState(20)
-  const [orders, setOrders] = useState<any[]>([])
+  const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('')
-  const [selected, setSelected] = useState<any | null>(null)
+  const [selected, setSelected] = useState<Order | null>(null)
   const [payForm, setPayForm] = useState({
     type: 'dp',
     amount: '',
     date: new Date().toISOString().slice(0, 10)
   })
   const [saving, setSaving] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'payment' | 'refund' | 'qc'>('payment')
-  const [refundList, setRefundList] = useState<any[]>([])
+  const [refundList, setRefundList] = useState<ReturnRow[]>([])
   const [processingRefund, setProcessingRefund] = useState<string | null>(null)
-  const [qcOrders, setQcOrders] = useState<any[]>([])
+  const [qcOrders, setQcOrders] = useState<QcJob[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const supabase = createClient()
@@ -89,10 +115,10 @@ export default function FinancePaymentsPage() {
         .limit(100)
     ])
 
-    setOrders(ordersData.data ?? [])
+    setOrders((ordersData.data ?? []) as unknown as Order[])
     setTotalCount(ordersData.count ?? 0)
-    setRefundList(returnsData.data ?? [])
-    const qcApproved = (qcData.data ?? []).filter((sq: any) => sq.order?.payment_status !== 'paid')
+    setRefundList((returnsData.data ?? []) as ReturnRow[])
+    const qcApproved = ((qcData.data ?? []) as QcJob[]).filter((sq) => sq.order?.payment_status !== 'paid')
     setQcOrders(qcApproved)
     setLoading(false)
   }
@@ -100,7 +126,7 @@ export default function FinancePaymentsPage() {
     load()
   }, [currentPage])
 
-  async function getVerifiedPayment(orderId: string): Promise<any | null> {
+  async function getVerifiedPayment(orderId: string): Promise<VerifiedPayment | null> {
     const { data } = await supabase
       .from('payments')
       .select('verified_by, verified_at, amount, type')
@@ -188,7 +214,7 @@ export default function FinancePaymentsPage() {
     load()
   }
 
-  async function handleApprove(order: any) {
+  async function handleApprove(order: Order) {
     // PENTING: Fetch fresh order data dari DB untuk avoid stale data
     const { data: freshOrder, error: fetchErr } = await supabase
       .from('orders')
@@ -276,7 +302,7 @@ export default function FinancePaymentsPage() {
     load()
   }
 
-  async function handleQcApprove(order: any) {
+  async function handleQcApprove(order: Order) {
     if (
       !confirm(
         `Konfirmasi Approve Order\n\nPelanggan: ${order.customer?.name ?? '-'}\nTotal: ${fmt(order.total_amount)} — Lunas\n\nStatus akan berubah menjadi "Siap Kirim" dan order siap dikemas/dikirim.`
@@ -313,7 +339,7 @@ export default function FinancePaymentsPage() {
     load()
   }
 
-  async function handleRefund(returnRecord: any) {
+  async function handleRefund(returnRecord: ReturnRow) {
     if (returnRecord.refund_amount <= 0) {
       toast('warning', 'Tidak ada jumlah refund untuk diproses.')
       return
@@ -495,7 +521,7 @@ export default function FinancePaymentsPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(o: any) => o.id} renderCard={(o: any) => (
+          <MobileCards items={filtered} keyOf={(o) => o.id} renderCard={(o) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
@@ -644,11 +670,11 @@ export default function FinancePaymentsPage() {
         {filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(o: any) => o.id} renderCard={(o: any) => (
+          <MobileCards items={filtered} keyOf={(o) => o.id} renderCard={(o) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Pelanggan</span>
-                  <span className="mobile-card-value">{o.customer?.name ?? o.customer_name}</span>
+                  <span className="mobile-card-value">{o.customer?.name ?? '—'}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Total</span>
@@ -757,7 +783,7 @@ export default function FinancePaymentsPage() {
                           >
                             <button
                               onClick={() => {
-                                setSelected(o)
+                                setSelected(o ?? null)
                                 setPayForm({
                                   type: 'dp',
                                   amount: String(sisa > 0 ? sisa : ''),
@@ -866,7 +892,7 @@ export default function FinancePaymentsPage() {
           ) : (
             <>
             <div className="mobile-only">
-              <MobileCards items={qcOrders} keyOf={(qc: any) => qc.id} renderCard={(qc: any) => {
+              <MobileCards items={qcOrders} keyOf={(qc) => qc.id} renderCard={(qc) => {
                 const o = qc.order
                 return (
                   <div className="mobile-card">
@@ -954,7 +980,7 @@ export default function FinancePaymentsPage() {
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
                               onClick={() => {
-                                setSelected(o)
+                                setSelected(o ?? null)
                                 setPayForm({
                                   type: 'dp',
                                   amount: String(sisa > 0 ? sisa : ''),
@@ -975,7 +1001,7 @@ export default function FinancePaymentsPage() {
                               Input Bayar
                             </button>
                             <button
-                              onClick={() => handleQcApprove(o)}
+                              onClick={() => handleQcApprove(o!)}
                               style={{
                                 padding: '0.3rem 0.75rem',
                                 background: '#16a34a',

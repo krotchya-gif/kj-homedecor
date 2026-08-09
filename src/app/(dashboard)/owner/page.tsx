@@ -47,10 +47,46 @@ interface Order {
   order_items?: Array<{ qty: number; price: number; custom_specs?: string; product?: { name: string } }>
 }
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function OwnerDashboard() {
   const [orders, setOrders] = useState<Order[]>([])
   const [realtimeOrders, setRealtimeOrders] = useState<Order[]>([])
-  const [installBookings, setInstallBookings] = useState<any[]>([])
+  const [installBookings, setInstallBookings] = useState<LooseRow[]>([])
   const [materialAlerts, setMaterialAlerts] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState<{ month: number; year: number }>({
@@ -82,7 +118,7 @@ export default function OwnerDashboard() {
 
     // Filter by selected month/year (use real order_date, fallback ke created_at)
     filtered = filtered.filter((o) => {
-      const d = new Date(o.order_date || o.created_at)
+      const d = new Date(o.order_date || o.created_at || '')
       return d.getFullYear() === period.year && d.getMonth() + 1 === period.month
     })
 
@@ -157,9 +193,9 @@ export default function OwnerDashboard() {
         .or(`order_date.lte.${period.year}-12-31,created_at.lte.${period.year}-12-31`)
 
       const months: Record<string, number> = {}
-      ;(data ?? []).forEach((o: any) => {
+      ;((data ?? []) as { payment_status?: string; created_at?: string; order_date?: string; total_amount?: number }[]).forEach((o) => {
         if (o.payment_status === 'paid') {
-          const d = new Date(o.order_date || o.created_at)
+          const d = new Date(o.order_date || o.created_at || '')
           const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
           months[key] = (months[key] ?? 0) + (o.total_amount ?? 0)
         }

@@ -1,4 +1,5 @@
 'use client'
+import type { OrderItem, Order, Customer } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
@@ -12,18 +13,37 @@ import { useToast } from '@/components/ui/Toast'
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface QcItem extends OrderItem {
+  order?: Order & { customer?: Customer } | null
+}
+
+interface ReturnRow {
+  id: string
+  order_id: string
+  order_item_id?: string
+  qty?: number
+  quantity?: number
+  condition?: string
+  reason?: string
+  notes?: string
+  resolved_at?: string
+  refund_amount?: number
+  refund_status?: string
+  order?: { id: string; order_number?: string; customer?: { name?: string } | null } | null
+}
+
 export default function GudangQCPage() {
   const { toast } = useToast()
   const [tab, setTab] = useState<'qc' | 'retur'>('qc')
-  const [items, setItems] = useState<any[]>([])
-  const [returns, setReturns] = useState<any[]>([])
+  const [items, setItems] = useState<QcItem[]>([])
+  const [returns, setReturns] = useState<ReturnRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<any | null>(null)
+  const [selected, setSelected] = useState<QcItem | null>(null)
   const [qcForm, setQcForm] = useState({ result: 'pass', fail_reason: '', revision_notes: '' })
   const [saving, setSaving] = useState(false)
 
   // Retur tab state
-  const [selectedReturn, setSelectedReturn] = useState<any | null>(null)
+  const [selectedReturn, setSelectedReturn] = useState<ReturnRow | null>(null)
   const [returForm, setReturForm] = useState({ condition: 'good', notes: '', photos: [] as string[] })
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
@@ -44,8 +64,8 @@ export default function GudangQCPage() {
         .select('*, order:orders(id, customer:customers(name))')
         .order('created_at', { ascending: false })
     ])
-    setItems(itemsRes.data ?? [])
-    setReturns(returnsRes.data ?? [])
+    setItems((itemsRes.data ?? []) as QcItem[])
+    setReturns((returnsRes.data ?? []) as ReturnRow[])
     setLoading(false)
   }
   useEffect(() => {
@@ -310,7 +330,7 @@ export default function GudangQCPage() {
         ) : pendingReturns.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={pendingReturns} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+          <MobileCards items={pendingReturns} keyOf={(r) => r.id} renderCard={(r) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
@@ -451,7 +471,7 @@ export default function GudangQCPage() {
                       <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                         Qty return: <strong>{r.qty ?? 1}</strong> &bull; Refund:{' '}
                         <strong style={{ color: '#cc7030' }}>
-                          {r.refund_amount > 0 ? fmt(r.refund_amount) : 'Tidak ada'}
+                          {(r.refund_amount ?? 0) > 0 ? fmt(r.refund_amount ?? 0) : 'Tidak ada'}
                         </strong>
                       </div>
                       {r.refund_status === 'pending' && (
@@ -508,7 +528,7 @@ export default function GudangQCPage() {
         {resolvedReturns.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={resolvedReturns} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+          <MobileCards items={resolvedReturns} keyOf={(r) => r.id} renderCard={(r) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
@@ -765,10 +785,10 @@ export default function GudangQCPage() {
               <div>
                 <strong>Qty:</strong> {selectedReturn.qty ?? 1}
               </div>
-              {selectedReturn.refund_amount > 0 && (
+              {(selectedReturn.refund_amount ?? 0) > 0 && (
                 <div>
                   <strong>Refund:</strong>{' '}
-                  <span style={{ color: '#cc7030', fontWeight: '600' }}>{fmt(selectedReturn.refund_amount)}</span> (
+                  <span style={{ color: '#cc7030', fontWeight: '600' }}>{fmt(selectedReturn.refund_amount ?? 0)}</span> (
                   {selectedReturn.refund_status})
                 </div>
               )}

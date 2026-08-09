@@ -1,4 +1,5 @@
 'use client'
+import type { JournalLine } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
@@ -60,8 +61,8 @@ export default function AccountsListPage() {
     const accountsWithBalance = await Promise.all(
       (accountsData ?? []).map(async (acc: Account) => {
         const { data: lines } = await supabase.from('journal_lines').select('debit, credit').eq('account_id', acc.id)
-        const totalDebit = (lines ?? []).reduce((s: number, l: any) => s + Number(l.debit ?? 0), 0)
-        const totalCredit = (lines ?? []).reduce((s: number, l: any) => s + Number(l.credit ?? 0), 0)
+        const totalDebit = (lines ?? [] as { debit?: number; credit?: number }[]).reduce((s, l) => s + Number(l.debit ?? 0), 0)
+        const totalCredit = (lines ?? [] as { debit?: number; credit?: number }[]).reduce((s, l) => s + Number(l.credit ?? 0), 0)
         // For asset/expense: balance = debit - credit
         // For liability/equity/revenue: balance = credit - debit
         const isDebitNormal = ['asset', 'expense'].includes(acc.type)
@@ -115,14 +116,14 @@ export default function AccountsListPage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = accounts
-        setAccounts((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setAccounts((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Account) : x)))
         const { error } = await supabase.from('accounts').update(payload).eq('id', editItem.id)
         if (error) { setAccounts(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
-        setAccounts((curr) => [tempItem, ...curr] as any)
+        setAccounts((curr) => [tempItem as Account, ...curr])
         const { data, error } = await supabase.from('accounts').insert(payload).select('id').single()
         if (error) {
           setAccounts((curr) => curr.filter((x) => x.id !== tempId))

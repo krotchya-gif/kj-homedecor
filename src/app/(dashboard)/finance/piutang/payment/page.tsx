@@ -9,8 +9,19 @@ import { DollarSign, Search } from 'lucide-react'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id: string
+  payment_date?: string
+  created_at?: string
+  amount?: number
+  notes?: string
+  type?: string
+  order?: { customer?: { name?: string } | null } | null
+  staff?: { name?: string } | null
+}
+
 export default function PaymentPage() {
-  const [payments, setPayments] = useState<any[]>([])
+  const [payments, setPayments] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const supabase = createClient()
@@ -22,7 +33,7 @@ export default function PaymentPage() {
       .select('*, order:orders(customer:customers(name)), staff:users(name)')
       .order('created_at', { ascending: false })
       .limit(50)
-    setPayments(data ?? [])
+    setPayments((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -41,11 +52,11 @@ export default function PaymentPage() {
         ) : payments.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={payments} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+          <MobileCards items={payments} keyOf={(p) => p.id} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{p.payment_date ?? p.created_at}</span>
+                  <span className="mobile-card-value">{String(p.payment_date ?? p.created_at ?? '—')}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
@@ -81,7 +92,7 @@ export default function PaymentPage() {
             <tbody>
               {payments.map((p) => (
                 <tr key={p.id}>
-                  <td style={{ color: 'var(--neutral-600)' }}>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{new Date(p.created_at ?? '').toLocaleDateString('id-ID')}</td>
                   <td style={{ fontWeight: '500' }}>{p.order?.customer?.name ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#16a34a', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{p.type ?? 'dp'}</td>

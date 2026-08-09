@@ -39,32 +39,37 @@ export default async function LandingPage() {
 
   const categories = (categoriesRes.data ?? []) as Category[]
   const portfolio = (portfolioRes.data ?? []) as PortfolioPost[]
-  const settings = settingsRes.data as any
+  const rawSettings = Object.fromEntries(
+    ((settingsRes.data ?? []) as { key: string; value?: unknown }[]).map((s) => [s.key, s.value])
+  )
+  const settingsMap: Record<string, string | number | null> = Object.fromEntries(
+    Object.entries(rawSettings).map(([k, v]) => [k, typeof v === 'number' ? v : String(v ?? '')])
+  )
 
-  const heroTitle = settings?.hero_title ?? 'Percantik Ruanganmu dengan Gorden Premium'
+  const heroTitle = String(settingsMap.hero_title ?? 'Percantik Ruanganmu dengan Gorden Premium')
   const heroSubtitle =
-    settings?.hero_subtitle ??
+    settingsMap.hero_subtitle ??
     'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'
-  const heroCtaText = settings?.hero_cta_text ?? 'Lihat Katalog'
-  const heroCtaLink = settings?.hero_cta_link ?? '#products'
-  const whatsappNumber = settings?.whatsapp_number ?? '6281234567890'
-  const whatsappMessage = settings?.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden'
+  const heroCtaText = String(settingsMap.hero_cta_text ?? 'Lihat Katalog')
+  const heroCtaLink = String(settingsMap.hero_cta_link ?? '#products')
+  const whatsappNumber = String(settingsMap.whatsapp_number ?? '6281234567890')
+  const whatsappMessage = String(settingsMap.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden')
 
   // Social media & contact
-  const instagram = settings?.instagram ?? ''
-  const facebook = settings?.facebook ?? ''
-  const tiktok = settings?.tiktok ?? ''
-  const shopee = settings?.shopee ?? ''
-  const tokopedia = settings?.tokopedia ?? ''
-  const address = settings?.address ?? 'Jakarta, Indonesia'
-  const phone = settings?.phone ?? '+62 812-3456-7890'
+  const instagram = String(settingsMap.instagram ?? '')
+  const facebook = String(settingsMap.facebook ?? '')
+  const tiktok = String(settingsMap.tiktok ?? '')
+  const shopee = String(settingsMap.shopee ?? '')
+  const tokopedia = String(settingsMap.tokopedia ?? '')
+  const address = String(settingsMap.address ?? 'Jakarta, Indonesia')
+  const phone = String(settingsMap.phone ?? '+62 812-3456-7890')
 
   // Theme customization
-  const themePrimary = settings?.theme_primary_color ?? '#DDC0B4'
-  const themeSecondary = settings?.theme_secondary_color ?? '#C9A98C'
-  const themeAccent = settings?.theme_accent_color ?? '#f4a857'
-  const themeBackground = settings?.theme_background_color ?? '#FAF5EE'
-  const themeText = settings?.theme_text_color ?? '#2B2321'
+  const themePrimary = String(settingsMap.theme_primary_color ?? '#DDC0B4')
+  const themeSecondary = String(settingsMap.theme_secondary_color ?? '#C9A98C')
+  const themeAccent = String(settingsMap.theme_accent_color ?? '#f4a857')
+  const themeBackground = String(settingsMap.theme_background_color ?? '#FAF5EE')
+  const themeText = String(settingsMap.theme_text_color ?? '#2B2321')
 
   return (
     <>
@@ -85,10 +90,10 @@ export default async function LandingPage() {
 
         {/* ===== HERO ===== */}
         <ScrollHero
-          videoUrl={settings?.hero_video_url}
-          overlayOpacity={settings?.hero_background_overlay_opacity}
+          videoUrl={String(settingsMap.hero_video_url ?? '')}
+          overlayOpacity={Number(settingsMap.hero_background_overlay_opacity ?? 0.4)}
           title={heroTitle}
-          subtitle={heroSubtitle}
+          subtitle={String(heroSubtitle)}
           ctaText={heroCtaText}
           ctaLink={heroCtaLink}
           whatsappNumber={whatsappNumber}
@@ -100,16 +105,16 @@ export default async function LandingPage() {
           <div className="landing-section" style={{ padding: '0 1.5rem' }}>
             <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
               <div className="landing-section-label" style={{ color: themePrimary }}>
-                {settings?.categories_label ?? 'Koleksi Kami'}
+                {settingsMap.categories_label ?? 'Koleksi Kami'}
               </div>
               <h2
                 className="landing-section-title"
                 style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}
               >
-                {settings?.categories_title ?? 'Temukan Gaya Favoritmu'}
+                {settingsMap.categories_title ?? 'Temukan Gaya Favoritmu'}
               </h2>
               <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-                {settings?.categories_subtitle ?? 'Pilihan gorden dan aksesoris premium untuk setiap ruangan'}
+                {settingsMap.categories_subtitle ?? 'Pilihan gorden dan aksesoris premium untuk setiap ruangan'}
               </p>
             </div>
 
@@ -199,7 +204,7 @@ export default async function LandingPage() {
         >
           <div className="landing-section" style={{ padding: '0 1.5rem', textAlign: 'center' }}>
             <div className="landing-section-label" style={{ color: themeAccent }}>
-              {settings?.whyus_label ?? 'Keunggulan Kami'}
+              {settingsMap.whyus_label ?? 'Keunggulan Kami'}
             </div>
             <h2
               className="landing-section-title"
@@ -209,10 +214,10 @@ export default async function LandingPage() {
                 margin: '0 auto 1rem'
               }}
             >
-              {settings?.whyus_title ?? 'Dipercaya'} <AnimatedCounter target={500} suffix="+" /> Pelanggan
+              {settingsMap.whyus_title ?? 'Dipercaya'} <AnimatedCounter target={500} suffix="+" /> Pelanggan
             </h2>
             <p className="why-us-subtitle">
-              {settings?.whyus_subtitle ??
+              {settingsMap.whyus_subtitle ??
                 'Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan'}
             </p>
             <div
@@ -225,29 +230,29 @@ export default async function LandingPage() {
               {[
                 {
                   icon: <Sparkles size={34} />,
-                  title: settings?.whyus_card1_title ?? 'Kualitas Premium',
+                  title: settingsMap.whyus_card1_title ?? 'Kualitas Premium',
                   desc:
-                    settings?.whyus_card1_desc ??
+                    settingsMap.whyus_card1_desc ??
                     'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman',
                   color: themeAccent
                 },
                 {
                   icon: <Star size={34} />,
-                  title: settings?.whyus_card2_title ?? 'Ratusan Pelanggan',
-                  desc: settings?.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek',
+                  title: settingsMap.whyus_card2_title ?? 'Ratusan Pelanggan',
+                  desc: settingsMap.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek',
                   color: themePrimary
                 },
                 {
                   icon: <Truck size={34} />,
-                  title: settings?.whyus_card3_title ?? 'Pasang Profesional',
+                  title: settingsMap.whyus_card3_title ?? 'Pasang Profesional',
                   desc:
-                    settings?.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda',
+                    settingsMap.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda',
                   color: themeSecondary
                 },
                 {
                   icon: <Shield size={34} />,
-                  title: settings?.whyus_card4_title ?? 'Garansi Resmi',
-                  desc: settings?.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan',
+                  title: settingsMap.whyus_card4_title ?? 'Garansi Resmi',
+                  desc: settingsMap.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan',
                   color: themeAccent
                 }
               ].map((f, i) => (
@@ -282,16 +287,16 @@ export default async function LandingPage() {
           <div className="landing-section" style={{ padding: '0 1.5rem' }}>
             <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
               <div className="landing-section-label" style={{ color: themePrimary }}>
-                {settings?.portfolio_label ?? 'Inspirasi'}
+                {settingsMap.portfolio_label ?? 'Inspirasi'}
               </div>
               <h2
                 className="landing-section-title"
                 style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}
               >
-                {settings?.portfolio_title ?? 'Portofolio Kami'}
+                {settingsMap.portfolio_title ?? 'Portofolio Kami'}
               </h2>
               <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-                {settings?.portfolio_subtitle ?? 'Hasil karya dan instalasi dari tim profesional KJ Homedecor'}
+                {settingsMap.portfolio_subtitle ?? 'Hasil karya dan instalasi dari tim profesional KJ Homedecor'}
               </p>
             </div>
             {portfolio.length === 0 ? (
@@ -508,7 +513,7 @@ export default async function LandingPage() {
                   textTransform: 'uppercase'
                 }}
               >
-                {settings?.cta_badge ?? '✨ Konsultasi Gratis'}
+                {settingsMap.cta_badge ?? '✨ Konsultasi Gratis'}
               </span>
             </div>
             <h2
@@ -522,7 +527,7 @@ export default async function LandingPage() {
                 textShadow: '0 2px 20px rgba(0,0,0,0.15)'
               }}
             >
-              {settings?.cta_title ?? 'Siap Mempercantik'} <br />
+              {settingsMap.cta_title ?? 'Siap Mempercantik'} <br />
               Ruanganmu?
             </h2>
             <p
@@ -535,7 +540,7 @@ export default async function LandingPage() {
                 margin: '0 auto 2.5rem'
               }}
             >
-              {settings?.cta_subtitle ??
+              {settingsMap.cta_subtitle ??
                 'Hubungi kami sekarang untuk konsultasi gratis. Tim kami siap membantu pilihkan gorden, vitras, atau roman blind terbaik sesuai kebutuhan dan budget Anda.'}
             </p>
             <div

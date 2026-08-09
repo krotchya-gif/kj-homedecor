@@ -6,8 +6,18 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { RefreshCw, Search } from 'lucide-react'
 
+interface LooseRow {
+  id: string
+  invoice_number?: string
+  amount?: number
+  paid_amount?: number
+  return_amount?: number
+  status?: string
+  customer?: { name?: string } | null
+}
+
 export default function ProcessReturPage() {
-  const [piutang, setPiutang] = useState<any[]>([])
+  const [piutang, setPiutang] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const supabase = createClient()
@@ -18,7 +28,7 @@ export default function ProcessReturPage() {
       .from('piutang')
       .select('*, customer:customers(name)')
       .order('created_at', { ascending: false })
-    setPiutang(data ?? [])
+    setPiutang((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -37,7 +47,7 @@ export default function ProcessReturPage() {
         ) : piutang.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={piutang} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+          <MobileCards items={piutang} keyOf={(p) => p.id} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Invoice</span>

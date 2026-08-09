@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { logSurveyActivity } from '@/lib/survey-log'
@@ -35,7 +36,7 @@ export interface SurveyPayload {
 
 /** Log aktivitas survey (non-blocking — kegagalan log TIDAK menggagalkan operasi utama). */
 
-async function getCurrentUserRole(supabase: any) {
+async function getCurrentUserRole(supabase: SupabaseClient) {
   const {
     data: { user }
   } = await supabase.auth.getUser()
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
   return NextResponse.json({ data: survey, error: null }, { status: 201 })
 }
 
-async function insertRooms(supabase: any, surveyId: string, rooms: RoomPayload[]) {
+async function insertRooms(supabase: SupabaseClient, surveyId: string, rooms: RoomPayload[]) {
   for (let i = 0; i < rooms.length; i++) {
     const r = rooms[i]
     const { data: room, error: rErr } = await supabase

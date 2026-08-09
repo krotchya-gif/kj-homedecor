@@ -28,6 +28,21 @@ const LOG_LABELS: Record<string, string> = {
   linked_order: 'Di-link ke order'
 }
 
+interface OrderCand {
+  id: string
+  order_number?: string | null
+  survey_id?: string | null
+  customer?: { name?: string }[] | { name?: string } | null
+}
+
+interface SurveyLogRow {
+  id: string
+  action: string
+  detail?: string | null
+  created_at: string
+  user?: { name?: string } | null
+}
+
 export default function SurveyDetailPage() {
   const { toast } = useToast()
   const params = useParams<{ id: string }>()
@@ -43,12 +58,12 @@ export default function SurveyDetailPage() {
   // State: Link ke Order
   const [linkOpen, setLinkOpen] = useState(false)
   const [orderSearch, setOrderSearch] = useState('')
-  const [orderResults, setOrderResults] = useState<any[]>([])
+  const [orderResults, setOrderResults] = useState<OrderCand[]>([])
   const [linkingId, setLinkingId] = useState<string | null>(null)
   const [searchingOrders, setSearchingOrders] = useState(false)
 
   // Riwayat aktivitas
-  const [logs, setLogs] = useState<any[]>([])
+  const [logs, setLogs] = useState<SurveyLogRow[]>([])
 
   // Toast sukses setelah save (datang dari /survey/new & /survey/[id]/edit via ?saved=1),
   // lalu bersihkan param tanpa reload (biar refresh tidak memunculkan toast lagi)
@@ -80,7 +95,7 @@ export default function SurveyDetailPage() {
       .eq('survey_id', params.id)
       .order('created_at', { ascending: false })
       .limit(20)
-    setLogs(logData ?? [])
+    setLogs((logData ?? []) as SurveyLogRow[])
 
     setLoading(false)
   }, [params.id, supabase])
@@ -140,7 +155,7 @@ export default function SurveyDetailPage() {
         toast('error', error.message)
         setOrderResults([])
       } else {
-        setOrderResults(data ?? [])
+        setOrderResults((data ?? []) as unknown as OrderCand[])
       }
     } finally {
       setSearchingOrders(false)
@@ -216,7 +231,7 @@ export default function SurveyDetailPage() {
             </tr>
             <tr>
               <td style={{ fontWeight: '600' }}>Surveyor</td>
-              <td>{(survey as any).surveyor?.name ?? '-'}</td>
+              <td>{survey.surveyor?.name ?? '-'}</td>
             </tr>
             {survey.gps_lat && (
               <tr>
@@ -343,7 +358,7 @@ export default function SurveyDetailPage() {
               }}
             />
             <div style={{ fontSize: '0.85rem' }}>
-              <div style={{ fontWeight: '700' }}>{survey.signature_name || (survey as any).surveyor?.name || 'Surveyor'}</div>
+              <div style={{ fontWeight: '700' }}>{survey.signature_name || survey.surveyor?.name || 'Surveyor'}</div>
               <div style={{ color: 'var(--neutral-500)' }}>Menandatangani pada {new Date(survey.created_at).toLocaleString('id-ID')}</div>
             </div>
           </div>
@@ -422,7 +437,7 @@ export default function SurveyDetailPage() {
                 <div>
                   <div style={{ fontWeight: '600', fontSize: '0.85rem' }}>{o.order_number ?? '(tanpa nomor)'}</div>
                   <div style={{ fontSize: '0.78rem', color: 'var(--neutral-500)' }}>
-                    {o.customer?.name ?? '—'}
+                    {Array.isArray(o.customer) ? o.customer[0]?.name : (o.customer?.name ?? '—')}
                     {o.survey_id ? ' • sudah ada survey' : ''}
                   </div>
                 </div>

@@ -6,8 +6,21 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { FileText } from 'lucide-react'
 
+interface LooseRow {
+  id: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+}
+
 export default function AutoJournalPage() {
-  const [entries, setEntries] = useState<any[]>([])
+  const [entries, setEntries] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
 
   const supabase = createClient()
@@ -19,7 +32,7 @@ export default function AutoJournalPage() {
       .select('*, lines:journal_lines(count)')
       .order('entry_date', { ascending: false })
       .limit(50)
-    setEntries(data ?? [])
+    setEntries((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
@@ -38,7 +51,7 @@ export default function AutoJournalPage() {
         ) : entries.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={entries} keyOf={(e: any) => e.id} renderCard={(e: any) => (
+          <MobileCards items={entries} keyOf={(e) => e.id} renderCard={(e) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>

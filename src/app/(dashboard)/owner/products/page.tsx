@@ -1,3 +1,4 @@
+
 'use client'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -20,6 +21,7 @@ interface ProductStats {
   id: string
   name: string
   sku: string
+  qty?: number
   total_qty: number
   total_revenue: number
 }
@@ -50,12 +52,12 @@ export default function OwnerProductsPage() {
       .select('product_id, qty, price, product:products(name, sku)')
 
     const stats: Record<string, ProductStats> = {}
-    ;(orderItems ?? []).forEach((item: any) => {
+    ;((orderItems ?? []) as { product_id: string; qty?: number; price?: number; custom_specs?: string | null; product?: { name?: string; sku?: string }[] | null }[]).forEach((item) => {
       if (!stats[item.product_id]) {
         stats[item.product_id] = {
           id: item.product_id,
-          name: item.product?.name ?? item.custom_specs ?? 'Unknown',
-          sku: item.product?.sku ?? '',
+          name: item.product?.[0]?.name ?? item.custom_specs ?? 'Unknown',
+          sku: item.product?.[0]?.sku ?? '',
           total_qty: 0,
           total_revenue: 0
         }
@@ -162,7 +164,7 @@ export default function OwnerProductsPage() {
                     ) : filteredStats.length === 0 ? (
                       <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
                     ) : (
-                      <MobileCards items={filteredStats.slice(0, 10)} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+                      <MobileCards items={filteredStats.slice(0, 10)} keyOf={(p) => p.id} renderCard={(p) => (
                         <div className="mobile-card">
                             <div className="mobile-card-row">
                               <span className="mobile-card-label">Produk</span>
@@ -174,7 +176,7 @@ export default function OwnerProductsPage() {
                             </div>
                             <div className="mobile-card-row">
                               <span className="mobile-card-label">Qty Terjual</span>
-                              <span className="mobile-card-value">{p.qty ?? p.total_qty}</span>
+                              <span className="mobile-card-value">{p.qty ?? 0}</span>
                             </div>
                             <div className="mobile-card-row">
                               <span className="mobile-card-label">Revenue</span>
@@ -254,7 +256,7 @@ export default function OwnerProductsPage() {
               </span>
             </div>
             <div className="mobile-only">
-              <MobileCards items={filtered} keyOf={(p: any) => p.id} renderCard={(p: any) => (
+              <MobileCards items={filtered} keyOf={(p) => p.id} renderCard={(p) => (
                 <div className="mobile-card">
                   <div className="mobile-card-row">
                     <span className="mobile-card-label">Produk</span>

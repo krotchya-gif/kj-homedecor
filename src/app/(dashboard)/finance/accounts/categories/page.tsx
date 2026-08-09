@@ -22,7 +22,7 @@ interface Category {
   id: string
   name: string
   type: (typeof ACCOUNT_TYPES)[number]
-  description?: string
+  description?: string | null
 }
 
 export default function CategoriesPage() {
@@ -69,14 +69,14 @@ export default function CategoriesPage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = categories
-        setCategories((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setCategories((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x)))
         const { error } = await supabase.from('account_categories').update(payload).eq('id', editItem.id)
         if (error) { setCategories(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
-        setCategories((curr) => [tempItem, ...curr] as any)
+        setCategories((curr) => [tempItem, ...curr])
         const { data, error } = await supabase.from('account_categories').insert(payload).select('id').single()
         if (error) {
           setCategories((curr) => curr.filter((x) => x.id !== tempId))

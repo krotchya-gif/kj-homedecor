@@ -58,6 +58,8 @@ export interface Product {
   category_id: string
   sku?: string
   kode_kain?: string
+  description?: string
+  product_type?: 'gorden' | 'perabot'
   price: number
   cost?: number
   stock_toko: number
@@ -107,9 +109,13 @@ export interface Material {
 export interface Supplier {
   id: string
   name: string
-  contact?: string
-  address?: string
-  created_at: string
+  contact?: string | null
+  contact_person?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  notes?: string | null
+  created_at?: string
 }
 
 export interface BOM {
@@ -189,6 +195,7 @@ export interface Survey {
   notes?: string
   signature?: string | null
   signature_name?: string | null
+  surveyor?: { name?: string } | null
   created_at: string
   rooms?: SurveyRoom[]
 }
@@ -281,6 +288,7 @@ export interface InstallBooking {
   revision_photos?: string[] // (migration 034)
   customer?: Customer
   installer?: User
+  order?: Order | null
 }
 
 export interface Payment {
@@ -476,4 +484,31 @@ export interface OrderProgressPhoto {
   notes?: string
   uploaded_by?: string
   created_at: string
+}
+
+
+// Keuangan — jurnal & garis jurnal (dipakai cash/income/expense/transfer/mutation/daftar-jurnal/accounts)
+export interface JournalLine {
+  id: string
+  journal_entry_id?: string
+  account_id?: string
+  account?: { id: string; name?: string; code?: string } | null
+  debit: number
+  credit: number
+  description?: string
+}
+
+export interface JournalEntry {
+  id: string
+  entry_number?: string
+  date: string
+  entry_date?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  amount?: number
+  created_at?: string
+  lines?: JournalLine[] | null
 }

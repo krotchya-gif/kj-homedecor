@@ -14,7 +14,7 @@ const formatRp = (n: number) =>
 
 interface CashAccount {
   id: string
-  account_id: string
+  account_id: string | null
   bank_name: string
   account_number: string
   account_holder: string
@@ -26,7 +26,7 @@ interface CashAccount {
 export default function CashPage() {
   const { toast } = useToast()
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<{ id: string; name?: string; code?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -94,14 +94,14 @@ export default function CashPage() {
     if (editItem) {
         // UPDATE optimistic
         const prev = cashAccounts
-        setCashAccounts((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x) as any))
+        setCashAccounts((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as CashAccount) : x)))
         const { error } = await supabase.from('cash_accounts').update(payload).eq('id', editItem.id)
         if (error) { setCashAccounts(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
       } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
-        setCashAccounts((curr) => [tempItem, ...curr] as any)
+        setCashAccounts((curr) => [tempItem as CashAccount, ...curr])
         const { data, error } = await supabase.from('cash_accounts').insert(payload).select('id').single()
         if (error) {
           setCashAccounts((curr) => curr.filter((x) => x.id !== tempId))

@@ -103,14 +103,14 @@ export default function MaterialsPage() {
   }
 
   function handleExport() {
-    exportToCSV(materials as any, EXPORT_COLUMNS)
+    exportToCSV(materials, EXPORT_COLUMNS as { key: keyof Material; label: string }[])
   }
 
   function handleDownloadTemplate() {
     generateCSVTemplate(IMPORT_COLUMNS)
   }
 
-  async function handleImport(rows: Record<string, string | number | null>[]) {
+  async function handleImport(rows: Record<string, string | number | boolean | null>[]) {
     const errors: string[] = []
     let inserted = 0
     const BATCH = 50

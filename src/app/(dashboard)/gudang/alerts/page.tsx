@@ -1,4 +1,5 @@
 'use client'
+import type { Material } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -7,9 +8,37 @@ import { createClient } from '@/utils/supabase/client'
 import { AlertTriangle, Plus, ShoppingBag } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
+interface LooseRow {
+  id: string
+  code?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  supplier?: { name?: string } | null
+  cost_per_unit?: number
+  unit?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  [k: string]: unknown
+}
+
 export default function GudangAlertsPage() {
   const { toast } = useToast()
-  const [alerts, setAlerts] = useState<any[]>([])
+  const [alerts, setAlerts] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState<string | null>(null)
   const supabase = createClient()
@@ -18,16 +47,16 @@ export default function GudangAlertsPage() {
     setLoading(true)
     const { data } = await supabase.from('materials').select('*, supplier:suppliers(name)').order('name')
     // filter locally materials below min_stock
-    setAlerts((data ?? []).filter((m: any) => m.stock_gudang < m.min_stock_level))
+    setAlerts(((data ?? []) as LooseRow[]).filter((m) => (m.stock_gudang ?? 0) < (m.min_stock_level ?? 0)))
     setLoading(false)
   }
   useEffect(() => {
     load()
   }, [])
 
-  async function createPR(material: any) {
-    setCreating(material.id)
-    const needed = material.min_stock_level - material.stock_gudang + 10
+  async function createPR(material: LooseRow) {
+    setCreating(material.id ?? '')
+    const needed = (material.min_stock_level ?? 0) - (material.stock_gudang ?? 0) + 10
     const estimatedCost = needed * (material.cost_per_unit ?? 0)
     const { error } = await supabase.from('purchase_requests').insert({
       material_id: material.id,
@@ -63,7 +92,7 @@ export default function GudangAlertsPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Min. Stok</span>
-                  <span className="mobile-card-value">{m.min_stock_level}</span>
+                  <span className="mobile-card-value">{m.min_stock_level ?? 0}</span>
                 </div>
             </div>
           )} />
@@ -98,10 +127,10 @@ export default function GudangAlertsPage() {
                       <AlertTriangle size={14} color="#ef4444" /> {m.name}
                     </span>
                   </td>
-                  <td style={{ color: 'var(--neutral-600)' }}>{m.unit}</td>
-                  <td style={{ fontWeight: '700', color: '#ef4444' }}>{m.stock_gudang}</td>
-                  <td style={{ color: 'var(--neutral-700)' }}>{m.min_stock_level}</td>
-                  <td style={{ fontWeight: '700', color: '#dc2626' }}>-{m.min_stock_level - m.stock_gudang}</td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{m.unit ?? '—'}</td>
+                  <td style={{ fontWeight: '700', color: '#ef4444' }}>{(m.stock_gudang ?? 0)}</td>
+                  <td style={{ color: 'var(--neutral-700)' }}>{m.min_stock_level ?? 0}</td>
+                  <td style={{ fontWeight: '700', color: '#dc2626' }}>-{((m.min_stock_level ?? 0) - (m.stock_gudang ?? 0))}</td>
                   <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{m.supplier?.name ?? '—'}</td>
                   <td>
                     <button

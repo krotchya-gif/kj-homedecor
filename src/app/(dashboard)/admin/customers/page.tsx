@@ -64,14 +64,14 @@ export default function CustomersPage() {
   }, [currentPage])
 
   function handleExport() {
-    exportToCSV(customers as any, EXPORT_COLUMNS)
+    exportToCSV(customers, EXPORT_COLUMNS as { key: keyof Customer; label: string }[])
   }
 
   function handleDownloadTemplate() {
     generateCSVTemplate(IMPORT_COLUMNS)
   }
 
-  async function handleImport(rows: Record<string, string | number | null>[]) {
+  async function handleImport(rows: Record<string, string | number | boolean | null>[]) {
     const errors: string[] = []
     let inserted = 0
     const BATCH = 50

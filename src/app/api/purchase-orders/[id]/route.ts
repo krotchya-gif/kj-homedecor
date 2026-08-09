@@ -32,7 +32,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     .single()
 
   // Handle status transitions
-  const updates: any = { ...body }
+  const updates: Record<string, unknown> = { ...body }
 
   if (body.status === 'received') {
     updates.received_at = new Date().toISOString()
@@ -56,8 +56,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             amount: materialQty
           })
           if (rpcError) throw rpcError
-        } catch (rpcErr: any) {
-          console.warn('RPC increment_stock_gudang failed, falling back to direct update:', rpcErr?.message)
+        } catch (rpcErr) {
+          console.warn('RPC increment_stock_gudang failed, falling back to direct update:', rpcErr instanceof Error ? rpcErr.message : String(rpcErr))
           const { data: mat } = await supabase
             .from('materials')
             .select('stock_gudang')

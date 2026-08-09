@@ -1,9 +1,10 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 /**
  * Log aktivitas survey — non-blocking: kegagalan log TIDAK menggagalkan operasi utama
  * (pola audit-trail skill kj-homedecor: console.error, bukan throw).
  */
 export async function logSurveyActivity(
-  supabase: any,
+  supabase: SupabaseClient,
   surveyId: string,
   userId: string | null,
   action: 'created' | 'updated' | 'deleted' | 'linked_order',

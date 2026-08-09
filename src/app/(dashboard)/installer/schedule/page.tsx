@@ -1,4 +1,5 @@
 'use client'
+import type { InstallBooking } from '@/types'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
@@ -16,13 +17,49 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   cancelled: { bg: 'var(--neutral-100)', text: 'var(--neutral-600)' }
 }
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
 export default function InstallerSchedulePage() {
   const { toast } = useToast()
-  const [bookings, setBookings] = useState<any[]>([])
+  const [bookings, setBookings] = useState<InstallBooking[]>([])
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'upcoming' | 'done'>('upcoming')
   const [showRevision, setShowRevision] = useState(false)
-  const [revBooking, setRevBooking] = useState<any | null>(null)
+  const [revBooking, setRevBooking] = useState<InstallBooking | null>(null)
   const [revReason, setRevReason] = useState('')
   const [revPhotos, setRevPhotos] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
@@ -39,7 +76,7 @@ export default function InstallerSchedulePage() {
       .select('*, order:orders(id, customer:customers(name, phone, address)), assigned_to:users(name)')
       .eq('installer_id', user?.id ?? '')
       .order('scheduled_date', { ascending: true })
-    setBookings(data ?? [])
+    setBookings((data ?? []) as InstallBooking[])
     setLoading(false)
   }
   useEffect(() => {
@@ -71,11 +108,11 @@ export default function InstallerSchedulePage() {
       return
     }
     // Optimistic update: booking langsung pindah tab (upcoming/done) tanpa refetch
-    setBookings((curr) => curr.map((b) => (b.id === id ? { ...b, status } : b)))
+    setBookings((curr) => curr.map((b) => (b.id === id ? ({ ...b, status } as InstallBooking) : b)))
     toast('success', `Status booking → ${status}`)
     }
 
-  function openRevision(booking: any) {
+  function openRevision(booking: InstallBooking) {
     setRevBooking(booking)
     setRevReason('')
     setRevPhotos([])
@@ -129,7 +166,7 @@ export default function InstallerSchedulePage() {
     setShowRevision(false)
     setRevBooking(null)
     // Optimistic update: booking status langsung berubah tanpa refetch
-    setBookings((curr) => curr.map((b) => (b.id === revBooking.id ? { ...b, status: 'revision' } : b)))
+    setBookings((curr) => curr.map((b) => (b.id === revBooking.id ? ({ ...b, status: 'revision' } as InstallBooking) : b)))
     toast('success', 'Revisi install dilaporkan')
     }
 

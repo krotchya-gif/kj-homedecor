@@ -9,9 +9,27 @@ import { BarChart3 } from 'lucide-react'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
+interface ReportRow {
+  id: string
+  date?: string
+  created_at?: string
+  job_number?: string
+  total_qty?: number
+  total_meter?: number
+  meter_gorden?: number
+  meter_vitras?: number
+  meter_roman?: number
+  meter_kupu_kupu?: number
+  poni_lurus?: boolean | number
+  poni_gel?: boolean | number
+  order_number?: string
+  notes?: string
+  order?: { order_number?: string } | null
+}
+
 export default function PenjahitReportsPage() {
   const { toast } = useToast()
-  const [reports, setReports] = useState<any[]>([])
+  const [reports, setReports] = useState<ReportRow[]>([])
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
@@ -44,8 +62,8 @@ export default function PenjahitReportsPage() {
       }
       // filter by month & year (di client-side karena schema TIDAK punya kolom month/year
       // yang bisa di-query efficient — pakai created_at)
-      const filtered = (data ?? []).filter((r: any) => {
-        const d = new Date(r.created_at)
+      const filtered = ((data ?? []) as ReportRow[]).filter((r) => {
+        const d = new Date(r.created_at ?? '')
         return d.getMonth() === month && d.getFullYear() === year
       })
       setReports(filtered)
@@ -60,8 +78,8 @@ export default function PenjahitReportsPage() {
       vitras: acc.vitras + (r.meter_vitras ?? 0),
       roman: acc.roman + (r.meter_roman ?? 0),
       kupu_kupu: acc.kupu_kupu + (r.meter_kupu_kupu ?? 0),
-      poni_lurus: acc.poni_lurus + (r.poni_lurus ?? 0),
-      poni_gel: acc.poni_gel + (r.poni_gel ?? 0)
+      poni_lurus: acc.poni_lurus + (r.poni_lurus ? 1 : 0),
+      poni_gel: acc.poni_gel + (r.poni_gel ? 1 : 0)
     }),
     { gorden: 0, vitras: 0, roman: 0, kupu_kupu: 0, poni_lurus: 0, poni_gel: 0 }
   )
@@ -189,7 +207,7 @@ export default function PenjahitReportsPage() {
         ) : reports.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={reports} keyOf={(r: any) => r.id} renderCard={(r: any) => (
+          <MobileCards items={reports} keyOf={(r) => r.id} renderCard={(r) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
@@ -234,7 +252,7 @@ export default function PenjahitReportsPage() {
                 <tr key={r.id}>
                   <td style={{ fontWeight: '500' }}>
                     {r.created_at
-                      ? new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
+                      ? new Date(r.created_at ?? '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
                       : '—'}
                   </td>
                   <td>{(r.meter_gorden ?? 0).toFixed(2)}m</td>
