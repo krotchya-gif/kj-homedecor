@@ -153,6 +153,17 @@ export default function HutangPage() {
     if (!paymentItem) return
     setSaving(true)
     const payAmount = Number(payForm.amount) || 0
+    const sisaBefore = (paymentItem.amount ?? 0) - (paymentItem.paid_amount ?? 0) - (paymentItem.return_amount ?? 0)
+    if (payAmount <= 0) {
+      setSaving(false)
+      toast('error', 'Nominal pembayaran harus lebih dari 0.')
+      return
+    }
+    if (payAmount > sisaBefore) {
+      setSaving(false)
+      toast('error', `Nominal pembayaran melebihi sisa hutang (Rp ${sisaBefore.toLocaleString('id-ID')}).`)
+      return
+    }
     const newPaidAmount = (paymentItem.paid_amount ?? 0) + payAmount
     const sisa = (paymentItem.amount ?? 0) - newPaidAmount - (paymentItem.return_amount ?? 0)
     const newStatus = sisa <= 0 ? 'paid' : 'partial'

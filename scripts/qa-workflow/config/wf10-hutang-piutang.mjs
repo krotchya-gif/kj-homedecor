@@ -1,4 +1,4 @@
-/** WF10 — Hutang & Piutang: CRUD UI (Tambah → tampil → cleanup) + piutang render */
+/** WF10 — Hutang & Piutang: CRUD UI + negatif bayar > sisa */
 export default {
   name: 'WF10 Hutang & Piutang',
   cases: [
@@ -30,9 +30,30 @@ export default {
         { act: 'dbExec', sql: "INSERT INTO suppliers (id, name, contact) VALUES (gen_random_uuid(), 'QA-WF10 Supplier', '0812') ON CONFLICT DO NOTHING" },
         { act: 'dbExec', sql: "INSERT INTO hutang (id, supplier_id, invoice_number, invoice_date, amount, status, created_by) SELECT gen_random_uuid(), id, 'INV-QA-WF10', CURRENT_DATE, 150000, 'pending', (SELECT id FROM users WHERE role = 'owner' LIMIT 1) FROM suppliers WHERE name = 'QA-WF10 Supplier' ON CONFLICT DO NOTHING" },
         { act: 'goto', url: '/finance/hutang' },
-        { act: 'wait', ms: 1500 },
+        { act: 'wait', ms: 2000 },
         { act: 'screenshot', name: 'hutang-seeded' },
         { act: 'dbExpect', sql: "SELECT count(*) AS n FROM hutang WHERE invoice_number = 'INV-QA-WF10'", min: 1 },
+      ],
+    },
+    {
+      name: 'Negatif: bayar melebihi sisa hutang → ditolak + paid_amount tetap 0',
+      login: { email: 'owner@kjhomedecor.com', password: 'owner123' },
+      steps: [
+        { act: 'dbExec', sql: "INSERT INTO suppliers (id, name, contact) VALUES (gen_random_uuid(), 'QA-WF10 Supplier', '0812') ON CONFLICT DO NOTHING" },
+        { act: 'dbExec', sql: "INSERT INTO hutang (id, supplier_id, invoice_number, invoice_date, amount, status, created_by) SELECT gen_random_uuid(), id, 'INV-QA-WF10-OVR', CURRENT_DATE, 150000, 'pending', (SELECT id FROM users WHERE role = 'owner' LIMIT 1) FROM suppliers WHERE name = 'QA-WF10 Supplier' ON CONFLICT DO NOTHING" },
+        { act: 'goto', url: '/finance/hutang' },
+        { act: 'wait', ms: 1500 },
+        { act: 'click', selector: 'button[aria-label="Menu aksi"]' },
+        { act: 'wait', ms: 800 },
+        { act: 'clickVisible', text: 'Bayar' },
+        { act: 'wait', ms: 1000 },
+        { act: 'expectText', text: 'Bayar Tagihan' },
+        { act: 'type', selector: '.modal-panel input[placeholder="0"]', value: '999999' },
+        { act: 'screenshot', name: 'bayar-over' },
+        { act: 'click', selector: '.modal-panel button[type="submit"]' },
+        { act: 'wait', ms: 1200 },
+        { act: 'expectToast', text: 'melebihi' },
+        { act: 'dbExpect', sql: "SELECT count(*) AS n FROM hutang WHERE invoice_number = 'INV-QA-WF10-OVR' AND (paid_amount IS NULL OR paid_amount = 0)", min: 1 },
       ],
     },
     {
@@ -50,7 +71,7 @@ export default {
     },
   ],
   cleanup: [
-    `DELETE FROM hutang WHERE invoice_number IN ('INV-QA-WF10', 'INV-QA-WF10-UI') OR supplier_id IN (SELECT id FROM suppliers WHERE name ILIKE 'QA-WF10%')`,
+    `DELETE FROM hutang WHERE invoice_number IN ('INV-QA-WF10', 'INV-QA-WF10-UI', 'INV-QA-WF10-OVR') OR supplier_id IN (SELECT id FROM suppliers WHERE name ILIKE 'QA-WF10%')`,
     `DELETE FROM suppliers WHERE name ILIKE 'QA-WF10%'`,
   ],
 }

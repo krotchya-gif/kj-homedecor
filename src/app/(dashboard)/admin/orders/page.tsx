@@ -174,6 +174,23 @@ export default function OrdersPage() {
 
   async function handleCreateOrder(e: React.FormEvent) {
     e.preventDefault()
+
+    // ---- Validasi (temuan QA 2026-08-09: form kosong sebelumnya tetap membuat order) ----
+    if (!form.customer_name.trim()) {
+      toast('error', 'Nama pelanggan wajib diisi.')
+      return
+    }
+    const totalCheck = Number(form.total_amount) || 0
+    if (totalCheck <= 0) {
+      toast('error', 'Total pesanan harus lebih dari 0.')
+      return
+    }
+    const dpCheck = Number(form.dp_amount) || 0
+    if (dpCheck > totalCheck) {
+      toast('error', 'DP tidak boleh lebih besar dari total pesanan.')
+      return
+    }
+
     setSaving(true)
 
     // Create or find existing customer

@@ -45,6 +45,24 @@ async function doStep(page, step, ctx) {
       await page.waitForTimeout(500)
       return `clickText "${step.text}"`
     }
+    case 'clickVisible': {
+      // klik elemen VISIBLE yang mengandung teks (via JS — menu item absolute sering
+      // tidak kelihatan di accessibility tree / .first() kena elemen hidden)
+      const res = await page.evaluate((t) => {
+        const all = document.querySelectorAll('button, [role="menuitem"], a')
+        for (const el of all) {
+          const r = el.getBoundingClientRect()
+          if (r.width > 0 && r.height > 0 && el.textContent.trim().includes(t)) {
+            el.click()
+            return el.tagName + ':' + el.textContent.trim().slice(0, 20)
+          }
+        }
+        return null
+      }, step.text)
+      if (!res) throw new Error(`elemen visible berisi "${step.text}" tidak ditemukan`)
+      await page.waitForTimeout(600)
+      return `clickVisible "${step.text}" → ${res}`
+    }
     case 'select': {
       const sel = step.placeholder ? `select[placeholder="${step.placeholder}"]` : step.selector
       await page.selectOption(sel, step.value)
@@ -147,6 +165,17 @@ async function doStep(page, step, ctx) {
       await page.mouse.up()
       await page.waitForTimeout(400)
       return `draw di canvas (${Math.round(box.width)}x${Math.round(box.height)})`
+    }
+    case 'dump': {
+      const info = await page.evaluate(() => ({
+        h2: [...document.querySelectorAll('h2')].map((e) => e.textContent.trim()),
+        modalPanels: document.querySelectorAll('.modal-panel').length,
+        toasts: document.querySelectorAll('[data-sonner-toast]').length,
+        hasBayarTagihan: document.body.innerText.includes('Bayar Tagihan'),
+        visibleButtons: [...document.querySelectorAll('button')].filter((b) => b.getBoundingClientRect().width > 0).map((b) => b.textContent.trim().slice(0, 18)).slice(0, 15),
+      }))
+      console.log('     [dump]', JSON.stringify(info))
+      return 'dump OK'
     }
     case 'logout':
       await page.evaluate(() => localStorage.clear())
