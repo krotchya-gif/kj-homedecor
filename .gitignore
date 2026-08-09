@@ -60,3 +60,6 @@ doc/
 tmp_*
 nul
 nul.*
+
+# QA workflow screenshots (regenerable)
+scripts/qa-workflow/reports/

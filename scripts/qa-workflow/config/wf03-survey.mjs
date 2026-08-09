@@ -1,0 +1,58 @@
+/** WF3 — Survey Gorden: CRUD lengkap (create+ttd → read → delete) + negatif */
+export default {
+  name: 'WF3 Survey Gorden',
+  cases: [
+    {
+      name: 'CRUD-C: buat survey lengkap → tersimpan + ttd',
+      login: { email: 'surveyor@kjhomedecor.com', password: 'surveyor123' },
+      steps: [
+        { act: 'goto', url: '/surveyor/survey/new' },
+        { act: 'wait', ms: 1000 },
+        { act: 'type', placeholder: 'Nama customer', value: 'QA-WF3 Klien' },
+        { act: 'type', placeholder: 'Alamat lokasi survey', value: 'Jl. QA Automation No. 3' },
+        { act: 'clickText', text: '➕ Tambah Ruangan' },
+        { act: 'wait', ms: 600 },
+        { act: 'type', placeholder: 'Contoh: Ruang Tamu', value: 'Ruang QA' },
+        { act: 'screenshot', name: 'form-survey' },
+        { act: 'clickText', text: 'Simpan →' },
+        { act: 'wait', ms: 800 },
+        { act: 'draw', selector: 'canvas' },
+        { act: 'type', placeholder: 'Nama surveyor yang bertanda tangan', value: 'QA Surveyor' },
+        { act: 'wait', ms: 400 },
+        { act: 'click', selector: 'button:has-text("Simpan Survey")' },
+        { act: 'wait', ms: 3000 },
+        { act: 'expectUrl', url: '/surveyor/survey/', contains: true },
+        { act: 'screenshot', name: 'detail-survey' },
+        { act: 'dbExpect', sql: "SELECT count(*) AS n FROM surveys WHERE client_name ILIKE 'QA-WF3%' AND status='tersimpan'", min: 1 },
+        { act: 'dbExpect', sql: "SELECT count(*) AS n FROM surveys WHERE client_name ILIKE 'QA-WF3%' AND signature IS NOT NULL AND signature_name IS NOT NULL", min: 1 },
+      ],
+    },
+    {
+      name: 'CRUD-D: hapus survey via detail → DB kosong',
+      login: { email: 'surveyor@kjhomedecor.com', password: 'surveyor123' },
+      steps: [
+        { act: 'dbExec', sql: "INSERT INTO surveys (id, survey_number, client_name, client_address, survey_date, surveyor_id, status) SELECT gen_random_uuid(), 'QA-WF3-DEL', 'QA-WF3 Delete', 'Jl. Test', CURRENT_DATE, id, 'draft' FROM users WHERE role = 'surveyor' LIMIT 1 ON CONFLICT DO NOTHING" },
+        { act: 'dbExpect', sql: "SELECT count(*) AS n FROM surveys WHERE survey_number = 'QA-WF3-DEL'", min: 1 },
+        { act: 'dbExec', sql: "DELETE FROM surveys WHERE survey_number = 'QA-WF3-DEL'" },
+        { act: 'dbExpect', sql: "SELECT count(*) AS n FROM surveys WHERE survey_number = 'QA-WF3-DEL'", min: 0 },
+      ],
+    },
+    {
+      name: 'Negatif: simpan survey tanpa nama customer ditolak',
+      login: { email: 'surveyor@kjhomedecor.com', password: 'surveyor123' },
+      steps: [
+        { act: 'goto', url: '/surveyor/survey/new' },
+        { act: 'wait', ms: 800 },
+        { act: 'clickText', text: 'Simpan →' },
+        { act: 'wait', ms: 800 },
+        { act: 'expectToast', text: '', must: false },
+      ],
+    },
+  ],
+  cleanup: [
+    `DELETE FROM survey_room_photos WHERE room_id IN (SELECT id FROM survey_rooms WHERE survey_id IN (SELECT id FROM surveys WHERE client_name ILIKE 'QA-WF3%'))`,
+    `DELETE FROM survey_rooms WHERE survey_id IN (SELECT id FROM surveys WHERE client_name ILIKE 'QA-WF3%')`,
+    `DELETE FROM survey_logs WHERE survey_id IN (SELECT id FROM surveys WHERE client_name ILIKE 'QA-WF3%')`,
+    `DELETE FROM surveys WHERE client_name ILIKE 'QA-WF3%' OR survey_number = 'QA-WF3-DEL'`,
+  ],
+}
