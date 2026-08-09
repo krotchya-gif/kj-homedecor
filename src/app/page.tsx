@@ -39,11 +39,10 @@ export default async function LandingPage() {
 
   const categories = (categoriesRes.data ?? []) as Category[]
   const portfolio = (portfolioRes.data ?? []) as PortfolioPost[]
-  const rawSettings = Object.fromEntries(
-    ((settingsRes.data ?? []) as { key: string; value?: unknown }[]).map((s) => [s.key, s.value])
-  )
+  // landing_settings: single row `{ key: 'hero', value: { ... } }` (aggregated per-section)
+  const heroSettings = (settingsRes.data?.value ?? {}) as Record<string, unknown>
   const settingsMap: Record<string, string | number | null> = Object.fromEntries(
-    Object.entries(rawSettings).map(([k, v]) => [k, typeof v === 'number' ? v : String(v ?? '')])
+    Object.entries(heroSettings).map(([k, v]) => [k, typeof v === 'number' ? v : String(v ?? '')])
   )
 
   const heroTitle = String(settingsMap.hero_title ?? 'Percantik Ruanganmu dengan Gorden Premium')
@@ -527,8 +526,7 @@ export default async function LandingPage() {
                 textShadow: '0 2px 20px rgba(0,0,0,0.15)'
               }}
             >
-              {settingsMap.cta_title ?? 'Siap Mempercantik'} <br />
-              Ruanganmu?
+              {settingsMap.cta_title ?? 'Siap Mempercantik Ruanganmu?'}
             </h2>
             <p
               style={{

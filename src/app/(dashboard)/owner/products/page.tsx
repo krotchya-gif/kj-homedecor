@@ -52,12 +52,12 @@ export default function OwnerProductsPage() {
       .select('product_id, qty, price, product:products(name, sku)')
 
     const stats: Record<string, ProductStats> = {}
-    ;((orderItems ?? []) as { product_id: string; qty?: number; price?: number; custom_specs?: string | null; product?: { name?: string; sku?: string }[] | null }[]).forEach((item) => {
+    ;((orderItems ?? []) as { product_id: string; qty?: number; price?: number; custom_specs?: string | null; product?: { name?: string; sku?: string } | null }[]).forEach((item) => {
       if (!stats[item.product_id]) {
         stats[item.product_id] = {
           id: item.product_id,
-          name: item.product?.[0]?.name ?? item.custom_specs ?? 'Unknown',
-          sku: item.product?.[0]?.sku ?? '',
+          name: item.product?.name ?? item.custom_specs ?? 'Unknown',
+          sku: item.product?.sku ?? '',
           total_qty: 0,
           total_revenue: 0
         }
