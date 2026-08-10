@@ -1,0 +1,19 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]: KJ Homedecor
+    - paragraph [ref=e5]: Staff Portal — Masuk ke akun Anda
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: Email
+        - textbox "Email" [ref=e13]:
+          - /placeholder: staff@kjhomedecor.com
+      - generic [ref=e14]:
+        - generic [ref=e15]: Password
+        - generic [ref=e16]:
+          - textbox "Password" [ref=e20]:
+            - /placeholder: ••••••••
+          - button [ref=e21] [cursor=pointer]
+      - button "Masuk" [ref=e25] [cursor=pointer]
+    - paragraph [ref=e26]: Akun dibuat oleh Admin. Hubungi admin jika belum punya akses.
+  - region "Notifications alt+T"
+  - alert [ref=e27]

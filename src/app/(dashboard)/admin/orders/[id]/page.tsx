@@ -291,7 +291,8 @@ export default function OrderDetailPage() {
   }
 
   async function loadRates() {
-    const { data: lr } = await supabase.from('laundry_rates').select('rate_per_kg').eq('is_active', true).single()
+    // maybeSingle (bukan single): kalau tidak ada laundry_rates aktif → 406 (PGRST116) di console
+    const { data: lr } = await supabase.from('laundry_rates').select('rate_per_kg').eq('is_active', true).maybeSingle()
     setLaundryRate(lr?.rate_per_kg ?? 0)
   }
 
@@ -337,24 +338,23 @@ export default function OrderDetailPage() {
     }
 
     // 2) Catat ke order_logs untuk audit trail
+    // PENTING: semua action harus masuk daftar chk_action — fallback pakai 'status_changed'
+    // (bukan newStatus mentah: 'steam'/'install' tidak ada di constraint → insert 400)
+    const LOG_ACTION: Record<string, string> = {
+      new: 'created',
+      payment_ok: 'payment_verified',
+      sorted: 'sorted',
+      production: 'production_started',
+      steam: 'steam_qc_pass',
+      ready: 'qc_pass',
+      packed: 'packed',
+      shipped: 'shipped',
+      done: 'done',
+      cancelled: 'cancelled'
+    }
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: id,
-      action:
-        newStatus === 'sorted'
-          ? 'sorted'
-          : newStatus === 'payment_ok'
-            ? 'payment_verified'
-            : newStatus === 'production'
-              ? 'production_started'
-              : newStatus === 'ready'
-                ? 'qc_pass'
-                : newStatus === 'packed'
-                  ? 'packed'
-                  : newStatus === 'shipped'
-                    ? 'shipped'
-                    : newStatus === 'done'
-                      ? 'done'
-                      : newStatus,
+      action: LOG_ACTION[newStatus] ?? 'status_changed',
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null
     })
@@ -1636,7 +1636,7 @@ export default function OrderDetailPage() {
           {/* === GORDEN FORM === */}
           {itemType === 'gorden' && (
             <>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
                 <div>
                   <label
                     style={{
@@ -2001,14 +2001,18 @@ export default function OrderDetailPage() {
                 )}
               </div>
               <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
                   <label
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.375rem',
                       fontSize: '0.8rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '0.5rem',
+                      padding: '0.625rem 0.75rem'
                     }}
                   >
                     <input
@@ -2024,7 +2028,11 @@ export default function OrderDetailPage() {
                       alignItems: 'center',
                       gap: '0.375rem',
                       fontSize: '0.8rem',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--input-border)',
+                      borderRadius: '0.5rem',
+                      padding: '0.625rem 0.75rem'
                     }}
                   >
                     <input
