@@ -67,3 +67,6 @@ scripts/qa-workflow/reports/
 # runtime uploads
 public/uploads/*
 !public/uploads/kj.mp4
+
+# playwright MCP artifacts
+.playwright-mcp/
