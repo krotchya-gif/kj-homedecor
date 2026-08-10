@@ -177,6 +177,13 @@ async function doStep(page, step, ctx) {
       console.log('     [dump]', JSON.stringify(info))
       return 'dump OK'
     }
+    case 'upload': {
+      // upload file ke input[type=file] (setInputFiles)
+      const loc = page.locator(step.selector ?? 'input[type="file"]').first()
+      await loc.setInputFiles(step.file)
+      await page.waitForTimeout(1500)
+      return `upload ${step.file} → ${step.selector ?? 'input[type=file]'}`
+    }
     case 'logout':
       await page.evaluate(() => localStorage.clear())
       await page.goto(BASE + '/logout', { waitUntil: 'domcontentloaded' }).catch(() => {})

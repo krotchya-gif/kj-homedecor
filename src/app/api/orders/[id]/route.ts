@@ -338,8 +338,39 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
   }
 
-  const { data, error } = await supabase.from('orders').update(body).eq('id', id).select().single()
+  // Whitelist field yang BOLEH di-update di tabel orders — JANGAN pakai body mentah
+  // (body berisi photo_urls yang bukan kolom orders → error 500 "Could not find the 'photo_urls' column")
+  const allowedOrderFields = [
+    'status',
+    'courier',
+    'tracking_number',
+    'shipped_at',
+    'packed_at',
+    'scheduled_installation_date',
+    'scheduled_installation_time',
+    'installed_at',
+    'notes'
+  ]
+  const updateData: Record<string, unknown> = {}
+  for (const k of allowedOrderFields) {
+    if (k in body) updateData[k] = body[k]
+  }
+
+  const { data, error } = await supabase.from('orders').update(updateData).eq('id', id).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+
+  // Simpan foto bukti ke order_progress_photos (bukan kolom orders)
+  const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
+  for (const url of photoEvidence) {
+    const { error: photoErr } = await supabase.from('order_progress_photos').insert({
+      order_id: id,
+      stage: body.status ?? 'progress',
+      photo_url: url,
+      uploaded_by: user.id
+    })
+    if (photoErr) console.error('Gagal simpan foto progress:', photoErr)
+  }
+
   return NextResponse.json({ data, error: null })
 }
 
