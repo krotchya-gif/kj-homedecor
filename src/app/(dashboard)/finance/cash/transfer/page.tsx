@@ -67,26 +67,33 @@ export default function TransferPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const amount = Number(form.amount) || 0
-    const fromAcc = cashAccounts.find((c) => c.id === form.from_account_id)
-    const toAcc = cashAccounts.find((c) => c.id === form.to_account_id)
-    if (!fromAcc || !toAcc) return
+    try {
+      const amount = Number(form.amount) || 0
+      const fromAcc = cashAccounts.find((c) => c.id === form.from_account_id)
+      const toAcc = cashAccounts.find((c) => c.id === form.to_account_id)
+      if (!fromAcc || !toAcc) {
+        toast('error', 'Pilih akun asal dan tujuan terlebih dahulu.')
+        return
+      }
 
-    const res = await fetch('/api/journal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        description: form.description || 'Transfer kas',
-        entry_date: form.entry_date || new Date().toISOString().split('T')[0],
-        reference_type: 'transfer',
-        lines: [
-          { account_id: toAcc.account_id, debit: amount, credit: 0 },
-          { account_id: fromAcc.account_id, debit: 0, credit: amount }
-        ]
+      const res = await fetch('/api/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: form.description || 'Transfer kas',
+          entry_date: form.entry_date || new Date().toISOString().split('T')[0],
+          reference_type: 'transfer',
+          lines: [
+            { account_id: toAcc.account_id, debit: amount, credit: 0 },
+            { account_id: fromAcc.account_id, debit: 0, credit: amount }
+          ]
+        })
       })
-    })
-    const json = await res.json()
-    if (!json.error) {
+      const json = await res.json().catch(() => null)
+      if (!json || json.error) {
+        toast('error', '⚠️ Gagal transfer: ' + (json?.error?.message ?? `HTTP ${res.status}`))
+        return
+      }
       // Update both balances directly
       const { error: fromErr } = await supabase
         .from('cash_accounts')
@@ -98,15 +105,15 @@ export default function TransferPage() {
         .update({ balance: toAcc.balance + amount })
         .eq('id', form.to_account_id)
       if (toErr) { console.error('Update balance akun tujuan gagal:', toErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun tujuan tidak ter-update: ' + toErr.message) }
-    } else {
-      toast('error', 'Gagal transfer: ' + (json.error?.message ?? 'Terjadi kesalahan'))
-      setSaving(false)
-      return
+      setShowForm(false)
+      fetchData()
+      toast('success', 'Transfer kas berhasil dicatat')
+    } catch (err) {
+      console.error('Transfer kas gagal:', err)
+      toast('error', '⚠️ Gagal transfer kas: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false) // cegah tombol stuck "Menyimpan..." saat fetch gagal
     }
-    setSaving(false)
-    setShowForm(false)
-    fetchData()
-    toast('success', 'Transfer kas berhasil dicatat')
   }
 
   return (

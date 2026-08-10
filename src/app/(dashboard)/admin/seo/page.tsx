@@ -95,40 +95,52 @@ export default function AdminSeoPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingSitemap(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/seo/upload-sitemap', { method: 'POST', body: fd })
-    const data = await res.json()
-    setUploadingSitemap(false)
-    if (data.success) {
-      setUploadMsg({ type: 'success', text: 'sitemap.xml uploaded successfully!' })
-      toast('success', 'sitemap.xml berhasil di-upload')
-    } else {
-      setUploadMsg({ type: 'error', text: data.error ?? 'Upload failed' })
-      toast('error', 'Gagal upload sitemap: ' + (data.error ?? 'Unknown'))
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/seo/upload-sitemap', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => null)
+      if (data?.success) {
+        setUploadMsg({ type: 'success', text: 'sitemap.xml uploaded successfully!' })
+        toast('success', 'sitemap.xml berhasil di-upload')
+      } else {
+        setUploadMsg({ type: 'error', text: data?.error ?? `Upload failed (HTTP ${res.status})` })
+        toast('error', 'Gagal upload sitemap: ' + (data?.error ?? `HTTP ${res.status}`))
+      }
+    } catch (err) {
+      console.error('Upload sitemap gagal:', err)
+      toast('error', '⚠️ Gagal upload sitemap: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setUploadingSitemap(false) // cegah stuck "Upload..." saat fetch gagal
+      setTimeout(() => setUploadMsg(null), 3000)
+      if (sitemapRef.current) sitemapRef.current.value = ''
     }
-    setTimeout(() => setUploadMsg(null), 3000)
-    if (sitemapRef.current) sitemapRef.current.value = ''
   }
 
   async function handleRobotsUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadingRobots(true)
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/seo/upload-robots', { method: 'POST', body: fd })
-    const data = await res.json()
-    setUploadingRobots(false)
-    if (data.success) {
-      setUploadMsg({ type: 'success', text: 'robots.txt uploaded successfully!' })
-      toast('success', 'robots.txt berhasil di-upload')
-    } else {
-      setUploadMsg({ type: 'error', text: data.error ?? 'Upload failed' })
-      toast('error', 'Gagal upload robots: ' + (data.error ?? 'Unknown'))
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/seo/upload-robots', { method: 'POST', body: fd })
+      const data = await res.json().catch(() => null)
+      if (data?.success) {
+        setUploadMsg({ type: 'success', text: 'robots.txt uploaded successfully!' })
+        toast('success', 'robots.txt berhasil di-upload')
+      } else {
+        setUploadMsg({ type: 'error', text: data?.error ?? `Upload failed (HTTP ${res.status})` })
+        toast('error', 'Gagal upload robots: ' + (data?.error ?? `HTTP ${res.status}`))
+      }
+    } catch (err) {
+      console.error('Upload robots gagal:', err)
+      toast('error', '⚠️ Gagal upload robots: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setUploadingRobots(false) // cegah stuck "Upload..." saat fetch gagal
+      setTimeout(() => setUploadMsg(null), 3000)
+      if (robotsRef.current) robotsRef.current.value = ''
     }
-    setTimeout(() => setUploadMsg(null), 3000)
-    if (robotsRef.current) robotsRef.current.value = ''
   }
 
   if (loading) {

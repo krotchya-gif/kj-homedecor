@@ -71,35 +71,47 @@ export default function IncomePage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const amount = Number(form.amount) || 0
-    const cashAcc = cashAccounts.find((c) => c.id === form.cash_account_id)
-    if (!cashAcc) return
+    try {
+      const amount = Number(form.amount) || 0
+      const cashAcc = cashAccounts.find((c) => c.id === form.cash_account_id)
+      if (!cashAcc) {
+        toast('error', 'Pilih akun kas terlebih dahulu.')
+        return
+      }
 
-    const res = await fetch('/api/journal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        description: form.description || 'Pemasukan manual',
-        entry_date: form.entry_date || new Date().toISOString().split('T')[0],
-        reference_type: 'pemasukan',
-        lines: [
-          { account_id: cashAcc.account_id, debit: amount, credit: 0 },
-          { account_id: form.revenue_account_id, debit: 0, credit: amount }
-        ]
+      const res = await fetch('/api/journal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          description: form.description || 'Pemasukan manual',
+          entry_date: form.entry_date || new Date().toISOString().split('T')[0],
+          reference_type: 'pemasukan',
+          lines: [
+            { account_id: cashAcc.account_id, debit: amount, credit: 0 },
+            { account_id: form.revenue_account_id, debit: 0, credit: amount }
+          ]
+        })
       })
-    })
-    const json = await res.json()
-    if (!json.error) {
+      const json = await res.json().catch(() => null)
+      if (!json || json.error) {
+        toast('error', '⚠️ ' + (json?.error?.message ?? `Gagal mencatat pemasukan (HTTP ${res.status})`))
+        return
+      }
       // Update cash account balance
       const { error: rpcErr } = await supabase.rpc('update_cash_account_balance', {
         p_id: form.cash_account_id,
         p_amount: amount
       })
       if (rpcErr) { console.error('RPC update_cash_account_balance gagal:', rpcErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo kas TIDAK ter-update: ' + rpcErr.message) }
+      setShowForm(false)
+      fetchData()
+      toast('success', 'Pemasukan tercatat')
+    } catch (err) {
+      console.error('Simpan pemasukan gagal:', err)
+      toast('error', '⚠️ Gagal menyimpan pemasukan: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false) // cegah tombol stuck "Menyimpan..." saat fetch gagal
     }
-    setSaving(false)
-    setShowForm(false)
-    fetchData()
   }
 
   return (

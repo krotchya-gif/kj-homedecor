@@ -105,46 +105,51 @@ export default function AdminShippingPage() {
       return
     }
     setSaving(true)
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
 
-    // pakai API route (server-side enforcement: role check, transition check)
-    const courierLabel = COURIERS.find((c) => c.value === resiForm.courier)?.label ?? resiForm.courier
-    const apiRes = await fetch(`/api/orders/${selectedOrder.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'shipped',
-        courier: resiForm.courier,
-        tracking_number: resiForm.tracking_number,
-        shipped_at: new Date().toISOString(),
-        shipped_by: user?.id ?? null,
-        photo_urls: [shippedPhoto], // foto bukti
-        notes: `Shipped via ${courierLabel}, Resi: ${resiForm.tracking_number}`
+      // pakai API route (server-side enforcement: role check, transition check)
+      const courierLabel = COURIERS.find((c) => c.value === resiForm.courier)?.label ?? resiForm.courier
+      const apiRes = await fetch(`/api/orders/${selectedOrder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'shipped',
+          courier: resiForm.courier,
+          tracking_number: resiForm.tracking_number,
+          shipped_at: new Date().toISOString(),
+          shipped_by: user?.id ?? null,
+          photo_urls: [shippedPhoto], // foto bukti
+          notes: `Shipped via ${courierLabel}, Resi: ${resiForm.tracking_number}`
+        })
       })
-    })
-    const apiJson = await apiRes.json()
-    if (!apiRes.ok) {
-      toast('error', '⚠️ ' + (apiJson.error?.message ?? 'Gagal update order'))
-      setSaving(false)
-      return
-    }
+      const apiJson = await apiRes.json().catch(() => null)
+      if (!apiRes.ok || !apiJson) {
+        toast('error', '⚠️ ' + (apiJson?.error?.message ?? `Gagal update order (HTTP ${apiRes.status})`))
+        return
+      }
 
-    setSaving(false)
-    setShowResiModal(false)
-    setSelectedOrder(null)
-    setResiForm({ courier: '', tracking_number: '' })
-    setShippedPhoto(null) // reset foto
-    // Optimistic update: status order di list langsung berubah
-    setOrders((curr) =>
-      curr.map((o) =>
-        o.id === apiJson.data?.id || o.id === selectedOrder.id
-          ? { ...o, status: 'shipped', courier: resiForm.courier, tracking_number: resiForm.tracking_number }
-          : o
+      setShowResiModal(false)
+      setSelectedOrder(null)
+      setResiForm({ courier: '', tracking_number: '' })
+      setShippedPhoto(null) // reset foto
+      // Optimistic update: status order di list langsung berubah
+      setOrders((curr) =>
+        curr.map((o) =>
+          o.id === apiJson.data?.id || o.id === selectedOrder.id
+            ? { ...o, status: 'shipped', courier: resiForm.courier, tracking_number: resiForm.tracking_number }
+            : o
+        )
       )
-    )
-    toast('success', 'Order ditandai Terkirim (shipped)')
+      toast('success', 'Order ditandai Terkirim (shipped)')
+    } catch (err) {
+      console.error('Simpan resi gagal:', err)
+      toast('error', '⚠️ Gagal menyimpan resi: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSaving(false) // PASTI di-reset walau fetch gagal/throw — cegah tombol stuck "Menyimpan..."
+    }
   }
 
   function openResiModal(order: Order) {

@@ -1136,15 +1136,20 @@ export default function ProductsPage() {
                   onChange={async (e) => {
                     const file = e.target.files?.[0]
                     if (!file) return
-                    const fd = new FormData()
-                    fd.append('file', file)
-                    fd.append('folder', 'products')
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd })
-                    const json = await res.json()
-                    if (json.success) {
-                      setForm((f) => ({ ...f, images: [...f.images, json.url] }))
-                    } else {
-                      toast('error', 'Gagal upload gambar')
+                    try {
+                      const fd = new FormData()
+                      fd.append('file', file)
+                      fd.append('folder', 'products')
+                      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                      const json = await res.json().catch(() => null)
+                      if (json?.success) {
+                        setForm((f) => ({ ...f, images: [...f.images, json.url] }))
+                      } else {
+                        toast('error', 'Gagal upload gambar: ' + (json?.error ?? `HTTP ${res.status}`))
+                      }
+                    } catch (err) {
+                      console.error('Upload gambar produk gagal:', err)
+                      toast('error', '⚠️ Gagal upload gambar: ' + (err instanceof Error ? err.message : String(err)))
                     }
                     e.target.value = ''
                   }}
