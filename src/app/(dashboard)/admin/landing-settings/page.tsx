@@ -657,7 +657,7 @@ export default function AdminLandingSettingsPage() {
                       placeholder="/uploads/videos/xxx.mp4"
                     />
                     <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.25rem' }}>
-                      Video akan di-scrub saat scroll. Maks 100MB. Kosongkan untuk fallback /uploads/kj.mp4
+                      Video akan di-scrub saat scroll. Maks 100MB. Kosongkan untuk fallback video di link.kjhomedecor.com (persistent)
                     </p>
                   </div>
                   <label

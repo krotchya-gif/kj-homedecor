@@ -10,6 +10,7 @@ export default {
         { act: 'expectText', text: 'Produk Pilihan' },
         { act: 'expectText', text: 'Portofolio' },
         { act: 'screenshot', name: 'landing-hero' },
+        { act: 'wait', ms: 2500 },
         { act: 'expectText', text: 'Lihat Semua Katalog' },
       ],
     },

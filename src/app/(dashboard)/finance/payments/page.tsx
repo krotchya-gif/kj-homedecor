@@ -149,6 +149,18 @@ export default function FinancePaymentsPage() {
     if (!selected) return
     setSaving(true)
     const amount = Number(payForm.amount)
+    // Validasi nominal (temuan audit 2026-08-10): tolak <= 0 dan > sisa tagihan
+    if (!payForm.amount || amount <= 0) {
+      setSaving(false)
+      toast('error', 'Nominal pembayaran wajib diisi dan lebih dari 0.')
+      return
+    }
+    const sisaTagihan = (selected.total_amount ?? 0) - (selected.dp_amount ?? 0) - (selected.lunas_amount ?? 0)
+    if (amount > sisaTagihan) {
+      setSaving(false)
+      toast('error', `Nominal melebihi sisa tagihan (Rp ${sisaTagihan.toLocaleString('id-ID')}).`)
+      return
+    }
     const now = new Date().toISOString()
     const { error: payErr } = await supabase.from('payments').insert({
       order_id: selected.id,
