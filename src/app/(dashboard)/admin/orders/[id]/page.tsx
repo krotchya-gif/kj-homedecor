@@ -715,6 +715,16 @@ export default function OrderDetailPage() {
     if (!confirm('Hapus item ini?')) return
     const { error } = await supabase.from('order_items').delete().eq('id', itemId)
     if (error) { toast('error', 'Gagal hapus item: ' + error.message); return }
+    // Recalc total_amount agar sinkron dengan order_items (temuan QA 2026-08-10:
+    // sebelumnya total tidak turun → laporan keuangan & payment status tidak akurat)
+    const { data: remaining, error: totalErr } = await supabase
+      .from('order_items')
+      .select('price,qty')
+      .eq('order_id', id)
+    if (totalErr) { console.error('Gagal hitung ulang total:', totalErr) }
+    const newTotal = (remaining ?? []).reduce((s, i) => s + i.price * i.qty, 0)
+    const { error: updErr } = await supabase.from('orders').update({ total_amount: newTotal }).eq('id', id)
+    if (updErr) { console.error('Gagal update total_amount:', updErr) }
     load()
   }
 
@@ -735,6 +745,18 @@ export default function OrderDetailPage() {
       data: { user }
     } = await supabase.auth.getUser()
     const amount = Number(paymentForm.amount)
+    // Validasi nominal (temuan QA 2026-08-10): jangan biarkan pembayaran melebihi sisa tagihan
+    if (amount <= 0) {
+      setSavingPayment(false)
+      toast('error', 'Nominal pembayaran harus lebih dari 0.')
+      return
+    }
+    const sisaTagihan = (order.total_amount ?? 0) - (order.dp_amount ?? 0) - (order.lunas_amount ?? 0)
+    if (amount > sisaTagihan) {
+      setSavingPayment(false)
+      toast('error', `Nominal pembayaran melebihi sisa tagihan (Rp ${sisaTagihan.toLocaleString('id-ID')}).`)
+      return
+    }
     const { error: payErr } = await supabase.from('payments').insert({
       order_id: id,
       type: paymentForm.type,
