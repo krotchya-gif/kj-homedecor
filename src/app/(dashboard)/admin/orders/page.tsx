@@ -665,14 +665,16 @@ export default function OrdersPage() {
                 <div style={{ position: 'relative' }}>
                   <input
                     type="text"
-                    placeholder="Ketik nama atau no HP untuk cari..."
+                    placeholder="Ketik nama atau no HP untuk cari... (nama baru langsung diketik)"
                     value={searchCustomer}
                     onChange={(e) => {
-                      setSearchCustomer(e.target.value)
-                      if (!e.target.value) {
-                        setSelectedCustomerId(null)
-                        setForm((f) => ({ ...f, customer_name: '', customer_phone: '', customer_address: '' }))
-                      }
+                      const v = e.target.value
+                      setSearchCustomer(v)
+                      // Ketik = nama baru / custom: batalkan pilihan existing & ikat nama ke form
+                      // (fix 2026-08-10: sebelumnya form.customer_name tak pernah terisi saat
+                      // mengetik → user tidak bisa langsung submit nama pelanggan baru)
+                      setSelectedCustomerId(null)
+                      setForm((f) => ({ ...f, customer_name: v }))
                     }}
                     style={{
                       width: '100%',
