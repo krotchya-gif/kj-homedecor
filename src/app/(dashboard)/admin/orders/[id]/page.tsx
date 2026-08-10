@@ -556,13 +556,36 @@ export default function OrderDetailPage() {
     load()
   }
 
+  // Gorden dihitung per ukuran (cm), bukan qty: meter kain = tinggi ukuran ÷ 100
+  // Format ukuran: "lebar x tinggi" cm — cth "120 x 250" → 2.5 m
+  function parseGordenMeter(size: string): number {
+    const m = size.match(/(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)/)
+    if (!m) return 0
+    return Number(m[2]) / 100
+  }
+
   async function addItem(e: React.FormEvent) {
     e.preventDefault()
     setSavingItem(true)
 
     // Validate qty for non-laundry items
     const qty = Number(itemForm.qty)
-    if (itemType !== 'laundry' && (!itemForm.product_id || qty < 1)) {
+    if (itemType === 'gorden') {
+      // Gorden: tidak pakai qty — pakai ukuran cm (meter otomatis = tinggi ÷ 100)
+      const gordenMeter = parseGordenMeter(itemForm.size)
+      if (!itemForm.product_id) {
+        toast('info', 'Pilih produk gorden dulu.')
+        setSavingItem(false)
+        return
+      }
+      if (gordenMeter <= 0) {
+        toast('info', 'Isi ukuran gorden dalam cm (format: lebar x tinggi, cth "120 x 250").')
+        setSavingItem(false)
+        return
+      }
+      itemForm.qty = '1'
+      itemForm.meter_gorden = String(gordenMeter)
+    } else if (itemType !== 'laundry' && (!itemForm.product_id || qty < 1)) {
       toast('info', 'Pilih produk dan qty minimal 1.')
       setSavingItem(false)
       return
@@ -1736,33 +1759,35 @@ export default function OrderDetailPage() {
                       })()}
                   </div>
                 </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Qty
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={itemForm.qty}
-                    onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
+                {itemType !== 'gorden' && (
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        color: 'var(--neutral-700)',
+                        marginBottom: '0.3rem'
+                      }}
+                    >
+                      Qty
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={itemForm.qty}
+                      onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div>
@@ -1854,69 +1879,73 @@ export default function OrderDetailPage() {
                     )
                   })()}
               </div>
-              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
-                  Meteran Gorden
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Meter Gorden (m)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={itemForm.meter_gorden}
-                      onChange={(e) => setItemForm((prev) => ({ ...prev, meter_gorden: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
+              {itemType === 'gorden' && (
+                <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
+                    Meteran Gorden (otomatis dari ukuran)
                   </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Berat Auto (kg)
-                    </label>
-                    <input
-                      type="text"
-                      value={itemForm.meter_gorden ? (Number(itemForm.meter_gorden) * 0.4).toFixed(2) : '0'}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none',
-                        background: 'var(--neutral-100)',
-                        color: 'var(--neutral-600)'
-                      }}
-                    />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          color: 'var(--neutral-600)',
+                          marginBottom: '0.25rem'
+                        }}
+                      >
+                        Meter Gorden (m)
+                      </label>
+                      <input
+                        type="text"
+                        value={parseGordenMeter(itemForm.size) > 0 ? parseGordenMeter(itemForm.size).toFixed(2) : '0'}
+                        readOnly
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.8rem',
+                          outline: 'none',
+                          background: 'var(--surface)'
+                        }}
+                      />
+                      <div style={{ fontSize: '0.68rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
+                        = tinggi ukuran ÷ 100 (isi ukuran "lebar x tinggi" di atas)
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          display: 'block',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          color: 'var(--neutral-600)',
+                          marginBottom: '0.25rem'
+                        }}
+                      >
+                        Berat Auto (kg)
+                      </label>
+                      <input
+                        type="text"
+                        value={parseGordenMeter(itemForm.size) > 0 ? (parseGordenMeter(itemForm.size) * 0.4).toFixed(2) : '0'}
+                        readOnly
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.8rem',
+                          outline: 'none',
+                          background: 'var(--neutral-100)',
+                          color: 'var(--neutral-600)'
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               {/* Style Variant Cards */}
               <div>
                 <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>

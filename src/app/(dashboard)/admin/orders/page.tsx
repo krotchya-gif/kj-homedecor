@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, ShoppingCart, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -102,6 +102,20 @@ export default function OrdersPage() {
   const [customers, setCustomers] = useState<{ id: string; name: string; phone?: string | null; address?: string | null }[]>([])
   const [searchCustomer, setSearchCustomer] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const customerBoxRef = useRef<HTMLDivElement>(null)
+
+  // Tutup dropdown customer saat klik di luar area input+dropdown (fix UX 2026-08-10:
+  // "Ketik untuk cari atau buat pelanggan baru" terus tampil padahal sudah pindah input).
+  // Nama tetap tersimpan di form.customer_name — hanya tampilan dropdown yang ditutup.
+  useEffect(() => {
+    function onDocMouseDown(e: MouseEvent) {
+      if (customerBoxRef.current && !customerBoxRef.current.contains(e.target as Node)) {
+        setSearchCustomer('')
+      }
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [])
 
   const supabase = createClient()
 
@@ -142,6 +156,10 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders()
   }, [currentPage, filterCategory])
+  useEffect(() => {
+    // Prefetch customers di mount — dropdown pelanggan langsung siap saat modal dibuka
+    fetchCustomers()
+  }, [])
   useEffect(() => {
     if (showForm) fetchCustomers()
   }, [showForm])
@@ -198,11 +216,14 @@ export default function OrdersPage() {
     let customerWasCreated = false
     if (!customerId && form.customer_name.trim()) {
       const nameTrimmed = form.customer_name.trim()
+      const phoneQ = form.customer_phone?.trim() || null
       // Look up existing customer by phone (if provided) or name
+      // PENTING: pakai || (bukan ??) utk phone kosong — `'' ?? x` = '' (masih falsy)
+      // → .eq('name', '') MATCH customer produksi name kosong → order salah customer (bug 2026-08-10)
       const { data: existingCust } = await supabase
         .from('customers')
         .select('id')
-        .eq(form.customer_phone ? 'phone' : 'name', form.customer_phone ?? nameTrimmed)
+        .eq(phoneQ ? 'phone' : 'name', phoneQ ?? nameTrimmed)
         .maybeSingle()
 
       if (existingCust) {
@@ -662,7 +683,7 @@ export default function OrdersPage() {
                 >
                   Pilih / Tambah Pelanggan
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative' }} ref={customerBoxRef}>
                   <input
                     type="text"
                     placeholder="Ketik nama atau no HP untuk cari... (nama baru langsung diketik)"
@@ -688,6 +709,10 @@ export default function OrdersPage() {
                   />
                   {searchCustomer && (
                     <div
+                      onMouseDown={(e) => {
+                        // Jangan tutup dropdown saat klik di dalam (item pilihan)
+                        e.stopPropagation()
+                      }}
                       style={{
                         position: 'absolute',
                         top: '100%',
