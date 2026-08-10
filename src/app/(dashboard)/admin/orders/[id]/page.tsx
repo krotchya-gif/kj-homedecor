@@ -1071,7 +1071,9 @@ export default function OrderDetailPage() {
           {ORDER_STATUSES.map((s, i) => {
             const done = i <= statusIdx
             const current = s === order.status
-            const stagePhotos = orderPhotos.filter((p) => p.stage === s)
+            // Foto lama (path relatif /uploads/... dari era public/uploads) sudah HILANG
+            // (file tidak pernah ada di storage) — jangan hitung sbg foto valid (fix 2026-08-10)
+            const stagePhotos = orderPhotos.filter((p) => p.stage === s && p.photo_url.startsWith('http'))
             const hasPhotos = stagePhotos.length > 0
             return (
               <div key={s} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 80 }}>
