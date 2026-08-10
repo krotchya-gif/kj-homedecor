@@ -102,15 +102,16 @@ export default function OrdersPage() {
   const [customers, setCustomers] = useState<{ id: string; name: string; phone?: string | null; address?: string | null }[]>([])
   const [searchCustomer, setSearchCustomer] = useState('')
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const [customerOpen, setCustomerOpen] = useState(false)
   const customerBoxRef = useRef<HTMLDivElement>(null)
 
-  // Tutup dropdown customer saat klik di luar area input+dropdown (fix UX 2026-08-10:
-  // "Ketik untuk cari atau buat pelanggan baru" terus tampil padahal sudah pindah input).
-  // Nama tetap tersimpan di form.customer_name — hanya tampilan dropdown yang ditutup.
+  // Tutup dropdown customer saat klik di luar area input+dropdown (fix UX 2026-08-10).
+  // PENTING: hanya menutup TAMPILAN — teks ketikan (searchCustomer) & form.customer_name
+  // TETAP — user tidak kehilangan inputannya.
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
       if (customerBoxRef.current && !customerBoxRef.current.contains(e.target as Node)) {
-        setSearchCustomer('')
+        setCustomerOpen(false)
       }
     }
     document.addEventListener('mousedown', onDocMouseDown)
@@ -691,6 +692,7 @@ export default function OrdersPage() {
                     onChange={(e) => {
                       const v = e.target.value
                       setSearchCustomer(v)
+                      setCustomerOpen(true) // ketik → buka dropdown (teks TETAP saat tutup)
                       // Ketik = nama baru / custom: batalkan pilihan existing & ikat nama ke form
                       // (fix 2026-08-10: sebelumnya form.customer_name tak pernah terisi saat
                       // mengetik → user tidak bisa langsung submit nama pelanggan baru)
@@ -707,7 +709,7 @@ export default function OrdersPage() {
                       background: 'var(--surface)'
                     }}
                   />
-                  {searchCustomer && (
+                  {customerOpen && searchCustomer && (
                     <div
                       onMouseDown={(e) => {
                         // Jangan tutup dropdown saat klik di dalam (item pilihan)
@@ -738,6 +740,7 @@ export default function OrdersPage() {
                           onClick={() => {
                             setSelectedCustomerId(c.id)
                             setSearchCustomer('')
+                            setCustomerOpen(false)
                             setForm((f) => ({
                               ...f,
                               customer_name: c.name,
