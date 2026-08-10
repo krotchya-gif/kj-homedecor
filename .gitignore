@@ -63,3 +63,6 @@ nul.*
 
 # QA workflow screenshots (regenerable)
 scripts/qa-workflow/reports/
+
+# runtime uploads
+public/uploads/
