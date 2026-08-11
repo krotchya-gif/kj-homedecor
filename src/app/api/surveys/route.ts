@@ -93,6 +93,21 @@ export async function POST(request: Request) {
 
   await logSurveyActivity(supabase, survey.id, auth.user.id, 'created', `Survey ${surveyNumber} dibuat`)
 
+  // Notifikasi ke Admin & Owner ketika survey baru dikirim (SRS 13) — non-blocking
+  if (body.status && body.status !== 'draft') {
+    const { data: admins } = await supabase.from('users').select('id, role').in('role', ['admin', 'owner'])
+    for (const a of admins ?? []) {
+      const link = a.role === 'owner' ? '/owner/surveys' : '/admin/surveys'
+      await supabase.from('notifications').insert({
+        user_id: a.id,
+        title: '📋 Survey Baru',
+        message: `Survey ${surveyNumber} oleh ${body.client_name ?? '-'} dikirim (${body.status})`,
+        type: 'survey',
+        link
+      })
+    }
+  }
+
   return NextResponse.json({ data: survey, error: null }, { status: 201 })
 }
 

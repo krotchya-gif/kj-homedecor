@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Menu } from 'lucide-react'
 import DashboardTopNav from '@/components/dashboard/DashboardTopNav'
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar'
+import NotificationBell from '@/components/dashboard/NotificationBell'
 
 export default function DashboardLayoutClient({
   children,
@@ -29,6 +30,11 @@ export default function DashboardLayoutClient({
       >
         <Menu size={20} />
       </button>
+
+      {/* Desktop notification bell — top right (mobile pakai drawer di TopNav) */}
+      <div style={{ position: 'fixed', top: 10, right: 16, zIndex: 300 }} className="desktop-notif-bell">
+        <NotificationBell />
+      </div>
 
       {/* Desktop slide-out sidebar */}
       <DashboardSidebar role={role} userName={userName} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
