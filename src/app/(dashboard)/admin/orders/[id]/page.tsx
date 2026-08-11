@@ -867,7 +867,10 @@ export default function OrderDetailPage() {
   const nextStatus: OrderStatus | null =
     statusIdx >= 0 && statusIdx < ORDER_STATUSES.length - 1 ? (ORDER_STATUSES[statusIdx + 1] as OrderStatus) : null
   // dynamic button label (mis. 'Input Resi' vs 'Jadwalkan Pasang')
-  const nextStageButtonLabel = nextStatus ? getNextStageButtonLabel(nextStatus, orderClassification) : 'Lanjut'
+  // PENTING: label dihitung dari status SAAT INI (bukan nextStatus) — kalau pakai
+  // nextStatus, tombol sorted→production tampil 'Submit Report' (label utk production)
+  // padahal seharusnya 'Mulai Produksi' (bug 2026-08-11 — bikin user salah paham)
+  const nextStageButtonLabel = nextStatus ? getNextStageButtonLabel(order.status, orderClassification) : 'Lanjut'
 
   return (
     <div>
