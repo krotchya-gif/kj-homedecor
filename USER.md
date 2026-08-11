@@ -5,18 +5,9 @@
 
 ## Akun Test (dipakai di lingkungan development)
 
-| Email | Password | Role (per nama) |
-|---|---|---|
-| `cici.yunita124@gmail.com` | `kosongaja` | owner |
-| `kjhomedecor22@gmail.com` | `admin321` | admin |
-| `kjhomedecor127@gmail.com` | `gudang321` | gudang |
-| `kjhomedecornew26@gmail.com` | `finance321` | finance |
-| `kjhomenewlife2026@gmail.com` | `penjahit321` | penjahit |
-
-## Akun Default (placeholder — ganti password setelah login pertama)
-
 | Email | Username | Role | Password |
 |---|---|---|---|
+| `cici.yunita124@gmail.com` | Cici Yunita | `owner` | `kosongaja` |
 | `owner@kjhomedecor.com` | Owner KJ | `owner` | `owner123` |
 | `admin@kjhomedecor.com` | Admin KJ | `admin` | `admin456` |
 | `gudang@kjhomedecor.com` | admin gudang | `gudang` | `gudang789` |
@@ -24,6 +15,7 @@
 | `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` | `penjahit654` |
 | `installer@kjhomedecor.com` | admin installer | `installer` | `installer123` |
 | `surveyor@kjhomedecor.com` | admin surveyor | `surveyor` | `surveyor123` |
+| `laundry@kjhomedecor.com` | Admin Laundry | `laundry` | `laundry123` |
 
 > Akun baru bisa dibuat via menu **Staff** (Admin/Owner → `/admin/staff` atau `/owner/staff`).
 
@@ -38,6 +30,6 @@
 | **penjahit** | Job miliknya, history, reports |
 | **installer** | Jadwal pasang (yang ditugaskan), input resi, checklist, laporan |
 | **surveyor** | Survey milik sendiri: buat/lihat/edit, foto, copy WA, kirim WA, PDF |
-| **laundry** | Tidak punya halaman sendiri — dilayani lewat Admin → Laundry |
+| **laundry** | Tugas laundry miliknya: terima task, lapor selesai + berat aktual (dasar gaji) |
 
 > Ubah password setelah login pertama.
