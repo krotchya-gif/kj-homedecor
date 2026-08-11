@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createSimpleJournal } from '@/utils/journal/create'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +17,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -71,7 +72,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           })
           if (rpcError) throw rpcError
         } catch (rpcErr) {
-          console.warn('RPC increment_stock_gudang failed, falling back to direct update:', rpcErr instanceof Error ? rpcErr.message : String(rpcErr))
+          console.warn('RPC increment_stock_gudang failed, falling back to direct update:', rpcErr instanceof Error ? toClientError(rpcErr) : String(rpcErr))
           const { data: mat } = await supabase
             .from('materials')
             .select('stock_gudang')
@@ -152,6 +153,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const { data, error } = await supabase.from('purchase_orders').update(updates).eq('id', id).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

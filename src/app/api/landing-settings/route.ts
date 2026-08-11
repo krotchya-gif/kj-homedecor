@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 
 // GET /api/landing-settings — fetch landing page settings
 export async function GET() {
@@ -182,7 +183,7 @@ export async function PUT(request: Request) {
       .single()
 
     if (error) {
-      return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
     }
 
     return NextResponse.json({ data, error: null })

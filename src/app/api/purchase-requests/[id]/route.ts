@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -27,7 +28,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       .select()
       .single()
 
-    if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+    if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
     return NextResponse.json({ data, error: null })
   }
 
@@ -52,6 +53,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .select()
     .single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

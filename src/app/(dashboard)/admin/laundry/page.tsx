@@ -94,7 +94,8 @@ export default function AdminLaundryPage() {
       .insert({
         customer_name: form.customer_name,
         customer_phone: form.customer_phone || null,
-        kg: Number(form.kg) || 0,
+        // F-55 fix: kg jadi ESTIMASI opsional — staff yang lapor berat aktual
+        kg: form.kg ? Number(form.kg) : null,
         meter: Number(form.meter) || 0,
         description: form.description || null,
         status: 'pending',

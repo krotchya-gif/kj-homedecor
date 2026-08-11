@@ -19,6 +19,7 @@ import {
   Clock,
   AlertTriangle,
   Camera,
+  Truck,
   Calendar as CalendarIcon
 } from 'lucide-react'
 import Link from 'next/link'
@@ -29,7 +30,7 @@ import { Material, Survey } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { Modal } from '@/components/ui/Modal'
-import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
+import { generateInvoicePDF, generatePackingListPDF, generateFakturPDF, generateSuratJalanPDF } from '@/lib/invoice'
 import { useToast } from '@/components/ui/Toast'
 import { createSimpleJournal } from '@/utils/journal/create'
 
@@ -1286,6 +1287,54 @@ export default function OrderDetailPage() {
               }}
             >
               <Package size={14} /> Packing List
+            </button>
+            <button
+              onClick={() =>
+                generateFakturPDF({
+                  order: { ...order, order_items: items },
+                  orderNumber: order.order_number || id.slice(0, 8)
+                })
+              }
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              <FileText size={14} /> Faktur
+            </button>
+            <button
+              onClick={() =>
+                generateSuratJalanPDF({
+                  order: { ...order, order_items: items },
+                  orderNumber: order.order_number || id.slice(0, 8),
+                  courier: (order as { courier?: string }).courier,
+                  waybill: (order as { tracking_number?: string }).tracking_number
+                })
+              }
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem 1rem',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                fontSize: '0.8rem'
+              }}
+            >
+              <Truck size={14} /> Surat Jalan
             </button>
           </div>
         )}

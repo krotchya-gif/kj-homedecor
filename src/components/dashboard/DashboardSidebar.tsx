@@ -191,6 +191,14 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       ]
     }
   ],
+  laundry: [
+    {
+      title: 'Utama',
+      items: [
+        { label: 'Tugas Laundry', href: '/laundry', icon: <WashingMachine size={18} /> }
+      ]
+    }
+  ],
   owner: [
     {
       title: 'Utama',
@@ -223,7 +231,8 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       title: 'Organisasi',
       items: [
         { label: 'Staff', href: '/owner/staff', icon: <Users size={18} /> },
-        { label: 'Laporan Keuangan', href: '/owner/laporan', icon: <BarChart3 size={18} /> }
+        { label: 'Laporan Keuangan', href: '/owner/laporan', icon: <BarChart3 size={18} /> },
+        { label: 'Pengaturan', href: '/owner/settings', icon: <Settings size={18} /> }
       ]
     }
   ]
@@ -236,6 +245,7 @@ const ROLE_LABELS: Record<string, string> = {
   finance: 'Finance',
   installer: 'Installer',
   surveyor: 'Surveyor',
+  laundry: 'Laundry',
   owner: 'Owner'
 }
 

@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 
 /**
  * POST /api/orders/[id]/consume-materials
@@ -85,7 +86,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (rpcErr) {
     console.error('consume_materials_for_production RPC failed:', rpcErr)
     return NextResponse.json(
-      { data: null, error: { message: 'Gagal consume materials: ' + rpcErr.message } },
+      { data: null, error: { message: 'Gagal consume materials: ' + toClientError(rpcErr) } },
       { status: 500 }
     )
   }

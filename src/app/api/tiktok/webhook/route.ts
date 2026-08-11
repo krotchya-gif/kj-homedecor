@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createServiceClient } from '@/utils/supabase/server'
 import crypto from 'crypto'
 
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('tiktok_order_id', orderId)
-        if (error) console.error('TikTok webhook: update tiktok_shop_orders failed:', error.message)
+        if (error) console.error('TikTok webhook: update tiktok_shop_orders failed:', toClientError(error))
       }
     } else if (eventType === 'PAYMENT_RELEASED' || eventType === 'SETTLEMENT_COMPLETED') {
       const statementId = data.statement_id || data.id
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
           .select('id')
           .eq('statement_id', statementId)
           .maybeSingle()
-        if (selectErr) console.error('TikTok webhook: select tiktok_shop_statements failed:', selectErr.message)
+        if (selectErr) console.error('TikTok webhook: select tiktok_shop_statements failed:', toClientError(selectErr))
 
         if (!existing && data.total_amount > 0) {
           // Auto-create piutang — F-14 fix: wajib jurnal Dr Piutang / Cr Penjualan
@@ -75,7 +76,7 @@ export async function POST(req: NextRequest) {
             })
             .select('id')
             .single()
-          if (piutangErr) console.error('TikTok webhook: insert piutang failed:', piutangErr.message)
+          if (piutangErr) console.error('TikTok webhook: insert piutang failed:', toClientError(piutangErr))
 
           if (piutang?.id) {
             try {
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
             is_synced: true,
             piutang_id: piutang?.id || null
           })
-          if (stmtErr) console.error('TikTok webhook: insert tiktok_shop_statements failed:', stmtErr.message)
+          if (stmtErr) console.error('TikTok webhook: insert tiktok_shop_statements failed:', toClientError(stmtErr))
         }
       }
     } else if (eventType === 'ORDER_REFUND' || eventType === 'REFUND_COMPLETED') {
@@ -119,7 +120,7 @@ export async function POST(req: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('tiktok_order_id', refundOrderId)
-        if (error) console.error('TikTok webhook: update refund failed:', error.message)
+        if (error) console.error('TikTok webhook: update refund failed:', toClientError(error))
       }
     } else {
       console.log('Unhandled TikTok event:', eventType)
@@ -127,7 +128,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ received: true })
   } catch (err) {
-    console.error('TikTok webhook error:', err instanceof Error ? err.message : String(err))
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    console.error('TikTok webhook error:', err instanceof Error ? toClientError(err) : String(err))
+    return NextResponse.json({ error: err instanceof Error ? toClientError(err) : String(err) }, { status: 500 })
   }
 }

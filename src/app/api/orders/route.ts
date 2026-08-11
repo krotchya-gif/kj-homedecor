@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { z } from 'zod'
 
@@ -35,7 +36,7 @@ export async function GET(request: Request) {
   if (source) query = query.eq('source', source)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
 
   const orderData = { ...data, order_number: orderNumber }
   const { data: order, error } = await supabase.from('orders').insert(orderData).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
   // BUG-009: wajib baseUrl di server context (fetch relatif throw di Node/Next route handler)

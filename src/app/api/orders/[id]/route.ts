@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 
 // Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
 // 2026-07-31: payment_ok dipindah ke depan (new → payment_ok) — finance approve pembayaran
@@ -68,7 +69,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -212,7 +213,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
         if (jobErr) {
           return NextResponse.json(
-            { data: null, error: { message: 'Gagal membuat production_job: ' + jobErr.message } },
+            { data: null, error: { message: 'Gagal membuat production_job: ' + toClientError(jobErr) } },
             { status: 500 }
           )
         }
@@ -266,7 +267,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       if (newJobErr) {
         return NextResponse.json(
-          { data: null, error: { message: 'Gagal membuat job revisi: ' + newJobErr.message } },
+          { data: null, error: { message: 'Gagal membuat job revisi: ' + toClientError(newJobErr) } },
           { status: 500 }
         )
       }
@@ -338,7 +339,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
         if (bookingErr) {
           return NextResponse.json(
-            { data: null, error: { message: 'Gagal membuat install_bookings: ' + bookingErr.message } },
+            { data: null, error: { message: 'Gagal membuat install_bookings: ' + toClientError(bookingErr) } },
             { status: 500 }
           )
         }
@@ -376,7 +377,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   const { data, error } = await supabase.from('orders').update(updateData).eq('id', id).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
 
   // Simpan foto bukti ke order_progress_photos (bukan kolom orders)
   const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
@@ -426,6 +427,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   })
 
   const { error } = await supabase.from('orders').delete().eq('id', id)
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data: { deleted: true }, error: null })
 }

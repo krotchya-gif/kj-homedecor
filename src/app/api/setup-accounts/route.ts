@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { requireAuth, checkRateLimit } from '@/lib/auth'
 
 // POST /api/setup-accounts — create initial admin & owner accounts
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     })
 
     if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 500 })
+      return NextResponse.json({ error: toClientError(authError) }, { status: 500 })
     }
 
     if (!authUser?.user) {
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
     })
 
     if (dbError) {
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      return NextResponse.json({ error: toClientError(dbError) }, { status: 500 })
     }
 
     return NextResponse.json({

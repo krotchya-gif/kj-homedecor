@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { logSurveyActivity } from '@/lib/survey-log'
 
 interface RoomPayload {
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     .select()
     .single()
   if (sErr) {
-    return NextResponse.json({ error: { message: 'Gagal simpan survey: ' + sErr.message } }, { status: 500 })
+    return NextResponse.json({ error: { message: 'Gagal simpan survey: ' + toClientError(sErr) } }, { status: 500 })
   }
 
   const roomsErr = await insertRooms(supabase, survey.id, body.rooms ?? [])
@@ -134,7 +135,7 @@ async function insertRooms(supabase: SupabaseClient, surveyId: string, rooms: Ro
       })
       .select()
       .single()
-    if (rErr) return `Gagal simpan ruangan ${i + 1}: ${rErr.message}`
+    if (rErr) return `Gagal simpan ruangan ${i + 1}: ${toClientError(rErr)}`
 
     for (const p of r.photos ?? []) {
       const { error: pErr } = await supabase.from('survey_room_photos').insert({
@@ -142,7 +143,7 @@ async function insertRooms(supabase: SupabaseClient, surveyId: string, rooms: Ro
         url: p.url,
         sort_order: p.sort_order ?? 0
       })
-      if (pErr) return `Gagal simpan foto ruangan ${i + 1}: ${pErr.message}`
+      if (pErr) return `Gagal simpan foto ruangan ${i + 1}: ${toClientError(pErr)}`
     }
   }
   return null
@@ -178,6 +179,6 @@ export async function GET(request: Request) {
   q = q.range(offset, offset + limit - 1)
 
   const { data, error, count } = await q
-  if (error) return NextResponse.json({ error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data: data ?? [], count, error: null })
 }

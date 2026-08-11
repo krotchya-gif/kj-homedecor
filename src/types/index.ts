@@ -403,6 +403,9 @@ export interface LaundryOrder {
   completed_at?: string
   created_by?: string
   created_at: string
+  kg_actual?: number
+  reported_by?: string
+  reported_at?: string
 }
 
 export interface LaundryRate {

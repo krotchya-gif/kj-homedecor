@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 
 // GET — list POs that are delivered (status = 'delivered') and not yet confirmed received by Gudang
 export async function GET() {
@@ -10,7 +11,7 @@ export async function GET() {
     .eq('status', 'delivered')
     .order('created_at', { ascending: false })
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     .update({ status: 'received', received_at: new Date().toISOString() })
     .eq('id', po_id)
 
-  if (updateErr) return NextResponse.json({ error: { message: updateErr.message } }, { status: 500 })
+  if (updateErr) return NextResponse.json({ error: { message: toClientError(updateErr) } }, { status: 500 })
 
   // Increment stock_gudang for the material
   const pr = currentPO.pr as unknown as { qty?: number; material_id?: string; material?: { name?: string; unit?: string } | null } | null

@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { z } from 'zod'
 
 const CreateCustomerSchema = z.object({
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
   if (search) query = query.ilike('name', `%${search}%`)
 
   const { data, error } = await query
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -41,6 +42,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
 
   const { data, error } = await supabase.from('customers').insert(parsed.data).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

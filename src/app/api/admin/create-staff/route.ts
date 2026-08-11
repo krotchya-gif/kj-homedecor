@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError) {
-      return NextResponse.json({ error: authError.message }, { status: 400 })
+      return NextResponse.json({ error: toClientError(authError) }, { status: 400 })
     }
 
     // Create user record
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
     if (dbError) {
       // Rollback auth user
       await supabase.auth.admin.deleteUser(authData.user!.id)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      return NextResponse.json({ error: toClientError(dbError) }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, message: `Akun ${name} berhasil dibuat`, user: { id: authData.user!.id } })

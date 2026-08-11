@@ -1,5 +1,6 @@
 import crypto from 'crypto'
 import { type NextRequest, NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'
@@ -105,13 +106,13 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.redirect(new URL('/owner/tiktok?success=connected', BASE_URL))
       } catch (err) {
-        return NextResponse.redirect(new URL(`/owner/tiktok?error=${encodeURIComponent(err instanceof Error ? err.message : String(err))}`, BASE_URL))
+        return NextResponse.redirect(new URL(`/owner/tiktok?error=${encodeURIComponent(err instanceof Error ? toClientError(err) : String(err))}`, BASE_URL))
       }
     }
 
     return NextResponse.json({ error: 'Missing code or state parameter' }, { status: 400 })
   } catch (err) {
-    return NextResponse.json({ error: `Invalid request: ${err instanceof Error ? err.message : String(err)}` }, { status: 400 })
+    return NextResponse.json({ error: `Invalid request: ${err instanceof Error ? toClientError(err) : String(err)}` }, { status: 400 })
   }
 }
 
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: toClientError(error) }, { status: 500 })
   }
 
   // Build OAuth URL with required scopes
@@ -193,7 +194,7 @@ export async function PUT(req: NextRequest) {
 
   const { error } = await supabase.from('tiktok_shop_settings').update(updates).eq('id', id)
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: toClientError(error) }, { status: 500 })
   }
 
   return NextResponse.json({ success: true })

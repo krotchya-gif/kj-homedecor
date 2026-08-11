@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 
 interface TikTokLineItem {
@@ -35,7 +36,7 @@ export async function POST(_req: NextRequest) {
       .neq('order_status', 'CANCELLED')
 
     if (fetchErr) {
-      return NextResponse.json({ error: fetchErr.message }, { status: 500 })
+      return NextResponse.json({ error: toClientError(fetchErr) }, { status: 500 })
     }
 
     console.log('tiktokOrders count:', tiktokOrders?.length)
@@ -202,6 +203,6 @@ export async function POST(_req: NextRequest) {
       message: `Linked ${created} TikTok orders to main orders, ${skipped} already linked, ${cancelled} cancelled`
     })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? toClientError(err) : String(err) }, { status: 500 })
   }
 }

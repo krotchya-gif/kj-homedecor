@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken } from '@/lib/tiktok'
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       .eq('status', 'SETTLED')
 
     if (fetchErr) {
-      return NextResponse.json({ error: fetchErr.message }, { status: 500 })
+      return NextResponse.json({ error: toClientError(fetchErr) }, { status: 500 })
     }
 
     let created = 0
@@ -107,6 +108,6 @@ export async function POST(req: NextRequest) {
       message: `Created ${created} piutang, ${skipped} already linked`
     })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? toClientError(err) : String(err) }, { status: 500 })
   }
 }

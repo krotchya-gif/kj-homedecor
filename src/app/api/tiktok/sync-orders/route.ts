@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken, signTikTokRequest } from '@/lib/tiktok'
 
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
         if (insErr) {
           return NextResponse.json(
             {
-              error: `Gagal simpan order TikTok ${order.id}: ${insErr.message}`,
+              error: `Gagal simpan order TikTok ${order.id}: ${toClientError(insErr)}`,
               synced,
               failedOrderId: order.id
             },
@@ -145,6 +146,6 @@ export async function POST(req: NextRequest) {
       message: `Synced ${synced} new orders`
     })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? toClientError(err) : String(err) }, { status: 500 })
   }
 }

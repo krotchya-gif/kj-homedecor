@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/middleware'
 
-const DASHBOARD_ROUTES = ['/admin', '/gudang', '/penjahit', '/finance', '/installer', '/surveyor', '/owner']
+const DASHBOARD_ROUTES = ['/admin', '/gudang', '/penjahit', '/finance', '/installer', '/surveyor', '/owner', '/laundry']
 
 const PUBLIC_ROUTES = ['/', '/login']
 
@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
       finance: '/finance',
       installer: '/installer',
       surveyor: '/surveyor',
+      laundry: '/laundry',
       owner: '/owner'
     }
 
@@ -67,6 +68,7 @@ export async function proxy(request: NextRequest) {
       '/penjahit': ['penjahit', 'owner'],
       '/installer': ['installer', 'owner'],
       '/surveyor': ['surveyor', 'owner'],
+      '/laundry': ['laundry', 'owner'],
       '/owner': ['owner']
     }
 
@@ -91,6 +93,7 @@ export async function proxy(request: NextRequest) {
         finance: '/finance',
         installer: '/installer',
         surveyor: '/surveyor',
+        laundry: '/laundry',
         owner: '/owner'
       }
       return NextResponse.redirect(new URL(dashboards[userRole] ?? '/login', request.url))

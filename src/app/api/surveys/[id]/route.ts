@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { logSurveyActivity } from '@/lib/survey-log'
 
 // Security fix (2026-08-11): tambah ownership check — surveyor hanya bisa
@@ -35,7 +36,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .eq('id', id)
     .order('sort_order', { referencedTable: 'survey_rooms' })
     .single()
-  if (error) return NextResponse.json({ error: { message: error.message } }, { status: 404 })
+  if (error) return NextResponse.json({ error: { message: toClientError(error) } }, { status: 404 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -62,14 +63,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
   if (Object.keys(patch).length > 0) {
     const { error: uErr } = await supabase.from('surveys').update(patch).eq('id', id)
-    if (uErr) return NextResponse.json({ error: { message: 'Gagal update survey: ' + uErr.message } }, { status: 500 })
+    if (uErr) return NextResponse.json({ error: { message: 'Gagal update survey: ' + toClientError(uErr) } }, { status: 500 })
   }
 
   if (Array.isArray(body.rooms)) {
     // replace rooms + photos
     const { error: delErr } = await supabase.from('survey_rooms').delete().eq('survey_id', id)
     if (delErr) {
-      return NextResponse.json({ error: { message: 'Gagal hapus ruangan lama: ' + delErr.message } }, { status: 500 })
+      return NextResponse.json({ error: { message: 'Gagal hapus ruangan lama: ' + toClientError(delErr) } }, { status: 500 })
     }
     for (let i = 0; i < body.rooms.length; i++) {
       const r = body.rooms[i]
@@ -94,7 +95,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         .select()
         .single()
       if (rErr) {
-        return NextResponse.json({ error: { message: `Gagal simpan ruangan ${i + 1}: ${rErr.message}` } }, { status: 500 })
+        return NextResponse.json({ error: { message: `Gagal simpan ruangan ${i + 1}: ${toClientError(rErr)}` } }, { status: 500 })
       }
       for (const p of r.photos ?? []) {
         const { error: pErr } = await supabase.from('survey_room_photos').insert({
@@ -103,7 +104,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
           sort_order: p.sort_order ?? 0
         })
         if (pErr) {
-          return NextResponse.json({ error: { message: `Gagal simpan foto ruangan ${i + 1}: ${pErr.message}` } }, { status: 500 })
+          return NextResponse.json({ error: { message: `Gagal simpan foto ruangan ${i + 1}: ${toClientError(pErr)}` } }, { status: 500 })
         }
       }
     }
@@ -115,7 +116,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .eq('id', id)
     .order('sort_order', { referencedTable: 'survey_rooms' })
     .single()
-  if (error) return NextResponse.json({ error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ error: { message: toClientError(error) } }, { status: 500 })
 
   // Log aktivitas: hanya save final (status tersimpan) atau ada tanda tangan — auto-save draft TIDAK di-log (anti-spam)
   const isFinal = body.status === 'tersimpan' || 'signature' in body || 'signature_name' in body
@@ -140,7 +141,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
   const { data: surveyInfo } = await supabase.from('surveys').select('survey_number').eq('id', id).maybeSingle()
   const { error } = await supabase.from('surveys').delete().eq('id', id)
-  if (error) return NextResponse.json({ error: { message: 'Gagal hapus survey: ' + error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ error: { message: 'Gagal hapus survey: ' + toClientError(error) } }, { status: 500 })
   await logSurveyActivity(supabase, id, user.id, 'deleted', `Survey ${surveyInfo?.survey_number ?? ''} dihapus`)
   return NextResponse.json({ data: { ok: true }, error: null })
 }

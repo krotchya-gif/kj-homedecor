@@ -272,3 +272,207 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
 
   doc.save(`kj-packinglist-${orderNumber}.pdf`)
 }
+
+// ============ FAKTUR (Penjualan) ============
+// Format faktur penjualan: kop brand, tabel item, DP/Sisa/TOTAL, blok tanda tangan.
+// Tanpa PPN (bisnis non-PKP). Nomor: KJ-FAKTUR-<orderNumber>.
+export function generateFakturPDF({ order, orderNumber }: InvoiceData) {
+  const doc = new jsPDF()
+
+  // Header
+  doc.setFillColor(204, 112, 48)
+  doc.rect(0, 0, 220, 35, 'F')
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(255, 255, 255)
+  doc.text('KJ HOMEDECOR', 20, 16)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text('Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com', 20, 24)
+
+  // Title
+  doc.setFontSize(13)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(51, 51, 51)
+  doc.text('FAKTUR', 150, 16)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`No: KJ-FAKTUR-${orderNumber}`, 150, 23)
+  doc.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 150, 29)
+
+  // Bill To
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('TAGIHAN KE:', 20, 48)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(order.customer?.name ?? 'Customer', 20, 55)
+  doc.text(order.customer?.phone ?? '—', 20, 61)
+  doc.text(order.customer?.address ?? '—', 20, 67)
+
+  // Order info right side
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('ORDER INFO:', 130, 48)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(`Source: ${order.source}`, 130, 55)
+  doc.text(`Classification: ${order.classification}`, 130, 61)
+  doc.text(`Payment: ${order.payment_status}`, 130, 67)
+
+  // Line
+  doc.setDrawColor(204, 112, 48)
+  doc.setLineWidth(0.5)
+  doc.line(20, 75, 190, 75)
+
+  // Items table
+  const items = order.order_items ?? []
+  autoTable(doc, {
+    startY: 80,
+    head: [['No', 'Produk', 'Qty', 'Ukuran', 'Harga', 'Total']],
+    body: items.map((item, i) => [
+      String(i + 1),
+      item.product?.name ?? item.custom_specs ?? '—',
+      String(item.qty),
+      item.size ?? '—',
+      fmt(item.price),
+      fmt((item.price ?? 0) * (item.qty ?? 1))
+    ]),
+    foot: [
+      ['', '', '', 'DP Dibayar:', fmt(order.dp_amount ?? 0)],
+      ['', '', '', 'Sisa Bayar:', fmt((order.total_amount ?? 0) - (order.dp_amount ?? 0) - (order.lunas_amount ?? 0))],
+      ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
+    ],
+    theme: 'striped',
+    headStyles: { fillColor: [204, 112, 48], textColor: 255 },
+    footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
+    columnStyles: {
+      0: { cellWidth: 12 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 15 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 35, halign: 'right' },
+      5: { cellWidth: 35, halign: 'right' }
+    }
+  })
+
+  let y = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 20
+
+  // Signature blocks
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(51, 51, 51)
+  doc.text('Penerima,', 35, y)
+  doc.text('Hormat kami,', 150, y)
+  doc.setDrawColor(120)
+  doc.setLineWidth(0.3)
+  doc.line(30, y + 30, 90, y + 30) // garis tanda tangan kiri
+  doc.line(145, y + 30, 205, y + 30) // garis tanda tangan kanan
+  doc.text('(___________________)', 35, y + 36)
+  doc.text('(___________________)', 150, y + 36)
+
+  // Footer
+  doc.setFontSize(8)
+  doc.setTextColor(120)
+  doc.text('Pembayaran dianggap lunas setelah faktur ini dilunasi.', 20, y + 50)
+  doc.text('Terima kasih atas kepercayaan Anda.', 20, y + 55)
+
+  doc.save(`kj-faktur-${orderNumber}.pdf`)
+}
+
+// ============ SURAT JALAN ============
+// Format surat jalan: kop biru, blok PENERIMA + PENGIRIMAN (kurir/resi),
+// tabel item, blok tanda tangan Diterima oleh / Pengirim Gudang.
+// Nomor: KJ-SURATJALAN-<orderNumber>.
+export function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: PackingListData) {
+  const doc = new jsPDF()
+
+  // Header
+  doc.setFillColor(30, 64, 175)
+  doc.rect(0, 0, 220, 35, 'F')
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(255, 255, 255)
+  doc.text('KJ HOMEDECOR', 20, 16)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text('Jl. Contoh No.1, Jakarta | (021) 123-4567', 20, 24)
+
+  // Title
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(30, 64, 175)
+  doc.text('SURAT JALAN', 150, 16)
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`No: KJ-SURATJALAN-${orderNumber}`, 150, 23)
+  doc.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 150, 29)
+
+  // Recipient
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setTextColor(51, 51, 51)
+  doc.text('PENERIMA:', 20, 48)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(order.customer?.name ?? '—', 20, 55)
+  doc.text(order.customer?.phone ?? '—', 20, 61)
+  doc.text(order.customer?.address ?? '—', 20, 67)
+
+  // Shipping info
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('PENGIRIMAN:', 130, 48)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(courier ? `Kurir: ${courier}` : 'Kurir: —', 130, 55)
+  doc.text(waybill ? `Resi: ${waybill}` : 'Resi: —', 130, 61)
+  doc.text(`Tanggal Kirim: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 130, 67)
+
+  doc.setDrawColor(30, 64, 175)
+  doc.setLineWidth(0.5)
+  doc.line(20, 75, 190, 75)
+
+  // Items
+  const items = order.order_items ?? []
+  autoTable(doc, {
+    startY: 80,
+    head: [['No', 'Produk', 'Qty', 'Ukuran', 'Catatan']],
+    body: items.map((item, i) => [
+      String(i + 1),
+      item.product?.name ?? item.custom_specs ?? '—',
+      String(item.qty),
+      item.size ?? '—',
+      item.ready ? 'Siap Kirim' : 'Proses'
+    ]),
+    theme: 'striped',
+    headStyles: { fillColor: [30, 64, 175], textColor: 255 },
+    columnStyles: {
+      0: { cellWidth: 12 },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 15 },
+      3: { cellWidth: 40 },
+      4: { cellWidth: 45 }
+    }
+  })
+
+  let y = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 20
+
+  // Signature blocks
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(51, 51, 51)
+  doc.text('Diterima oleh,', 35, y)
+  doc.text('Pengirim / Gudang,', 150, y)
+  doc.setDrawColor(120)
+  doc.setLineWidth(0.3)
+  doc.line(30, y + 30, 90, y + 30)
+  doc.line(145, y + 30, 205, y + 30)
+  doc.text('(___________________)', 35, y + 36)
+  doc.text('(___________________)', 150, y + 36)
+  doc.setFontSize(8)
+  doc.setTextColor(120)
+  doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, y + 46)
+
+  doc.save(`kj-suratjalan-${orderNumber}.pdf`)
+}

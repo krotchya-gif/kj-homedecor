@@ -69,7 +69,9 @@ export default function LaundryPayrollPage() {
         const endDate = new Date(selectedYear, selectedMonth, 1)
         return d >= startDate && d < endDate
       })
-      const totalKg = staffOrders.reduce((sum, o) => sum + Number(o.kg), 0)
+      // F-55 fix: payroll dihitung dari BERAT AKTUAL (kg_actual) yang dilaporkan
+      // staff saat lapor selesai — bukan kg estimasi yang diinput admin.
+      const totalKg = staffOrders.reduce((sum, o) => sum + Number(o.kg_actual ?? o.kg ?? 0), 0)
       const totalAmount = totalKg * ratePerKg
       if (totalKg === 0) continue
 

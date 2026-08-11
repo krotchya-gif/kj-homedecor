@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 
 /**
@@ -27,7 +28,7 @@ export async function GET(_request: NextRequest) {
     .eq('user_id', user.id)
     .eq('is_read', false)
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
 
   return NextResponse.json({ data: rows ?? [], unread: count ?? 0, error: null })
 }
@@ -46,7 +47,7 @@ export async function PATCH(request: NextRequest) {
   if (id) query.eq('id', id)
 
   const { error } = await query
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
 
   return NextResponse.json({ data: { ok: true }, error: null })
 }

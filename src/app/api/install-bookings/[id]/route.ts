@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -19,7 +20,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
@@ -79,7 +80,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (rpcErr) {
       console.error('advance_install_booking_status RPC failed:', rpcErr)
       return NextResponse.json(
-        { data: null, error: { message: 'Gagal update booking: ' + rpcErr.message } },
+        { data: null, error: { message: 'Gagal update booking: ' + toClientError(rpcErr) } },
         { status: 500 }
       )
     }
@@ -105,13 +106,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       .single()
 
     if (getErr) {
-      return NextResponse.json({ data: null, error: { message: getErr.message } }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: toClientError(getErr) } }, { status: 500 })
     }
     return NextResponse.json({ data: { ...updated, _rpc: rpcResult }, error: null })
   }
 
   // 3. Kalau TIDAK ada status change (cuma update field lain), update manual
   const { data, error } = await supabase.from('install_bookings').update(body).eq('id', id).select().single()
-  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server'
+import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken, signTikTokRequest } from '@/lib/tiktok'
 import { createSimpleJournal } from '@/utils/journal/create'
@@ -137,7 +138,7 @@ export async function POST(req: NextRequest) {
         if (piutangErr) {
           return NextResponse.json(
             {
-              error: `Gagal buat piutang TikTok ${stmtId}: ${piutangErr.message}`,
+              error: `Gagal buat piutang TikTok ${stmtId}: ${toClientError(piutangErr)}`,
               created: created_piutang
             },
             { status: 500 }
@@ -186,7 +187,7 @@ export async function POST(req: NextRequest) {
       if (stmtErr) {
         return NextResponse.json(
           {
-            error: `Gagal simpan statement TikTok ${stmtId}: ${stmtErr.message}`,
+            error: `Gagal simpan statement TikTok ${stmtId}: ${toClientError(stmtErr)}`,
             synced,
             created_piutang
           },
@@ -202,6 +203,6 @@ export async function POST(req: NextRequest) {
       message: `Synced ${synced} statements, created ${created_piutang} piutang`
     })
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })
+    return NextResponse.json({ error: err instanceof Error ? toClientError(err) : String(err) }, { status: 500 })
   }
 }

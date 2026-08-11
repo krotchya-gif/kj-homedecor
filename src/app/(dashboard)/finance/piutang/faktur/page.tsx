@@ -125,12 +125,37 @@ export default function FakturPage() {
       notes: form.notes || null
     }
     if (editItem) {
-        // UPDATE optimistic
-        const prev = piutang
-        setPiutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Piutang) : x)))
-        const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
-        if (error) { setPiutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
-      } else {
+      // F-med fix: blokir edit kalau sudah dibayar/lunas/cancelled (pola hutang BUG-013)
+      const hasPayment = (editItem.paid_amount ?? 0) > 0 || (editItem.return_amount ?? 0) > 0
+      if (hasPayment || editItem.status === 'paid' || editItem.status === 'cancelled') {
+        setSaving(false)
+        toast('error', 'Faktur sudah dibayar/dibatalkan — tidak bisa diubah. Buat faktur baru jika perlu.')
+        return
+      }
+      // UPDATE optimistic
+      const prev = piutang
+      setPiutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Piutang) : x)))
+      const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
+      if (error) { setPiutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
+      // F-med fix: amount berubah → update jurnal (delta penyesuaian Dr/Cr Piutang)
+      if (Number(payload.amount) !== Number(editItem.amount)) {
+        const delta = Number(payload.amount) - Number(editItem.amount)
+        try {
+          await createSimpleJournal({
+            transaction_type: 'order_created',
+            reference_type: 'piutang_adj',
+            reference_id: editItem.id,
+            description: `Penyesuaian faktur ${form.invoice_number ?? ''} (${delta > 0 ? 'naik' : 'turun'} Rp${Math.abs(delta).toLocaleString('id-ID')})`,
+            amount: Math.abs(delta),
+            debit_account_id: delta > 0 ? '22222222-2222-4222-8222-222222222205' : '55555555-5555-4555-8555-555555555501',
+            credit_account_id: delta > 0 ? '55555555-5555-4555-8555-555555555501' : '22222222-2222-4222-8222-222222222205',
+            idempotency_key: `piutang_adj:${editItem.id}:${crypto.randomUUID()}`
+          })
+        } catch (jErr) {
+          console.error('Gagal buat jurnal penyesuaian faktur:', jErr)
+        }
+      }
+    } else {
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }
@@ -167,6 +192,16 @@ export default function FakturPage() {
   }
 
   async function handleDelete(id: string) {
+    // F-med fix: cek status dulu — faktur yang sudah dibayar tidak boleh dihapus
+    const { data: target } = await supabase
+      .from('piutang')
+      .select('paid_amount, return_amount, status')
+      .eq('id', id)
+      .single()
+    if (target && ((target.paid_amount ?? 0) > 0 || (target.return_amount ?? 0) > 0 || target.status === 'paid' || target.status === 'cancelled')) {
+      toast('error', 'Faktur sudah dibayar/dibatalkan — tidak bisa dihapus.')
+      return
+    }
     if (!confirm('Yakin hapus?')) return
       // Optimistic delete
       const prev = piutang
