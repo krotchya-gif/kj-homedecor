@@ -79,10 +79,29 @@ export default function ProcessReturPage() {
       .from('piutang')
       .update({ return_amount: newReturn, status: newStatus, remaining: newSisa })
       .eq('id', returItem.id)
+      .eq('return_amount', returItem.return_amount ?? 0)
     if (updErr) {
       setSaving(false)
-      toast('error', 'Gagal simpan retur: ' + updErr.message)
+      toast('error', 'Gagal simpan retur (mungkin diubah finance lain): ' + updErr.message)
       return
+    }
+
+    // F-14 fix: retur piutang wajib jurnal Dr Penjualan Retur / Cr Piutang Customer
+    // (barang diretur → tagihan dikurangi, uang belum tentu keluar).
+    try {
+      const { createSimpleJournal } = await import('@/utils/journal/create')
+      await createSimpleJournal({
+        transaction_type: 'sales_return',
+        reference_type: 'piutang_retur',
+        reference_id: returItem.id,
+        description: `Retur piutang ${returItem.invoice_number ?? 'Faktur'} — ${returItem.customer?.name ?? ''} Rp${amount.toLocaleString('id-ID')}`,
+        amount,
+        credit_account_id: '22222222-2222-4222-8222-222222222205', // Piutang Customer
+        idempotency_key: `piutang_retur:${returItem.id}:${crypto.randomUUID()}`
+      })
+    } catch (jErr) {
+      console.error('Gagal buat jurnal retur piutang:', jErr)
+      toast('warning', 'Retur tercatat, TAPI jurnal GAGAL. Periksa mapping akun di /finance/accounts/mapping.')
     }
 
     setSaving(false)

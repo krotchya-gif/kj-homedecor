@@ -424,10 +424,11 @@ export default function FinancePaymentsPage() {
       .single()
     if (refundErr) { setProcessingRefund(null); toast('error', 'Gagal catat refund: ' + refundErr.message); return }
 
-    // 2) Jurnal reversal — F-11 fix: idempotent per refund payment
+    // 2) Jurnal reversal — F-9 fix: Dr Penjualan Retur / Cr Kas (kurangi omzet),
+    // BUKAN refund_issued (Dr Piutang/Cr Kas) yang menciptakan piutang baru.
     try {
       await createSimpleJournal({
-        transaction_type: 'refund_issued',
+        transaction_type: 'sales_return',
         reference_type: 'return',
         reference_id: returnRecord.id,
         description: `Refund Rp${fmt(refundAmount)} untuk return order ${returnRecord.order_id.slice(0, 8)}`,
