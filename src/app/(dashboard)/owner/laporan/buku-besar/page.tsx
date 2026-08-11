@@ -27,8 +27,8 @@ export default function BukuBesarPage() {
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
   const [accounts, setAccounts] = useState<LooseRow[]>([])
-  // Filter akun: null = SEMUA akun; Set kode = hanya akun terpilih (multiple)
-  const [selectedCodes, setSelectedCodes] = useState<Set<string> | null>(null)
+  // Filter akun: null = SEMUA akun; kode = hanya akun terpilih (dropdown single)
+  const [selectedCode, setSelectedCode] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -43,25 +43,9 @@ export default function BukuBesarPage() {
     fetchData()
   }, [])
 
-  function toggleAccount(code: string) {
-    setSelectedCodes((prev) => {
-      if (prev === null) {
-        // mulai filter: semua kecuali akun yang diklik = tidak dipilih
-        const s = new Set(accounts.map((a) => a.code ?? ''))
-        s.delete(code)
-        return s.size === accounts.length ? new Set() : s
-      }
-      const s = new Set(prev)
-      if (s.has(code)) s.delete(code)
-      else s.add(code)
-      return s.size === accounts.length ? null : s.size === 0 ? null : s
-    })
-  }
-
-  const filtered =
-    selectedCodes === null ? accounts : accounts.filter((a) => selectedCodes.has(a.code ?? ''))
+  const filtered = selectedCode === null ? accounts : accounts.filter((a) => (a.code ?? '') === selectedCode)
   const totalPreview = filtered.reduce((s, a) => s + (a.balance ?? 0), 0)
-  const filterActive = selectedCodes !== null
+  const filterActive = selectedCode !== null
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -107,7 +91,7 @@ export default function BukuBesarPage() {
         />
       </div>
 
-      {/* Filter akun (multiple) */}
+      {/* Filter akun (dropdown single select) */}
       <div className="section-card" style={{ marginTop: '0.75rem' }}>
         <div
           style={{
@@ -119,12 +103,13 @@ export default function BukuBesarPage() {
             marginBottom: '0.5rem'
           }}
         >
-          <span style={{ fontSize: '0.8rem', fontWeight: '700' }}>
-            Filter Akun {filterActive && <span style={{ color: '#cc7030' }}>({filtered.length} dipilih)</span>}
-          </span>
+          <label htmlFor="ledger-account-filter" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+            Filter Akun
+            {filterActive && <span style={{ color: '#cc7030' }}> — {selectedCode}</span>}
+          </label>
           {filterActive && (
             <button
-              onClick={() => setSelectedCodes(null)}
+              onClick={() => setSelectedCode(null)}
               style={{
                 fontSize: '0.7rem',
                 color: '#cc7030',
@@ -138,38 +123,27 @@ export default function BukuBesarPage() {
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-          {accounts.map((a) => {
-            const active = selectedCodes === null || selectedCodes.has(a.code ?? '')
-            return (
-              <button
-                key={a.id ?? a.code}
-                onClick={() => toggleAccount(a.code ?? '')}
-                title={`${a.code} — ${a.name} (${a.type})`}
-                style={{
-                  fontSize: '0.72rem',
-                  padding: '0.3rem 0.6rem',
-                  borderRadius: '999px',
-                  border: active ? '1px solid #cc7030' : '1px solid #e5e7eb',
-                  background: active ? 'rgba(204,112,48,0.12)' : 'var(--surface, #fff)',
-                  color: active ? '#cc7030' : 'var(--neutral-500)',
-                  fontWeight: active ? '700' : '400',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.3rem'
-                }}
-              >
-                {active && <span style={{ fontSize: '0.6rem' }}>✓</span>}
-                <span style={{ fontFamily: 'monospace' }}>{a.code}</span>
-                <span>{a.name}</span>
-              </button>
-            )
-          })}
-          {accounts.length === 0 && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>Belum ada akun</span>
-          )}
-        </div>
+        <select
+          id="ledger-account-filter"
+          value={selectedCode ?? ''}
+          onChange={(e) => setSelectedCode(e.target.value || null)}
+          style={{
+            width: '100%',
+            padding: '0.55rem 0.75rem',
+            borderRadius: '0.5rem',
+            border: '1px solid #d1d5db',
+            background: 'var(--surface, #fff)',
+            color: 'var(--neutral-800)',
+            fontSize: '0.875rem'
+          }}
+        >
+          <option value="">— Semua Akun —</option>
+          {accounts.map((a) => (
+            <option key={a.id ?? a.code} value={a.code ?? ''}>
+              {a.code} — {a.name} ({a.type})
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="data-table">
