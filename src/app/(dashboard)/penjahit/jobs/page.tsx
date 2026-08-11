@@ -153,6 +153,8 @@ export default function PenjahitJobsPage() {
     if (jobDoneErr) { toast('error', '⚠️ Laporan tersimpan, tapi gagal update job: ' + jobDoneErr.message); setSaving(null); return }
 
     // Auto-create steam_jobs entry and advance order to steam after penjahit finishes
+    // F-17 fix: guard status (.eq('status','production')) — cegah regresi kalau
+    // submit dobel / order sudah maju ke ready/packed oleh jalur lain.
     const { data: jobData } = await supabase.from('production_jobs').select('order_id').eq('id', jobId).single()
     if (jobData?.order_id) {
       const { error: steamErr } = await supabase.from('steam_jobs').insert({
@@ -161,8 +163,12 @@ export default function PenjahitJobsPage() {
         status: 'pending'
       })
       if (steamErr) { console.error('Gagal auto-create steam job:', steamErr) }
-      // Auto-transition order status from production to steam
-      const { error: orderErr } = await supabase.from('orders').update({ status: 'steam' }).eq('id', jobData.order_id)
+      // Auto-transition order status from production to steam — dengan guard
+      const { error: orderErr } = await supabase
+        .from('orders')
+        .update({ status: 'steam' })
+        .eq('id', jobData.order_id)
+        .eq('status', 'production')
       if (orderErr) { console.error('Gagal auto-transition order ke steam:', orderErr) }
     }
 

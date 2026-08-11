@@ -293,7 +293,13 @@ export default function GudangSteamPage() {
     }
 
     // 5. Update order status back to 'production' (re-queue ke Penjahit)
-    const { error: reorderErr } = await supabase.from('orders').update({ status: 'production' }).eq('id', orderId)
+    // F-17 fix: guard status 'steam' — cegah regresi kalau order sudah maju
+    // (double tab / aksi basi) ke ready/packed oleh jalur lain.
+    const { error: reorderErr } = await supabase
+      .from('orders')
+      .update({ status: 'production' })
+      .eq('id', orderId)
+      .eq('status', 'steam')
     if (reorderErr) { setFailSaving(false); toast('error', 'Job revisi dibuat, tapi gagal re-queue order: ' + reorderErr.message); return }
 
     // 6. Log the revision re-queue

@@ -80,11 +80,26 @@ export default function AdminShippingPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
+    // F-16 fix: payment gate + guard status — order harus 'ready' & lunas.
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('payment_status')
+      .eq('id', orderId)
+      .single()
+    if (!orderRow || orderRow.payment_status !== 'paid') {
+      toast('warning', '⚠️ Payment gate: order belum lunas. Finance harus approve/input pelunasan dulu.')
+      return
+    }
     const { error: packErr } = await supabase
       .from('orders')
       .update({ status: 'packed', packed_at: new Date().toISOString(), packed_by: user?.id ?? null })
       .eq('id', orderId)
-    if (packErr) { toast('error', 'Gagal mark packed: ' + packErr.message); return }
+      .eq('status', 'ready')
+    if (packErr) {
+      // 23514 = check violation (status bukan 'ready') atau error lain
+      toast('error', 'Gagal mark packed (pastikan order status "Siap"): ' + packErr.message)
+      return
+    }
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: orderId,
       action: 'packed',

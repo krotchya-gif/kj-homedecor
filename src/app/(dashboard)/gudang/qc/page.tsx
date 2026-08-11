@@ -159,6 +159,19 @@ export default function GudangQCPage() {
     } = await supabase.auth.getUser()
     const now = new Date().toISOString()
 
+    // F-16 fix: payment gate sebelum packing — order harus LUNAS (payment_status='paid').
+    // Sejalan dengan API (api/orders/[id]) & halaman admin — tidak boleh di-bypass dari gudang.
+    const { data: orderRow } = await supabase
+      .from('orders')
+      .select('payment_status')
+      .eq('id', orderId)
+      .single()
+    if (!orderRow || orderRow.payment_status !== 'paid') {
+      setPackingId(null)
+      toast('warning', '⚠️ Payment gate: order belum lunas. Finance harus approve/input pelunasan dulu sebelum dikemas.')
+      return
+    }
+
     const { error: packErr } = await supabase
       .from('orders')
       .update({ status: 'packed', packed_at: now, packed_by: user?.id ?? null })

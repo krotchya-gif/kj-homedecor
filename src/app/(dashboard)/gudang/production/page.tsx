@@ -204,6 +204,32 @@ export default function GudangProductionPage() {
       staff_id: user?.id ?? null
     })
     if (logErr) { console.error('Gagal catat log produksi:', logErr) }
+
+    // F-17 fix: kalau job production selesai oleh GUDANG (bukan penjahit),
+    // auto-create steam_job + advance order production → steam (guard status).
+    // Sebelumnya order stuck di production tanpa steam_job → QC tidak melihatnya.
+    if (status === 'done' && job?.order_id) {
+      const { data: existingSteam } = await supabase
+        .from('steam_jobs')
+        .select('id')
+        .eq('order_id', job.order_id)
+        .maybeSingle()
+      if (!existingSteam) {
+        const { error: steamErr } = await supabase.from('steam_jobs').insert({
+          order_id: job.order_id,
+          production_job_id: jobId,
+          status: 'pending'
+        })
+        if (steamErr) console.error('Gagal auto-create steam job (gudang):', steamErr)
+      }
+      const { error: orderErr } = await supabase
+        .from('orders')
+        .update({ status: 'steam' })
+        .eq('id', job.order_id)
+        .eq('status', 'production')
+      if (orderErr) console.error('Gagal auto-transition order ke steam (gudang):', orderErr)
+    }
+
     toast('success', status === 'in_progress' ? 'Job produksi dimulai' : 'Job produksi selesai')
     }
 
