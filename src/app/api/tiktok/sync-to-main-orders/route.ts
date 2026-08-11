@@ -89,6 +89,50 @@ export async function POST(_req: NextRequest) {
         continue
       }
 
+      // F-13 fix: order TikTok harus tercatat di pembukuan —
+      // row payments (lunas) + jurnal order_created + payment_received
+      // (sebelumnya: order 'paid' tanpa payment & tanpa jurnal → revenue
+      // tidak masuk laba-rugi, piutang ter-kredit tanpa pernah di-debit).
+      const amountNum = Number(to.total_amount || 0)
+      if (amountNum > 0) {
+        const { error: payErr } = await supabase.from('payments').insert({
+          order_id: newOrder.id,
+          type: 'lunas',
+          amount: amountNum,
+          date: new Date().toISOString(),
+          verified_by: null,
+          verified_at: new Date().toISOString(),
+          notes: `Auto-catat TikTok Shop (settlement platform) — ${to.tiktok_order_id}`
+        })
+        if (payErr) console.error('Gagal catat payment TikTok:', payErr)
+
+        try {
+          const { createSimpleJournal } = await import('@/utils/journal/create')
+          await createSimpleJournal({
+            transaction_type: 'order_created',
+            reference_type: 'order',
+            reference_id: newOrder.id,
+            description: `Order TikTok ${to.tiktok_order_id} — ${to.buyer_name || 'Unknown'}`,
+            amount: amountNum,
+            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+            supabase,
+            idempotency_key: `tiktok_sync_order_created:${newOrder.id}`
+          })
+          await createSimpleJournal({
+            transaction_type: 'payment_received',
+            reference_type: 'order',
+            reference_id: newOrder.id,
+            description: `Pembayaran TikTok (platform settlement) — ${to.tiktok_order_id}`,
+            amount: amountNum,
+            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+            supabase,
+            idempotency_key: `tiktok_sync_payment:${newOrder.id}`
+          })
+        } catch (jErr) {
+          console.error('Gagal buat jurnal TikTok order:', jErr)
+        }
+      }
+
       // Sync line items dari TikTok ke order_items — root cause "item pesanan ga keluar":
       // sebelumnya order dibuat TANPA order_items sama sekali.
       const lineItems = (to.order_data as unknown as { line_items?: TikTokLineItem[] } | null)?.line_items ?? []
@@ -117,11 +161,39 @@ export async function POST(_req: NextRequest) {
       created++
     }
 
+    // F-13 fix: sinkronisasi PEMBATALAN — order TikTok yang di-CANCEL setelah
+    // masuk main orders harus ikut dibatalkan (sebelumnya main order tetap
+    // 'sorted'/'done' dengan payment_status 'paid' → produksi jalan sia-sia).
+    let cancelled = 0
+    const { data: cancelledOrders } = await supabase
+      .from('tiktok_shop_orders')
+      .select('tiktok_order_id')
+      .eq('order_status', 'CANCELLED')
+    for (const co of cancelledOrders ?? []) {
+      const { data: mainOrder } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('order_id_external', co.tiktok_order_id)
+        .maybeSingle()
+      if (!mainOrder) continue
+      if (mainOrder.status === 'cancelled') continue
+      const { error: cancelErr } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled', payment_status: 'pending' })
+        .eq('id', mainOrder.id)
+      if (cancelErr) {
+        console.error('Gagal cancel main order TikTok:', cancelErr)
+      } else {
+        cancelled++
+      }
+    }
+
     return NextResponse.json({
       created,
       skipped,
+      cancelled,
       total: (tiktokOrders || []).length,
-      message: `Linked ${created} TikTok orders to main orders, ${skipped} already linked`
+      message: `Linked ${created} TikTok orders to main orders, ${skipped} already linked, ${cancelled} cancelled`
     })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : String(err) }, { status: 500 })

@@ -566,6 +566,52 @@ export default function OrderDetailPage() {
       })
       .eq('id', id)
     if (cancelErr) { toast('error', 'Gagal batalkan order: ' + cancelErr.message); return }
+
+    // F-med fix: reversal jurnal saat cancel — order_created & payment_received
+    // yang sudah tercatat harus dibalik agar laba-rugi & neraca tidak overstated.
+    const totalPaid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
+    if ((order.total_amount ?? 0) > 0 || totalPaid > 0) {
+      try {
+        const { getAccountMapping } = await import('@/utils/journal/create')
+        const { createSimpleJournal } = await import('@/utils/journal/create')
+
+        // Reversal order_created: Dr (akun kredit mapping) / Cr (akun debit mapping)
+        const revOrder = await getAccountMapping('order_created')
+        if (revOrder?.debit_account_id && revOrder?.credit_account_id) {
+          await createSimpleJournal({
+            transaction_type: 'order_created',
+            reference_type: 'order_cancelled',
+            reference_id: id,
+            description: `Reversal order_created — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan`,
+            amount: order.total_amount ?? 0,
+            debit_account_id: revOrder.credit_account_id,
+            credit_account_id: revOrder.debit_account_id,
+            idempotency_key: `cancel_order_created:${id}`
+          })
+        }
+
+        // Reversal payment_received: Dr (akun kredit mapping) / Cr (akun debit mapping)
+        if (totalPaid > 0) {
+          const revPay = await getAccountMapping('payment_received')
+          if (revPay?.debit_account_id && revPay?.credit_account_id) {
+            await createSimpleJournal({
+              transaction_type: 'payment_received',
+              reference_type: 'order_cancelled',
+              reference_id: id,
+              description: `Reversal pembayaran — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan (Rp${totalPaid.toLocaleString('id-ID')})`,
+              amount: totalPaid,
+              debit_account_id: revPay.credit_account_id,
+              credit_account_id: revPay.debit_account_id,
+              idempotency_key: `cancel_payment:${id}`
+            })
+          }
+        }
+      } catch (jErr) {
+        console.error('Gagal buat jurnal reversal cancel:', jErr)
+        toast('warning', 'Order dibatalkan, TAPI jurnal reversal GAGAL. Hubungi owner untuk fix pembukuan.')
+      }
+    }
+
     const { error: cancelLogErr } = await supabase.from('order_logs').insert({
       order_id: id,
       action: 'cancelled',

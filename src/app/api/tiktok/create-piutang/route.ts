@@ -62,12 +62,30 @@ export async function POST(req: NextRequest) {
           description: `TikTok Shop settlement ${stmt.statement_id.slice(0, 8)}`,
           status: 'pending'
         })
-        .select()
+        .select('id')
         .single()
 
       if (insertErr) {
         console.error('Failed to insert piutang:', insertErr)
         continue
+      }
+
+      // F-14 fix: piutang settlement wajib jurnal Dr Piutang / Cr Penjualan
+      // (sebelumnya tanpa jurnal → buku besar tidak balance).
+      try {
+        const { createSimpleJournal } = await import('@/utils/journal/create')
+        await createSimpleJournal({
+          transaction_type: 'order_created',
+          reference_type: 'piutang',
+          reference_id: piutang.id,
+          description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — piutang terutang`,
+          amount: Number(stmt.total_amount),
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+          supabase,
+          idempotency_key: `tiktok_settlement:${stmt.statement_id}`
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal settlement TikTok:', jErr)
       }
 
       // Update piutang_id di statement
