@@ -9,6 +9,7 @@ import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
+import { useRef } from 'react'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -27,8 +28,19 @@ export default function BukuBesarPage() {
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
   const [accounts, setAccounts] = useState<LooseRow[]>([])
-  // Filter akun: null = SEMUA akun; kode = hanya akun terpilih (dropdown single)
-  const [selectedCode, setSelectedCode] = useState<string | null>(null)
+  // Filter akun: null = SEMUA akun; Set kode = beberapa akun terpilih (dropdown multi)
+  const [selectedCodes, setSelectedCodes] = useState<Set<string> | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
+
+  // Tutup dropdown saat klik di luar
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false)
+    }
+    document.addEventListener('mousedown', onDoc)
+    return () => document.removeEventListener('mousedown', onDoc)
+  }, [])
 
   const supabase = createClient()
 
@@ -43,9 +55,23 @@ export default function BukuBesarPage() {
     fetchData()
   }, [])
 
-  const filtered = selectedCode === null ? accounts : accounts.filter((a) => (a.code ?? '') === selectedCode)
+  function toggleAccount(code: string) {
+    setSelectedCodes((prev) => {
+      if (prev === null) {
+        const s = new Set(accounts.map((a) => a.code ?? ''))
+        s.delete(code)
+        return s.size === accounts.length ? null : s.size === 0 ? null : s
+      }
+      const s = new Set(prev)
+      if (s.has(code)) s.delete(code)
+      else s.add(code)
+      return s.size === accounts.length ? null : s.size === 0 ? null : s
+    })
+  }
+
+  const filtered = selectedCodes === null ? accounts : accounts.filter((a) => selectedCodes.has(a.code ?? ''))
   const totalPreview = filtered.reduce((s, a) => s + (a.balance ?? 0), 0)
-  const filterActive = selectedCode !== null
+  const filterActive = selectedCodes !== null
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -91,27 +117,140 @@ export default function BukuBesarPage() {
         />
       </div>
 
-      {/* Filter akun (dropdown single select) */}
+      {/* Filter akun (dropdown multiple select) */}
       <div className="section-card" style={{ marginTop: '0.75rem' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-            marginBottom: '0.5rem'
-          }}
-        >
-          <label htmlFor="ledger-account-filter" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
-            Filter Akun
-            {filterActive && <span style={{ color: '#cc7030' }}> — {selectedCode}</span>}
-          </label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative' }} ref={filterRef}>
+            <button
+              onClick={() => setFilterOpen((o) => !o)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.55rem 0.9rem',
+                borderRadius: '0.5rem',
+                border: filterActive ? '1px solid #cc7030' : '1px solid #d1d5db',
+                background: filterActive ? 'rgba(204,112,48,0.08)' : 'var(--surface, #fff)',
+                color: 'var(--neutral-800)',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              <span>Filter Akun</span>
+              <span
+                style={{
+                  background: filterActive ? '#cc7030' : '#e5e7eb',
+                  color: filterActive ? '#fff' : 'var(--neutral-600)',
+                  borderRadius: '999px',
+                  padding: '0.05rem 0.5rem',
+                  fontSize: '0.72rem',
+                  fontWeight: '700'
+                }}
+              >
+                {filterActive ? `${filtered.length}/${accounts.length}` : 'Semua'}
+              </span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--neutral-500)' }}>{filterOpen ? '▲' : '▼'}</span>
+            </button>
+
+            {filterOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 6px)',
+                  left: 0,
+                  width: 340,
+                  maxHeight: 320,
+                  overflowY: 'auto',
+                  background: 'var(--surface, #fff)',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.75rem',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
+                  zIndex: 300,
+                  padding: '0.5rem'
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.35rem 0.5rem 0.6rem',
+                    borderBottom: '1px solid #f1f5f9',
+                    marginBottom: '0.35rem'
+                  }}
+                >
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700' }}>Pilih Akun (boleh banyak)</span>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      onClick={() => setSelectedCodes(null)}
+                      style={{
+                        fontSize: '0.68rem',
+                        color: '#047857',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: '700'
+                      }}
+                    >
+                      Semua
+                    </button>
+                    {filterActive && (
+                      <button
+                        onClick={() => setSelectedCodes(new Set())}
+                        style={{
+                          fontSize: '0.68rem',
+                          color: '#b91c1c',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: '700'
+                        }}
+                      >
+                        Bersihkan
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {accounts.map((a) => {
+                  const checked = selectedCodes === null || selectedCodes.has(a.code ?? '')
+                  return (
+                    <label
+                      key={a.id ?? a.code}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.4rem 0.5rem',
+                        borderRadius: '0.4rem',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem'
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAccount(a.code ?? '')}
+                        style={{ accentColor: '#cc7030', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontFamily: 'monospace', fontWeight: '600', whiteSpace: 'nowrap' }}>{a.code}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
+                      <span style={{ marginLeft: 'auto', color: 'var(--neutral-400)', fontSize: '0.7rem' }}>
+                        {a.type}
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           {filterActive && (
             <button
-              onClick={() => setSelectedCode(null)}
+              onClick={() => setSelectedCodes(null)}
               style={{
-                fontSize: '0.7rem',
+                fontSize: '0.75rem',
                 color: '#cc7030',
                 background: 'none',
                 border: 'none',
@@ -123,27 +262,6 @@ export default function BukuBesarPage() {
             </button>
           )}
         </div>
-        <select
-          id="ledger-account-filter"
-          value={selectedCode ?? ''}
-          onChange={(e) => setSelectedCode(e.target.value || null)}
-          style={{
-            width: '100%',
-            padding: '0.55rem 0.75rem',
-            borderRadius: '0.5rem',
-            border: '1px solid #d1d5db',
-            background: 'var(--surface, #fff)',
-            color: 'var(--neutral-800)',
-            fontSize: '0.875rem'
-          }}
-        >
-          <option value="">— Semua Akun —</option>
-          {accounts.map((a) => (
-            <option key={a.id ?? a.code} value={a.code ?? ''}>
-              {a.code} — {a.name} ({a.type})
-            </option>
-          ))}
-        </select>
       </div>
 
       <div className="data-table">
