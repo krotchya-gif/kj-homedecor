@@ -66,7 +66,7 @@ export default function NeracaSaldoPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   // Debit: asset, expense | Credit: liability, equity, revenue
   const isDebit = (type: string) => type === 'asset' || type === 'expense'

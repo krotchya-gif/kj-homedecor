@@ -58,6 +58,7 @@ interface LooseRow {
 
 export default function NeracaPage() {
   const [accounts, setAccounts] = useState<LooseRow[]>([])
+  const [labaBerjalan, setLabaBerjalan] = useState(0)
   const [loading, setLoading] = useState(true)
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
@@ -66,21 +67,29 @@ export default function NeracaPage() {
 
   async function fetchData() {
     setLoading(true)
-    const { data } = await fetchAccountBalances(supabase, startDate, endDate)
+    // BUG-016 fix: ambil juga pendapatan & beban untuk menghitung LAB BERJALAN
+    const [{ data }, { data: pl }] = await Promise.all([
+      fetchAccountBalances(supabase, startDate, endDate),
+      fetchAccountBalances(supabase, startDate, endDate, ['revenue', 'expense'])
+    ])
     setAccounts((data ?? []) as LooseRow[])
+    const revenue = (pl ?? []).filter((a) => a.type === 'revenue').reduce((s, a) => s + (a.balance ?? 0), 0)
+    const expense = (pl ?? []).filter((a) => a.type === 'expense').reduce((s, a) => s + (a.balance ?? 0), 0)
+    setLabaBerjalan(revenue - expense)
     setLoading(false)
   }
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   const assets = accounts.filter((a) => a.type === 'asset')
   const liabilities = accounts.filter((a) => a.type === 'liability')
   const equities = accounts.filter((a) => a.type === 'equity')
   const totalAssets = assets.reduce((s, a) => s + (a.balance ?? 0), 0)
   const totalLiabilities = liabilities.reduce((s, a) => s + (a.balance ?? 0), 0)
-  const totalEquity = equities.reduce((s, a) => s + (a.balance ?? 0), 0)
+  // BUG-016 fix: ekuitas = akun ekuitas + laba berjalan (agar A = L + E)
+  const totalEquity = equities.reduce((s, a) => s + (a.balance ?? 0), 0) + labaBerjalan
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -119,6 +128,7 @@ export default function NeracaPage() {
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
         ...equities.map((a) => [a.code ?? '', a.name ?? '', 'Ekuitas', formatRp(a.balance ?? 0)]),
+        [{ content: 'Laba Berjalan', colSpan: 3, styles: { fontStyle: 'italic' } }, formatRp(labaBerjalan)],
         [{ content: 'TOTAL EKUITAS', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalEquity)]
       ],
       theme: 'striped',
@@ -236,6 +246,10 @@ export default function NeracaPage() {
                         <td style={{ textAlign: 'right', fontWeight: '600' }}>{formatRp(a.balance ?? 0)}</td>
                       </tr>
                     ))}
+                    <tr>
+                      <td style={{ fontWeight: '600', color: '#065f46' }}>Laba Berjalan</td>
+                      <td style={{ textAlign: 'right', fontWeight: '600', color: '#065f46' }}>{formatRp(labaBerjalan)}</td>
+                    </tr>
                     <tr style={{ borderTop: '2px solid #e5e7eb' }}>
                       <td style={{ fontWeight: '700' }}>TOTAL</td>
                       <td style={{ textAlign: 'right', fontWeight: '800', color: '#16a34a' }}>

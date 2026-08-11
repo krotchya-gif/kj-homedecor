@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -105,6 +106,13 @@ export default function HutangPage() {
       notes: form.notes || null
     }
     if (editItem) {
+        // BUG-013: tolak edit amount jika sudah ada pembayaran / lunas / batal
+        const hasPayment = (editItem.paid_amount ?? 0) > 0 || (editItem.return_amount ?? 0) > 0
+        if (hasPayment || editItem.status === 'paid' || editItem.status === 'cancelled') {
+          setSaving(false)
+          toast('error', 'Tidak bisa mengubah tagihan yang sudah dibayar / lunas / dibatalkan.')
+          return
+        }
         // UPDATE optimistic
         const prev = hutang
         setHutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Hutang) : x)))
@@ -153,6 +161,11 @@ export default function HutangPage() {
     if (!paymentItem) return
     setSaving(true)
     const payAmount = Number(payForm.amount) || 0
+    if (paymentItem.status === 'cancelled') {
+      setSaving(false)
+      toast('error', 'Hutang ini sudah dibatalkan — tidak bisa dibayar.')
+      return
+    }
     const sisaBefore = (paymentItem.amount ?? 0) - (paymentItem.paid_amount ?? 0) - (paymentItem.return_amount ?? 0)
     if (payAmount <= 0) {
       setSaving(false)
@@ -175,6 +188,21 @@ export default function HutangPage() {
       })
       .eq('id', paymentItem.id)
     if (error) { setSaving(false); toast('error', 'Gagal simpan pembayaran hutang: ' + error.message); return }
+
+    // BUG-013 fix (2026-08-11): bayar hutang wajib jurnal Dr Hutang Supplier / Cr Kas
+    // (sebelumnya uang keluar bayar supplier tidak terlihat di buku besar sama sekali).
+    try {
+      await createSimpleJournal({
+        transaction_type: 'hutang_paid',
+        reference_type: 'hutang',
+        reference_id: paymentItem.id,
+        description: `Pembayaran hutang ${paymentItem.invoice_number ?? 'Invoice'} — ${paymentItem.supplier?.name ?? ''} Rp${payAmount.toLocaleString('id-ID')}`,
+        amount: payAmount
+      })
+    } catch (jErr) {
+      console.error('Gagal buat jurnal bayar hutang:', jErr)
+      toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun di /finance/accounts/mapping.')
+    }
     setSaving(false)
     setShowPayment(false)
     // Optimistic update: sisa hutang langsung berubah tanpa refetch

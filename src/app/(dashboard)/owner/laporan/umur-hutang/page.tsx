@@ -53,7 +53,11 @@ interface HutangRow {
   id?: string
   invoice_number?: string
   invoice_date?: string
+  due_date?: string
   amount?: number
+  paid_amount?: number
+  return_amount?: number
+  status?: string
   supplier?: { name?: string } | null
 }
 
@@ -67,9 +71,13 @@ export default function UmurHutangPage() {
 
   async function fetchData() {
     setLoading(true)
+    // BUG-015 fix: query pakai tanggal (invoice_date dalam rentang) + hanya yang belum lunas/batal
     const { data } = await supabase
       .from('hutang')
       .select('*, supplier:suppliers(name)')
+      .in('status', ['pending', 'partial'])
+      .gte('invoice_date', startDate)
+      .lte('invoice_date', endDate)
       .order('invoice_date', { ascending: false })
     setHutang((data ?? []) as LooseRow[])
     setLoading(false)
@@ -77,7 +85,7 @@ export default function UmurHutangPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   function getBucket(days: number): string {
     if (days < 30) return '< 30 hari'
@@ -86,17 +94,22 @@ export default function UmurHutangPage() {
     return '> 90 hari'
   }
 
-  const today = new Date()
+  // BUG-015 fix: as-of date = endDate (reproducible), bukan hari ini
+  const asOf = endDate && endDate !== '2099-12-31' ? new Date(endDate + 'T23:59:59') : new Date()
 
   const enriched = hutang.map((h: HutangRow) => {
-    const days = Math.floor((today.getTime() - new Date(h.invoice_date ?? '').getTime()) / (1000 * 60 * 60 * 24))
+    // aging pakai due_date kalau ada, fallback invoice_date
+    const anchor = h.due_date ?? h.invoice_date ?? ''
+    const days = Math.floor((asOf.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
     const bucket = getBucket(days)
-    return { ...h, days, bucket }
+    const sisa = (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)
+    return { ...h, days, bucket, sisa }
   })
 
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
   enriched.forEach((h) => {
-    buckets[h.bucket] = (buckets[h.bucket] ?? 0) + (h.amount ?? 0)
+    // BUG-015 fix: jumlahkan SISA tagihan, bukan amount penuh
+    buckets[h.bucket] = (buckets[h.bucket] ?? 0) + (h.sisa > 0 ? h.sisa : 0)
   })
 
   const bucketData = Object.entries(buckets).map(([bucket, amount]) => ({ bucket, amount }))

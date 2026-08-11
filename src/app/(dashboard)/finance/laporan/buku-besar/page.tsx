@@ -53,7 +53,7 @@ export default function BukuBesarPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   function toggleAccount(code: string) {
     setSelectedCodes((prev) => {

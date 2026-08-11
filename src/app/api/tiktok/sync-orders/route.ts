@@ -90,6 +90,16 @@ export async function POST(req: NextRequest) {
         const payment = order.payment || {}
         const totalAmount = payment.total_amount ? Number(payment.total_amount) : 0
         const shippingFee = payment.shipping_fee ? Number(payment.shipping_fee) : 0
+        // BUG-017 fix (2026-08-11): catat komisi/biaya marketplace yang BENAR.
+        // Sebelumnya commission_fee selalu 0 dan net_amount tidak kurangi komisi
+        // → selisih gross vs net settlement menguap dari pembukuan.
+        const commissionFee = payment.commission_fee ? Number(payment.commission_fee) : 0
+        // platform_fee = komisi + iklan + biaya lain dari API (jika tersedia)
+        const platformFee =
+          payment.platform_fee !== undefined && payment.platform_fee !== null
+            ? Number(payment.platform_fee)
+            : commissionFee + (payment.seller_discount ? Math.abs(Number(payment.seller_discount)) : 0)
+        const netAmount = Math.max(0, totalAmount - shippingFee - commissionFee)
 
         // CRITICAL: cek error insert — kalau gagal (constraint/RLS/schema drift),
         // order hilang dari sync diam-diam + counter `synced` salah. Blokir alur.
@@ -99,9 +109,9 @@ export async function POST(req: NextRequest) {
           payment_status: order.status === 'COMPLETED' || order.status === 'DELIVERED' ? 'PAID' : order.status,
           total_amount: totalAmount,
           shipping_amount: shippingFee,
-          platform_fee: payment.platform_discount ? -Math.abs(Number(payment.platform_discount)) : 0,
-          commission_fee: 0,
-          net_amount: totalAmount - shippingFee,
+          platform_fee: platformFee,
+          commission_fee: commissionFee,
+          net_amount: netAmount,
           currency: payment.currency || 'IDR',
           buyer_name: order.recipient_address?.name || order.buyer_user_name,
           buyer_phone: order.recipient_address?.phone_number,

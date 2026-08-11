@@ -65,7 +65,7 @@ export default function MutasiKasPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   const totalBalance = cashAccounts.reduce((s, c) => s + (c.balance ?? 0), 0)
 

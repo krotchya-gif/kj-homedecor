@@ -36,7 +36,7 @@ export default function DaftarJurnalPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   function downloadPDF() {
     const doc = new jsPDF()

@@ -5,9 +5,10 @@ import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Pencil, Trash2, FileText } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -53,6 +54,11 @@ export default function FakturPage() {
     order_id: '',
     notes: ''
   })
+  // BUG-014 fix (2026-08-11): aksi bayar piutang per faktur
+  const [showPayModal, setShowPayModal] = useState(false)
+  const [payItem, setPayItem] = useState<Piutang | null>(null)
+  const [payForm, setPayForm] = useState({ amount: '' })
+  const [paying, setPaying] = useState(false)
 
   const supabase = createClient()
 
@@ -147,6 +153,65 @@ export default function FakturPage() {
       toast('success', 'Berhasil dihapus')
   }
 
+  // BUG-014 fix (2026-08-11): bayar piutang faktur — update paid_amount + jurnal Dr Kas / Cr Piutang
+  async function handlePay(e: React.FormEvent) {
+    e.preventDefault()
+    if (!payItem) return
+    setPaying(true)
+    const amount = Number(payForm.amount)
+    const sisa = (payItem.amount ?? 0) - (payItem.paid_amount ?? 0) - (payItem.return_amount ?? 0)
+    if (!payForm.amount || isNaN(amount) || amount <= 0) {
+      setPaying(false)
+      toast('error', 'Nominal wajib diisi dan lebih dari 0.')
+      return
+    }
+    if (amount > sisa) {
+      setPaying(false)
+      toast('error', `Nominal melebihi sisa tagihan (${formatRp(sisa)}).`)
+      return
+    }
+    const newPaid = (payItem.paid_amount ?? 0) + amount
+    const newSisa = (payItem.amount ?? 0) - newPaid - (payItem.return_amount ?? 0)
+    const newStatus = newSisa <= 0 ? 'paid' : 'partial'
+
+    const { error: updErr } = await supabase
+      .from('piutang')
+      .update({ paid_amount: newPaid, status: newStatus, remaining: newSisa })
+      .eq('id', payItem.id)
+    if (updErr) {
+      setPaying(false)
+      toast('error', 'Gagal simpan pembayaran: ' + updErr.message)
+      return
+    }
+
+    try {
+      await createSimpleJournal({
+        transaction_type: 'piutang_received',
+        reference_type: 'piutang',
+        reference_id: payItem.id,
+        description: `Pembayaran piutang ${payItem.invoice_number ?? 'Faktur'} — ${payItem.customer?.name ?? ''} Rp${amount.toLocaleString('id-ID')}`,
+        amount
+      })
+    } catch (jErr) {
+      console.error('Gagal buat jurnal terima piutang:', jErr)
+      toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun di /finance/accounts/mapping.')
+    }
+
+    setPaying(false)
+    setShowPayModal(false)
+    setPayForm({ amount: '' })
+    setPayItem(null)
+    toast('success', `Pembayaran piutang ${formatRp(amount)} dicatat!`)
+    fetchData()
+  }
+
+  function openPay(p: Piutang) {
+    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)
+    setPayItem(p)
+    setPayForm({ amount: String(sisa > 0 ? sisa : '') })
+    setShowPayModal(true)
+  }
+
   return (
     <div>
       <PageHeader title="Faktur Piutang" subtitle="Daftar faktur piutang pelanggan" />
@@ -224,6 +289,7 @@ export default function FakturPage() {
                   <span className="mobile-card-value">{p.status === 'paid' ? 'Lunas' : p.status === 'partial' ? 'Sebagian' : 'Belum'}</span>
                 </div>
                 <div className="mobile-card-actions">
+                  <button onClick={() => openPay(p)} style={{ background: '#cc7030', color: '#fff', border: 'none', cursor: 'pointer' }}>Bayar</button>
                   <button onClick={() => openEdit(p)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
                   <button onClick={() => handleDelete(p.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
                 </div>
@@ -285,6 +351,7 @@ export default function FakturPage() {
                     <td>
                     <ActionMenu
                       items={[
+                        { label: 'Bayar', icon: <CreditCard size={14} />, onClick: () => openPay(p) },
                         { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(p) },
                         { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(p.id), danger: true }
                       ]}
@@ -539,6 +606,87 @@ export default function FakturPage() {
               }}
             >
               {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* BUG-014 fix: Modal pembayaran piutang */}
+      <Modal
+        open={showPayModal}
+        onClose={() => {
+          setShowPayModal(false)
+          setPayForm({ amount: '' })
+          setPayItem(null)
+        }}
+        maxWidth={420}
+        padding="1.5rem"
+      >
+        <form onSubmit={handlePay}>
+          <h2 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.25rem' }}>
+            💳 Terima Pembayaran Piutang
+          </h2>
+          <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
+            {payItem?.customer?.name ?? '—'} — {payItem?.invoice_number ?? 'Faktur'} · Sisa{' '}
+            <strong style={{ color: '#cc7030' }}>
+              {formatRp((payItem?.amount ?? 0) - (payItem?.paid_amount ?? 0) - (payItem?.return_amount ?? 0))}
+            </strong>
+          </p>
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+            Nominal *
+          </label>
+          <input
+            type="number"
+            required
+            min={1}
+            value={payForm.amount}
+            onChange={(e) => setPayForm({ amount: e.target.value })}
+            placeholder="0"
+            style={{
+              width: '100%',
+              padding: '0.625rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              marginBottom: '1rem',
+              outline: 'none'
+            }}
+          />
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowPayModal(false)
+                setPayForm({ amount: '' })
+                setPayItem(null)
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={paying}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: paying ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {paying ? 'Menyimpan...' : 'Catat Pembayaran'}
             </button>
           </div>
         </form>

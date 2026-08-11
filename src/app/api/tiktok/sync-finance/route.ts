@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken, signTikTokRequest } from '@/lib/tiktok'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -139,6 +140,24 @@ export async function POST(req: NextRequest) {
         if (piutang) {
           piutangId = piutang.id
           created_piutang++
+
+          // BUG-017 fix (2026-08-11): settlement masuk = penerimaan piutang →
+          // jurnal Dr Kas / Cr Piutang (mapping 'piutang_received'). Sebelumnya
+          // settlement net masuk piutang TANPA jurnal → neraca/laba-rugi tidak
+          // mencerminkan kas masuk marketplace.
+          try {
+            await createSimpleJournal({
+              transaction_type: 'piutang_received',
+              reference_type: 'piutang',
+              reference_id: piutang.id,
+              description: `TikTok Shop settlement ${stmtId.slice(0, 8)} — kas masuk Rp${Number(settleAmount).toLocaleString('id-ID')}`,
+              amount: Number(settleAmount),
+              baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+              supabase
+            })
+          } catch (jErr) {
+            console.error(`Gagal buat jurnal settlement TikTok ${stmtId}:`, jErr)
+          }
         }
       }
 

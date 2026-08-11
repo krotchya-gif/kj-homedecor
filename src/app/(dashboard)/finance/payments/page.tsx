@@ -367,13 +367,14 @@ export default function FinancePaymentsPage() {
   }
 
   async function handleRefund(returnRecord: ReturnRow) {
-    if (returnRecord.refund_amount <= 0) {
+    const refundAmount = Number(returnRecord.refund_amount ?? 0)
+    if (refundAmount <= 0) {
       toast('warning', 'Tidak ada jumlah refund untuk diproses.')
       return
     }
     if (
       !confirm(
-        `Proses refund Rp${fmt(returnRecord.refund_amount)} untuk order ${returnRecord.order_id.slice(0, 8)}?\n\nIni akan mencatat pengurangan pembayaran.`
+        `Proses refund Rp${fmt(refundAmount)} untuk order ${returnRecord.order_id.slice(0, 8)}?\n\nIni akan mencatat pengurangan pembayaran.`
       )
     )
       return
@@ -381,27 +382,98 @@ export default function FinancePaymentsPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
+
+    // BUG-012 fix (2026-08-11):
+    // - Guard idempotensi: return yang sudah selesai tidak boleh diproses ulang
+    // - Guard nominal: refund tidak boleh melebihi yang sudah dibayar
+    // - Jurnal reversal (refund_issued) + kurangi dp/lunas order
+    const { data: ret, error: retErr } = await supabase
+      .from('returns')
+      .select('refund_status')
+      .eq('id', returnRecord.id)
+      .maybeSingle()
+    if (retErr || !ret) {
+      setProcessingRefund(null)
+      toast('error', 'Gagal memuat data return.')
+      return
+    }
+    if (ret.refund_status === 'completed') {
+      setProcessingRefund(null)
+      toast('warning', 'Refund sudah diproses sebelumnya (idempotent).')
+      return
+    }
+
+    const { data: freshOrder } = await supabase
+      .from('orders')
+      .select('id, total_amount, dp_amount, lunas_amount, payment_status')
+      .eq('id', returnRecord.order_id)
+      .single()
+    const paidBefore = (freshOrder?.dp_amount ?? 0) + (freshOrder?.lunas_amount ?? 0)
+    if (refundAmount > paidBefore) {
+      setProcessingRefund(null)
+      toast('error', `Refund (${fmt(refundAmount)}) melebihi yang sudah dibayar (${fmt(paidBefore)}).`)
+      return
+    }
+
+    // 1) Catat refund di tabel payments
     const { error: refundErr } = await supabase.from('payments').insert({
       order_id: returnRecord.order_id,
       type: 'refund',
-      amount: returnRecord.refund_amount,
+      amount: refundAmount,
       date: new Date().toISOString(),
       verified_by: user?.id ?? null,
       verified_at: new Date().toISOString(),
       notes: `Refund untuk return: ${returnRecord.reason}`
     })
     if (refundErr) { setProcessingRefund(null); toast('error', 'Gagal catat refund: ' + refundErr.message); return }
+
+    // 2) Jurnal reversal — Dr Piutang / Cr Kas (membalik pembayaran)
+    try {
+      await createSimpleJournal({
+        transaction_type: 'refund_issued',
+        reference_type: 'return',
+        reference_id: returnRecord.id,
+        description: `Refund Rp${fmt(refundAmount)} untuk return order ${returnRecord.order_id.slice(0, 8)}`,
+        amount: refundAmount
+      })
+    } catch (e) {
+      console.error('Gagal buat jurnal refund:', e)
+      toast('warning', 'Refund tercatat, TAPI jurnal reversal GAGAL. Periksa /finance/accounts/mapping.')
+    }
+
+    // 3) Kurangi dp/lunas order (lunas dulu, baru dp) + hitung ulang payment_status
+    let newLunas = freshOrder?.lunas_amount ?? 0
+    let newDp = freshOrder?.dp_amount ?? 0
+    let sisaRefund = refundAmount
+    const fromLunas = Math.min(newLunas, sisaRefund)
+    newLunas -= fromLunas
+    sisaRefund -= fromLunas
+    newDp = Math.max(0, newDp - sisaRefund)
+    const paidNow = newDp + newLunas
+    const newPayStatus = paidNow >= (freshOrder?.total_amount ?? 0) && (freshOrder?.total_amount ?? 0) > 0 ? 'paid' : paidNow > 0 ? 'partial' : 'pending'
+    const { error: ordErr } = await supabase
+      .from('orders')
+      .update({ dp_amount: newDp, lunas_amount: newLunas, payment_status: newPayStatus })
+      .eq('id', returnRecord.order_id)
+    if (ordErr) { console.error('Gagal update order setelah refund:', ordErr) }
+
+    // 4) Tandai return selesai (RLS diperbaiki di migration 063 — is_finance_role)
     const { error: retUpdErr } = await supabase.from('returns').update({ refund_status: 'completed' }).eq('id', returnRecord.id)
-    if (retUpdErr) { setProcessingRefund(null); toast('error', 'Refund tercatat, tapi gagal update status return: ' + retUpdErr.message); return }
+    if (retUpdErr) {
+      setProcessingRefund(null)
+      toast('error', 'Refund & jurnal tersimpan, tapi gagal update status return: ' + retUpdErr.message)
+      return
+    }
+
     const { error: refundLogErr } = await supabase.from('order_logs').insert({
       order_id: returnRecord.order_id,
       action: 'refund_issued',
-      notes: `Refund Rp${fmt(returnRecord.refund_amount)} diproses oleh Finance. Alasan return: ${returnRecord.reason}`,
+      notes: `Refund Rp${fmt(refundAmount)} diproses oleh Finance. Alasan return: ${returnRecord.reason}`,
       staff_id: user?.id ?? null
     })
     if (refundLogErr) { console.error('Gagal catat log refund:', refundLogErr) }
     setProcessingRefund(null)
-    toast('success', `Refund ${fmt(returnRecord.refund_amount)} berhasil diproses!`)
+    toast('success', `Refund ${fmt(refundAmount)} berhasil diproses!`)
     load()
   }
 

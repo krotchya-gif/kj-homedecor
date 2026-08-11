@@ -67,7 +67,7 @@ export default function LabaRugiPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   const revenues = accounts.filter((a) => a.type === 'revenue')
   const expenses = accounts.filter((a) => a.type === 'expense')

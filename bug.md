@@ -19,14 +19,14 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-009 | **Pembukuan server mati**: `createJournalEntry` pakai `fetch('/api/journal')` URL relatif → di Next.js route handler throw → jurnal order/PO tidak pernah dibuat | ✅ Fixed | — |
 | BUG-010 | **Tanda saldo terbalik** di laporan keuangan: `ledger.ts` cek `normal_side` (kolom mati/NULL) → liability/equity/revenue minus | ✅ Fixed | — |
 | BUG-011 | **PO received jurnal pakai QUANTITY** sebagai nominal rupiah (`amount: materialQty`) → korup buku besar | ✅ Fixed | — |
-| BUG-012 | Refund rusak 3 lapis: tanpa jurnal reversal, RLS returns dead policy (`auth.role() IN(...)` mustahil), retry = refund dobel | 🟠 Terbuka | Tinggi |
-| BUG-013 | Hutang & piutang off-ledger: bayar hutang / buat piutang tidak pernah bikin jurnal | 🟠 Terbuka | Tinggi |
-| BUG-014 | `piutang.paid_amount/return_amount` tidak pernah di-write di seluruh kode → piutang tak bisa lunas; tombol "Proses Retur" tanpa handler | 🟠 Terbuka | Tinggi |
-| BUG-015 | Filter periode DEAD di 8/10 laporan: `useEffect(..., [])` tidak refetch; umur-hutang/piutang & mutasi-kas ignore tanggal di query | 🟡 Terbuka | Sedang |
-| BUG-016 | Neraca tidak balance: tanpa laba berjalan di ekuitas + tanda saldo terbalik | 🟡 Terbuka | Sedang |
-| BUG-017 | Komisi marketplace TikTok hilang: `commission_fee: 0` hardcode, net_amount tidak kurangi komisi; settlement tanpa jurnal | 🟡 Terbuka | Sedang |
-| BUG-018 | `exec_sql` backdoor (SECURITY DEFINER) di DB dari migration 055; tidak dipakai src/ tapi berbahaya | 🔴 Terbuka | Tinggi |
-| BUG-019 | RLS tabel keuangan `FOR ALL authenticated` + `api/journal` tanpa role check + RPC `update_cash_account_balance` tanpa role | 🔴 Terbuka | Tinggi |
+| BUG-012 | Refund rusak 3 lapis: tanpa jurnal reversal, RLS returns dead policy (`auth.role() IN(...)` mustahil), retry = refund dobel | ✅ Fixed | — |
+| BUG-013 | Hutang & piutang off-ledger: bayar hutang / buat piutang tidak pernah bikin jurnal | ✅ Fixed | — |
+| BUG-014 | `piutang.paid_amount/return_amount` tidak pernah di-write di seluruh kode → piutang tak bisa lunas; tombol "Proses Retur" tanpa handler | ✅ Fixed | — |
+| BUG-015 | Filter periode DEAD di 8/10 laporan: `useEffect(..., [])` tidak refetch; umur-hutang/piutang & mutasi-kas ignore tanggal di query | ✅ Fixed | — |
+| BUG-016 | Neraca tidak balance: tanpa laba berjalan di ekuitas + tanda saldo terbalik | ✅ Fixed | — |
+| BUG-017 | Komisi marketplace TikTok hilang: `commission_fee: 0` hardcode, net_amount tidak kurangi komisi; settlement tanpa jurnal | ✅ Fixed | — |
+| BUG-018 | `exec_sql` backdoor (SECURITY DEFINER) di DB dari migration 055; tidak dipakai src/ tapi berbahaya | ✅ Fixed (migration 063) | — |
+| BUG-019 | RLS tabel keuangan `FOR ALL authenticated` + `api/journal` tanpa role check + RPC `update_cash_account_balance` tanpa role | ✅ Fixed | — |
 | BUG-020 | **FALSE POSITIVE (verified)**: F-35/F-72 "NUMERIC string concat" — semua kolom NUMERIC = `number` di runtime, `+` = aritmetika | ❌ Bukan bug | — |
 
 ---

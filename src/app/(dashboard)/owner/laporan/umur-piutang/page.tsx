@@ -35,6 +35,8 @@ interface LooseRow {
   order_number?: string
   payment_status?: string
   total_amount?: number
+  dp_amount?: number
+  lunas_amount?: number
   total_price?: number
   supplier_name?: string
   stock_gudang?: number
@@ -58,10 +60,14 @@ export default function UmurPiutangPage() {
 
   async function fetchData() {
     setLoading(true)
+    // BUG-015 fix: rentang tanggal + select dp/lunas (untuk sisa tagihan)
     const { data } = await supabase
       .from('orders')
-      .select('id, created_at, total_amount, payment_status, customer:customers(name)')
+      .select('id, created_at, total_amount, dp_amount, lunas_amount, status, payment_status, customer:customers(name)')
       .neq('payment_status', 'paid')
+      .neq('status', 'cancelled')
+      .gte('created_at', startDate)
+      .lte('created_at', endDate + 'T23:59:59')
       .order('created_at', { ascending: false })
     setOrders((data ?? []) as LooseRow[])
     setLoading(false)
@@ -69,7 +75,7 @@ export default function UmurPiutangPage() {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [startDate, endDate])
 
   function getBucket(days: number): string {
     if (days < 30) return '< 30 hari'
@@ -78,13 +84,16 @@ export default function UmurPiutangPage() {
     return '> 90 hari'
   }
 
-  const today = new Date()
+  // BUG-015 fix: as-of date = endDate (reproducible)
+  const asOf = endDate && endDate !== '2099-12-31' ? new Date(endDate + 'T23:59:59') : new Date()
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
 
   orders.forEach((o) => {
-    const days = Math.floor((today.getTime() - new Date(o.created_at ?? '').getTime()) / (1000 * 60 * 60 * 24))
+    const days = Math.floor((asOf.getTime() - new Date(o.created_at ?? '').getTime()) / (1000 * 60 * 60 * 24))
     const bucket = getBucket(days)
-    buckets[bucket] += o.total_amount ?? 0
+    // BUG-015 fix: jumlahkan SISA tagihan (total − dp − lunas), bukan total penuh
+    const sisa = (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0)
+    buckets[bucket] += sisa > 0 ? sisa : 0
   })
 
   const bucketData = Object.entries(buckets).map(([bucket, amount]) => ({ bucket, amount }))
