@@ -84,14 +84,23 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }
 
         // Auto-create journal entry for PO received (inventory masuk)
+        // BUG-011 fix: jurnal pakai NOMINAL (actual_cost), bukan quantity materialQty.
+        // BUG-009 fix: wajib baseUrl di server context.
         try {
-          await createSimpleJournal({
-            transaction_type: 'purchase',
-            reference_type: 'purchase_order',
-            reference_id: id,
-            description: `PO received — material stock in`,
-            amount: materialQty
-          })
+          const poCost = Number(currentPO?.actual_cost ?? 0)
+          if (isNaN(poCost) || poCost <= 0) {
+            console.warn('Invalid actual_cost for PO received journal:', currentPO?.actual_cost)
+          } else {
+            await createSimpleJournal({
+              transaction_type: 'purchase',
+              reference_type: 'purchase_order',
+              reference_id: id,
+              description: `PO received — material stock in`,
+              amount: poCost,
+              baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+              supabase
+            })
+          }
         } catch (e) {
           console.warn('Failed to create journal entry for PO received:', e)
         }
@@ -115,7 +124,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             reference_type: 'purchase_order',
             reference_id: id,
             description: `PO payment — pelunasan tagihan supplier`,
-            amount: actualCostNum
+            amount: actualCostNum,
+            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+            supabase
           })
         } catch (e) {
           console.warn('Failed to create journal entry for PO payment:', e)

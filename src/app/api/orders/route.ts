@@ -64,6 +64,7 @@ export async function POST(request: Request) {
   if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
+  // BUG-009: wajib baseUrl di server context (fetch relatif throw di Node/Next route handler)
   if (order && data.total_amount && data.total_amount > 0) {
     try {
       await createSimpleJournal({
@@ -71,7 +72,9 @@ export async function POST(request: Request) {
         reference_type: 'order',
         reference_id: order.id,
         description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} — ${data.customer_id ?? ''}`,
-        amount: data.total_amount
+        amount: data.total_amount,
+        baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+        supabase
       })
     } catch (e) {
       console.warn('Failed to create journal entry for order:', e)

@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { formatRp } from '@/lib/utils'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface JournalLineInput {
   account_id: string
@@ -15,14 +16,21 @@ export interface CreateJournalOptions {
   entry_date?: string
   lines: JournalLineInput[]
   is_auto?: boolean
+  baseUrl?: string
 }
 
 /**
  * Create a journal entry via /api/journal.
- * Works in both server and browser contexts.
+ * BUG-009 fix (2026-08-11): di server context (Next.js route handler / Node 18+),
+ * `fetch` TIDAK mendukung URL relatif — `fetch('/api/journal')` throw
+ * "Failed to parse URL" sehingga semua jurnal server (order_created, purchase,
+ * expense_paid) diam-diam gagal. Solusi: pemanggil server wajib kirim `baseUrl`
+ * (biasanya process.env.NEXT_PUBLIC_BASE_URL); di browser cukup relative.
  */
 export async function createJournalEntry(options: CreateJournalOptions) {
-  const res = await fetch('/api/journal', {
+  const baseUrl = options.baseUrl?.replace(/\/$/, '')
+  const url = baseUrl ? `${baseUrl}/api/journal` : '/api/journal'
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(options)
@@ -34,10 +42,13 @@ export async function createJournalEntry(options: CreateJournalOptions) {
 
 /**
  * Get account mapping by transaction type.
+ * BUG-009 fix (2026-08-11): terima `supabase` client opsional — di server context
+ * browser client TANPA session tidak bisa baca account_mappings (RLS authenticated-only)
+ * → mapping null → jurnal gagal. Pemanggil server wajib kirim server client (ber-session).
  */
-export async function getAccountMapping(transactionType: string) {
-  const supabase = createClient()
-  const { data } = await supabase
+export async function getAccountMapping(transactionType: string, supabase?: SupabaseClient) {
+  const db = supabase ?? createClient()
+  const { data } = await db
     .from('account_mappings')
     .select(
       '*, debit_account:accounts!debit_account_id(id, code, name), credit_account:accounts!credit_account_id(id, code, name)'
@@ -61,10 +72,12 @@ export async function createSimpleJournal(options: {
   debit_account_id?: string
   credit_account_id?: string
   entry_date?: string
+  baseUrl?: string
+  supabase?: SupabaseClient
 }) {
-  const { transaction_type, reference_type, reference_id, description, amount, entry_date } = options
+  const { transaction_type, reference_type, reference_id, description, amount, entry_date, baseUrl, supabase } = options
 
-  const mapping = await getAccountMapping(transaction_type)
+  const mapping = await getAccountMapping(transaction_type, supabase)
   const debitAccountId = mapping?.debit_account_id ?? options.debit_account_id
   const creditAccountId = mapping?.credit_account_id ?? options.credit_account_id
 
@@ -80,6 +93,7 @@ export async function createSimpleJournal(options: {
     description,
     entry_date: entry_date ?? new Date().toISOString().split('T')[0],
     is_auto: true,
+    baseUrl: options.baseUrl,
     lines: [
       { account_id: debitAccountId, debit: amount, credit: 0 },
       { account_id: creditAccountId, debit: 0, credit: amount }

@@ -48,7 +48,15 @@ export async function fetchAccountBalances(
   const data = (accounts ?? []).map((a) => {
     const s = sums.get(a.id) ?? { debit: 0, credit: 0 }
     const raw = s.debit - s.credit
-    const balance = a.normal_side === 'credit' ? -raw : raw
+    // BUG-010 fix (2026-08-11): kolom `accounts.normal_side` TIDAK pernah diisi di
+    // migration (058 menyebut "kolom mati") → semua akun dulu dianggap debit-normal
+    // sehingga saldo liability/equity/revenue TERBALIK TANDA.
+    // Sekarang hitung tanda dari `accounts.type` (konsisten dgn halaman CoA):
+    //   asset / expense → normal debit  (balance = Σdebit − Σcredit)
+    //   liability / equity / revenue → normal credit (balance = Σcredit − Σdebit)
+    // `normal_side` (jika suatu saat diisi) tetap jadi override.
+    const isDebitNormal = a.normal_side ? a.normal_side === 'debit' : ['asset', 'expense'].includes(a.type)
+    const balance = isDebitNormal ? raw : -raw
     return { ...a, balance }
   })
 
