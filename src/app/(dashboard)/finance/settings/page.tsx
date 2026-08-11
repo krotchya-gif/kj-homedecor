@@ -73,43 +73,45 @@ export default function FinanceSettingsPage() {
   async function handleSaveCashBalances() {
     setSaving(true)
     let hadError: { message: string } | null = null
-    const previous: Record<string, number> = {}
-    // F-25 fix (2026-08-11): saldo awal via jurnal pembuka (Dr Kas / Cr Modal) —
-    // agar neraca balance dari awal. Simpan nilai lama untuk delta.
+    // F-6 fix (2026-08-12): HANYA lewat jurnal pembuka — TIDAK update balance langsung.
+    // Sebelumnya: update balance manual + jurnal delta → balance double-count.
+    // Sekarang RPC create_journal_atomic meng-update balance otomatis dari jurnal.
     for (const [id, balance] of Object.entries(cashForm)) {
       const { data: acc } = await supabase.from('cash_accounts').select('balance, account_id').eq('id', id).single()
-      previous[id] = Number(acc?.balance ?? 0)
-      const { error } = await supabase
-        .from('cash_accounts')
-        .update({ balance: Number(balance) || 0 })
-        .eq('id', id)
-      if (error) hadError = error
-
-      // Jurnal pembuka untuk SELISIH (Dr Kas / Cr Modal Pemilik — saldo awal)
+      const currentBalance = Number(acc?.balance ?? 0)
       const newBalance = Number(balance) || 0
-      const delta = newBalance - previous[id]
-      if (delta !== 0 && acc?.account_id) {
-        try {
-          const { createSimpleJournal } = await import('@/utils/journal/create')
-          await createSimpleJournal({
-            transaction_type: 'opening_balance',
-            reference_type: 'cash_account',
-            reference_id: id,
-            description: `Saldo awal kas/bank ${id.slice(0, 8)}`,
-            amount: Math.abs(delta),
-            debit_account_id: acc.account_id, // Dr Kas
-            credit_account_id: '44444444-4444-4444-8444-444444444401' // Cr Modal Pemilik
-          })
-        } catch (jErr) {
-          console.error('Gagal buat jurnal pembuka:', jErr)
-        }
+      const delta = newBalance - currentBalance
+      if (delta === 0) continue
+      if (!acc?.account_id) {
+        hadError = { message: `Akun kas ${id.slice(0, 8)} belum punya akun COA` }
+        continue
+      }
+
+      // Jurnal pembuka untuk SELISIH:
+      //   delta > 0 (saldo naik) → Dr Kas / Cr Modal
+      //   delta < 0 (saldo turun) → Cr Kas / Dr Modal
+      try {
+        const { createSimpleJournal } = await import('@/utils/journal/create')
+        const modalId = '44444444-4444-4444-8444-444444444401' // Modal Pemilik
+        await createSimpleJournal({
+          transaction_type: 'opening_balance',
+          reference_type: 'cash_account',
+          reference_id: id,
+          description: `Penyesuaian saldo kas/bank ${id.slice(0, 8)} (${delta > 0 ? 'naik' : 'turun'})`,
+          amount: Math.abs(delta),
+          debit_account_id: delta > 0 ? acc.account_id : modalId,
+          credit_account_id: delta > 0 ? modalId : acc.account_id
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal pembuka:', jErr)
+        hadError = { message: 'Jurnal penyesuaian saldo gagal — saldo tidak berubah' }
       }
     }
     await fetchData()
     setSaving(false)
     // F-63 fix: jangan tampilkan toast sukses DAN error bersamaan
     if (hadError) {
-      toast('error', '⚠️ Beberapa saldo gagal disimpan: ' + hadError.message)
+      toast('error', '⚠️ ' + hadError.message)
       return
     }
     toast('success', 'Saldo kas/bank berhasil disimpan!')

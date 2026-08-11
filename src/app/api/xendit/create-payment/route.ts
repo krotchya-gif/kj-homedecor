@@ -41,8 +41,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // Amount validation: amount must not exceed total_amount - total paid
-    const totalPaid = order.lunas_amount ?? 0
+    // F-7 fix: remaining = total − dp − lunas (sebelumnya abaikan dp_amount
+    // → customer bisa kelebihan bayar). 
+    const totalPaid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
     const remainingAmount = (order.total_amount ?? 0) - totalPaid
     if (amount > remainingAmount) {
       return NextResponse.json({
@@ -78,23 +79,9 @@ export async function POST(request: Request) {
 
     const xenditData = await xenditResponse.json()
 
-    // Determine payment type based on amount vs total
-    const isFullPayment = amount >= (order.total_amount ?? 0)
-    const paymentType = isFullPayment ? 'lunas' : 'dp'
-
-    // Store payment reference
-    const { error: insertError } = await supabase.from('payments').insert({
-      order_id,
-      type: paymentType,
-      amount,
-      date: new Date().toISOString(),
-      notes: `Xendit ${payment_type} - Invoice ${xenditData.id}`
-    })
-
-    if (insertError) {
-      console.error('Failed to record payment:', insertError)
-      return NextResponse.json({ error: 'Failed to record payment' }, { status: 500 })
-    }
+    // F-13 fix: TIDAK insert row payments di sini — row payments hanya dibuat
+    // oleh webhook saat status PAID/SETTLED (verified + jurnal). Insert intent
+    // di create-payment menghasilkan 2 row per charge + jurnal ganda.
 
     return NextResponse.json({
       success: true,

@@ -127,6 +127,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     updates.paid_by = user?.id
 
     // Auto-create journal entry for PO payment (hutang lunas)
+    // F-8 fix: pakai `hutang_paid` (Dr Hutang Supplier / Cr Kas) — bukan
+    // `expense_paid` (Dr Beban Gaji) yang membuat beban dobel & hutang tak pernah turun.
     if (currentPO?.actual_cost) {
       const actualCostNum = Number(currentPO.actual_cost)
       if (isNaN(actualCostNum) || actualCostNum <= 0) {
@@ -134,7 +136,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       } else {
         try {
           await createSimpleJournal({
-            transaction_type: 'expense_paid',
+            transaction_type: 'hutang_paid',
             reference_type: 'purchase_order',
             reference_id: id,
             description: `PO payment — pelunasan tagihan supplier`,

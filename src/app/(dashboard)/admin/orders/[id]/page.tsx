@@ -346,6 +346,12 @@ export default function OrderDetailPage() {
 
   async function updateStatus(newStatus: string, photoUrls: string[] = []) {
     if (!order) return
+    // F-2 fix: order TANPA pembayaran (pending) tidak bisa lanjut proses —
+    // Finance wajib input DP lalu approve (new → payment_ok / Cek Bayar).
+    if (order.payment_status === 'pending' && newStatus !== 'cancelled') {
+      toast('warning', 'Order belum dibayar — Finance wajib input DP lalu approve (Cek Bayar) sebelum order bisa diproses.')
+      return
+    }
     // Payment gate: packed/shipped/done tetap wajib lunas.
     // 2026-07-31: finance approve di DEPAN (new→payment_ok = verifikasi DP/lunas sudah masuk),
     // lunas penuh tetap wajib sebelum packed/dikirim.
@@ -885,19 +891,34 @@ export default function OrderDetailPage() {
       toast('error', 'Nominal pembayaran harus lebih dari 0.')
       return
     }
-    const sisaTagihan = (order.total_amount ?? 0) - (order.dp_amount ?? 0) - (order.lunas_amount ?? 0)
+    // F-2 fix: refetch order FRESH (hindari state basi / race dua admin bayar bersamaan)
+    const { data: fresh } = await supabase
+      .from('orders')
+      .select('id, total_amount, dp_amount, lunas_amount, payment_status')
+      .eq('id', id)
+      .single()
+    if (!fresh) {
+      setSavingPayment(false)
+      toast('error', 'Order tidak ditemukan.')
+      return
+    }
+    const sisaTagihan = (fresh.total_amount ?? 0) - (fresh.dp_amount ?? 0) - (fresh.lunas_amount ?? 0)
     if (amount > sisaTagihan) {
       setSavingPayment(false)
       toast('error', `Nominal pembayaran melebihi sisa tagihan (Rp ${sisaTagihan.toLocaleString('id-ID')}).`)
       return
     }
-    const { error: payErr } = await supabase.from('payments').insert({
-      order_id: id,
-      type: paymentForm.type,
-      amount,
-      verified_by: user?.id ?? null,
-      verified_at: new Date().toISOString()
-    })
+    const { data: paymentRow, error: payErr } = await supabase
+      .from('payments')
+      .insert({
+        order_id: id,
+        type: paymentForm.type,
+        amount,
+        verified_by: user?.id ?? null,
+        verified_at: new Date().toISOString()
+      })
+      .select('id')
+      .single()
     if (payErr) { setSavingPayment(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
 
     // BUG/F-24 fix (2026-08-11): pembayaran via admin detail JUGA harus bikin jurnal
@@ -908,22 +929,22 @@ export default function OrderDetailPage() {
         reference_type: 'order',
         reference_id: id,
         description: `Pembayaran ${paymentForm.type === 'dp' ? 'DP' : 'Lunas'} Rp${amount.toLocaleString('id-ID')} oleh Admin`,
-        amount
+        amount,
+        // F-54 fix: idempotent per payment — retry tidak bikin jurnal ganda
+        idempotency_key: paymentRow?.id ? `payment:${paymentRow.id}` : undefined
       })
     } catch (jErr) {
       console.error('Gagal buat jurnal pembayaran admin:', jErr)
       toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun.')
     }
 
-    // Update order dp/lunas
-    const newDp = paymentForm.type === 'dp' ? order.dp_amount + amount : order.dp_amount
-    const newLunas =
-      paymentForm.type === 'lunas'
-        ? order.lunas_amount + amount
-        : paymentForm.type === 'dp'
-          ? Math.max(0, order.total_amount - newDp)
-          : order.lunas_amount
-    const newPaid = newDp + newLunas >= order.total_amount ? 'paid' : newDp > 0 ? 'partial' : 'pending'
+    // F-2 fix: hitungan JUJUR — DP TIDAK mengisi lunas_amount fiktif.
+    // DP → partial; lunas penuh → paid. Payment gate packed tetap wajib paid.
+    const newDp = paymentForm.type === 'dp' ? fresh.dp_amount + amount : fresh.dp_amount
+    const newLunas = paymentForm.type === 'lunas' ? fresh.lunas_amount + amount : fresh.lunas_amount
+    const paidSum = newDp + newLunas
+    const newPaid =
+      paidSum >= (fresh.total_amount ?? 0) && fresh.total_amount > 0 ? 'paid' : paidSum > 0 ? 'partial' : 'pending'
     const { error: ordErr } = await supabase
       .from('orders')
       .update({
@@ -932,7 +953,15 @@ export default function OrderDetailPage() {
         payment_status: newPaid
       })
       .eq('id', id)
-    if (ordErr) { setSavingPayment(false); toast('error', 'Gagal update status pembayaran: ' + ordErr.message); return }
+      .eq('dp_amount', fresh.dp_amount)
+      .eq('lunas_amount', fresh.lunas_amount)
+    if (ordErr) {
+      // F-2 fix: guard gagal (race) → rollback row payments agar tidak yatim
+      await supabase.from('payments').delete().eq('id', paymentRow?.id ?? '')
+      setSavingPayment(false)
+      toast('error', 'Gagal update status pembayaran (mungkin dibayar admin lain). Row payment di-rollback: ' + ordErr.message)
+      return
+    }
     const { error: payLogErr } = await supabase.from('order_logs').insert({
       order_id: id,
       action: 'payment_added',

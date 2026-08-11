@@ -407,26 +407,32 @@ export default function FinancePaymentsPage() {
       return
     }
 
-    // 1) Catat refund di tabel payments
-    const { error: refundErr } = await supabase.from('payments').insert({
-      order_id: returnRecord.order_id,
-      type: 'refund',
-      amount: refundAmount,
-      date: new Date().toISOString(),
-      verified_by: user?.id ?? null,
-      verified_at: new Date().toISOString(),
-      notes: `Refund untuk return: ${returnRecord.reason}`
-    })
+    // 1) Catat refund di tabel payments — F-11 fix: idempotency key = return id
+    // (kalau klik ganda, insert kedua gagal UNIQUE di jurnal / guard di atas sudah blokir)
+    const { data: refundRow, error: refundErr } = await supabase
+      .from('payments')
+      .insert({
+        order_id: returnRecord.order_id,
+        type: 'refund',
+        amount: refundAmount,
+        date: new Date().toISOString(),
+        verified_by: user?.id ?? null,
+        verified_at: new Date().toISOString(),
+        notes: `Refund untuk return: ${returnRecord.reason}`
+      })
+      .select('id')
+      .single()
     if (refundErr) { setProcessingRefund(null); toast('error', 'Gagal catat refund: ' + refundErr.message); return }
 
-    // 2) Jurnal reversal — Dr Piutang / Cr Kas (membalik pembayaran)
+    // 2) Jurnal reversal — F-11 fix: idempotent per refund payment
     try {
       await createSimpleJournal({
         transaction_type: 'refund_issued',
         reference_type: 'return',
         reference_id: returnRecord.id,
         description: `Refund Rp${fmt(refundAmount)} untuk return order ${returnRecord.order_id.slice(0, 8)}`,
-        amount: refundAmount
+        amount: refundAmount,
+        idempotency_key: refundRow?.id ? `refund:${refundRow.id}` : undefined
       })
     } catch (e) {
       console.error('Gagal buat jurnal refund:', e)
@@ -434,6 +440,7 @@ export default function FinancePaymentsPage() {
     }
 
     // 3) Kurangi dp/lunas order (lunas dulu, baru dp) + hitung ulang payment_status
+    // F-11 fix: optimistic guard (race 2 finance) + rollback refund row kalau gagal
     let newLunas = freshOrder?.lunas_amount ?? 0
     let newDp = freshOrder?.dp_amount ?? 0
     let sisaRefund = refundAmount
@@ -447,7 +454,14 @@ export default function FinancePaymentsPage() {
       .from('orders')
       .update({ dp_amount: newDp, lunas_amount: newLunas, payment_status: newPayStatus })
       .eq('id', returnRecord.order_id)
-    if (ordErr) { console.error('Gagal update order setelah refund:', ordErr) }
+      .eq('dp_amount', freshOrder?.dp_amount ?? 0)
+      .eq('lunas_amount', freshOrder?.lunas_amount ?? 0)
+    if (ordErr) {
+      await supabase.from('payments').delete().eq('id', refundRow?.id ?? '')
+      setProcessingRefund(null)
+      toast('error', 'Refund dibatalkan — order berubah bersamaan oleh proses lain: ' + ordErr.message)
+      return
+    }
 
     // 4) Tandai return selesai (RLS diperbaiki di migration 063 — is_finance_role)
     const { error: retUpdErr } = await supabase.from('returns').update({ refund_status: 'completed' }).eq('id', returnRecord.id)

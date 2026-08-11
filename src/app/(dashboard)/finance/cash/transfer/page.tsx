@@ -32,6 +32,8 @@ export default function TransferPage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  // F-10 fix: idempotency key STABIL per submit
+  const [submitKey, setSubmitKey] = useState(() => crypto.randomUUID())
   const [form, setForm] = useState({
     from_account_id: '',
     to_account_id: '',
@@ -97,7 +99,7 @@ export default function TransferPage() {
           entry_date: form.entry_date || new Date().toISOString().split('T')[0],
           reference_type: 'transfer',
           // F-54 fix: idempotency key — klik ganda tidak bikin jurnal ganda
-          idempotency_key: `transfer:${crypto.randomUUID()}`,
+          idempotency_key: `transfer:${submitKey}`,
           lines: [
             { account_id: toAcc.account_id, debit: amount, credit: 0 },
             { account_id: fromAcc.account_id, debit: 0, credit: amount }
@@ -112,6 +114,8 @@ export default function TransferPage() {
       // F-19/F-18 fix: saldo kas asal & tujuan di-update ATOMIK dalam create_journal_atomic
       // (baris-baris akun kas otomatis mengubah cash_accounts.balance dalam 1 transaksi)
       setShowForm(false)
+      // F-10 fix: key baru hanya setelah SUBMIT SUKSES
+      setSubmitKey(crypto.randomUUID())
       fetchData()
       toast('success', 'Transfer kas berhasil dicatat')
     } catch (err) {

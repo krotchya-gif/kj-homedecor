@@ -75,20 +75,39 @@ export async function POST(request: Request) {
           // Unique violation = duplicate webhook delivery, idempotent success
           if (insertError) {
             if (insertError.code === '23505') {
-              // unique_violation
               console.log(`Xendit webhook: payment ${id} already processed (idempotent)`)
+              // F-12 fix: kalau jurnal pertama GAGAL (mis. mapping error), retry
+              // webhook tidak boleh meng-skip jurnal selamanya — cek & buat ulang.
+              const { data: existingJournal } = await supabase
+                .from('journal_entries')
+                .select('id')
+                .eq('idempotency_key', `xendit:${id}`)
+                .maybeSingle()
+              if (!existingJournal) {
+                try {
+                  const { createSimpleJournal } = await import('@/utils/journal/create')
+                  await createSimpleJournal({
+                    transaction_type: 'payment_received',
+                    reference_type: 'order',
+                    reference_id: order.id,
+                    description: `Pembayaran Xendit ${type} — ${id}`,
+                    amount,
+                    baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+                    supabase,
+                    idempotency_key: `xendit:${id}`
+                  })
+                  console.log(`Xendit webhook: jurnal retry berhasil untuk ${id}`)
+                } catch (jErr) {
+                  console.error('Gagal buat jurnal Xendit (retry path):', jErr)
+                }
+              }
               return NextResponse.json({ data: { success: true, idempotent: true }, error: null })
             }
             console.error('Failed to insert payment record:', insertError)
             return NextResponse.json({ data: null, error: { message: 'Failed to record payment' } }, { status: 500 })
           }
 
-          // Payment successfully inserted — now update order lunas_amount
-          const newLunas = order.lunas_amount + amount
-          const isFullyPaid = newLunas >= order.total_amount
-
-          // F-13 fix (2026-08-11): webhook juga harus bikin jurnal payment_received
-          // (sebelumnya Xendit payment TANPA jurnal → kas tidak tercatat di buku besar).
+          // F-12 fix: jurnal dibuat SEKALI per payment (idempotency key = xendit id)
           try {
             const { createSimpleJournal } = await import('@/utils/journal/create')
             await createSimpleJournal({
@@ -98,21 +117,39 @@ export async function POST(request: Request) {
               description: `Pembayaran Xendit ${type} — ${id}`,
               amount,
               baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-              supabase
+              supabase,
+              idempotency_key: `xendit:${id}`
             })
           } catch (jErr) {
             console.error('Gagal buat jurnal Xendit payment:', jErr)
           }
 
-          // Webhook hanya update payment info (lunas_amount + payment_status).
-          // Status pipeline TIDAK di-auto-advance — Admin/Finance yang atur manual.
-          await supabase
-            .from('orders')
-            .update({
-              lunas_amount: newLunas,
-              payment_status: isFullyPaid ? 'paid' : 'partial'
-            })
-            .eq('id', order.id)
+          // F-12 fix: update order dengan optimistic guard + retry (anti lost-update
+          // saat webhook DP & Lunas tiba hampir bersamaan).
+          let updated = false
+          for (let attempt = 0; attempt < 3 && !updated; attempt++) {
+            const { data: freshOrder } = await supabase
+              .from('orders')
+              .select('dp_amount, lunas_amount, total_amount')
+              .eq('id', order.id)
+              .single()
+            if (!freshOrder) break
+            const newLunas = (freshOrder.lunas_amount ?? 0) + amount
+            const isFullyPaid = newLunas >= (freshOrder.total_amount ?? 0)
+            const { error: updErr } = await supabase
+              .from('orders')
+              .update({
+                lunas_amount: newLunas,
+                payment_status: isFullyPaid ? 'paid' : 'partial'
+              })
+              .eq('id', order.id)
+              .eq('lunas_amount', freshOrder.lunas_amount)
+            if (!updErr) {
+              updated = true
+            } else if (attempt === 2) {
+              console.error('Xendit webhook: gagal update order setelah 3 percobaan:', updErr)
+            }
+          }
         }
       }
 

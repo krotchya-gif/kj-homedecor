@@ -161,24 +161,31 @@ export default function HutangPage() {
     if (!paymentItem) return
     setSaving(true)
     const payAmount = Number(payForm.amount) || 0
-    if (paymentItem.status === 'cancelled') {
-      setSaving(false)
-      toast('error', 'Hutang ini sudah dibatalkan — tidak bisa dibayar.')
-      return
-    }
-    const sisaBefore = (paymentItem.amount ?? 0) - (paymentItem.paid_amount ?? 0) - (paymentItem.return_amount ?? 0)
     if (payAmount <= 0) {
       setSaving(false)
       toast('error', 'Nominal pembayaran harus lebih dari 0.')
       return
     }
+    // F-11 fix: refetch FRESH (anti race 2 finance bayar bersamaan)
+    const { data: fresh } = await supabase
+      .from('hutang')
+      .select('id, amount, paid_amount, return_amount, status, invoice_number, supplier:suppliers(name)')
+      .eq('id', paymentItem.id)
+      .single()
+    if (!fresh) { setSaving(false); toast('error', 'Hutang tidak ditemukan.'); return }
+    if (fresh.status === 'cancelled') {
+      setSaving(false)
+      toast('error', 'Hutang ini sudah dibatalkan — tidak bisa dibayar.')
+      return
+    }
+    const sisaBefore = (fresh.amount ?? 0) - (fresh.paid_amount ?? 0) - (fresh.return_amount ?? 0)
     if (payAmount > sisaBefore) {
       setSaving(false)
       toast('error', `Nominal pembayaran melebihi sisa hutang (Rp ${sisaBefore.toLocaleString('id-ID')}).`)
       return
     }
-    const newPaidAmount = (paymentItem.paid_amount ?? 0) + payAmount
-    const sisa = (paymentItem.amount ?? 0) - newPaidAmount - (paymentItem.return_amount ?? 0)
+    const newPaidAmount = (fresh.paid_amount ?? 0) + payAmount
+    const sisa = (fresh.amount ?? 0) - newPaidAmount - (fresh.return_amount ?? 0)
     const newStatus = sisa <= 0 ? 'paid' : 'partial'
     const { error } = await supabase
       .from('hutang')
@@ -187,17 +194,21 @@ export default function HutangPage() {
         status: newStatus
       })
       .eq('id', paymentItem.id)
-    if (error) { setSaving(false); toast('error', 'Gagal simpan pembayaran hutang: ' + error.message); return }
+      .eq('paid_amount', fresh.paid_amount)
+      .eq('return_amount', fresh.return_amount)
+    if (error) { setSaving(false); toast('error', 'Gagal simpan pembayaran hutang (mungkin dibayar finance lain): ' + error.message); return }
 
     // BUG-013 fix (2026-08-11): bayar hutang wajib jurnal Dr Hutang Supplier / Cr Kas
-    // (sebelumnya uang keluar bayar supplier tidak terlihat di buku besar sama sekali).
+    // F-11 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
+    const payRefId = crypto.randomUUID()
     try {
       await createSimpleJournal({
         transaction_type: 'hutang_paid',
         reference_type: 'hutang',
         reference_id: paymentItem.id,
-        description: `Pembayaran hutang ${paymentItem.invoice_number ?? 'Invoice'} — ${paymentItem.supplier?.name ?? ''} Rp${payAmount.toLocaleString('id-ID')}`,
-        amount: payAmount
+        description: `Pembayaran hutang ${fresh.invoice_number ?? 'Invoice'} — ${(fresh.supplier as { name?: string } | null)?.name ?? ''} Rp${payAmount.toLocaleString('id-ID')}`,
+        amount: payAmount,
+        idempotency_key: `hutang_paid:${paymentItem.id}:${payRefId}`
       })
     } catch (jErr) {
       console.error('Gagal buat jurnal bayar hutang:', jErr)

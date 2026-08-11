@@ -34,6 +34,9 @@ export default function IncomePage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  // F-10 fix: idempotency key STABIL per submit — dibuat saat mount, di-reset
+  // setelah sukses. Retry/klik ganda dengan key sama → RPC dedup (tidak dobel).
+  const [submitKey, setSubmitKey] = useState(() => crypto.randomUUID())
   const [form, setForm] = useState({
     cash_account_id: '',
     revenue_account_id: '',
@@ -92,7 +95,7 @@ export default function IncomePage() {
           entry_date: form.entry_date || new Date().toISOString().split('T')[0],
           reference_type: 'pemasukan',
           // F-54 fix: idempotency key — klik ganda tidak bikin jurnal ganda
-          idempotency_key: `pemasukan:${crypto.randomUUID()}`,
+          idempotency_key: `pemasukan:${submitKey}`,
           lines: [
             { account_id: cashAcc.account_id, debit: amount, credit: 0 },
             { account_id: form.revenue_account_id, debit: 0, credit: amount }
@@ -106,6 +109,8 @@ export default function IncomePage() {
       }
       // F-19 fix: saldo kas di-update ATOMIK dalam create_journal_atomic (1 transaksi)
       setShowForm(false)
+      // F-10 fix: key baru hanya setelah SUBMIT SUKSES
+      setSubmitKey(crypto.randomUUID())
       fetchData()
       toast('success', 'Pemasukan tercatat')
     } catch (err) {

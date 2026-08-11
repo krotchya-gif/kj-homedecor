@@ -182,7 +182,18 @@ export default function FakturPage() {
     if (!payItem) return
     setPaying(true)
     const amount = Number(payForm.amount)
-    const sisa = (payItem.amount ?? 0) - (payItem.paid_amount ?? 0) - (payItem.return_amount ?? 0)
+    // F-11 fix: refetch FRESH (anti race 2 finance bayar bersamaan)
+    const { data: fresh } = await supabase
+      .from('piutang')
+      .select('id, amount, paid_amount, return_amount, status, invoice_number, customer:customers(name)')
+      .eq('id', payItem.id)
+      .single()
+    if (!fresh) {
+      setPaying(false)
+      toast('error', 'Faktur tidak ditemukan.')
+      return
+    }
+    const sisa = (fresh.amount ?? 0) - (fresh.paid_amount ?? 0) - (fresh.return_amount ?? 0)
     if (!payForm.amount || isNaN(amount) || amount <= 0) {
       setPaying(false)
       toast('error', 'Nominal wajib diisi dan lebih dari 0.')
@@ -193,17 +204,19 @@ export default function FakturPage() {
       toast('error', `Nominal melebihi sisa tagihan (${formatRp(sisa)}).`)
       return
     }
-    const newPaid = (payItem.paid_amount ?? 0) + amount
-    const newSisa = (payItem.amount ?? 0) - newPaid - (payItem.return_amount ?? 0)
+    const newPaid = (fresh.paid_amount ?? 0) + amount
+    const newSisa = (fresh.amount ?? 0) - newPaid - (fresh.return_amount ?? 0)
     const newStatus = newSisa <= 0 ? 'paid' : 'partial'
 
     const { error: updErr } = await supabase
       .from('piutang')
       .update({ paid_amount: newPaid, status: newStatus, remaining: newSisa })
       .eq('id', payItem.id)
+      .eq('paid_amount', fresh.paid_amount)
+      .eq('return_amount', fresh.return_amount)
     if (updErr) {
       setPaying(false)
-      toast('error', 'Gagal simpan pembayaran: ' + updErr.message)
+      toast('error', 'Gagal simpan pembayaran (mungkin dibayar finance lain): ' + updErr.message)
       return
     }
 
@@ -212,8 +225,10 @@ export default function FakturPage() {
         transaction_type: 'piutang_received',
         reference_type: 'piutang',
         reference_id: payItem.id,
-        description: `Pembayaran piutang ${payItem.invoice_number ?? 'Faktur'} — ${payItem.customer?.name ?? ''} Rp${amount.toLocaleString('id-ID')}`,
-        amount
+        description: `Pembayaran piutang ${fresh.invoice_number ?? 'Faktur'} — ${(fresh.customer as { name?: string } | null)?.name ?? ''} Rp${amount.toLocaleString('id-ID')}`,
+        amount,
+        // F-11 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
+        idempotency_key: `piutang_paid:${payItem.id}:${crypto.randomUUID()}`
       })
     } catch (jErr) {
       console.error('Gagal buat jurnal terima piutang:', jErr)

@@ -81,10 +81,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
-  // Get requester role
+  // Get requester role — F-21 fix: lookup gagal → DENY (bukan fail-open ke 'admin')
   const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
+  if (!requester) {
+    return NextResponse.json({ data: null, error: { message: 'User profile tidak ditemukan' } }, { status: 403 })
+  }
 
-  const userRole = requester?.role ?? 'admin'
+  const userRole = requester.role ?? ''
   const body = await request.json()
 
   // Validate status transition if status is being changed
@@ -140,6 +143,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           }
         },
         { status: 400 }
+      )
+    }
+
+    // F-2 fix: order TANPA pembayaran (pending) tidak bisa lanjut proses —
+    // Finance wajib input DP lalu approve (new → payment_ok). Kecuali:
+    // - transisi ke 'cancelled' (boleh siapa pun yang punya izin status itu)
+    // - role finance (dia yang approve new → payment_ok)
+    if (current.payment_status === 'pending' && body.status !== 'cancelled' && userRole !== 'finance') {
+      return NextResponse.json(
+        {
+          data: null,
+          error: {
+            message: 'Order belum dibayar — Finance wajib input DP lalu approve (Cek Bayar) sebelum order bisa diproses.'
+          }
+        },
+        { status: 403 }
       )
     }
 

@@ -34,6 +34,8 @@ export default function ExpensePage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
+  // F-10 fix: idempotency key STABIL per submit
+  const [submitKey, setSubmitKey] = useState(() => crypto.randomUUID())
   const [form, setForm] = useState({
     cash_account_id: '',
     expense_account_id: '',
@@ -92,7 +94,7 @@ export default function ExpensePage() {
           entry_date: form.entry_date || new Date().toISOString().split('T')[0],
           reference_type: 'pengeluaran',
           // F-54 fix: idempotency key — klik ganda tidak bikin jurnal ganda
-          idempotency_key: `pengeluaran:${crypto.randomUUID()}`,
+          idempotency_key: `pengeluaran:${submitKey}`,
           lines: [
             { account_id: form.expense_account_id, debit: amount, credit: 0 },
             { account_id: cashAcc.account_id, debit: 0, credit: amount }
@@ -106,6 +108,8 @@ export default function ExpensePage() {
     }
     // F-19 fix: saldo kas di-update ATOMIK dalam create_journal_atomic (1 transaksi)
     setShowForm(false)
+    // F-10 fix: key baru hanya setelah SUBMIT SUKSES
+    setSubmitKey(crypto.randomUUID())
     fetchData()
     toast('success', 'Pengeluaran tercatat')
     } catch (err) {
