@@ -55,10 +55,17 @@ END $$;
 -- Known SECURITY DEFINER functions and fix status:
 -- ============================================================
 -- 1. increment_stock_toko         — update stock, should check admin/gudang/owner
--- 2. process_return_refund        — financial impact, should check admin/owner/finance
--- 3. create_journal_entry         — accounting, should check admin/owner/finance
--- 4. approve_stock_opname         — inventory adjustment, should check admin/gudang/owner
--- 5. record_material_consumption  — HPP tracking, should check admin/gudang/owner
+-- 2. process_return_refund        — TIDAK ADA (verifikasi 2026-08-12: 404 di live,
+--                                    tidak pernah dibuat; tidak dipakai kode)
+-- 3. create_journal_entry         — TIDAK ADA (verifikasi 2026-08-12: 404 di live;
+--                                    jurnal modern pakai create_journal_atomic)
+-- 4. approve_stock_opname         — TIDAK ADA (verifikasi 2026-08-12: 404 di live)
+-- 5. record_material_consumption  — TIDAK ADA (verifikasi 2026-08-12: 404 di live;
+--                                    konsumsi material pakai consume_materials_for_production)
+--
+-- Status final (2026-08-12): SEMUA fungsi SECURITY DEFINER yang ADA di live sudah
+-- punya role check (is_finance_role / is_admin_or_owner_sd / EXISTS role) —
+-- lihat migration 063/067/071 & 000_full_schema.sql section 10.
 --
 -- Fix pattern for each function:
 --
