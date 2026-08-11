@@ -303,17 +303,28 @@ export default function OrdersPage() {
       return
     }
 
-    // Auto-create verified payment for marketplace orders that are fully paid
-    const marketplaceSources = ['shopee', 'tokopedia', 'tiktok']
-    if (newOrder && marketplaceSources.includes(form.source) && dpAmt >= totalAmt && totalAmt > 0) {
+    // BUG-004 fix (Opsi B): auto-catat pembayaran ke tabel payments (jejak akuntansi).
+    // Berlaku SEMUA source (offline/landing_page/marketplace) selama admin input DP > 0.
+    // verified_by = admin yang membuat pesanan.
+    // ATURAN: auto-record BUKAN approve — klik Approve oleh Finance di /finance/payments
+    // tetap wajib (cek bayar). Order belum lunas → Finance yang approve atau input pelunasan.
+    if (newOrder && dpAmt > 0 && totalAmt > 0) {
+      const {
+        data: { user: adminUser }
+      } = await supabase.auth.getUser()
       const { error: payErr } = await supabase.from('payments').insert({
         order_id: newOrder.id,
-        type: dpAmt === totalAmt ? 'lunas' : 'dp',
-        amount: dpAmt === totalAmt ? totalAmt : dpAmt,
-        date: new Date().toISOString(),
-        notes: `Auto-verified: Order dari ${form.source}`
+        type: dpAmt >= totalAmt ? 'lunas' : 'dp',
+        amount: dpAmt >= totalAmt ? totalAmt : dpAmt,
+        date: new Date().toISOString().slice(0, 10),
+        verified_by: adminUser?.id ?? null,
+        verified_at: new Date().toISOString(),
+        notes: `Auto-catat ${dpAmt >= totalAmt ? 'lunas' : 'DP'} oleh Admin saat buat pesanan (source: ${form.source})`
       })
-      if (payErr) { console.error('Auto-create payment gagal:', payErr); toast('error', '⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message) }
+      if (payErr) {
+        console.error('Auto-catat pembayaran gagal:', payErr)
+        toast('error', '⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message)
+      }
     }
 
     setSaving(false)

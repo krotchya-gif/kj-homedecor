@@ -35,7 +35,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   async function loadData() {
     setLoading(true)
     const [{ data: prods }, { data: cats }] = await Promise.all([
-      supabase.from('products').select('*, category:categories(*)').eq('is_catalog_visible', true).order('name'),
+      supabase.from('products').select('*, category:categories(*)').eq('is_catalog_visible', true).gt('price', 0).order('name'),
       supabase.from('categories').select('*').order('name')
     ])
     setProducts((prods as Product[]) ?? [])

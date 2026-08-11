@@ -19,11 +19,14 @@
 > ⚠️ Validasi: nominal harus > 0 dan akun kas wajib dipilih (kalau tidak, muncul pesan).
 
 ## 2. Pembayaran Order (Opsi A — finance approve di depan)
-1. **Input pembayaran** (Finance/Admin): bukti transfer (foto) + nominal → status pembayaran: pending/partial/paid
+1. **Input pembayaran** (Finance/Admin): nominal → status pembayaran: pending/partial/paid
+   - Nominal tidak boleh melebihi sisa tagihan (ditolak)
+   - ⚡ Jika Admin buat order dengan DP → otomatis tercatat di tabel pembayaran (jejak akuntansi)
 2. **Approve (Cek Bayar)**: Finance klik "Approve Pembayaran" di halaman Finance → Pembayaran:
-   - Verifikasi bukti sudah masuk
+   - Klik Approve = verifikasi manual Finance bahwa pembayaran sudah masuk (DP/lunas)
    - Order pindah: Baru → Cek Bayar (bisa lanjut sortir/produksi)
    - ⚠️ Gate: order **harus lunas** sebelum Dikemas/Terkirim/Selesai
+   - ⚠️ Order belum lunas: **hanya Finance** yang bisa approve / input pelunasan — admin tidak bisa bypass
 3. Catatan: nominal pembayaran **tidak boleh melebihi sisa tagihan** (ditolak)
 
 ## 3. Hutang (ke supplier)

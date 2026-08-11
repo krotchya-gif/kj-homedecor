@@ -25,7 +25,7 @@ const IMPORT_COLUMNS = [
   { key: 'sku', label: 'SKU', aliases: ['kode_sku', 'kode'] },
   { key: 'kode_kain', label: 'Kode Kain', aliases: [] },
   { key: 'category_name', label: 'Kategori', aliases: ['kategori'], required: true },
-  { key: 'price', label: 'Harga', aliases: ['harga', 'harga_jual'], required: true },
+  { key: 'price', label: 'Harga', aliases: ['harga', 'harga_jual'] },
   { key: 'stock_toko', label: 'Stok Toko', aliases: ['stok'] },
   { key: 'description', label: 'Deskripsi', aliases: ['keterangan', 'desc'] },
   { key: 'product_type', label: 'Tipe/Jenis', aliases: ['jenis', 'type'] },
@@ -287,7 +287,7 @@ export default function ProductsPage() {
       sku: form.sku || null,
       kode_kain: form.kode_kain || null,
       category_id: form.category_id || null,
-      price: Number(form.price),
+      price: form.price ? Number(form.price) : 0,
       stock_toko: Number(form.stock_toko),
       description: form.description || null,
       is_featured: form.is_featured,
@@ -548,7 +548,21 @@ export default function ProductsPage() {
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Harga</span>
                   <span className="mobile-card-value" style={{ color: '#cc7030' }}>
-                    {formatRp(p.price)}
+                    {p.price > 0 ? formatRp(p.price) : <span style={{ color: 'var(--neutral-400)', fontWeight: '400' }}>— (belum di-set)</span>}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">HPP</span>
+                  <span className="mobile-card-value">
+                    {(p.hpp_calculated ?? 0) > 0 || (p.hpp_manual ?? 0) > 0 ? (
+                      <span style={{ background: '#d1fae5', color: '#065f46', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>
+                        ✅ {formatRp(p.hpp_calculated ?? p.hpp_manual ?? 0)}
+                      </span>
+                    ) : (
+                      <span style={{ background: '#ffedd5', color: '#9a3412', padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>
+                        🟠 belum dihitung
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="mobile-card-row">
@@ -627,7 +641,13 @@ export default function ProductsPage() {
                   </td>
                   <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.8rem' }}>{p.sku ?? '—'}</td>
                   <td style={{ color: 'var(--neutral-600)' }}>{p.kode_kain ?? '—'}</td>
-                  <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
+                  <td style={{ fontWeight: '600', color: '#cc7030' }}>
+                    {p.price > 0 ? (
+                      formatRp(p.price)
+                    ) : (
+                      <span style={{ color: 'var(--neutral-400)', fontWeight: '400' }}>—</span>
+                    )}
+                  </td>
                   <td>{p.stock_toko}</td>
                   <td>
                     {p.is_featured && (
@@ -645,6 +665,41 @@ export default function ProductsPage() {
                         }}
                       >
                         <Star size={10} /> Unggulan
+                      </span>
+                    )}
+                    {(p.hpp_calculated ?? 0) > 0 || (p.hpp_manual ?? 0) > 0 ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.2rem',
+                          background: '#d1fae5',
+                          color: '#065f46',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          marginLeft: '0.25rem'
+                        }}
+                      >
+                        ✅ HPP: {formatRp(p.hpp_calculated ?? p.hpp_manual ?? 0)}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.2rem',
+                          background: '#ffedd5',
+                          color: '#9a3412',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: '600',
+                          marginLeft: '0.25rem'
+                        }}
+                      >
+                        🟠 HPP belum dihitung
                       </span>
                     )}
                     {p.is_custom && (
@@ -797,7 +852,7 @@ export default function ProductsPage() {
           </div>
           {(
             [
-              { label: 'Harga Jual (Rp) *', id: 'price', placeholder: '250000', type: 'number' },
+              { label: 'Harga Jual (Rp)', id: 'price', placeholder: 'Kosongkan — di-set Owner via HPP', type: 'number' },
               { label: 'Stok Toko', id: 'stock_toko', placeholder: '0', type: 'number' }
             ] as Field[]
           ).map((field) => (
@@ -828,6 +883,11 @@ export default function ProductsPage() {
                   outline: 'none'
                 }}
               />
+              {field.id === 'price' && (
+                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-400)', margin: '0.25rem 0 0' }}>
+                  Kosongkan jika belum ada — harga jual final ditetapkan Owner lewat perhitungan HPP (/owner/hpp).
+                </p>
+              )}
             </div>
           ))}
           <div>

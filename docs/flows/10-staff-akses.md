@@ -13,12 +13,13 @@
 | Role | Menu utama |
 |---|---|
 | `owner` | Semua menu + kelola staff |
-| `admin` | Pesanan, katalog, pelanggan, booking, pengiriman, dll (tanpa kelola staff) |
+| `admin` | Pesanan, katalog, pelanggan, booking, pengiriman, laundry, dll (tanpa kelola staff) |
 | `finance` | Pembayaran, kas, hutang, piutang, laporan |
 | `gudang` | Sortir, produksi, steam/QC, packing, pembelian |
 | `penjahit` | Job produksi miliknya |
 | `installer` | Jadwal pemasangan |
 | `surveyor` | Survey (hanya milik sendiri) |
+| `laundry` | Melayani laundry (dikelola lewat menu Admin → Laundry; belum punya dashboard sendiri) |
 
 ## Langkah-langkah
 1. Owner buka **Pengaturan → Staff**
@@ -32,9 +33,10 @@
 - Hanya **Owner** yang bisa kelola staff (API dicek di server — bukan hanya UI)
 - Password wajib minimal 6 karakter (divalidasi di server)
 - Staff tidak boleh mengubah role/hak akses sendiri
-- `user.md` di repo = daftar akun & role — **wajib disinkronkan** setiap ada perubahan
+- `USER.md` di repo = daftar akun & role — **wajib disinkronkan** setiap ada perubahan
 
 ## Keamanan
-- Semua endpoint API memverifikasi **role** di server (RLS + role check)
+- Semua halaman dashboard dilindungi `proxy.ts` (login wajib + role per halaman)
 - Surveyor hanya melihat data miliknya (RLS `surveyor_id = auth.uid()`)
 - Admin/Owner melihat semua
+- ⚠️ Catatan: beberapa endpoint API masih hanya cek "sudah login" (tanpa role check) — audit berjalan, jangan anggap semua API sudah role-gated

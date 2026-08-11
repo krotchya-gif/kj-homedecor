@@ -240,8 +240,11 @@ export default function FinancePaymentsPage() {
 
     const paidSum = freshOrder.dp_amount + freshOrder.lunas_amount
     // 2026-07-31 Opsi A: approve di DEPAN — finance verifikasi pembayaran (DP/lunas) SUDAH MASUK
-    // sebelum produksi. Cukup ada pembayaran tercatat & diverifikasi; lunas penuh tetap
+    // sebelum produksi. Cukup ada pembayaran tercatat; lunas penuh tetap
     // wajib sebelum packed (payment gate di API route).
+    // BUG-004 fix (Opsi B): DP yang dicatat Admin saat buat pesanan otomatis masuk tabel
+    // payments (auto-record di admin/orders). Tidak ada lagi blok getVerifiedPayment —
+    // klik Approve oleh Finance SENDIRI adalah verifikasi final (cek bayar terakhir).
     if (paidSum <= 0) {
       toast('error', 'Gagal Approve — Belum ada pembayaran tercatat (DP/lunas). Catat pembayaran dulu.')
       return
@@ -250,11 +253,9 @@ export default function FinancePaymentsPage() {
       toast('error', `Gagal Approve — payment_status masih 'pending'. Catat DP/lunas dulu sebelum approve.`)
       return
     }
-    const verifiedPayment = await getVerifiedPayment(freshOrder.id)
-    if (!verifiedPayment) {
-      toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
-      return
-    }
+
+    const sisaTagihan = (freshOrder.total_amount ?? 0) - paidSum
+    const belumLunas = sisaTagihan > 0
 
     // ALUR BARU (Opsi A, 2026-07-31): Finance 1 klik Approve di order 'new'
     //   new -> payment_ok
@@ -279,7 +280,12 @@ export default function FinancePaymentsPage() {
         staff_id: currentUser?.id
       })
       if (logErr) { console.error('Gagal catat log verify:', logErr) }
-      toast('success', '✅ Pembayaran diverifikasi! Status: Baru → Cek Bayar. Lanjut Gudang untuk sortir.')
+      toast(
+        'success',
+        belumLunas
+          ? `✅ Pembayaran diverifikasi! Status: Baru → Cek Bayar. Sisa tagihan ${fmt(sisaTagihan)} — Finance wajib input pelunasan sebelum order dikemas (payment gate).`
+          : `✅ Pembayaran diverifikasi (LUNAS)! Status: Baru → Cek Bayar. Lanjut Gudang untuk sortir.`
+      )
     } else if (freshOrder.status === 'payment_ok') {
       // Sudah di Cek Bayar — gudang yang lanjut ke sortir
       toast('info', 'Order sudah di Cek Bayar. Gudang bisa lanjut ke "Sudah Sortir" di halaman order.')
@@ -287,7 +293,16 @@ export default function FinancePaymentsPage() {
       return
     } else if (freshOrder.status === 'ready') {
       // 2026-07-31: ready → packed langsung (tanpa finance lagi) — gudang/admin yang lanjutkan
-      toast('info', 'Order sudah Siap. Gudang/Admin lanjut ke "Dikemas" di halaman order.')
+      // TAPI payment gate tetap: belum lunas → packing diblokir API. Finance wajib input pelunasan dulu.
+      if (belumLunas) {
+        toast(
+          'warning',
+          `Order sudah Siap tapi BELUM LUNAS (sisa ${fmt(sisaTagihan)}). Finance harus input pelunasan dulu — order tidak bisa dikemas sampai lunas (payment gate).`
+        )
+        load()
+        return
+      }
+      toast('info', 'Order sudah Siap & Lunas. Gudang/Admin lanjut ke "Dikemas" di halaman order.')
       load()
       return
     } else if (freshOrder.status === 'packed') {

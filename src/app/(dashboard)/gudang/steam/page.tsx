@@ -186,9 +186,27 @@ export default function GudangSteamPage() {
     })
     if (logErr) { console.error('Gagal catat log steam pass:', logErr) }
 
-    // 2026-07-31: steam → ready dilakukan manual di order detail (Gudang/Admin klik "Lanjut").
-    // payment_ok sudah dipindah ke DEPAN (new→payment_ok, approve finance sebelum produksi),
-    // jadi setelah QC pass tinggal ready → packed → shipped tanpa gate finance lagi.
+    // BUG-001 fix (2026-08-11): Steam QC Pass → auto-advance orders.status ke 'ready'.
+    // Sebelumnya manual di order detail (yang hanya bisa owner — gudang tidak akses /admin).
+    // Foto bukti yang barusan di-upload sudah tersimpan sebagai evidence stage 'steam' —
+    // TIDAK perlu upload ulang. Guard eq('status','steam') = idempoten.
+    const { error: orderErr } = await supabase
+      .from('orders')
+      .update({ status: 'ready' })
+      .eq('id', job.order_id)
+      .eq('status', 'steam')
+    if (orderErr) {
+      console.error('Gagal auto-advance order ke ready:', orderErr)
+      toast('error', 'Steam QC Pass tersimpan, TAPI gagal majukan order ke Siap: ' + orderErr.message)
+    } else {
+      const { error: readyLogErr } = await supabase.from('order_logs').insert({
+        order_id: job.order_id,
+        action: 'qc_pass',
+        notes: `Steam/QC Passed oleh Gudang → order otomatis Siap`,
+        staff_id: user?.id ?? null
+      })
+      if (readyLogErr) { console.error('Gagal catat log auto-ready:', readyLogErr) }
+    }
 
     setPassSaving(false)
     setShowPassDialog(null)

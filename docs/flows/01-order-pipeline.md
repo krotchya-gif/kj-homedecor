@@ -5,17 +5,17 @@
 ## Aktor & peran
 | Role | Bisa apa |
 |---|---|
-| Admin | Buat order, sortir (awal), input resi (akhir), escape hatch pembayaran |
+| Admin | Buat order, escape hatch (bisa lanjut semua tahap), input resi |
 | Owner | Semua tahap (escape hatch) |
 | Finance | Approve pembayaran (Cek Bayar), input pembayaran, refund |
-| Gudang | Sortir, produksi, steam/QC, packing |
+| Gudang | Sortir, produksi, steam/QC (auto → Siap), packing (tombol Kemas) |
 | Penjahit | Ambil job produksi, lapor hasil |
-| Installer | Pemasangan (untuk order "Pasang") |
+| Installer | Input resi (kirim), pemasangan (untuk order "Pasang") |
 
 ## Status pipeline (9 tahap — order Kirim)
 `Baru → Cek Bayar → Sudah Disortir → Produksi → Steam/QC → Siap → Dikemas → Terkirim → Selesai`
 
-Order **Pasang** punya 10 tahap: ... Dikemas → **Terjadwal → Pemasangan** → Selesai.
+Order **Pasang** punya 10 tahap: ... Dikemas → **Terjadwal Pasang → Sedang Dipasang** → Selesai.
 
 ## Langkah-langkah
 
@@ -23,33 +23,36 @@ Order **Pasang** punya 10 tahap: ... Dikemas → **Terjadwal → Pemasangan** �
    - Ketik nama pelanggan (bisa langsung ketik nama baru → otomatis dibuat, atau pilih dari dropdown)
    - Isi No. HP & alamat, sumber, jenis (Kirim/Pasang), total, DP
    - Status awal: **Baru**
-2. **Pembayaran dicatat** — Finance/Admin klik "+ Tambah Pembayaran":
-   - Input jumlah (tidak boleh lebih dari sisa tagihan)
-   - Status pembayaran: pending → partial (DP) → paid (lunas)
-3. **Approve pembayaran (Cek Bayar)** — Finance klik "Approve Pembayaran":
-   - Wajib ada bukti (foto transfer) — tersimpan di tabel pembayaran
+   - ⚡ Jika admin input DP > 0 → otomatis tercatat di tabel pembayaran (jejak akuntansi). Ini BUKAN approve — Finance tetap harus klik Approve.
+2. **Approve pembayaran (Cek Bayar)** — Finance klik "Approve Pembayaran" di halaman Finance → Pembayaran:
+   - Klik Approve = verifikasi manual Finance bahwa pembayaran (DP/lunas) sudah masuk
    - Order pindah: Baru → **Cek Bayar**
+   - ⚠️ Order belum lunas → Finance yang wajib input pelunasan; hanya Finance yang bisa approve
    - ⚠️ Gate: order **harus lunas (paid)** sebelum bisa Dikemas/Terkirim/Selesai
-4. **Sortir (Sudah Disortir)** — Gudang/Admin:
+3. **Sortir (Sudah Disortir)** — Gudang/Admin:
    - Upload foto barang pesanan (wajib 1 foto)
    - Order pindah: Cek Bayar → **Sudah Disortir**
-5. **Produksi** — Gudang klik "Lanjut: Mulai Produksi":
+4. **Produksi** — Gudang klik "Lanjut: Mulai Produksi":
    - Otomatis dibuatkan **job produksi** untuk penjahit (idempotent — tidak dobel)
    - Penjahit ambil job → kerjakan → lapor selesai
-6. **Steam/QC** — Gudang:
+5. **Steam/QC** — Gudang (halaman Steam & QC Jahitan):
    - Upload foto hasil jahitan (wajib)
-   - Lolos → **Siap** | Gagal → revisi (dikembalikan ke penjahit)
-7. **Packing (Dikemas)** — Gudang klik "Lanjut: Packing"
-8. **Input Resi (Terkirim)** — Admin/Gudang:
+   - Lolos → **otomatis** order pindah ke **Siap** (gudang tidak perlu buka order detail)
+   - Gagal → revisi (dikembalikan ke penjahit, order kembali ke Produksi)
+6. **Packing (Dikemas)** — Gudang:
+   - Di halaman **QC Per-Item**, blok "📦 Siap Dikemas" (order Siap + semua item lulus QC) → klik **Kemas**
+   - Order pindah: Siap → **Dikemas**
+7. **Input Resi (Terkirim)** — Admin/Gudang/Installer:
    - Pilih kurir + isi resi + upload foto bukti kirim (wajib)
    - Order pindah: Dikemas → **Terkirim**
-9. **Selesai** — dikonfirmasi setelah customer terima
+8. **Selesai** — dikonfirmasi setelah customer terima
 
 ## Aturan penting
 - Setiap pindah status dicatat ke **audit log** (siapa, kapan, dari-ke).
 - Foto progress tersimpan per tahap & bisa dilihat dari stepper di detail order.
 - **Batalkan order**: tombol merah "Batalkan" → status **Batal** (dengan alasan).
-- Payment gate ditegakkan dua lapis: UI + API route.
+- Payment gate ditegakkan di UI (admin/order detail + API route).
+- Order **Pasang** tidak pernah masuk "Terkirim" — setelah Dikemas lanjut ke **Jadwalkan Pasang** (lihat Flow 03).
 
 ## Tombol lanjut per tahap (label dinamis)
 | Status saat ini | Tombol |

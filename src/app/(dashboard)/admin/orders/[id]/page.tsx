@@ -18,7 +18,8 @@ import {
   Package,
   Clock,
   AlertTriangle,
-  Camera
+  Camera,
+  Calendar as CalendarIcon
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem, OrderStatus } from '@/types'
@@ -63,8 +64,8 @@ const fmt = (n: number) =>
 // Owner = escape hatch (bisa semua stage). Admin TIDAK escape hatch — hanya di sortir (awal) dan shipping (akhir).
 // Source of truth: matrix di dokumentasi pipeline
 const ROLE_NEXT_ALLOWED: Record<string, string[]> = {
-  // Admin: sortir order (awal) + shipping akhir + escape hatch pembayaran
-  admin: ['new', 'payment_ok', 'sorted', 'packed', 'shipped'],
+  // Admin: escape hatch — semua stage (align dengan API route.ts:40). BUG-003 fix 2026-08-11.
+  admin: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'shipped'],
   // Owner: escape hatch — semua stage
   owner: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'shipped', 'done'],
   // Gudang: sortir (setelah approve finance) + produksi + QC jahitan + packing
@@ -201,6 +202,20 @@ export default function OrderDetailPage() {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null)
   const [progressPhotos, setProgressPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
+
+  // BUG-007 fix (2026-08-11): Jadwalkan Pasang — assign installer langsung dari order detail
+  const [installers, setInstallers] = useState<{ id: string; name: string }[]>([])
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleForm, setScheduleForm] = useState({ date: '', time: '', installer_id: '' })
+  const [orderBooking, setOrderBooking] = useState<{
+    id: string
+    status: string
+    installer_id?: string | null
+    installer?: { name?: string } | null
+    scheduled_date?: string | null
+    scheduled_time?: string | null
+  } | null>(null)
   // survey link (fitur "hasil survey masuk invoice")
   const [surveyLinkOpen, setSurveyLinkOpen] = useState(false)
   const [surveyCandidates, setSurveyCandidates] = useState<SurveyCand[]>([])
@@ -269,6 +284,19 @@ export default function OrderDetailPage() {
     setOrderPhotos((photosRes.data ?? []) as OrderPhoto[])
     setBoms((bomsRes.data ?? []) as BomRow[])
     setMaterials((matsRes.data ?? []) as Material[])
+
+    // BUG-007 fix: load installer list (untuk dropdown jadwal pasang)
+    const [{ data: installerRes }, { data: bookingRes }] = await Promise.all([
+      supabase.from('users').select('id, name').eq('role', 'installer').eq('status', 'active'),
+      supabase
+        .from('install_bookings')
+        .select('id, status, installer_id, installer:users(name), scheduled_date, scheduled_time')
+        .eq('order_id', id)
+        .in('status', ['pending', 'scheduled', 'in_progress'])
+        .maybeSingle()
+    ])
+    setInstallers((installerRes ?? []) as { id: string; name: string }[])
+    setOrderBooking((bookingRes as typeof orderBooking) ?? null)
     // Init checklist if not exists
     if (checklistRes.data) {
       setChecklist(checklistRes.data.items as PreparationChecklistItem[])
@@ -422,6 +450,90 @@ export default function OrderDetailPage() {
     setShowPhotoModal(false)
     setProgressPhotos([])
     setPendingStatus(null)
+    load()
+  }
+
+  // BUG-007 fix (2026-08-11): Jadwalkan Pasang — 1 langkah dari order detail.
+  // Update orders ke 'scheduled' + upsert install_bookings (assign installer + jadwal).
+  async function handleSchedule(e: React.FormEvent) {
+    e.preventDefault()
+    if (!order) return
+    if (!scheduleForm.date || !scheduleForm.installer_id) {
+      toast('warning', 'Tanggal & installer wajib diisi.')
+      return
+    }
+    setScheduling(true)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const now = new Date().toISOString()
+
+    // 1) Update orders status ke scheduled + simpan jadwal
+    const { error: ordErr } = await supabase
+      .from('orders')
+      .update({
+        status: 'scheduled',
+        scheduled_installation_date: scheduleForm.date,
+        scheduled_installation_time: scheduleForm.time || null
+      })
+      .eq('id', id)
+      .eq('status', 'packed')
+    if (ordErr) {
+      setScheduling(false)
+      toast('error', 'Gagal update status order: ' + ordErr.message)
+      return
+    }
+
+    // 2) Upsert install_bookings (type pasang) — assign installer + jadwal
+    const customerAddr =
+      (order.customer as { address?: string } | null)?.address ?? 'Alamat belum di-set'
+    let bookingErr: { message: string } | null = null
+    if (orderBooking) {
+      // Update booking yang sudah ada (auto-created / pending)
+      const { error } = await supabase
+        .from('install_bookings')
+        .update({
+          installer_id: scheduleForm.installer_id,
+          scheduled_date: scheduleForm.date,
+          scheduled_time: scheduleForm.time || null,
+          status: 'scheduled'
+        })
+        .eq('id', orderBooking.id)
+      bookingErr = error
+    } else {
+      // Insert baru
+      const { error } = await supabase.from('install_bookings').insert({
+        order_id: id,
+        type: 'pasang',
+        status: 'scheduled',
+        installer_id: scheduleForm.installer_id,
+        scheduled_date: scheduleForm.date,
+        scheduled_time: scheduleForm.time || null,
+        address: customerAddr,
+        notes: `Dijadwalkan dari detail pesanan oleh Admin — installer & tanggal dipilih langsung.`
+      })
+      bookingErr = error
+    }
+    if (bookingErr) {
+      setScheduling(false)
+      toast('error', 'Order sudah ke Terjadwal Pasang, TAPI gagal assign booking: ' + bookingErr.message)
+      return
+    }
+
+    // 3) Log
+    const installerName = installers.find((i) => i.id === scheduleForm.installer_id)?.name ?? '—'
+    const { error: logErr } = await supabase.from('order_logs').insert({
+      order_id: id,
+      action: 'install_scheduled',
+      notes: `Jadwal pasang: ${scheduleForm.date}${scheduleForm.time ? ' ' + scheduleForm.time : ''} — Installer: ${installerName}`,
+      staff_id: user?.id ?? null
+    })
+    if (logErr) { console.error('Gagal catat log jadwal pasang:', logErr) }
+
+    setScheduling(false)
+    setShowScheduleModal(false)
+    setScheduleForm({ date: '', time: '', installer_id: '' })
+    toast('success', `✅ Order terjadwal pasang: ${scheduleForm.date} — Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
     load()
   }
 
@@ -872,6 +984,26 @@ export default function OrderDetailPage() {
   // padahal seharusnya 'Mulai Produksi' (bug 2026-08-11 — bikin user salah paham)
   const nextStageButtonLabel = nextStatus ? getNextStageButtonLabel(order.status, orderClassification) : 'Lanjut'
 
+  // BUG-003/fix-4 (2026-08-11): prefill bukti foto yang sudah ada saat modal advance dibuka.
+  // Prioritas: foto stage SAAT INI (evidence dari gudang/steam dll). Fallback: semua foto order.
+  // Tombol "Lanjut" langsung aktif tanpa harus upload ulang bukti yang sama.
+  function prefillProgressPhotos() {
+    if (!order) return
+    const stagePhotos = orderPhotos
+      .filter((p) => p.stage === order.status && p.photo_url.startsWith('http'))
+      .map((p) => p.photo_url)
+    const fallback = orderPhotos.filter((p) => p.photo_url.startsWith('http')).map((p) => p.photo_url)
+    const prefilled = stagePhotos.length > 0 ? stagePhotos : fallback
+    setProgressPhotos((prev) => (prev.length > 0 ? prev : prefilled))
+  }
+
+  function openAdvanceModal(status: OrderStatus) {
+    setPendingStatus(status)
+    setProgressPhotos([])
+    prefillProgressPhotos()
+    setShowPhotoModal(true)
+  }
+
   return (
     <div>
       {/* Back */}
@@ -922,8 +1054,17 @@ export default function OrderDetailPage() {
           canRoleAdvanceNext(currentUserRole, order.status) && (
             <button
               onClick={() => {
-                setPendingStatus(nextStatus)
-                setShowPhotoModal(true)
+                // BUG-007 fix: packed→scheduled (pasang) buka modal jadwal + assign installer
+                if (nextStatus === 'scheduled') {
+                  setScheduleForm({
+                    date: orderBooking?.scheduled_date ?? '',
+                    time: orderBooking?.scheduled_time ?? '',
+                    installer_id: orderBooking?.installer_id ?? ''
+                  })
+                  setShowScheduleModal(true)
+                } else {
+                  openAdvanceModal(nextStatus)
+                }
               }}
               disabled={updating}
               style={{
@@ -1059,6 +1200,34 @@ export default function OrderDetailPage() {
           </div>
         )}
       </div>
+
+      {/* BUG-007 fix: info booking pasang — installer & jadwal terlihat langsung di order detail */}
+      {orderBooking && ['scheduled', 'installing', 'done'].includes(order.status) && (
+        <div
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid #e5e7eb',
+            borderRadius: '0.75rem',
+            padding: '0.9rem 1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <CalendarIcon size={16} style={{ color: '#cc7030' }} />
+          <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Jadwal Pasang:</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--neutral-700)' }}>
+            {orderBooking.scheduled_date ? new Date(orderBooking.scheduled_date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Belum ada tanggal'}
+            {orderBooking.scheduled_time ? ` • ${orderBooking.scheduled_time}` : ''}
+          </span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--neutral-600)' }}>
+            — Installer:{' '}
+            <strong style={{ color: '#cc7030' }}>{orderBooking.installer?.name ?? 'belum di-assign'}</strong>
+          </span>
+        </div>
+      )}
 
       {/* Status pipeline */}
       <div
@@ -2648,6 +2817,147 @@ export default function OrderDetailPage() {
           </div>
         )}
       </div>
+
+      {/* BUG-007 fix: Modal Jadwalkan Pasang — assign installer + tanggal langsung dari order detail */}
+      <Modal
+        open={showScheduleModal}
+        onClose={() => {
+          setShowScheduleModal(false)
+          setScheduleForm({ date: '', time: '', installer_id: '' })
+        }}
+        maxWidth={460}
+        padding="1.5rem"
+      >
+        <form onSubmit={handleSchedule}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: '700' }}>📅 Jadwalkan Pasang</h2>
+            <button
+              type="button"
+              onClick={() => {
+                setShowScheduleModal(false)
+                setScheduleForm({ date: '', time: '', installer_id: '' })
+              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
+            >
+              <XIcon size={18} />
+            </button>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
+            Order akan pindah ke <strong>Terjadwal Pasang</strong> dan installer langsung melihat job ini di{' '}
+            <strong>/installer/schedule</strong>.
+          </p>
+
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+            Tanggal *
+          </label>
+          <input
+            type="date"
+            required
+            value={scheduleForm.date}
+            onChange={(e) => setScheduleForm((f) => ({ ...f, date: e.target.value }))}
+            style={{
+              width: '100%',
+              padding: '0.625rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              marginBottom: '0.85rem',
+              outline: 'none'
+            }}
+          />
+
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+            Jam (opsional)
+          </label>
+          <input
+            type="time"
+            value={scheduleForm.time}
+            onChange={(e) => setScheduleForm((f) => ({ ...f, time: e.target.value }))}
+            style={{
+              width: '100%',
+              padding: '0.625rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              marginBottom: '0.85rem',
+              outline: 'none'
+            }}
+          />
+
+          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+            Installer *
+          </label>
+          <select
+            required
+            value={scheduleForm.installer_id}
+            onChange={(e) => setScheduleForm((f) => ({ ...f, installer_id: e.target.value }))}
+            style={{
+              width: '100%',
+              padding: '0.625rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              marginBottom: '1rem',
+              outline: 'none',
+              background: 'var(--surface)'
+            }}
+          >
+            <option value="">— Pilih installer —</option>
+            {installers.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+              </option>
+            ))}
+          </select>
+          {installers.length === 0 && (
+            <p style={{ fontSize: '0.75rem', color: '#ef4444', marginBottom: '1rem' }}>
+              ⚠️ Belum ada akun dengan role Installer. Buat di Admin → Staff terlebih dahulu.
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button
+              type="button"
+              onClick={() => {
+                setShowScheduleModal(false)
+                setScheduleForm({ date: '', time: '', installer_id: '' })
+              }}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={scheduling || !scheduleForm.date || !scheduleForm.installer_id}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: scheduling || !scheduleForm.date || !scheduleForm.installer_id ? 'var(--neutral-400)' : '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: scheduling || !scheduleForm.date || !scheduleForm.installer_id ? 'not-allowed' : 'pointer',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.4rem'
+              }}
+            >
+              {scheduling ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CalendarIcon size={14} />}
+              {scheduling ? 'Menyimpan...' : 'Jadwalkan & Assign'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Photo Upload Modal for Status Change */}
       <Modal

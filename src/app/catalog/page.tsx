@@ -28,7 +28,7 @@ export default function CatalogPage() {
     async function load() {
       setLoading(true)
       const [productsRes, categoriesRes, settingsRes] = await Promise.all([
-        supabase.from('products').select('*').eq('is_catalog_visible', true).order('name'),
+        supabase.from('products').select('*').eq('is_catalog_visible', true).gt('price', 0).order('name'),
         supabase.from('categories').select('*').order('name'),
         supabase.from('landing_settings').select('whatsapp_number, whatsapp_message').eq('key', 'hero').single()
       ])

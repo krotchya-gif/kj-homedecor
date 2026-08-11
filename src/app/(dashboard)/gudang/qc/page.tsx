@@ -17,6 +17,13 @@ interface QcItem extends OrderItem {
   order?: Order & { customer?: Customer } | null
 }
 
+interface ReadyToPackOrder {
+  order_id: string
+  order_number?: string | null
+  customer_name?: string
+  total_items: number
+}
+
 interface ReturnRow {
   id: string
   order_id: string
@@ -41,6 +48,7 @@ export default function GudangQCPage() {
   const [selected, setSelected] = useState<QcItem | null>(null)
   const [qcForm, setQcForm] = useState({ result: 'pass', fail_reason: '', revision_notes: '' })
   const [saving, setSaving] = useState(false)
+  const [packingId, setPackingId] = useState<string | null>(null)
 
   // Retur tab state
   const [selectedReturn, setSelectedReturn] = useState<ReturnRow | null>(null)
@@ -56,7 +64,7 @@ export default function GudangQCPage() {
     const [itemsRes, returnsRes] = await Promise.all([
       supabase
         .from('order_items')
-        .select('*, order:orders!inner(id, status, customer:customers(name)), product:products(name)')
+        .select('*, order:orders!inner(id, status, order_number, customer:customers(name)), product:products(name)')
         .in('order.status', ['ready', 'packed', 'shipped', 'done'])
         .order('created_at', { ascending: false }),
       supabase
@@ -114,6 +122,64 @@ export default function GudangQCPage() {
     setSaving(false)
     setSelected(null)
     setQcForm({ result: 'pass', fail_reason: '', revision_notes: '' })
+    load()
+  }
+
+  // BUG-002 fix (2026-08-11): gudang bisa "Kemas" order yang status='ready' & semua item ready.
+  // Sebelumnya packing hanya ada di /admin/shipping (tidak bisa diakses gudang).
+  const readyToPack: ReadyToPackOrder[] = (() => {
+    const byOrder = new Map<string, { order_number?: string | null; customer_name?: string; total: number; readyCount: number }>()
+    for (const it of items) {
+      if (!it.order_id) continue
+      const oid = it.order_id
+      const cur = byOrder.get(oid) ?? {
+        order_number: it.order?.order_number,
+        customer_name: it.order?.customer?.name,
+        total: 0,
+        readyCount: 0
+      }
+      cur.total += 1
+      if (it.ready) cur.readyCount += 1
+      byOrder.set(oid, cur)
+    }
+    const out: ReadyToPackOrder[] = []
+    for (const [orderId, agg] of byOrder) {
+      if (agg.readyCount === agg.total && agg.total > 0) {
+        out.push({ order_id: orderId, order_number: agg.order_number, customer_name: agg.customer_name, total_items: agg.total })
+      }
+    }
+    return out
+  })()
+
+  async function handlePack(orderId: string) {
+    if (packingId) return
+    setPackingId(orderId)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const now = new Date().toISOString()
+
+    const { error: packErr } = await supabase
+      .from('orders')
+      .update({ status: 'packed', packed_at: now, packed_by: user?.id ?? null })
+      .eq('id', orderId)
+      .eq('status', 'ready')
+    if (packErr) {
+      setPackingId(null)
+      toast('error', 'Gagal mengemas order: ' + packErr.message)
+      return
+    }
+
+    const { error: logErr } = await supabase.from('order_logs').insert({
+      order_id: orderId,
+      action: 'packed',
+      notes: 'Order dikemas oleh Gudang (Siap → Dikemas)',
+      staff_id: user?.id ?? null
+    })
+    if (logErr) { console.error('Gagal catat log packed:', logErr) }
+
+    setPackingId(null)
+    toast('success', '📦 Order dikemas! Status → Dikemas. Installer/Admin lanjut ke pengiriman/pasang.')
     load()
   }
 
@@ -321,6 +387,91 @@ export default function GudangQCPage() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* BUG-002 fix: Siap Dikemas — order status='ready' & semua item ready */}
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              padding: '1.25rem',
+              marginBottom: '1.25rem'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Package size={16} style={{ color: '#cc7030' }} />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: '700', margin: 0 }}>📦 Siap Dikemas</h3>
+              <span
+                style={{
+                  background: '#cc7030',
+                  color: '#fff',
+                  borderRadius: '999px',
+                  fontSize: '0.65rem',
+                  padding: '0.1rem 0.5rem',
+                  fontWeight: '700'
+                }}
+              >
+                {readyToPack.length}
+              </span>
+            </div>
+            {readyToPack.length === 0 ? (
+              <p style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', margin: 0 }}>
+                Tidak ada order siap dikemas. Order jadi siap setelah semua item lulus QC.
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {readyToPack.map((o) => (
+                  <div
+                    key={o.order_id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '1rem',
+                      padding: '0.6rem 0.75rem',
+                      background: 'var(--surface)',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '0.5rem',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    <div style={{ fontSize: '0.85rem' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: '700', color: 'var(--neutral-700)' }}>
+                        {o.order_number ?? o.order_id.slice(0, 8)}
+                      </span>
+                      {o.customer_name ? (
+                        <span style={{ color: 'var(--neutral-600)' }}> — {o.customer_name}</span>
+                      ) : null}
+                      <span style={{ color: 'var(--neutral-400)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                        {o.total_items} item ✓
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handlePack(o.order_id)}
+                      disabled={!!packingId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        padding: '0.45rem 1rem',
+                        background: '#cc7030',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.78rem',
+                        fontWeight: '600',
+                        cursor: packingId ? 'not-allowed' : 'pointer',
+                        opacity: packingId ? 0.6 : 1
+                      }}
+                    >
+                      {packingId === o.order_id ? <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Package size={13} />}
+                      Kemas
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
                 {/* Mobile: card list */}

@@ -1,15 +1,26 @@
 # KJ Homedecor — Gorden & Curtain Management Platform
 
-Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, curtain, roman blind premium. Dibangun dengan Next.js 16 App Router dan Supabase.
+Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, curtain, roman blind premium. Dibangun dengan **Next.js 16 App Router** dan **Supabase**.
+
+> 📖 **Panduan penggunaan per role (bahasa sederhana):** [`pendoman.md`](./pendoman.md)
+> 🐞 **Riwayat bug & perbaikan:** [`bug.md`](./bug.md)
+> 🔄 **Dokumentasi alur per modul:** [`docs/flows/`](./docs/flows/)
+
+---
 
 ## Tech Stack
 
-- **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
-- **Backend:** Supabase (PostgreSQL, Auth, Realtime)
-- **Payments:** Xendit API (VA/QRIS)
-- **PDF:** jsPDF + autoTable (Invoice & Packing List)
+- **Frontend:** Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript, Tailwind CSS v4
+- **Backend:** Supabase (PostgreSQL, Auth, Realtime, Storage)
+- **UI Components:** Shadcn-style custom (@base-ui/react) + komponen custom
+- **Auth:** Supabase Auth + auth helpers (`src/lib/auth.ts`)
+- **Proxy:** Next.js 16 `proxy.ts` — auth guard + role-based access + matcher
+- **Payments:** Xendit API (VA/QRIS) dengan HMAC webhook verification
+- **Marketplace:** TikTok Shop API (OAuth, sync order, sync finance, webhook)
+- **PDF:** jsPDF + autoTable (Invoice, Packing List, Survey, Laporan Keuangan)
 - **Charts:** Recharts (Owner, Admin, Finance dashboards)
-- **Image Compression:** browser-image-compression
+- **Image:** browser-image-compression + Supabase Storage
+- **Validation:** Zod (API routes)
 - **Deployment:** Vercel-ready
 
 ---
@@ -17,75 +28,102 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 ## Features
 
 ### Admin (`/admin`)
-
-- Order management dengan filter by status + create order (Kirim/Pasang)
-- Order detail dengan visual pipeline, photo upload per status, BOM auto-suggest
-- Invoice PDF + Packing List PDF generation
-- Pipeline ETA (Estimasi Selesai per order)
-- Catalog management (products, categories, banners)
-- Customer database with WhatsApp integration + edit capability
-- Booking calendar (admin + public `/booking`)
-- Portfolio/inspiration blog posts
-- Sales reports dengan MoM growth indicators
-- Shipping workflow (resi + courier)
-- SEO management + Landing page settings
-- Staff account creation
-
-### Owner (`/owner`)
-
-- Real-time dashboard: today's new orders + active installations
-- 12-month revenue trend chart
-- Marketplace breakdown (bar + pie charts)
-- Top products by revenue
-- HPP Calculator (BOM-based)
-- Material price history tracking
-- **Laporan Keuangan (10 reports)** — Neraca, Laba Rugi, Buku Besar, Daftar Jurnal, Mutasi Kas, Kronologi HPP, Neraca Saldo, Performa Tag, Umur Piutang, Umur Hutang
-- Staff, suppliers, products overview
+- Order management: filter status, create order (Kirim/Pasang), auto-catat DP
+- Order detail: visual pipeline stepper, photo evidence per stage, invoice/packing list PDF
+- **Jadwalkan Pasang** (1 langkah): pilih tanggal + installer langsung dari detail order
+- Catalog management (products, categories, banners) — **harga jual di-set Owner via HPP**
+- Customer database + WhatsApp integration
+- Booking calendar + assign installer
+- Portfolio, SEO, Landing settings (theme customization), Staff, Reports, Laundry
 
 ### Finance (`/finance`)
-
-- BOM & Material cost management
-- HPP Calculator with auto/manual modes
-- Payment tracking (DP → Lunas) with approval gate
-- Supplier management + PO from approved PRs
-- Piutang (accounts receivable) management
-- Accounts, Journal, Cash, Assets
-- **Laporan Keuangan (10 reports)**
-- Reports: revenue, penjahit wages, overtime
+- Payment tracking (DP → Lunas) + **Approve Cek Bayar** (verifikasi manual)
+- Cash in/out/transfer/mutation (auto journal double-entry)
+- Hutang (AP), Piutang (AR) per channel, refund
+- Chart of Accounts + account mapping, Journal (manual + auto)
+- Assets, Laundry Payroll
+- **Laporan Keuangan (10 reports)** + PDF export
 
 ### Gudang (`/gudang`)
-
-- Production job queue dengan **BOM preview** material sebelum mulai kerja
-- **Block "Mulai" kalau BOM material insufficient** — modal warning + opsi tetap lanjut
-- Laundry/Steam (same page, tabs)
-- Stock position dengan **4 tab**: Material, Produk, Barang Masuk, **Edit Stok**
-- **Edit Stok**: tombol [+][−][✎] per row — quick adjust + edit modal dengan alasan
-- **📦 Pesanan Datang**: list PO delivered — Gudang konfirmasi receipt sebelum stok bertambah
-- Low stock alerts with 1-click PR creation
-- QC (Pass/Fail/Revision with photo evidence)
-- Lembur (overtime) logging
-- Stock Opname: buat sesi → hitung fisik → Owner approve → adjustment otomatis
+- Production job queue + BOM preview + material consumption otomatis
+- Steam/QC jahitan: **Pass → order otomatis Siap** | Gagal → revisi ke penjahit
+- QC per-item + **blok "📦 Siap Dikemas" → tombol Kemas**
+- Stock: posisi gudang/toko, mutasi, edit stok (+/−/✎ dengan alasan), barang masuk
+- Low stock alerts → 1-klik Purchase Request, Lembur, Stock Opname, Retur verifikasi
 
 ### Penjahit (`/penjahit`)
-
-- Job queue dengan meter tracking
-- Monthly performance reports
-- Work history
+- Job queue realtime (postgres_changes), meter tracking
+- Lapor selesai → order otomatis lanjut ke Steam/QC
+- Monthly performance reports + work history
 
 ### Installer (`/installer`)
+- Schedule realtime (hanya job yang ditugaskan padanya)
+- Order Kirim: input resi (Dikemas → Terkirim); Order Pasang: Sedang Dipasang → Selesai
+- Installation checklist + photo evidence, revision flow "Laporkan Masalah"
 
-- Schedule with status (Terjadwal/Dikerjakan/Selesai)
-- Installation checklist with photo evidence
-- Revision flow: "Laporkan Masalah" at location
-- Reports per period
+### Surveyor (`/surveyor`)
+- Survey lapangan: info client, room-by-room (foto, ukuran cm, model, kain, rel, hook, catatan)
+- Auto-save draft, GPS, notifikasi ke Admin/Owner, WhatsApp copy/kirim, PDF + tanda tangan
+- Hanya melihat/edit survey milik sendiri (RLS)
+
+### Laundry
+- Role `laundry` dilayani lewat menu **Admin → Laundry**; gaji di **Finance → Laundry Payroll**
 
 ### Public Pages
+- `/` — Landing page (hero, categories, products, portfolio, CTA, footer)
+- `/catalog` — Katalog publik (hanya produk dengan harga > 0)
+- `/products/[slug]` — Detail produk (fallback "Harga: Hubungi via WhatsApp")
+- `/booking` — Form booking publik (date + time slot)
+- `/login` — Staff login (rate-limited)
+- `/setup` — Bootstrap akun awal (owner/admin)
 
-- `/` — Landing page with hero, categories, products, portfolio
-- `/catalog` — Full product catalog with search
-- `/products/[slug]` — Product detail
-- `/booking` — Public booking form (date + time slot picker)
-- `/login` — Staff login
+---
+
+## Pipeline Pesanan
+
+### Kirim (9 tahap)
+```
+Baru → Cek Bayar → Sudah Disortir → Produksi → Steam/QC → Siap → Dikemas → Terkirim → Selesai
+```
+
+### Pasang (10 tahap)
+```
+Baru → Cek Bayar → Sudah Disortir → Produksi → Steam/QC → Siap → Dikemas → Terjadwal Pasang → Sedang Dipasang → Selesai
+```
+
+### Tanggung jawab transisi (aktual, 2026-08-11)
+
+| Transisi | Role | Lokasi |
+|---|---|---|
+| `new → payment_ok` | **finance** (approve cek bayar) | `/finance/payments` |
+| `payment_ok → sorted` | gudang | halaman gudang / detail order |
+| `sorted → production` | gudang (auto-create production_job) | detail order |
+| `production → steam` | otomatis saat penjahit selesai | `/penjahit/jobs` |
+| `steam → ready` | gudang klik Pass — **otomatis ke Siap** | `/gudang/steam` |
+| `steam → production` (revisi) | gudang klik Gagal + foto + alasan | `/gudang/steam` |
+| `ready → packed` | gudang tombol **Kemas** | `/gudang/qc` |
+| `packed → shipped` | installer/admin (input resi + foto) | `/installer/schedule` / `/admin/shipping` |
+| `packed → scheduled` | admin (modal: tanggal + installer → auto-create booking) | detail order |
+| `scheduled → installing → done` | installer (RPC cascade ke orders) | `/installer/schedule`, `/installer/checklist` |
+
+### Aturan
+- **Payment gate:** `packed/shipped/done` wajib `payment_status='paid'` (belum lunas tidak bisa dikemas/dikirim/selesai)
+- **Foto wajib:** sorted, steam, shipped (sorted/steam/shipped/scheduled dalam `PHOTO_REQUIRED_STAGES`)
+- Admin/Owner = escape hatch (bisa semua transisi)
+- Semua transisi tercatat di `order_logs` (audit trail)
+
+---
+
+## Alur Produk → HPP → Katalog (anti-ambigu)
+
+```
+1. Owner isi MATERIAL (nama, unit, harga beli)        /owner/materials
+2. Admin buat PRODUK TANPA HARGA                       /admin/catalog/products
+   → badge 🟠 "HPP belum dihitung", tersembunyi dari katalog publik
+3. Owner hitung HPP (BOM material + markup) → Simpan   /owner/hpp
+   → products.price ter-set, badge ✅ HPP
+4. Produk otomatis muncul di katalog (filter price > 0)
+```
 
 ---
 
@@ -93,117 +131,93 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 
 ```
 src/
+├── proxy.ts                      # Next.js 16 proxy — auth guard + role-based access + matcher
 ├── app/
-│   ├── page.tsx                    # Landing page (public)
-│   ├── (auth)/login/              # Staff login
-│   ├── (auth)/register/           # Staff registration (admin only)
-│   ├── (dashboard)/               # Protected dashboard group
-│   │   ├── admin/                # Orders, catalog, customers, booking, reports
-│   │   ├── finance/              # BOM, HPP, payments, suppliers, reports
-│   │   ├── gudang/               # Production, steam, stock, alerts, QC, lembur
-│   │   │   └── stock/opname/     # Stock opname page
+│   ├── page.tsx                  # Landing page (public)
+│   ├── (auth)/login/             # Staff login
+│   ├── setup/                    # Bootstrap akun awal
+│   ├── (dashboard)/              # Protected dashboard group
+│   │   ├── admin/                # Orders, catalog, booking, customers, staff, landing-settings, seo, shipping, laundry, portfolio, reports, surveys
+│   │   ├── finance/              # Payments, cash, hutang, piutang, accounts, journal, assets, laundry-payroll, laporan(10)
+│   │   ├── gudang/               # Production, steam, qc, stock, alerts, lembur, reports
 │   │   ├── penjahit/             # Jobs, reports, history
-│   │   ├── installer/             # Schedule, checklist, reports
-│   │   └── owner/                # Overview, HPP, suppliers, materials, reports
-│   ├── catalog/                   # Public catalog
+│   │   ├── installer/            # Schedule, checklist, reports
+│   │   ├── surveyor/             # Survey new/[id]/edit, history
+│   │   └── owner/                # Overview, hpp, materials, suppliers, products, staff, marketplace, tiktok, surveys, laporan(10)
+│   ├── catalog/                  # Public catalog
 │   ├── products/[slug]/          # Public product detail
-│   └── api/
-│       ├── upload/                # File upload
-│       ├── orders/                # Order CRUD
-│       ├── customers/             # Customer CRUD
-│       ├── products/              # Product CRUD
-│       ├── materials/             # Material CRUD
-│       ├── suppliers/             # Supplier CRUD
-│       ├── purchase-requests/    # PR CRUD
-│       ├── purchase-orders/       # PO CRUD
-│       ├── gudang/po-delivery/   # Gudang PO receipt confirmation
-│       ├── journal/              # Journal entries
-│       ├── landing-settings/       # Landing page config
-│       └── webhooks/xendit/       # Xendit payment webhook
+│   ├── booking/                  # Public booking
+│   └── api/                      # 34 route handlers
+│       ├── admin/create-staff/   # Staff creation (service role)
+│       ├── orders/ [+[id], [id]/consume-materials]
+│       ├── customers/ products/ materials/ suppliers/
+│       ├── purchase-requests/ [+[id]]  purchase-orders/ [+[id]]
+│       ├── install-bookings/ [+[id]]
+│       ├── gudang/po-delivery/
+│       ├── journal/ notifications/ surveys/ [+[id]]
+│       ├── landing-settings/ seo/upload-robots/ seo/upload-sitemap/
+│       ├── setup-accounts/ upload/
+│       ├── tiktok/               # auth, webhook, sync-orders, sync-finance, sync-to-main-orders, create-piutang
+│       ├── xendit/               # create-payment + webhook (HMAC)
+│       └── webhooks/tiktok/      # Alias
 ├── components/
-│   ├── ui/                       # Shadcn/ui + custom (ThemeToggle, skeletons, EmptyState)
-│   └── dashboard/                 # Sidebar, TopNav, layout components
+│   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, dll
+│   ├── dashboard/                # Sidebar, TopNav, NotificationBell, layout
+│   └── landing/                  # ScrollNav, ProductCatalog, AnimatedCounter, HeroParticles, ScrollHero
+├── config/                       # (kosong — navigation.tsx dihapus saat merge)
 ├── lib/
-│   ├── invoice.ts               # generateInvoicePDF + generatePackingListPDF
-│   └── upload.ts                 # uploadToLocal helper
+│   ├── auth.ts                   # requireAuth, requireRole, requireAuthRole, checkRateLimit
+│   ├── orders.ts                 # ORDER_STAGES_BY_CLASSIFICATION, PHOTO_REQUIRED_STAGES, getNextStage...
+│   ├── invoice.ts                # Invoice & Packing List PDF
+│   ├── survey.ts / survey-log.ts / survey-pdf.ts
+│   ├── ledger.ts                 # fetchAccountBalances (journal_lines)
+│   ├── csv.ts                    # export/import CSV
+│   ├── upload.ts                 # uploadToLocal (compress → /api/upload)
+│   ├── tiktok.ts                 # signTikTokRequest, token refresh
+│   └── tiktok-shop-sdk/          # Auto-generated TikTok Shop SDK
 ├── utils/supabase/
 │   ├── client.ts                 # Browser client
-│   ├── server.ts                 # SSR client
-│   └── middleware.ts              # Auth middleware
-└── types/index.ts                # TypeScript interfaces
+│   ├── server.ts                 # SSR client + createServiceClient
+│   └── middleware.ts             # Proxy supabase client (request cookies)
+└── types/index.ts                # TypeScript interfaces + STATUS_LABELS dll
 ```
 
 ---
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — apply in order. Key migrations:
+Located in `supabase/migrations/` — **71 file** (000 → 062, 900). Ringkasan per domain:
 
-| File                                            | Description                                                                                                       |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `001_initial_schema.sql`                        | Core tables: users, orders, customers, products, materials, suppliers, BOM, production_jobs, payments, order_logs |
-| `015_order_number.sql`                          | order_number column + generate_order_number() function                                                            |
-| `028_increment_stock_toko_function.sql`         | RPC functions: increment/decrement stock_gudang                                                                   |
-| `032_order_progress_photos.sql`                 | order_progress_photos table for pipeline photo tracking                                                           |
-| `033_material_price_history.sql`                | material_price_history table for price tracking                                                                   |
-| `034_install_bookings_revision.sql`             | revision_reason + revision_photos on install_bookings                                                             |
-| `035_orders_estimated_completion.sql`           | estimated_completion column on orders                                                                             |
-| `037_enable_steam_jobs_rls.sql`                 | RLS policy for steam_jobs                                                                                         |
-| `038_enable_rls_order_progress_photos.sql`      | RLS policy for order_progress_photos                                                                              |
-| `039_add_product_id_to_inventory_movements.sql` | Add product_id column to inventory_movements (idempotent)                                                         |
-| `040_stock_opname_schema.sql`                   | stock_opname_sessions + stock_opname_items tables + RLS                                                           |
-| `041_reset_pipeline_to_sorted.sql`              | Reset order existing ke status `sorted` (clean slate setelah pipeline refactor)                                   |
-| `042_steam_revision_schema.sql`                 | `production_jobs.revision_of` + `revision_round` + `revision_reason` (Steam revision loop)                        |
-| `043_payments_xendit_id.sql`                    | `payments.xendit_payment_id` + partial unique index (Xendit webhook idempotency)                                  |
-| `044_stock_rpc_numeric.sql`                     | Recreate stock RPCs (`decrement_stock_gudang`, dll) dengan `NUMERIC` + `GREATEST(0)` guard                        |
+| Domain | Migration | Isi |
+|---|---|---|
+| Core | `001` | users, orders, order_items, customers, products, categories, materials, suppliers, BOM, production_jobs, payments, order_logs, low_stock_alerts, inventory_movements, install_bookings, install_checklists, lembur_records, banners, portfolio_posts, returns, qc_records, style_rates, laundry_records |
+| Stock | `028, 044` | RPC increment/decrement stock (NUMERIC + GREATEST(0) guard) |
+| Pipeline | `032, 034, 035, 041, 042, 051, 061` | progress photos, revisi booking, estimated_completion, reset pipeline, steam revision loop, order_material_consumption, advance_install_booking_status |
+| Finance | `018-026, 033, 043` | accounts, mapping, journal, hutang, piutang, cash, assets, material_price_history, xendit idempotency |
+| Survey | `060, 061, 062` | surveys, survey_rooms, survey_room_photos, survey_logs + role surveyor |
+| TikTok | `053` | tiktok_shop_settings/orders/statements |
+| Laundry | `011, 047, 054` | laundry_orders/rates/payroll, role laundry |
+| Security/RLS | `053-058, 059` | RLS fixes, FK indexes, anon revoke |
 
----
-
-## Design System
-
-**Brand Color:** `#cc7030` (warm brown/orange)
-
-**Light Mode:**
-
-| Usage          | Color     |
-| -------------- | --------- |
-| Primary button | `#cc7030` |
-| Background     | `#fafafa` |
-| Card/Surface   | `#ffffff` |
-| Text heading   | `#1f2937` |
-| Text muted     | `#6b7280` |
-
-**Dark Mode:** Warm dark palette in `globals.css` (`.dark` class on `<html>`)
-
----
-
-## Key Files
-
-| File                                               | Purpose                                         |
-| -------------------------------------------------- | ----------------------------------------------- |
-| `src/lib/invoice.ts`                               | Invoice & Packing List PDF generation           |
-| `src/lib/upload.ts`                                | Local upload helper (`uploadToLocal`)           |
-| `src/components/ui/DateRangePicker.tsx`            | Interactive calendar popup date range picker    |
-| `src/components/ui/ReportPDFButton.tsx`            | Styled PDF download button                      |
-| `src/components/ui/BackButton.tsx`                 | Navigation back button                          |
-| `src/components/ErrorBoundary.tsx`                 | React ErrorBoundary for graceful error handling |
-| `src/components/ui/ThemeToggle.tsx`                | Dark mode toggle                                |
-| `src/components/ui/BookingCalendar.tsx`            | Public booking calendar                         |
-| `src/components/ui/skeleton.tsx`                   | Loading skeletons                               |
-| `src/components/ui/EmptyState.tsx`                 | Empty state component                           |
-| `src/components/dashboard/DashboardSidebar.tsx`    | Sidebar navigation                              |
-| `src/app/api/gudang/po-delivery/route.ts`          | Gudang PO delivery confirmation API             |
-| `src/app/(dashboard)/gudang/stock/opname/page.tsx` | Stock opname page                               |
+> ⚠️ **Catatan penting:** beberapa migration `054_fix`, `055`, `057`, `058`, `900` ditulis terhadap skema production dan **tidak bisa dijalankan dari nol** (referensikan kolom yang tidak ada di chain). Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`).
 
 ---
 
 ## Environment Variables
 
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...    # Server-side only, never expose
-XENDIT_API_KEY=                     # Xendit payment integration
+SUPABASE_SERVICE_ROLE_KEY=eyJ...       # Server-side only, never expose
+
+# Xendit
+XENDIT_API_KEY=
+XENDIT_CALLBACK_KEY=
+
+# TikTok Shop
+TIKTOK_APP_SECRET=                      # Webhook HMAC — WAJIB di-set (kalau kosong, verifikasi di-skip)
+NEXT_PUBLIC_BASE_URL=                   # Dipakai OAuth callback TikTok
 ```
 
 ---
@@ -212,114 +226,31 @@ XENDIT_API_KEY=                     # Xendit payment integration
 
 ```bash
 npm install
-npm run dev
+npm run dev        # → http://localhost:3000
 ```
 
-Apply migrations to Supabase before running:
+Build produksi:
 
 ```bash
-supabase db push
+npm run build
+npm start
 ```
 
----
-
-## Implementation Status
-
-**Phase 1-5 Complete ✅**
-
-All planned features implemented:
-
-- [x] Order pipeline with photo tracking
-- [x] BOM + HPP calculator
-- [x] Payment gate (DP/Lunas approval)
-- [x] Installer revision flow
-- [x] Invoice/Packing List PDF
-- [x] MoM growth reports
-- [x] Real-time owner dashboard
-- [x] Material price history
-- [x] Public booking calendar
-- [x] Dark mode, PWA, ErrorBoundary
-- [x] Laporan Keuangan (10 reports each for Finance + Owner with DateRangePicker + PDF export)
-- [x] Pipeline progress photos — clickable stages showing photo evidence
-- [x] Auto transition production→steam when penjahit completes job
-- [x] Gudang BOM preview panel before starting production
-- [x] Block "Mulai" if BOM materials insufficient
-- [x] Stock Opname (create session → count → approve → adjust)
-- [x] Edit Stok with [+][−] quick buttons + edit modal with reason tracking
-- [x] PO delivery confirmation flow: pending→delivered→received (Gudang confirms)
-- [x] Realtime subscriptions on penjahit jobs, installer schedule, steam_jobs
-
-**Marketplace Sync:** Ditunda (requires partnership)
+Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:** konfigurasi mengarah ke `tests/` yang tidak ada di repo (belum disiapkan kembali).
 
 ---
 
-## 🆕 Pipeline V2 Refactor (2026-06-02)
+## Implementasi & Riwayat Perbaikan
 
-### Order Pipeline Baru
+- **2026-08-11 — Pipeline fix (BUG-001/002/003/007):** Steam Pass auto-advance ke Siap; tombol Kemas di gudang; admin escape hatch; prefill foto; modal Jadwalkan Pasang + auto-create booking installer
+- **2026-08-11 — BUG-004:** DP admin auto-catat ke tabel payments; approve finance = verifikasi final (cek bayar terakhir di Finance)
+- **2026-08-11 — BUG-008:** harga jual bukan tanggung jawab admin — di-set Owner via HPP; produk tanpa harga tersembunyi dari katalog
+- **2026-08-11 — Docs:** `pendoman.md` (panduan per role), `bug.md`, `docs/flows/` disinkronkan dengan kode
+- **2026-07-18 — Audit & proxy migration:** `middleware.ts` → `proxy.ts`, auth helpers, rate limiting, RLS migrations 053-058
+- **2026-06-02 — Pipeline V2:** payment_ok di depan, steam revision loop, 3 QC distinct
 
-```
-new → sorted → production → steam → ready → payment_ok → packed → shipped → done
-                                          ^^^^^^^^^^^^
-                                          payment_ok = FINANCE cek lunas (sebelum packing)
-```
-
-**Perubahan kunci:**
-
-- `payment_ok` dipindah dari sebelum `production` ke antara `ready` dan `packed`
-- Xendit/marketplace: auto-paid, skip `payment_ok` (langsung lanjut packed)
-- Offline order: stuck di `ready` → Finance verify → `payment_ok` → Gudang packing
-
-### Steam Revision Loop (Bug #6 Fix)
-
-Steam QC fail → re-queue ke Penjahit dengan `revision_round++`:
-
-- Tabel `production_jobs` tambah `revision_of`, `revision_round`, `revision_reason`
-- Original job tetap `done` (audit trail), new job dengan `status='waiting'`
-- `penjahit_id` dipreserve (tanggung jawab kembali ke Penjahit yang sama)
-- `order.status` kembali ke `production` → loop sampai pass
-
-### 3 QC Distinct di Gudang
-
-| Lokasi                      | Tanggung Jawab                           | Affects Pipeline?                      |
-| --------------------------- | ---------------------------------------- | -------------------------------------- |
-| `/gudang/steam` (tab Steam) | QC jahitan penjahit                      | ✅ YES (loops ke production jika fail) |
-| `/gudang/qc` (tab QC)       | Per-item checklist (`order_items.ready`) | ✅ YES (set ready)                     |
-| `/gudang/qc` (tab Retur)    | Verifikasi retur customer                | ❌ NO (stock adjustment only)          |
-
-### Role Permissions (Updated)
-
-| Role            | Allowed Transitions                               |
-| --------------- | ------------------------------------------------- |
-| `finance`       | `ready→payment_ok`, `payment_ok→packed`           |
-| `gudang`        | `production→steam`, `steam→production` (revision) |
-| `installer`     | `packed→shipped`                                  |
-| `admin`/`owner` | All transitions (escape hatch)                    |
-
-### Payment Gate (Updated)
-
-- Old: `ready, packed, shipped, done` butuh `payment_status='paid'`
-- New: hanya `packed, shipped, done` yang digate (sesuai pipeline baru)
-
-### Stat Cards Baru
-
-- **Admin**: "Sudah Bayar Belum Disortir" (paid + new/sorted)
-- **Finance**: "Butuh Verifikasi Bayar" (status=ready, total piutang)
+> 🔒 **Keamanan tersisa (dari audit 2026-08-11):** beberapa API route masih hanya cek login (tanpa role check): `purchase-orders`, `gudang/po-delivery`, `seo/upload-*`, `surveys/[id]`, `create-staff` (fail-open). Lihat `bug.md` + rencana Fase 1.
 
 ---
 
-## 🆕 Critical Bug Fixes (2026-06-02)
-
-| Bug                                                                              | Severity    | Fix                                             |
-| -------------------------------------------------------------------------------- | ----------- | ----------------------------------------------- |
-| #1 Xendit webhook idempotency (insert before update, unique `xendit_payment_id`) | 🔴 CRITICAL | Migration 043 + webhook rewrite                 |
-| #2-3 Stok negatif + RPC NUMERIC vs INTEGER mismatch                              | 🔴 CRITICAL | Migration 044 (NUMERIC + GREATEST(0) guard)     |
-| #4 E2E test `describe` import broken (10 files)                                  | 🔴 CRITICAL | 10 e2e test files: `describe` → `test.describe` |
-| #5 DELETE order no role check                                                    | 🟠 HIGH     | API: admin/owner only + audit log               |
-| #12 Typo `!material` di production page                                          | 🟡 MEDIUM   | Fixed to `! Material`                           |
-
-**Tests:** 21/21 unit (Vitest) + 116/116 e2e (Playwright) + 14 new pipeline-v2 tests.
-
----
-
-_Last updated: 2026-06-02_
-_Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-11 · Dev server: `npm run dev` → http://localhost:3000_

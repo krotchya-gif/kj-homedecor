@@ -1,32 +1,43 @@
 # User Credentials — KJ Homedecor
 
 > 🔗 **Project URL**: `https://glblgsfenarnztawtpmu.supabase.co`
+> ⚠️ File ini WAJIB disinkronkan setiap ada perubahan akun (lihat juga `docs/flows/10-staff-akses.md`).
 
-## Staff Accounts
+## Akun Test (dipakai di lingkungan development)
 
-| Email                      | Username       | Role       | Password      |
-| -------------------------- | -------------- | ---------- | ------------- |
-| `owner@kjhomedecor.com`    | Owner KJ       | `owner`    | `owner123`    |
-| `cici.yunita124@gmail.com` | Cici Yunita    | `owner`    | kosongaja     |
-| `admin@kjhomedecor.com`    | Admin KJ       | `admin`    | `admin456`    |
-| `gudang@kjhomedecor.com`   | admin gudang   | `gudang`   | `gudang789`   |
-| `finance@kjhomedecor.com`  | admin Finance  | `finance`  | `finance321`  |
+| Email | Password | Role (per nama) |
+|---|---|---|
+| `cici.yunita124@gmail.com` | `kosongaja` | owner |
+| `kjhomedecor22@gmail.com` | `admin321` | admin |
+| `kjhomedecor127@gmail.com` | `gudang321` | gudang |
+| `kjhomedecornew26@gmail.com` | `finance321` | finance |
+| `kjhomenewlife2026@gmail.com` | `penjahit321` | penjahit |
+
+## Akun Default (placeholder — ganti password setelah login pertama)
+
+| Email | Username | Role | Password |
+|---|---|---|---|
+| `owner@kjhomedecor.com` | Owner KJ | `owner` | `owner123` |
+| `admin@kjhomedecor.com` | Admin KJ | `admin` | `admin456` |
+| `gudang@kjhomedecor.com` | admin gudang | `gudang` | `gudang789` |
+| `finance@kjhomedecor.com` | admin Finance | `finance` | `finance321` |
 | `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` | `penjahit654` |
-| `installer@kjhomedecor.com`| admin installer| `installer` | `installer123` |
+| `installer@kjhomedecor.com` | admin installer | `installer` | `installer123` |
 | `surveyor@kjhomedecor.com` | admin surveyor | `surveyor` | `surveyor123` |
 
-> Akun baru bisa dibuat via menu **Staff** (Admin/Owner → `/admin/staff`).
+> Akun baru bisa dibuat via menu **Staff** (Admin/Owner → `/admin/staff` atau `/owner/staff`).
 
 ## Role Access
 
-| Role         | Akses                                                               |
-| ------------ | ------------------------------------------------------------------- |
-| **owner**    | Laporan keuangan, HPP, produk, staff, supplier, marketplace, TikTok, survey |
-| **admin**    | Order, katalog, booking, laundry, staff, landing setting, SEO, survey |
-| **gudang**   | Produksi, QC, steam, stock, lembur, alerts                          |
-| **finance**  | Akuntansi, jurnal, kas, hutang, piutang, aset, payroll              |
-| **penjahit** | Jobs, history, reports                                              |
-| **installer**| Jadwal pasang, checklist, laporan (`/installer/*`)                   |
-| **surveyor** | Survey: buat/lihat/edit survey sendiri, upload foto, copy ke WA, kirim WA, download PDF |
+| Role | Akses |
+|---|---|
+| **owner** | Semua menu + kelola staff + HPP (penentu harga jual) + laporan keuangan |
+| **admin** | Order, katalog (tanpa harga jual), booking + assign installer, laundry, staff, landing setting, SEO, survey |
+| **finance** | Approve cek bayar, payments, kas, hutang, piutang, jurnal, aset, payroll, laporan |
+| **gudang** | Produksi, assign penjahit, steam/QC (auto→Siap), Kemas, stock, lembur, alerts |
+| **penjahit** | Job miliknya, history, reports |
+| **installer** | Jadwal pasang (yang ditugaskan), input resi, checklist, laporan |
+| **surveyor** | Survey milik sendiri: buat/lihat/edit, foto, copy WA, kirim WA, PDF |
+| **laundry** | Tidak punya halaman sendiri — dilayani lewat Admin → Laundry |
 
 > Ubah password setelah login pertama.

@@ -23,9 +23,9 @@
    - Selesai → lapor hasil (status job: `done` / laporan produksi)
 4. **Steam/QC** (Gudang, halaman Steam/QC):
    - Upload foto hasil jahitan (wajib)
-   - **Lolos** → order pindah: Produksi → **Siap** (job `qc_pass`)
-   - **Gagal** → revisi → job dikembalikan ke penjahit (status `revision`) + foto bukti
-5. **Siap** → lanjut ke packing (lihat Flow 01/07)
+   - **Lolos** → order **otomatis** pindah ke **Siap** (auto-advance, pakai foto yang barusan di-upload)
+   - **Gagal** → revisi → job dikembalikan ke penjahit (status `revision`) + foto bukti, order kembali ke **Produksi**
+5. **Siap** → lanjut ke packing (lihat Flow 01/07 — tombol "Kemas" di halaman QC Per-Item Gudang)
 
 ## Material & HPP
 - Setiap order bisa punya **kebutuhan material** (BOM) — dihitung dari item + meteran

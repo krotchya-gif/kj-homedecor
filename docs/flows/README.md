@@ -2,6 +2,9 @@
 
 Dokumentasi alur (flow) per modul — **1 file = 1 flow**. Bahasa sederhana, siap dipakai training staff.
 
+> 📖 **Panduan lengkap per role** (siapa mengerjakan apa, di halaman mana): [`../../pendoman.md`](../../pendoman.md)
+> 🐞 **Riwayat bug & fix**: [`../../bug.md`](../../bug.md)
+
 | # | Flow | File |
 |---|---|---|
 | 1 | **Pipeline Pesanan** — dari Baru sampai Selesai | [01-order-pipeline.md](01-order-pipeline.md) |

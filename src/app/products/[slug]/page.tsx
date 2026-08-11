@@ -34,7 +34,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   const whatsappNumber = settings?.whatsapp_number ?? '6281234567890'
   const whatsappMessage = settings?.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden'
-  const whatsAppMsg = `${whatsappMessage}, saya tertarik dengan produk "${p.name}" (${formatRp(p.price)}). Mohon info lebih lanjut.`
+  const hasPrice = (p.price ?? 0) > 0
+  const whatsAppMsg = hasPrice
+    ? `${whatsappMessage}, saya tertarik dengan produk "${p.name}" (${formatRp(p.price)}). Mohon info lebih lanjut.`
+    : `${whatsappMessage}, saya tertarik dengan produk "${p.name}". Mohon info harga & ketersediaan.`
   const whatsAppUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsAppMsg)}`
 
   return (
@@ -115,7 +118,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             {p.sku && <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)', marginBottom: '1rem' }}>SKU: {p.sku}</div>}
 
             <div style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1.5rem' }}>
-              {formatRp(p.price)}
+              {p.price > 0 ? formatRp(p.price) : 'Harga: Hubungi via WhatsApp'}
             </div>
 
             {/* Stock info */}

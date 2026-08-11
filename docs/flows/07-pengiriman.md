@@ -5,16 +5,17 @@
 ## Aktor
 | Role | Bisa apa |
 |---|---|
-| Gudang | Packing (Siap → Dikemas) |
-| Admin/Gudang | Input resi + foto bukti (Dikemas → Terkirim) |
+| Gudang | Packing (Siap → Dikemas) via tombol "Kemas" di halaman QC Per-Item |
+| Admin/Gudang/Installer | Input resi + foto bukti (Dikemas → Terkirim) |
 | Owner | Semua tahap |
 
 ## Langkah-langkah
 
-1. **Packing** — order status **Siap** → Gudang klik "Lanjut: Packing":
-   - Order pindah: Siap → **Dikemas**
+1. **Packing** — order status **Siap** → Gudang buka **QC Per-Item** → blok "📦 Siap Dikemas":
+   - Order dengan semua item lulus QC tampil di blok itu
+   - Klik **Kemas** → order pindah: Siap → **Dikemas**
    - Muncul di halaman **Pengiriman** (tab "Dikemas")
-2. **Input Resi** — Admin/Gudang klik "Input Resi" pada order dikemas:
+2. **Input Resi** — Admin/Gudang/Installer klik "Input Resi" pada order dikemas:
    - Pilih **kurir** (JNE, J&T, SiCepat, dll)
    - Isi **nomor resi**
    - Upload **foto bukti kirim** (wajib — bukti accountability)

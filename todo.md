@@ -1,61 +1,67 @@
-# KJ Homedecor — Sesi Audit & Perbaikan (2026-07-18)
+# KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` — semua perubahan sudah di-build ✅ (115/115 pages)
-
----
-
-## ✅ Selesai dalam Sesi Ini
-
-### 🔒 Security & Auth (12 fix)
-1. ✅ `middleware.ts` → `proxy.ts` (Next.js 16 convention)
-2. ✅ Prefix matching middleware untuk subpath dashboard
-3. ✅ Header `x-pathname` untuk dashboard layout
-4. ✅ Setup endpoint proteksi (auth required jika sudah ada user)
-5. ✅ Mass assignment diperketat — `orders/[id]`, `purchase-requests/[id]`
-6. ✅ IDOR protection — `install-bookings`, `purchase-orders` GET
-7. ✅ Installer booking restriction (hanya bisa booking diri sendiri)
-8. ✅ Xendit create-payment role-gated (`admin/owner/finance`)
-9. ✅ Auth pattern seragam — `orders/[id]` PUT/DELETE pakai `requireAuthRole`
-10. ✅ Upload route — extension validation + magic bytes
-11. ✅ Console cleanup — hapus dev note `penjahit/jobs`
-12. ✅ `.gitignore` env pattern fix (`.env*` → explicit list)
-
-### 🛠️ Workflow Fixes (5 fix)
-13. ✅ Whitelist financial fields — `payment_status`, `total_amount` bisa diupdate admin/owner/finance
-14. ✅ Photo evidence — hanya wajib di `steam`, `packed`, `shipped`, `done`
-15. ✅ BookingCalendar — occupancy count per-date (bukan global)
-16. ✅ TypeScript schema drift — `QCRecord.result` + `smokering_color`
-17. ✅ `formatCurrency` duplikat — dihapus dari `utils.ts`
-
-### 📈 Charts Recharts (3 dashboard)
-18. ✅ **Admin dashboard** — BarChart (gradient, animasi, tooltip), LineChart (active dot, gradient)
-19. ✅ **Finance dashboard** — BarChart (gradient), PieChart (donut chart)
-20. ✅ **Owner dashboard** — BarChart (gradient), PieChart (donut), LineChart (gradient)
-
-### 🔄 Lainnya
-21. ✅ `.env.example` — template environment variables
-22. ✅ Proxy migration — `src/proxy.ts`
-23. ✅ Shadcn CSS variables — ditambahkan ke `globals.css` (light + dark mode)
+> **Branch:** `main` · Update terakhir: 2026-08-11
 
 ---
 
-## ⏳ Belum Selesai (opsional)
+## ✅ Selesai (2026-08-11 — Sesi Pipeline, Payment & Katalog)
 
-| Item | Priority | Catatan |
-|------|----------|---------|
-| **Server-side price validation** | High | `orders/route.ts` POST masih terima `total_amount` dari client |
-| **Console cleanup (37 lokasi)** | Low | Sebagian besar error handler valid, hanya 1 dev note dihapus |
-| **BookingCalendar micro refactor** | Low | `slotCount` computed 2x — minor |
-| **SECURITY DEFINER RPC migration 059** | Medium | Role check di 5 function, butuh full function definitions |
-| **Hapus dead Shadcn components** | Low | 12 komponen tidak dipakai (card, select, tabs, avatar, dll) |
+### 🔄 Pipeline Order — tidak macet lagi
+1. ✅ **BUG-001** Steam QC Pass → order **otomatis** jadi `Siap` (`gudang/steam`)
+2. ✅ **BUG-002** Tombol **"Kemas"** di `gudang/qc` (Siap → Dikemas) — gudang tanpa akses /admin
+3. ✅ **BUG-003** Admin = escape hatch semua stage (align API) — 🔒 hilang
+4. ✅ **BUG-004** DP admin **auto-catat** ke tabel `payments`; approve finance = verifikasi final; aturan cek bayar terakhir
+5. ✅ **BUG-007** Modal **"Jadwalkan Pasang"** di order detail (tanggal + installer) → auto-create/update `install_bookings` — koneksi ke installer pulih
+6. ✅ Prefill foto bukti di modal advance (tidak upload ulang)
+
+### 🏷️ Harga Produk (BUG-008)
+7. ✅ Harga jual **bukan tanggung jawab admin** — di-set Owner via `/owner/hpp`
+8. ✅ Badge status HPP di list produk admin (🟠 belum dihitung / ✅ HPP)
+9. ✅ Katalog publik & landing filter `price > 0`; detail produk fallback "Harga: Hubungi via WhatsApp"
+10. ✅ Import CSV produk: price tidak wajib
+
+### 📚 Dokumentasi
+11. ✅ `pendoman.md` — panduan penggunaan per role (bahasa sederhana)
+12. ✅ `bug.md` — tracker bug (BUG-001 s/d BUG-008)
+13. ✅ `docs/flows/` 01-10 — disinkronkan dengan kode aktual
+14. ✅ `README.md`, `USER.md`, `todo.md` — diperbarui
+
+---
+
+## ✅ Selesai (2026-07-18 — Sesi Audit)
+
+- `middleware.ts` → `proxy.ts` (Next.js 16) + prefix matching
+- Auth helpers (`src/lib/auth.ts`): `requireAuth`, `requireRole`, `requireAuthRole`, `checkRateLimit`
+- Setup endpoint proteksi, mass assignment, IDOR, upload validation
+- Recharts polish (gradient, animasi, donut) di 3 dashboard
+- Migrations RLS 053-058, `.env.example`
+
+---
+
+## ⏳ Belum Selesai (prioritas berikutnya)
+
+| # | Item | Priority | Catatan |
+|---|---|---|---|
+| 1 | **Security Fase 1** — auth & role check di API yang bocor | 🔴 High | `purchase-orders` (no auth), `gudang/po-delivery` (fail-open), `seo/upload-*` (no auth), `surveys/[id]` (no role), `create-staff` (fail-open) |
+| 2 | **SECURITY DEFINER RPC migration 059** | 🟠 Medium | Role check di 5 function (stock, consume, advance booking, cash balance) — 058 hanya dokumentasi |
+| 3 | **exec_sql backdoor** | 🔴 High | `exec_sql(query TEXT)` di migration 055 — cek apakah sudah ada di DB live; kalau ada: DROP / REVOKE |
+| 4 | **Role drift** | 🟡 Medium | TS `Role` (laundry, tanpa surveyor) ≠ DB post-060 (surveyor, tanpa laundry) → `requireAuthRole(['surveyor'])` error TS |
+| 5 | **Server-side price validation** | 🟡 Medium | `orders/route.ts` POST masih terima `total_amount` dari client |
+| 6 | **Role laundry** | 🟡 Medium | Tidak punya dashboard sendiri (nav kosong untuk role ini) |
+| 7 | **TikTok webhook fail-open** | 🟠 High | Kalau `TIKTOK_APP_SECRET` kosong, verifikasi di-skip → webhook tidak aman |
+| 8 | **TikTok auth/route GET rusak** | 🟡 Medium | Service client + `getUser()` selalu null → OAuth callback mati |
+| 9 | **`x-pathname` header** | 🟢 Low | Diklaim di layout tapi tidak pernah di-set proxy.ts |
+| 10 | **Duplikasi** | 🟢 Low | `NAV_BY_ROLE` 2× (Sidebar vs TopNav, sudah drift); owner/laporan = salinan finance/laporan (~2.2k baris) |
+| 11 | **Dead deps** | 🟢 Low | `pg` (0 usage), `request` (deprecated, cuma SDK generated), `shadcn` di dependencies |
+| 12 | **Tests** | 🟡 Medium | vitest/playwright mengarah ke `tests/` yang tidak ada — perlu buat ulang suite |
 
 ---
 
 ## 📋 Sebelum Commit
 
 ```bash
-npm run build           # ✅ sudah lolos 115/115
-npm run test:run        # jalankan jika test tersedia
+npx tsc --noEmit
+npm run build
 git add -A
 git commit -m "..."
 ```

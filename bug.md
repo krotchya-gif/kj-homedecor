@@ -1,0 +1,514 @@
+# Bug Tracker — KJ Homedecor
+
+Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Update terus-menerus saat bug baru ditemukan atau di-fix.
+
+---
+
+## Ringkasan Status
+
+| ID | Bug | Status | Diprioritaskan |
+|---|---|---|---|
+| BUG-001 | Pipeline macet di Steam/QC — gudang tidak bisa advance | ✅ Fixed | — |
+| BUG-002 | Pipeline macet di Kemas (ready → packed) — gudang tidak bisa advance | ✅ Fixed | — |
+| BUG-003 | Role admin diblokir di stage production/steam/ready (🔒) | ✅ Fixed | — |
+| BUG-004 | Approve pembayaran (Cek Bayar) gagal jika DP diinput admin | ✅ Fixed (Opsi B) | — |
+| BUG-005 | Role drift: TS `Role` vs DB CHECK constraint vs pemakaian app | 🟡 Terbuka | Sedang |
+| BUG-006 | `x-pathname` header diklaim tapi tidak pernah di-set | 🟡 Terbuka | Rendah |
+| BUG-007 | Pipeline pasang: booking installer tidak terhubung dari order detail (order nyangkut di Terjadwal Pasang) | ✅ Fixed | — |
+| BUG-008 | Harga jual produk diinput admin (tebakan) padahal belum tahu HPP → harga asal-asalan tampil di katalog | ✅ Fixed (Opsi A) | — |
+| BUG-009 | **Pembukuan server mati**: `createJournalEntry` pakai `fetch('/api/journal')` URL relatif → di Next.js route handler throw → jurnal order/PO tidak pernah dibuat | ✅ Fixed | — |
+| BUG-010 | **Tanda saldo terbalik** di laporan keuangan: `ledger.ts` cek `normal_side` (kolom mati/NULL) → liability/equity/revenue minus | ✅ Fixed | — |
+| BUG-011 | **PO received jurnal pakai QUANTITY** sebagai nominal rupiah (`amount: materialQty`) → korup buku besar | ✅ Fixed | — |
+| BUG-012 | Refund rusak 3 lapis: tanpa jurnal reversal, RLS returns dead policy (`auth.role() IN(...)` mustahil), retry = refund dobel | 🟠 Terbuka | Tinggi |
+| BUG-013 | Hutang & piutang off-ledger: bayar hutang / buat piutang tidak pernah bikin jurnal | 🟠 Terbuka | Tinggi |
+| BUG-014 | `piutang.paid_amount/return_amount` tidak pernah di-write di seluruh kode → piutang tak bisa lunas; tombol "Proses Retur" tanpa handler | 🟠 Terbuka | Tinggi |
+| BUG-015 | Filter periode DEAD di 8/10 laporan: `useEffect(..., [])` tidak refetch; umur-hutang/piutang & mutasi-kas ignore tanggal di query | 🟡 Terbuka | Sedang |
+| BUG-016 | Neraca tidak balance: tanpa laba berjalan di ekuitas + tanda saldo terbalik | 🟡 Terbuka | Sedang |
+| BUG-017 | Komisi marketplace TikTok hilang: `commission_fee: 0` hardcode, net_amount tidak kurangi komisi; settlement tanpa jurnal | 🟡 Terbuka | Sedang |
+| BUG-018 | `exec_sql` backdoor (SECURITY DEFINER) di DB dari migration 055; tidak dipakai src/ tapi berbahaya | 🔴 Terbuka | Tinggi |
+| BUG-019 | RLS tabel keuangan `FOR ALL authenticated` + `api/journal` tanpa role check + RPC `update_cash_account_balance` tanpa role | 🔴 Terbuka | Tinggi |
+| BUG-020 | **FALSE POSITIVE (verified)**: F-35/F-72 "NUMERIC string concat" — semua kolom NUMERIC = `number` di runtime, `+` = aritmetika | ❌ Bukan bug | — |
+
+---
+
+## BUG-001 — Pipeline macet di Steam/QC
+
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11)
+**File:** `src/app/(dashboard)/gudang/steam/page.tsx`
+**Stage:** `steam` → `ready`
+
+### Gejala
+- Gudang melakukan Steam QC **Pass** + upload bukti foto di `/gudang/steam`
+- Foto bukti **tersimpan dengan benar** di tabel `order_progress_photos` (stage='steam')
+- TAPI `orders.status` **tetap `steam`** — pipeline di detail pesanan tidak maju
+- Akibatnya: order menunggu sampai ada role yang manual klik "Lanjut" di detail pesanan
+
+### Akar Masalah
+`handleSteamPass()` (line 151-197) hanya meng-update `steam_jobs` + insert foto + log, tapi **tidak pernah meng-update `orders.status`**. Komentar di line 189 mengaku disengaja:
+
+```
+// 2026-07-31: steam → ready dilakukan manual di order detail (Gudang/Admin klik "Lanjut").
+```
+
+Tapi faktanya:
+- Gudang **tidak bisa** membuka `/admin/orders/[id]` (proxy.ts memblok role gudang dari `/admin/*`)
+- Admin **diblokir** di stage ini (lihat BUG-003)
+- Jadi satu-satunya yang bisa adalah **owner** — yang harus upload ulang bukti foto
+
+### Perilaku Benar (Fix)
+Setelah Steam QC Pass sukses:
+1. `steam_jobs.status = 'done'` (sudah benar)
+2. Foto bukti insert (sudah benar)
+3. **`orders.status = 'ready'`** ← otomatis, pakai foto yang baru saja di-upload sebagai evidence
+4. Log `qc_pass` ("Steam/QC Passed oleh Gudang → Siap")
+
+### ✅ Implementasi (2026-08-11)
+`handleSteamPass` setelah foto & log tersimpan:
+```ts
+await supabase.from('orders').update({ status: 'ready' }).eq('id', job.order_id).eq('status', 'steam')
+await supabase.from('order_logs').insert({ action: 'qc_pass', notes: 'Steam/QC Passed oleh Gudang → order otomatis Siap', ... })
+```
+- Guard `eq('status','steam')` = idempoten (update 0 baris jika sudah lanjut, tidak merusak)
+- Foto bukti yang di-upload gudang dipakai sebagai evidence stage steam — tidak ada upload ulang
+- Flow **Fail/revisi sudah benar** (line 277-279 meng-update order ke `production` + auto-create job revisi) — tidak diubah
+
+---
+
+## BUG-002 — Pipeline macet di Kemas (ready → packed)
+
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11)
+**File:** `src/app/(dashboard)/gudang/qc/page.tsx` & `src/app/(dashboard)/admin/shipping/page.tsx`
+**Stage:** `ready` → `packed`
+
+### Gejala
+- Setelah order `ready` (QC per-item selesai), harus ada yang menandai "Dikemas"
+- Satu-satunya halaman yang bisa melakukan ini: **`/admin/shipping`** (shipping/page.tsx:85)
+- Gudang **tidak punya akses** ke `/admin/*` (proxy.ts) → gudang tidak bisa mengemas
+- Admin bisa akses tapi tidak tahu harus buka `/admin/shipping` (di matriks stage, `ready→packed` adalah tanggung jawab gudang, route API:34)
+- Owner lagi-lagi yang jadi penyelamat
+
+### Akar Masalah
+Fitur "packing" hanya ada di halaman milik admin, padahal tanggung jawabnya ada di gudang. Tidak ada tombol "Kemas" di halaman kerja gudang mana pun.
+
+### Perilaku Benar (Fix)
+Tambah tombol **"📦 Kemas"** di tab QC Per-Item (`/gudang/qc`):
+- Muncul per order yang `status='ready'` dan semua `order_items.ready=true`
+- Update `orders.status='packed'` + `packed_at` + `packed_by` + log
+- Tidak wajib foto (konsisten dengan `/admin/shipping`)
+
+### ✅ Implementasi (2026-08-11)
+Blok "📦 Siap Dikemas" di tab QC (`/gudang/qc`):
+- Derive `readyToPack`: group `order_items` by `order_id`, tampilkan order dengan `orders.status='ready'` DAN semua item `ready:true`
+- Tombol "Kemas" per order → `orders.update({ status:'packed', packed_at, packed_by })` + guard `eq('status','ready')` + log `packed`
+- Tidak wajib foto (konsisten `/admin/shipping`)
+
+## BUG-003 — Role admin diblokir (🔒) di stage production/steam/ready
+
+**Severity:** 🟡 Sedang (✅ FIXED 2026-08-11)
+**File:** `src/app/(dashboard)/admin/orders/[id]/page.tsx:65-78`
+
+### Gejala
+Admin melihat pesan di detail pesanan:
+```
+🔒 Role admin tidak boleh lanjut di stage ini. Stage Steam/QC adalah tanggung jawab: owner, gudang
+```
+
+### Akar Masalah
+Dua "source of truth" **bertentangan**:
+
+| Lokasi | Aturan |
+|---|---|
+| Client `ROLE_NEXT_ALLOWED` (page.tsx:65-78) | `admin: ['new','payment_ok','sorted','packed','shipped']` — **tanpa** production/steam/ready |
+| API `ROLE_STATUS_PERMISSIONS` (route.ts:30-36) | `admin` = escape hatch — **boleh semua transisi** (route.ts:40) |
+
+UI lebih ketat dari API → admin diblokir di UI padahal API mengizinkan.
+
+### Perilaku Benar (Fix)
+- Tambah `'production','steam','ready'` ke daftar admin di `ROLE_NEXT_ALLOWED`
+- Konsisten dengan API (admin = escape hatch, owner juga)
+
+### ✅ Implementasi (2026-08-11)
+`ROLE_NEXT_ALLOWED.admin` → `['new','payment_ok','sorted','production','steam','ready','packed','shipped']`
+- 🔒 tidak muncul lagi untuk admin di semua stage
+- Pesan "tangung jawab owner, gudang" hilang — admin tidak perlu pinjam akun owner
+
+---
+
+## BUG-004 — Approve pembayaran gagal jika DP diinput admin
+
+**Severity:** 🔴 Tinggi
+**File:** `src/app/(dashboard)/finance/payments/page.tsx` (`handleApprove`, line 229-315)
+
+### Gejala
+| Skenario | Hasil |
+|---|---|
+| Admin input order **dengan DP** (offline/landing) | Finance **tidak bisa approve** — harus input nominal kecil dulu baru tombol approve bisa lanjut |
+| Admin input order **tanpa DP** → finance input DP sendiri | **Langsung bisa approve** ✅ |
+
+### Akar Masalah
+`handleApprove()` mewajibkan adanya **record di tabel `payments` yang ter-verified**:
+
+```ts
+// line 253-257
+const verifiedPayment = await getVerifiedPayment(freshOrder.id)
+if (!verifiedPayment) {
+  toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
+  return
+}
+```
+
+Tapi `getVerifiedPayment()` membaca tabel `payments` (select verified_by != null). **Admin yang input order + DP tidak pernah membuat record di tabel `payments`** — auto-create payment hanya ada untuk order marketplace lunas penuh (`admin/orders/page.tsx:306-317`). DP admin hanya tercatat sebagai kolom `orders.dp_amount`.
+
+Jadi:
+- DP admin → tabel `payments` kosong → approve diblokir → finance "memutar akal" input nominal kecil
+- Tanpa DP → finance input lewat form (`handlePay`) yang memang mencatat ke tabel `payments` → approve jalan
+
+### Opsi Perbaikan
+
+**Opsi A: Relax cek di handleApprove**
+- Hapus blok `getVerifiedPayment` dari `handleApprove` (line 253-257)
+- Cukup cek: `paidSum > 0` DAN `payment_status !== 'pending'` — pembayaran sudah tercatat (entah dari DP admin di `orders.dp_amount`, atau diinput finance)
+- Klik Approve = verifikasi manual finance bahwa pembayaran sudah masuk
+- `getVerifiedPayment` tetap dipakai di `handleQcApprove` (alur lama)
+- ✅ Perubahan kecil & lokal
+
+**Opsi B (DIPILIH ✅): Auto-catat record `payments` saat admin buat order dengan DP**
+- Saat `admin/orders` insert order dengan `dp_amount > 0`, sekaligus insert row ke tabel `payments` (`type:'dp'|'lunas'`, `amount: dpAmt`, `verified_by: admin_id`) — berlaku **semua source** (offline/landing/marketplace), bukan hanya marketplace lunas penuh seperti sebelumnya
+- Jejak akuntansi lengkap: setiap rupiah DP yang diinput admin punya record transaksi
+
+### ✅ Implementasi (2026-08-11)
+
+**1. `src/app/(dashboard)/admin/orders/page.tsx` (buat pesanan)**
+- Blok auto-payment lama (khusus marketplace lunas penuh) diganti: **jika `dpAmt > 0`** → insert ke `payments`:
+  - `type: dpAmt >= total ? 'lunas' : 'dp'`
+  - `amount: dpAmt`
+  - `verified_by: admin.id`, `verified_at: now`
+  - `notes: "Auto-catat DP/Lunas oleh Admin saat buat pesanan (source: ...)"`
+- `orders.payment_status` tetap dihitung seperti biasa (`paid`/`partial`/`pending`)
+
+**2. `src/app/(dashboard)/finance/payments/page.tsx` (`handleApprove`)**
+- Blok `getVerifiedPayment` yang memblokir **dihapus** — klik Approve oleh Finance **itu sendiri** adalah verifikasi final (cek bayar)
+- Cek tetap: `paidSum > 0` DAN `payment_status !== 'pending'`
+- Ditambah variabel `sisaTagihan` / `belumLunas`:
+  - Approve `new` **belum lunas** → toast: *"Sisa tagihan Rp X — Finance wajib input pelunasan sebelum order dikemas (payment gate)"*
+  - Approve `new` **lunas** → toast *"Pembayaran diverifikasi (LUNAS)"*
+  - Order `ready` **belum lunas** → toast warning: packing diblokir payment gate, Finance harus input pelunasan dulu
+- `handleQcApprove` (alur lama, steam→ready) **tetap** memakai `getVerifiedPayment` + syarat lunas penuh = **cek bayar terakhir tetap di tangan Finance**
+
+### ATURAN CEK BAYAR TERAKHIR (kunci)
+1. Auto-record admin **bukan** approve — order tidak pernah auto-maju ke `payment_ok` tanpa klik Finance
+2. Jika order **belum lunas**: hanya **Finance** yang bisa approve (`new → payment_ok`) atau input pelunasan (`handlePay`)
+3. Gate final di `packed/shipped/done`: API (`orders/[id]/route.ts:149`) & halaman admin mewajibkan `payment_status='paid'` — belum lunas → tidak bisa dikemas/dikirim
+
+---
+
+## BUG-005 — Role drift: TS `Role` vs DB CHECK constraint
+
+**Severity:** 🟡 Sedang
+**File:** `src/types/index.ts:1`, migration `060_survey_schema.sql:11`
+
+| Layer | Role yang diizinkan |
+|---|---|
+| TS `Role` type | `admin, gudang, penjahit, finance, installer, owner, laundry` |
+| DB CHECK (post-060) | `admin, gudang, penjahit, finance, installer, owner, surveyor` |
+| App (proxy, sidebar, create-staff, API) | Pakai `surveyor` di mana-mana |
+
+Akibat:
+- User dengan role `laundry` **ditolak DB** (CHECK constraint) — tapi role masih ada di TS type & halaman `/admin/laundry`
+- `requireAuthRole(['surveyor'])` **error TypeScript** karena `surveyor` tidak ada di `Role` type
+
+Fix: tambah `'surveyor'` ke `Role` type (putuskan nasib `laundry` — apakah tetap atau dihapus).
+
+---
+
+## BUG-006 — `x-pathname` header tidak pernah di-set
+
+**Severity:** 🟡 Rendah
+**File:** `src/proxy.ts`, `src/app/(dashboard)/layout.tsx:36`
+
+### Gejala
+`layout.tsx` membaca header `x-pathname`/`x-next-pathname` untuk validasi role vs path (defense-in-depth), tapi `proxy.ts` **tidak pernah menulis header tersebut** (grep = 0 hasil). Layout selalu fallback ke `''`.
+
+### Perilaku Benar (Fix)
+- `proxy.ts` tambahkan `request.headers.set('x-pathname', pathname)` sebelum return `supabaseResponse`
+- Atau hapus klaim di layout kalau memang tidak dibutuhkan
+
+---
+
+## BUG-007 — Pipeline pasang: booking installer tidak terhubung dari order detail
+
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11)
+**File:** `src/app/(dashboard)/admin/orders/[id]/page.tsx`, `src/app/api/orders/[id]/route.ts`
+
+### Gejala
+- Order `pasang` masuk `Dikemas (packed)` → klik "Lanjut: Jadwalkan Pasang"
+- **Tidak ada yang terjadi** di sisi installer — booking `install_bookings` **tidak pernah dibuat**
+- Order nyangkut di `Terjadwal Pasang (scheduled)`; installer tidak melihat apa pun; admin harus manual ke `/admin/booking` (kalau ingat)
+
+### Akar Masalah
+- `admin/orders/[id]/page.tsx` meng-update status **langsung via client** (`supabase.from('orders').update`) — **bypass API**
+- Logika auto-create `install_bookings` hanya ada di API (`route.ts:270-338`) yang **tidak pernah dipanggil** halaman ini
+- Tidak ada referensi `installer`/`install_bookings` sama sekali di halaman order detail
+
+### ✅ Implementasi (2026-08-11) — satu langkah, langsung dari order detail
+1. **Tombol "Jadwalkan Pasang"** (saat `packed`, classification `pasang`) → buka modal berisi: tanggal + jam + dropdown installer (dari `users` role='installer')
+2. Submit:
+   - `orders.update({ status:'scheduled', scheduled_installation_date, scheduled_installation_time }).eq('status','packed')`
+   - **Upsert `install_bookings`** (type pasang): booking aktif (`pending`/`scheduled`) → update `installer_id/scheduled_date/scheduled_time/status='scheduled'`; tidak ada → insert baru
+   - Log `install_scheduled` ke `order_logs`
+3. Installer langsung lihat job di `/installer/schedule` (realtime)
+4. Installer advance `scheduled → installing → done` via `PUT /api/install-bookings/[id]` → RPC cascade ke `orders.status` → pipeline ke "Sedang Dipasang" → "Selesai"
+5. Bonus: blok info booking di order detail (nama installer + tanggal) untuk order pasang di `scheduled/installing/done`
+
+## BUG-008 — Harga jual produk diinput admin padahal belum tahu HPP
+
+**Severity:** 🟡 Sedang (✅ FIXED 2026-08-11, Opsi A)
+**File:** `admin/catalog/products/page.tsx`, `src/app/catalog/page.tsx`, `src/components/landing/ProductCatalog.tsx`, `src/app/products/[slug]/page.tsx`
+
+### Gejala
+- Admin membuat produk (mis. "Gordyn A") — form **mewajibkan input "Harga Jual"** padahal admin tidak tahu HPP-nya
+- Owner baru menghitung HPP setelahnya (di `/owner/hpp`) — saat Simpan, `products.price` **ditimpa** dengan harga jual hasil perhitungan HPP
+- Efek: antara admin buat produk sampai owner set HPP, produk dijual dengan **harga tebakan** admin di katalog publik
+- Admin buta: tidak ada indikator di list produk apakah HPP sudah dihitung atau belum
+
+### Akar Masalah
+1. Form admin products `price` bersifat `required` (field label `Harga Jual (Rp) *`)
+2. Halaman admin products tidak menampilkan status HPP (`hpp_calculated`/`hpp_manual` tidak pernah dirender)
+3. Harga jual final seharusnya **hanya** ditentukan Owner lewat perhitungan HPP (menimpa `price`)
+
+### ✅ Implementasi (2026-08-11) — Opsi A: harga jual bukan tanggung jawab admin
+
+| File | Perubahan |
+|---|---|
+| `admin/catalog/products/page.tsx` | Field "Harga Jual" → **opsional** + keterangan *"Kosongkan jika belum ada — harga jual final ditetapkan Owner via /owner/hpp"*; `handleSave`: price kosong → `0`; badge status di list (desktop + mobile): 🟠 "HPP belum dihitung" / ✅ "HPP: Rp X"; harga tampil `—` kalau 0; Import CSV: `price` tidak lagi `required` |
+| `src/app/catalog/page.tsx` | Filter tambah `.gt('price', 0)` → produk tanpa harga **tidak tampil** di katalog publik |
+| `src/components/landing/ProductCatalog.tsx` | Sama — featured hanya produk yang sudah punya harga |
+| `src/app/products/[slug]/page.tsx` | Jaring pengaman: harga 0 → tampil *"Harga: Hubungi via WhatsApp"*; pesan WA tanpa angka harga |
+
+**Tidak perlu migrasi database** — `products.price` sudah `NUMERIC NOT NULL DEFAULT 0` (`001_initial_schema.sql:80`), insert tanpa harga otomatis `0`. API `/api/products` juga sudah `price: z.number().min(0).optional()`.
+
+### Alur final
+```
+Admin buat "Gordyn A" (tanpa harga, badge 🟠 "HPP belum dihitung")
+→ Owner isi material (cost_per_unit) 
+→ Owner hitung BOM di /owner/hpp → Simpan 
+→ products.price ter-set + badge ✅ HPP 
+→ produk otomatis muncul di katalog publik & landing (filter price > 0)
+```
+
+### Catatan
+- Keputusan: produk tanpa harga **disembunyikan** dari katalog publik (bukan ditampilkan "hubungi") — dipilih untuk mencegah harga asal-asalan tampil
+
+---
+
+## BUG-009 — Pembukuan server mati (jurnal order/PO tidak pernah dibuat)
+
+**Severity:** 🔴 Kritis (✅ FIXED 2026-08-11)
+**File:** `src/utils/journal/create.ts:25` + `api/orders/route.ts:69` + `api/purchase-orders/[id]/route.ts:88,113`
+
+### Akar masalah
+```ts
+// create.ts:25
+const res = await fetch('/api/journal', { ... })  // URL RELATIF
+```
+Di Next.js 16 route handler (server/Node.js), `fetch` tidak mendukung URL relatif (terverifikasi di `next/dist/server/lib/patch-fetch.js` — tidak ada resolve base URL) → **throw `TypeError: Failed to parse URL`** → semua pemanggil server menangkapnya dengan `console.warn` → jurnal `order_created`, `purchase`, `expense_paid` **diam-diam tidak pernah dibuat**.
+
+### Dampak
+- Order dibuat via API → tidak ada Dr Piutang / Cr Penjualan di buku besar
+- PO received / PO paid → tidak ada jurnal inventori & hutang
+- Hanya `finance/payments` (client) yang jurnalnya benar-benar jalan
+
+### ✅ Implementasi
+- `createJournalEntry` menerima `baseUrl` opsional: di browser pakai relative (seperti sekarang), di server pakai `process.env.NEXT_PUBLIC_BASE_URL`
+- Pemanggil server (`api/orders`, `api/purchase-orders/[id]`) meneruskan base URL
+
+---
+
+## BUG-010 — Tanda saldo terbalik di laporan keuangan
+
+**Severity:** 🔴 Kritis (✅ FIXED 2026-08-11)
+**File:** `src/lib/ledger.ts:51`
+
+### Akar masalah
+```ts
+const balance = a.normal_side === 'credit' ? -raw : raw
+```
+Kolom `accounts.normal_side` **tidak pernah diisi** (migration 058:14-15 menyebutnya "kolom mati", seed 048/049 tidak memasukkannya) → NULL untuk semua akun → semua akun dianggap normal-debit → **liability/equity/revenue saldo terbalik tanda**.
+
+### Dampak
+- Neraca: Aset ≠ Liabilitas + Ekuitas (tidak pernah balance)
+- Laba Rugi: pendapatan negatif → terlihat rugi padahal untung
+- Neraca Saldo: selalu "tidak seimbang"
+- Buku Besar: hutang/modal/pendapatan minus
+
+### ✅ Implementasi
+- Hitung tanda dari `a.type` (konsisten dengan halaman CoA):
+  - `asset` / `expense` → debit-normal (`debit − credit`)
+  - `liability` / `equity` / `revenue` → credit-normal (`credit − debit`)
+- `normal_side` jadi fallback jika terisi
+
+---
+
+## BUG-011 — PO received jurnal pakai QUANTITY sebagai nominal
+
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11)
+**File:** `src/app/api/purchase-orders/[id]/route.ts:93`
+
+```ts
+amount: materialQty   // qty (mis. 5 meter) dipakai sebagai NOMINAL rupiah jurnal!
+```
+Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup buku besar skala qty. Diperbaiki: jurnal `purchase` memakai `currentPO.actual_cost` (nominal rupiah), qty hanya untuk stock.
+
+---
+
+## BUG-012 — Refund rusak 3 lapis
+
+**Severity:** 🟠 Tinggi (terbuka)
+**File:** `finance/payments/page.tsx:369-406` + migration 003:53-54 / 055:242-243
+
+1. Refund insert `payments type='refund'` **tanpa jurnal reversal** & tanpa kurangi `dp_amount/lunas_amount`
+2. `returns.update({refund_status:'completed'})` **DIJAMIN GAGAL** — policy `FOR UPDATE USING (auth.role() IN ('admin','finance','owner'))` padahal `auth.role()` cuma mengembalikan `'authenticated'`/`'anon'` → **dead policy**
+3. Tanpa cek `refund_amount <= yang sudah dibayar` → retry setelah error = **refund dobel**
+
+### Rencana fix
+- Jurnal refund (Dr Refund Payable / Cr Kas) + kurangi dp/lunas + jadikan flow transaksional
+- Perbaiki policy returns pakai subquery ke `users.role` (bukan `auth.role()`)
+- Guard idempotency (jangan proses 2×)
+
+---
+
+## BUG-013 — Hutang & piutang off-ledger
+
+**Severity:** 🟠 Tinggi (terbuka)
+**File:** `finance/hutang/page.tsx:151-183`, `finance/piutang/*`
+
+- **Bayar hutang**: cuma update `paid_amount` + status — tidak ada jurnal Dr Hutang / Cr Kas, tidak ada update saldo kas → uang keluar "hilang" dari pembukuan
+- **Buat piutang faktur** (manual & TikTok): cuma insert tabel `piutang` — tanpa jurnal Dr Piutang / Cr Penjualan
+
+### Rencana fix
+- Satu RPC/helper transaksional `payDebt` (jurnal + saldo kas + riwayat)
+- Auto-jurnal saat faktur piutang dibuat
+
+---
+
+## BUG-014 — Piutang tidak pernah bisa lunas
+
+**Severity:** 🟠 Tinggi (terbuka)
+**File:** `finance/piutang/*` (faktur, payment, process)
+
+- `piutang.paid_amount` / `return_amount` **tidak pernah di-write** di seluruh `src/` (grep = 0) → faktur piutang pending selamanya
+- Kolom `remaining` (dipakai TikTok) mati — semua UI baca `amount − paid − return`
+- Halaman `piutang/process` tombol **"Proses Retur" tanpa onClick** (dead button)
+- `piutang/payment` menampilkan payments ORDER (bukan faktur piutang)
+
+### Rencana fix
+- Implementasi aksi bayar per faktur (jurnal Dr Kas / Cr Piutang + update `paid_amount`)
+- Implementasi handler retur + update `return_amount`
+- Konsolidasi `remaining` vs `amount−paid−return`
+
+---
+
+## BUG-015 — Filter periode DEAD di laporan
+
+**Severity:** 🟡 Sedang (terbuka)
+**File:** 8/10 laporan di `finance/laporan/*` & `owner/laporan/*` + `mutasi-kas`/`umur-hutang`/`umur-piutang`
+
+- `useEffect(() => { fetchData() }, [])` — array kosong → ganti tanggal tidak memicu reload
+- `umur-hutang`/`umur-piutang`/`mutasi-kas`: query bahkan mengabaikan tanggal → PDF header "Periode" bohong
+- As-of date = hari ini, bukan `endDate` → tidak reproducible
+
+### Rencana fix
+- `useEffect(..., [startDate, endDate])` di semua laporan (pola sudah benar di `performa-tag` & `kronologi-hpp`)
+- Umur hutang/piutang: aging dari `due_date`, sisa = amount − paid − return, filter status aktif
+
+---
+
+## BUG-016 — Neraca tidak balance
+
+**Severity:** 🟡 Sedang (terbuka)
+**File:** `finance/laporan/neraca/page.tsx`
+
+- Tanpa **laba berjalan** (Σ revenue − Σ expense) di ekuitas → A = L + E tidak pernah bisa balance saat ada profit
+- Tidak ada closing entry; filter periode salah secara konsep (neraca = as-of-date, bukan rentang aktivitas)
+
+### Rencana fix
+- Tambah baris "Laba Berjalan" di bagian ekuitas
+- Pertimbangkan as-of-date `endDate` (bukan selisih rentang)
+
+---
+
+## BUG-017 — Komisi marketplace TikTok hilang
+
+**Severity:** 🟡 Sedang (terbuka)
+**File:** `api/tiktok/sync-orders/route.ts:102-104`, `api/tiktok/sync-finance/route.ts:113-143`
+
+- `commission_fee: 0` hardcode; `platform_fee` diambil dari `platform_discount` (diskon, bukan biaya); `net_amount = total − shippingFee` (komisi menguap)
+- Settlement net masuk `piutang` tanpa jurnal (Dr Piutang / Cr Penjualan; Dr Beban Komisi / Cr Piutang; Dr Kas / Cr Piutang)
+- Mapping `exchange_rate_diff` (048:120) debit=credit=5301 → net-zero; tidak dipakai siapa pun
+
+### Rencana fix
+- Catat breakdown komisi/bebas platform dari API TikTok
+- Auto-jurnal settlement 3 langkah (gross → komisi → net)
+- Repurpose `exchange_rate_diff` → 'Beban Biaya Lain E-commerce' (keputusan Near 2026-08-11)
+
+---
+
+## BUG-018 — `exec_sql` backdoor di DB
+
+**Severity:** 🔴 Kritis (terbuka — butuh aksi di Supabase, bukan kode)
+**File:** migration `055_fix_remaining_schema_drift.sql:396-404`
+
+```sql
+CREATE OR REPLACE FUNCTION exec_sql(query TEXT) RETURNS void ... SECURITY DEFINER ... EXECUTE query
+```
+Fungsi eksekusi SQL arbitrer **tanpa role check**, dibuat migration 055. Migration 059 mencabut akses tabel dari `anon` tapi **tidak mencabut fungsi ini**. Tidak dipakai `src/` sama sekali → hanya backdoor.
+
+### Rencana fix (di Supabase SQL editor / migration 060+)
+```sql
+DROP FUNCTION IF EXISTS public.exec_sql;
+-- atau minimal:
+REVOKE ALL ON FUNCTION public.exec_sql FROM PUBLIC, anon, authenticated;
+```
+
+---
+
+## BUG-019 — RLS & role check keuangan longgar
+
+**Severity:** 🔴 Kritis (terbuka)
+**File:** migration 001/018-026 (policy `FOR ALL authenticated`), `api/journal/route.ts:28-33`, migration 055:381-392 (RPC kas)
+
+- `payments`, `journal_entries`, `journal_lines`, `accounts`, `hutang`, `piutang`, `cash_accounts` → **semua yang login** bisa baca/tulis
+- `POST /api/journal` cuma cek login, tanpa role check; body mentah, `is_auto` bisa di-spoof
+- RPC `update_cash_account_balance` SECURITY DEFINER tanpa role check — saldo kas bisa diubah sembarang dari browser
+
+### Rencana fix
+- RLS role-based: SELECT semua authenticated; INSERT/UPDATE/DELETE hanya finance/admin/owner (subquery `users.role`)
+- `api/journal`: role check + zod + `is_auto` ditentukan server + rate limit
+- REVOKE EXECUTE RPC dari anon/authenticated, GRANT hanya finance/admin
+
+---
+
+## BUG-020 — FALSE POSITIVE (verified): NUMERIC concat tidak terjadi
+
+**Severity:** ❌ Bukan bug — dihapus dari prioritas
+**File:** (klaim audit) `finance/reports`, `laporan/*` — **F-35 & F-72**
+
+### Hasil verifikasi runtime (2026-08-11, read-only ke DB live)
+- Query REST semua kolom NUMERIC (`orders`, `order_items`, `payments`, `products`, `materials`, `bom`, `production_reports`, `style_rates`, `cash_accounts`, `piutang`, `journal_lines`, `accounts`, `inventory_movements`) → **semua `typeof = number`** (JSON number, bukan string)
+- `typeof price = number` via node runtime; agregasi `sum` juga number
+- `+` di JS pada number = penjumlahan aritmetika — **tidak ada concat** `'0'+'250000'`
+- `Number()` di `ledger.ts` aman dipertahankan (defensif)
+
+**Kesimpulan:** F-35 & F-72 di `audit-finance.md` adalah **false positive**. PostgREST/supabase-js pada konfigurasi ini selalu mengembalikan NUMERIC sebagai number.
+
+---
+
+## Audit Finance — Referensi Lengkap
+
+Temuan lengkap (76 item: F-01 s/d F-76) ada di **`audit-finance.md`**. BUG-009/010/011 = temuan baru yang tidak ada di audit tersebut (N-1/N-2/N-3). Prioritas eksekusi: lihat `todo.md` + rekomendasi P0-P4 di `audit-finance.md`.
+
+## Catatan Tambahan (bukan bug, tapi terkait)
+
+1. **Penjahit bypass API**: `penjahit/jobs/page.tsx:165` langsung update `orders.status='steam'` dari client (auto-transition) — tidak lewat API role check. Sengaja (auto), tapi tidak ada audit role.
+2. **Installer bypass**: `installer/checklist/page.tsx:116-118` langsung update `install_bookings.status='done'` dari client.
+3. **Gate foto**: `admin/orders/[id]` mewajibkan upload foto untuk **semua** transisi (bukan hanya stage wajib foto), sehingga owner upload ulang bukti yang sudah ada.
