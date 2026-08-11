@@ -26,7 +26,13 @@ export async function proxy(request: NextRequest) {
   if (user && pathname === '/login') {
     const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
 
-    const role = staffData?.role ?? 'admin'
+    // F-21 fix: user tanpa profil users → DENY ke login (bukan fail-open ke 'admin')
+    if (!staffData?.role) {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    const role = staffData.role
     const dashboards: Record<string, string> = {
       admin: '/admin',
       gudang: '/gudang',
@@ -44,7 +50,13 @@ export async function proxy(request: NextRequest) {
   if (user && isDashboardRoute) {
     const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
 
-    const userRole = staffData?.role ?? 'admin'
+    // F-21 fix: deny (bukan default 'admin')
+    if (!staffData?.role) {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    const userRole = staffData.role
 
     // Map dashboard paths to allowed roles
     // Use prefix matching so /admin/orders matches /admin

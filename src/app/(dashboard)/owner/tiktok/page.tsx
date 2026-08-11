@@ -121,7 +121,10 @@ export default function TikTokDashboardPage() {
     if (pf) countQuery = countQuery.eq('payment_status', pf)
 
     const [settingsRes, ordersRes, totalRes, salesGroupRes, monthlyStatsRes, statementsRes] = await Promise.all([
-      supabase.from('tiktok_shop_settings').select('*'),
+      // F-19 fix: app_secret & access_token TIDAK boleh ke browser — batasi kolom
+      supabase
+        .from('tiktok_shop_settings')
+        .select('id, shop_name, is_active, seller_name, open_id, token_expires_at, shop_cipher'),
       orderQuery,
       countQuery,
       // Fetch total_amount grouped by order_status
@@ -265,7 +268,8 @@ export default function TikTokDashboardPage() {
   }
 
   function isTokenExpired(shop: TikTokSetting): boolean {
-    if (!shop.token_expires_at || !shop.access_token) return true
+    // F-19 fix: cek hanya token_expires_at (access_token tidak lagi dikirim ke browser)
+    if (!shop.token_expires_at) return true
     return new Date(shop.token_expires_at) < new Date()
   }
 

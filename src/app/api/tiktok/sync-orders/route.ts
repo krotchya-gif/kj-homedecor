@@ -11,6 +11,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // F-19 fix: hanya owner/admin/finance yang boleh trigger sync TikTok
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['owner', 'admin', 'finance'].includes(requester.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const body = await req.json()
   const { shop_id, start_date, end_date } = body
 

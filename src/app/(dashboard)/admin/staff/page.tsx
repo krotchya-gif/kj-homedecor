@@ -141,6 +141,18 @@ export default function StaffPage() {
   }
 
   async function handleDelete(id: string, name: string) {
+    // F-19 fix: hanya admin/owner yang boleh hapus staff (RLS users masih terbuka
+    // — guard client ini penting agar staff lain tidak bisa hapus user/owner)
+    const { data: { user: me } } = await supabase.auth.getUser()
+    const { data: myProfile } = await supabase.from('users').select('role').eq('id', me?.id ?? '').single()
+    if (!myProfile || !['admin', 'owner'].includes(myProfile.role)) {
+      toast('error', 'Forbidden — hanya Admin/Owner yang bisa menghapus staff.')
+      return
+    }
+    if (me?.id === id) {
+      toast('error', 'Tidak bisa menghapus akun sendiri.')
+      return
+    }
     if (!confirm(`Hapus staff "${name}"?`)) return
     setDeleting(id)
     // Optimistic update: hapus dari UI dulu, rollback kalau server error
@@ -161,6 +173,13 @@ export default function StaffPage() {
 
   async function saveEdit() {
     if (!editingId) return
+    // F-19 fix: hanya admin/owner yang boleh ubah role/status staff
+    const { data: { user: me } } = await supabase.auth.getUser()
+    const { data: myProfile } = await supabase.from('users').select('role').eq('id', me?.id ?? '').single()
+    if (!myProfile || !['admin', 'owner'].includes(myProfile.role)) {
+      toast('error', 'Forbidden — hanya Admin/Owner yang bisa mengubah data staff.')
+      return
+    }
     setSaving(true)
     // UPDATE optimistic
     const prev = staff

@@ -125,6 +125,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // F-19 fix: hanya owner/admin yang boleh kelola kredensial TikTok
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['owner', 'admin'].includes(requester.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const body = await req.json()
   const { shop_name, app_key, app_secret, shop_cipher } = body
 
@@ -140,7 +146,7 @@ export async function POST(req: NextRequest) {
       app_secret,
       shop_cipher: shop_cipher || null
     })
-    .select()
+    .select('id, shop_name, is_active')
     .single()
 
   if (error) {
@@ -152,7 +158,8 @@ export async function POST(req: NextRequest) {
   const scope = ['seller.order.info', 'seller.finance.info', 'seller.authorization.info', 'seller.shop.info'].join(',')
   const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${app_key}&state=${data.id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`
 
-  return NextResponse.json({ settings: data, oauth_url: oauthUrl })
+  // F-19 fix: TIDAK mengembalikan settings (app_secret tidak boleh bocor ke client)
+  return NextResponse.json({ settings_id: data.id, oauth_url: oauthUrl })
 }
 
 // PUT /api/tiktok/auth — update existing settings
@@ -163,6 +170,12 @@ export async function PUT(req: NextRequest) {
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // F-19 fix: hanya owner/admin yang boleh kelola kredensial TikTok
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['owner', 'admin'].includes(requester.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   const body = await req.json()

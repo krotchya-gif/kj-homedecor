@@ -20,6 +20,12 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // F-19 fix: hanya owner/admin/finance yang boleh link order TikTok ke main orders
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['owner', 'admin', 'finance'].includes(requester.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   try {
     // Ambil semua tiktok orders yg status PAID dan belum di-link ke main orders
     const { data: tiktokOrders, error: fetchErr } = await supabase
