@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Script from 'next/script'
 import { createClient } from '@/utils/supabase/client'
 
 export default function SeoScripts() {
@@ -12,12 +13,12 @@ export default function SeoScripts() {
     supabase
       .from('landing_settings')
       .select('seo_pixel_id, seo_ga4_id')
-      .eq('id', 'hero')
+      .eq('key', 'hero')
       .single()
       .then(({ data }) => {
         if (data) {
-          setPixelId((data as any).seo_pixel_id ?? '')
-          setGa4Id((data as any).seo_ga4_id ?? '')
+          setPixelId(data?.seo_pixel_id ?? '')
+          setGa4Id(data?.seo_ga4_id ?? '')
         }
       })
   }, [])
@@ -25,7 +26,9 @@ export default function SeoScripts() {
   return (
     <>
       {pixelId && (
-        <script
+        <Script
+          id="fb-pixel"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               !function(f,b,e,v,n,t,s)
@@ -38,19 +41,21 @@ export default function SeoScripts() {
               'https://connect.facebook.net/en_US/fbevents.js');
               fbq('init', '${pixelId}');
               fbq('track', 'PageView');
-            `,
+            `
           }}
         />
       )}
       {ga4Id && (
-        <script
+        <Script
+          id="ga4-init"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', '${ga4Id}');
-            `,
+            `
           }}
         />
       )}

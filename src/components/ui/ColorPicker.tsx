@@ -11,13 +11,7 @@ interface ColorPickerProps {
   description?: string
 }
 
-export default function ColorPicker({
-  label,
-  value,
-  defaultValue,
-  onChange,
-  description,
-}: ColorPickerProps) {
+export default function ColorPicker({ label, value, defaultValue, onChange, description }: ColorPickerProps) {
   const [isValid, setIsValid] = useState(true)
 
   const validateHex = (hex: string): boolean => {
@@ -48,8 +42,8 @@ export default function ColorPicker({
           display: 'block',
           fontSize: '0.8rem',
           fontWeight: '600',
-          color: '#374151',
-          marginBottom: '0.5rem',
+          color: 'var(--neutral-700)',
+          marginBottom: '0.5rem'
         }}
       >
         {label}
@@ -64,10 +58,10 @@ export default function ColorPicker({
             style={{
               width: 48,
               height: 48,
-              border: '2px solid #d1d5db',
+              border: '2px solid var(--input-border)',
               borderRadius: '0.5rem',
               cursor: 'pointer',
-              padding: 0,
+              padding: 0
             }}
             title="Pick a color"
           />
@@ -79,7 +73,7 @@ export default function ColorPicker({
               right: 2,
               color: '#fff',
               pointerEvents: 'none',
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
             }}
           />
         </div>
@@ -94,12 +88,12 @@ export default function ColorPicker({
           style={{
             flex: 1,
             padding: '0.625rem',
-            border: `2px solid ${isValid ? '#d1d5db' : '#ef4444'}`,
+            border: `2px solid ${isValid ? 'var(--input-border)' : '#ef4444'}`,
             borderRadius: '0.5rem',
             fontSize: '0.875rem',
             fontFamily: 'monospace',
             outline: 'none',
-            textTransform: 'uppercase',
+            textTransform: 'uppercase'
           }}
         />
 
@@ -110,23 +104,23 @@ export default function ColorPicker({
           title="Reset to default"
           style={{
             padding: '0.625rem',
-            background: '#f3f4f6',
-            border: '1px solid #d1d5db',
+            background: 'var(--neutral-100)',
+            border: '1px solid var(--input-border)',
             borderRadius: '0.5rem',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.15s',
+            transition: 'all 0.15s'
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = '#e5e7eb'
+            e.currentTarget.style.background = 'var(--neutral-200)'
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = '#f3f4f6'
+            e.currentTarget.style.background = 'var(--neutral-100)'
           }}
         >
-          <RotateCcw size={16} style={{ color: '#6b7280' }} />
+          <RotateCcw size={16} style={{ color: 'var(--neutral-600)' }} />
         </button>
       </div>
 
@@ -134,9 +128,9 @@ export default function ColorPicker({
       {description && isValid && (
         <p
           style={{
-            fontSize: '0.72rem',
-            color: '#9ca3af',
-            marginTop: '0.25rem',
+            fontSize: '0.75rem',
+            color: 'var(--neutral-400)',
+            marginTop: '0.25rem'
           }}
         >
           {description}
@@ -145,9 +139,9 @@ export default function ColorPicker({
       {!isValid && (
         <p
           style={{
-            fontSize: '0.72rem',
+            fontSize: '0.75rem',
             color: '#ef4444',
-            marginTop: '0.25rem',
+            marginTop: '0.25rem'
           }}
         >
           Invalid HEX color format. Use #RRGGBB (e.g., #DDC0B4)

@@ -1,9 +1,13 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { Order, OrderItem, Customer } from '@/types'
+import type { Order, OrderItem, Customer , SurveyRoom } from '@/types'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
+interface AutoTableDoc {
+  lastAutoTable: { finalY: number }
+}
 
 interface InvoiceData {
   order: Order & {
@@ -69,16 +73,16 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
     head: [['No', 'Produk', 'Qty', 'Ukuran', 'Harga', 'Total']],
     body: items.map((item, i) => [
       String(i + 1),
-      item.product?.name ?? '—',
+      item.product?.name ?? item.custom_specs ?? '—',
       String(item.qty),
       item.size ?? '—',
       fmt(item.price),
-      fmt((item.price ?? 0) * (item.qty ?? 1)),
+      fmt((item.price ?? 0) * (item.qty ?? 1))
     ]),
     foot: [
       ['', '', '', 'DP Dibayar:', fmt(order.dp_amount ?? 0)],
       ['', '', '', 'Sisa Bayar:', fmt((order.total_amount ?? 0) - (order.dp_amount ?? 0) - (order.lunas_amount ?? 0))],
-      ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)],
+      ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
     ],
     theme: 'striped',
     headStyles: { fillColor: [204, 112, 48], textColor: 255 },
@@ -89,16 +93,78 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       2: { cellWidth: 15 },
       3: { cellWidth: 35 },
       4: { cellWidth: 35, halign: 'right' },
-      5: { cellWidth: 35, halign: 'right' },
-    },
+      5: { cellWidth: 35, halign: 'right' }
+    }
   })
 
+  // ============ HASIL SURVEY GORDEN (SRS 2026-08-03) ============
+  // Tampil kalau order punya survey ter-link (orders.survey_id). Format copy
+  // mengikuti SRS section 10 supaya konsisten antara invoice & format WA.
+  const survey = order.survey ?? null
+  let surveyEndY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
+  if (survey?.rooms?.length) {
+    const startY = surveyEndY
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(11)
+    doc.setTextColor(51, 51, 51)
+    doc.text('HASIL SURVEY GORDEN', 20, startY)
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(8)
+    doc.setTextColor(120)
+    const surveyMeta = `No: ${survey.survey_number ?? '-'}  |  Tanggal: ${survey.survey_date ?? '-'}  |  Surveyor: ${survey.surveyor?.name ?? '-'}`
+    doc.text(surveyMeta, 20, startY + 5)
+
+    let y = startY + 12
+    ;(survey?.rooms ?? []).forEach((r: SurveyRoom, i: number) => {
+      if (y > 270) {
+        doc.addPage()
+        y = 20
+      }
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(51, 51, 51)
+      doc.text(`RUANGAN ${i + 1}: ${r.room_name ?? '-'}`, 20, y)
+      y += 5
+      doc.setFont('helvetica', 'normal')
+      const size = r.width_cm || r.height_cm ? `${r.width_cm ?? '-'} × ${r.height_cm ?? '-'} cm` : '-'
+      const detailRows = [
+        `Ukuran      : ${size}`,
+        `Model Gorden: ${r.model_gorden ?? '-'}`,
+        `Jenis Kain  : ${r.fabric_name ?? '-'}`,
+        `Jenis Vitras: ${r.vitras_name ?? '-'}`,
+        `Rel Gorden  : ${r.rel_gorden ?? '-'}`,
+        `Rel Vitras  : ${r.rel_vitras ?? '-'}`,
+        `Hook        : ${r.hook ?? '-'}`,
+        `Catatan     : ${r.notes ?? '-'}`
+      ]
+      for (const line of detailRows) {
+        doc.text(line, 25, y)
+        y += 4.5
+      }
+      y += 5
+    })
+    surveyEndY = y
+    doc.setDrawColor(204, 112, 48)
+    doc.setLineWidth(0.3)
+    doc.line(20, surveyEndY - 3, 190, surveyEndY - 3)
+  }
+
   // Footer note
-  const finalY = (doc as any).lastAutoTable.finalY + 10
+  const finalY = surveyEndY
+  // Catatan order (notes) — permintaan: "catatannya ga ikut masuk"
+  if (order.notes) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(51, 51, 51)
+    doc.text('Catatan:', 20, finalY)
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(String(order.notes), 170)
+    doc.text(lines, 20, finalY + 5)
+  }
   doc.setFontSize(8)
   doc.setTextColor(120)
-  doc.text('Pembayaran dianggap lunas setelah invoice ini dilunasi.', 20, finalY)
-  doc.text('Terima kasih atas kepercayaan Anda.', 20, finalY + 5)
+  doc.text('Pembayaran dianggap lunas setelah invoice ini dilunasi.', 20, finalY + 15)
+  doc.text('Terima kasih atas kepercayaan Anda.', 20, finalY + 20)
 
   doc.save(`kj-invoice-${orderNumber}.pdf`)
 }
@@ -170,11 +236,11 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
     head: [['No', 'Produk', 'Qty', 'Ukuran', 'Berat (kg)', 'Catatan']],
     body: items.map((item, i) => [
       String(i + 1),
-      item.product?.name ?? '—',
+      item.product?.name ?? item.custom_specs ?? '—',
       String(item.qty),
       item.size ?? '—',
       item.meter_gorden ? `${(Number(item.meter_gorden) * 0.4).toFixed(2)} kg` : '—',
-      item.ready ? '✅ Siap' : '⏳ Proses',
+      item.ready ? '✅ Siap' : '⏳ Proses'
     ]),
     theme: 'striped',
     headStyles: { fillColor: [30, 64, 175], textColor: 255 },
@@ -184,15 +250,25 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
       2: { cellWidth: 15 },
       3: { cellWidth: 40 },
       4: { cellWidth: 30, halign: 'center' },
-      5: { cellWidth: 30, halign: 'center' },
-    },
+      5: { cellWidth: 30, halign: 'center' }
+    }
   })
 
-  const finalY = (doc as any).lastAutoTable.finalY + 10
+  const finalY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
+  // Catatan order (notes) — permintaan: "catatannya ga ikut masuk"
+  if (order.notes) {
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(51, 51, 51)
+    doc.text('Catatan:', 20, finalY)
+    doc.setFont('helvetica', 'normal')
+    const lines = doc.splitTextToSize(String(order.notes), 170)
+    doc.text(lines, 20, finalY + 5)
+  }
   doc.setFontSize(8)
   doc.setTextColor(120)
-  doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, finalY)
-  doc.text('KJ HOMEDECOR — Packing List', 130, finalY)
+  doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, finalY + 15)
+  doc.text('KJ HOMEDECOR — Packing List', 130, finalY + 15)
 
   doc.save(`kj-packinglist-${orderNumber}.pdf`)
 }

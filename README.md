@@ -20,6 +20,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 ## Features
 
 ### Admin (`/admin`)
+
 - Order management dengan filter by status + create order (Kirim/Pasang)
 - V3 Pipeline branching: alur **kirim** (8 stage) vs **pasang** (9 stage, auto-create booking)
 - Order detail dengan visual pipeline, photo upload per status, BOM auto-suggest
@@ -37,6 +38,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Real-time admin dashboard (8 stat cards + bar/line charts)
 
 ### Owner (`/owner`)
+
 - Real-time dashboard: today's new orders + active installations
 - 12-month revenue trend chart (polished Recharts: gradient, animasi, donut)
 - Marketplace breakdown (bar + pie charts)
@@ -47,6 +49,9 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Staff, suppliers, products overview
 
 ### Finance (`/finance`)
+
+- BOM & Material cost management
+- HPP Calculator with auto/manual modes
 - Payment tracking (DP → Lunas) with approval gate
 - Hutang (accounts payable) management + supplier invoice tracking
 - Piutang (accounts receivable) management per channel
@@ -59,6 +64,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Finance dashboard: monthly revenue bar chart + payment status donut chart
 
 ### Gudang (`/gudang`)
+
 - Production job queue dengan **BOM preview** material sebelum mulai kerja
 - **Block "Mulai" kalau BOM material insufficient** — modal warning + opsi tetap lanjut
 - Steam QC (jahitan penjahit) + revision loop auto re-queue
@@ -71,18 +77,21 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Stock Opname: buat sesi → hitung fisik → Owner approve → adjustment otomatis
 
 ### Penjahit (`/penjahit`)
+
 - Job queue dengan meter tracking
 - Monthly performance reports
 - Work history
 - Realtime subscriptions for new jobs
 
 ### Installer (`/installer`)
-- Schedule with status (V3: pending/scheduled/in_progress/done/revision)
+
+- Schedule with status (Terjadwal/Dikerjakan/Selesai)
 - Installation checklist with photo evidence
 - Revision flow: "Laporkan Masalah" at location
 - Reports per period
 
 ### Public Pages
+
 - `/` — Landing page with hero, categories, products, portfolio
 - `/catalog` — Full product catalog with search
 - `/products/[slug]` — Product detail
@@ -171,31 +180,187 @@ src/
 
 Located in `supabase/migrations/` — apply in order:
 
-| File | Description |
-|------|-------------|
-| `001-030` | Core schema: users, orders, customers, products, materials, BOM, production_jobs, payments, stock RPCs |
-| `031a_add_hero_video_url.sql` | Add hero_video_url to landing_settings |
-| `031b_landing_section_texts.sql` | Landing page section text fields |
-| `032-052` | Pipeline photos, material price history, stock opname, steam revision, V3 branching |
-| `053_fix_landing_settings_rls.sql` | Fix RLS policies (OR true bug) |
-| `054_add_rls_to_tables.sql` | RLS for style_rates, laundry_*, order_material_consumption |
-| `055_order_items_item_type_check.sql` | CHECK constraint for item_type |
-| `056_add_missing_fk_indexes.sql` | 9 FK indexes for performance |
-| `057_user_fk_on_delete_set_null.sql` | Cascade delete fix for user FKs |
-| `058_security_definer_role_checks.sql` | Security definer RPC audit |
+| File                                            | Description                                                                                                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `001_initial_schema.sql`                        | Core tables: users, orders, customers, products, materials, suppliers, BOM, production_jobs, payments, order_logs |
+| `015_order_number.sql`                          | order_number column + generate_order_number() function                                                            |
+| `028_increment_stock_toko_function.sql`         | RPC functions: increment/decrement stock_gudang                                                                   |
+| `032_order_progress_photos.sql`                 | order_progress_photos table for pipeline photo tracking                                                           |
+| `033_material_price_history.sql`                | material_price_history table for price tracking                                                                   |
+| `034_install_bookings_revision.sql`             | revision_reason + revision_photos on install_bookings                                                             |
+| `035_orders_estimated_completion.sql`           | estimated_completion column on orders                                                                             |
+| `037_enable_steam_jobs_rls.sql`                 | RLS policy for steam_jobs                                                                                         |
+| `038_enable_rls_order_progress_photos.sql`      | RLS policy for order_progress_photos                                                                              |
+| `039_add_product_id_to_inventory_movements.sql` | Add product_id column to inventory_movements (idempotent)                                                         |
+| `040_stock_opname_schema.sql`                   | stock_opname_sessions + stock_opname_items tables + RLS                                                           |
+| `041_reset_pipeline_to_sorted.sql`              | Reset order existing ke status `sorted` (clean slate setelah pipeline refactor)                                   |
+| `042_steam_revision_schema.sql`                 | `production_jobs.revision_of` + `revision_round` + `revision_reason` (Steam revision loop)                        |
+| `043_payments_xendit_id.sql`                    | `payments.xendit_payment_id` + partial unique index (Xendit webhook idempotency)                                  |
+| `044_stock_rpc_numeric.sql`                     | Recreate stock RPCs (`decrement_stock_gudang`, dll) dengan `NUMERIC` + `GREATEST(0)` guard                        |
 
 ---
 
 ## Changelog (Latest)
 
-### 2026-07-18 — Full Audit & Fixes
-- **Proxy migration**: `middleware.ts` → `proxy.ts` (Next.js 16 convention)
-- **Security**: Auth helpers, rate limiting, mass assignment protection, IDOR, setup endpoint protect
-- **Workflow**: Whitelist financial fields, photo requirement refinement, BookingCalendar per-date fix
-- **Charts**: Recharts polish — gradient bars, animation, donut charts, styled tooltips
-- **Docs**: `.env.example`, updated `todo.md`, merged to `doc/todo.md`
+**Brand Color:** `#cc7030` (warm brown/orange)
+
+**Light Mode:**
+
+| Usage          | Color     |
+| -------------- | --------- |
+| Primary button | `#cc7030` |
+| Background     | `#fafafa` |
+| Card/Surface   | `#ffffff` |
+| Text heading   | `#1f2937` |
+| Text muted     | `#6b7280` |
+
+**Dark Mode:** Warm dark palette in `globals.css` (`.dark` class on `<html>`)
 
 ---
 
-*Dev server: `npm run dev` → http://localhost:3000*
-*Last updated: 2026-07-18*
+## Key Files
+
+| File                                               | Purpose                                         |
+| -------------------------------------------------- | ----------------------------------------------- |
+| `src/lib/invoice.ts`                               | Invoice & Packing List PDF generation           |
+| `src/lib/upload.ts`                                | Local upload helper (`uploadToLocal`)           |
+| `src/components/ui/DateRangePicker.tsx`            | Interactive calendar popup date range picker    |
+| `src/components/ui/ReportPDFButton.tsx`            | Styled PDF download button                      |
+| `src/components/ui/BackButton.tsx`                 | Navigation back button                          |
+| `src/components/ErrorBoundary.tsx`                 | React ErrorBoundary for graceful error handling |
+| `src/components/ui/ThemeToggle.tsx`                | Dark mode toggle                                |
+| `src/components/ui/BookingCalendar.tsx`            | Public booking calendar                         |
+| `src/components/ui/skeleton.tsx`                   | Loading skeletons                               |
+| `src/components/ui/EmptyState.tsx`                 | Empty state component                           |
+| `src/components/dashboard/DashboardSidebar.tsx`    | Sidebar navigation                              |
+| `src/app/api/gudang/po-delivery/route.ts`          | Gudang PO delivery confirmation API             |
+| `src/app/(dashboard)/gudang/stock/opname/page.tsx` | Stock opname page                               |
+
+---
+
+## Environment Variables
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...    # Server-side only, never expose
+XENDIT_API_KEY=                     # Xendit payment integration
+```
+
+---
+
+## Getting Started
+
+```bash
+npm install
+npm run dev
+```
+
+Apply migrations to Supabase before running:
+
+```bash
+supabase db push
+```
+
+---
+
+## Implementation Status
+
+**Phase 1-5 Complete ✅**
+
+All planned features implemented:
+
+- [x] Order pipeline with photo tracking
+- [x] BOM + HPP calculator
+- [x] Payment gate (DP/Lunas approval)
+- [x] Installer revision flow
+- [x] Invoice/Packing List PDF
+- [x] MoM growth reports
+- [x] Real-time owner dashboard
+- [x] Material price history
+- [x] Public booking calendar
+- [x] Dark mode, PWA, ErrorBoundary
+- [x] Laporan Keuangan (10 reports each for Finance + Owner with DateRangePicker + PDF export)
+- [x] Pipeline progress photos — clickable stages showing photo evidence
+- [x] Auto transition production→steam when penjahit completes job
+- [x] Gudang BOM preview panel before starting production
+- [x] Block "Mulai" if BOM materials insufficient
+- [x] Stock Opname (create session → count → approve → adjust)
+- [x] Edit Stok with [+][−] quick buttons + edit modal with reason tracking
+- [x] PO delivery confirmation flow: pending→delivered→received (Gudang confirms)
+- [x] Realtime subscriptions on penjahit jobs, installer schedule, steam_jobs
+
+**Marketplace Sync:** Ditunda (requires partnership)
+
+---
+
+## 🆕 Pipeline V2 Refactor (2026-06-02)
+
+### Order Pipeline Baru
+
+```
+new → sorted → production → steam → ready → payment_ok → packed → shipped → done
+                                          ^^^^^^^^^^^^
+                                          payment_ok = FINANCE cek lunas (sebelum packing)
+```
+
+**Perubahan kunci:**
+
+- `payment_ok` dipindah dari sebelum `production` ke antara `ready` dan `packed`
+- Xendit/marketplace: auto-paid, skip `payment_ok` (langsung lanjut packed)
+- Offline order: stuck di `ready` → Finance verify → `payment_ok` → Gudang packing
+
+### Steam Revision Loop (Bug #6 Fix)
+
+Steam QC fail → re-queue ke Penjahit dengan `revision_round++`:
+
+- Tabel `production_jobs` tambah `revision_of`, `revision_round`, `revision_reason`
+- Original job tetap `done` (audit trail), new job dengan `status='waiting'`
+- `penjahit_id` dipreserve (tanggung jawab kembali ke Penjahit yang sama)
+- `order.status` kembali ke `production` → loop sampai pass
+
+### 3 QC Distinct di Gudang
+
+| Lokasi                      | Tanggung Jawab                           | Affects Pipeline?                      |
+| --------------------------- | ---------------------------------------- | -------------------------------------- |
+| `/gudang/steam` (tab Steam) | QC jahitan penjahit                      | ✅ YES (loops ke production jika fail) |
+| `/gudang/qc` (tab QC)       | Per-item checklist (`order_items.ready`) | ✅ YES (set ready)                     |
+| `/gudang/qc` (tab Retur)    | Verifikasi retur customer                | ❌ NO (stock adjustment only)          |
+
+### Role Permissions (Updated)
+
+| Role            | Allowed Transitions                               |
+| --------------- | ------------------------------------------------- |
+| `finance`       | `ready→payment_ok`, `payment_ok→packed`           |
+| `gudang`        | `production→steam`, `steam→production` (revision) |
+| `installer`     | `packed→shipped`                                  |
+| `admin`/`owner` | All transitions (escape hatch)                    |
+
+### Payment Gate (Updated)
+
+- Old: `ready, packed, shipped, done` butuh `payment_status='paid'`
+- New: hanya `packed, shipped, done` yang digate (sesuai pipeline baru)
+
+### Stat Cards Baru
+
+- **Admin**: "Sudah Bayar Belum Disortir" (paid + new/sorted)
+- **Finance**: "Butuh Verifikasi Bayar" (status=ready, total piutang)
+
+---
+
+## 🆕 Critical Bug Fixes (2026-06-02)
+
+| Bug                                                                              | Severity    | Fix                                             |
+| -------------------------------------------------------------------------------- | ----------- | ----------------------------------------------- |
+| #1 Xendit webhook idempotency (insert before update, unique `xendit_payment_id`) | 🔴 CRITICAL | Migration 043 + webhook rewrite                 |
+| #2-3 Stok negatif + RPC NUMERIC vs INTEGER mismatch                              | 🔴 CRITICAL | Migration 044 (NUMERIC + GREATEST(0) guard)     |
+| #4 E2E test `describe` import broken (10 files)                                  | 🔴 CRITICAL | 10 e2e test files: `describe` → `test.describe` |
+| #5 DELETE order no role check                                                    | 🟠 HIGH     | API: admin/owner only + audit log               |
+| #12 Typo `!material` di production page                                          | 🟡 MEDIUM   | Fixed to `! Material`                           |
+
+**Tests:** 21/21 unit (Vitest) + 116/116 e2e (Playwright) + 14 new pipeline-v2 tests.
+
+---
+
+_Last updated: 2026-06-02_
+_Dev server: `npm run dev` → http://localhost:3000_

@@ -18,13 +18,15 @@ const CreateOrderSchema = z.object({
   total_amount: z.number().min(0).optional(),
   dp_amount: z.number().min(0).optional(),
   customer_id: z.string().uuid().optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional()
 })
 
 export async function GET(request: Request) {
-  const auth = await requireAuthRole(['admin', 'owner', 'finance', 'gudang', 'penjahit', 'installer'])
-  if (auth.error) return auth.error
-  const { supabase, user, userData } = auth
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
@@ -33,37 +35,10 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
   const offset = (page - 1) * limit
 
-  // IDOR protection: non-admin/owner/finance can only see orders related to them
-  const userRole = userData?.role
-  let query = supabase.from('orders')
-    .select('*, customer:customers(name, phone, address), order_items(count)', { count: 'exact' })
+  let query = supabase
+    .from('orders')
+    .select('*, customer:customers(name, phone, address), order_items(count)')
     .order('created_at', { ascending: false })
-
-  // If user is not admin/owner/finance, restrict to their own orders
-  if (userRole !== 'admin' && userRole !== 'owner' && userRole !== 'finance') {
-    // For installers: orders with their install_bookings
-    // For gudang/penjahit: orders they're working on via production_jobs
-    // Simple approach: use a subquery to get relevant order IDs
-    const { data: relatedOrderIds } = await supabase
-      .from('install_bookings')
-      .select('order_id')
-      .eq('installer_id', user.id)
-    const installerOrderIds = (relatedOrderIds ?? []).map(b => b.order_id).filter(Boolean)
-
-    const { data: productionOrderIds } = await supabase
-      .from('production_jobs')
-      .select('order_id')
-      .eq('penjahit_id', user.id)
-    const prodOrderIds = (productionOrderIds ?? []).map(j => j.order_id).filter(Boolean)
-
-    const allRelatedIds = [...new Set([...installerOrderIds, ...prodOrderIds])]
-    if (allRelatedIds.length > 0) {
-      query = query.in('id', allRelatedIds)
-    } else {
-      // Return empty if no related orders
-      return NextResponse.json({ data: [], pagination: { page, limit, total: 0 }, error: null })
-    }
-  }
 
   if (status) query = query.eq('status', status)
   if (source) query = query.eq('source', source)
@@ -74,12 +49,11 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-
-  const auth = await requireAuthRole(['admin', 'owner', 'finance'])
-  if (auth.error) return auth.error
-  const { supabase } = auth
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body = await request.json()
   const parsed = CreateOrderSchema.safeParse(body)
@@ -121,8 +95,8 @@ export async function POST(request: Request) {
         transaction_type: 'order_created',
         reference_type: 'order',
         reference_id: order.id,
-        description: `Order baru ${orderNumber ?? order.id.slice(0,8)} — ${data.customer_id ?? ''}`,
-        amount: data.total_amount,
+        description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} — ${data.customer_id ?? ''}`,
+        amount: data.total_amount
       })
     } catch (e) {
       console.warn('Failed to create journal entry for order:', e)

@@ -10,12 +10,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
   if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
 
-  const auth = await requireAuthRole(['admin', 'owner', 'gudang'])
-  if (auth.error) return auth.error
-  const { supabase, user } = auth
-
-  const { id } = await params
-  const body = await request.json()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   // Support approve/reject action
   if (body.action === 'approve' || body.action === 'reject') {

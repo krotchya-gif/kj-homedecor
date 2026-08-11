@@ -1,28 +1,37 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, GitBranch } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
+import ActionMenu from '@/components/ui/ActionMenu'
 
 interface Mapping {
   id: string
   transaction_type: string
-  debit_account_id: string
-  credit_account_id: string
-  description?: string
+  debit_account_id: string | null
+  credit_account_id: string | null
+  description?: string | null
   debit_account?: { code: string; name: string }
   credit_account?: { code: string; name: string }
 }
 
 export default function MappingPage() {
+  const { toast } = useToast()
   const [mappings, setMappings] = useState<Mapping[]>([])
-  const [accounts, setAccounts] = useState<any[]>([])
+  const [accounts, setAccounts] = useState<{ id: string; name?: string; code?: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<Mapping | null>(null)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
-    transaction_type: '', debit_account_id: '', credit_account_id: '', description: '',
+    transaction_type: '',
+    debit_account_id: '',
+    credit_account_id: '',
+    description: ''
   })
 
   const supabase = createClient()
@@ -31,7 +40,9 @@ export default function MappingPage() {
     setLoading(true)
     const { data } = await supabase
       .from('account_mappings')
-      .select('*, debit_account:accounts!debit_account_id(code, name), credit_account:accounts!credit_account_id(code, name)')
+      .select(
+        '*, debit_account:accounts!debit_account_id(code, name), credit_account:accounts!credit_account_id(code, name)'
+      )
       .order('transaction_type')
     setMappings((data as Mapping[]) ?? [])
     const { data: acc } = await supabase.from('accounts').select('id, code, name, type').order('code')
@@ -39,7 +50,9 @@ export default function MappingPage() {
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   const TRANSACTION_TYPES = ['order_created', 'payment_received', 'expense_paid', 'purchase', 'return', 'depreciation']
 
@@ -53,9 +66,9 @@ export default function MappingPage() {
     setEditItem(m)
     setForm({
       transaction_type: m.transaction_type,
-      debit_account_id: m.debit_account_id,
-      credit_account_id: m.credit_account_id,
-      description: m.description ?? '',
+      debit_account_id: m.debit_account_id ?? '',
+      credit_account_id: m.credit_account_id ?? '',
+      description: m.description ?? ''
     })
     setShowForm(true)
   }
@@ -67,42 +80,96 @@ export default function MappingPage() {
       transaction_type: form.transaction_type,
       debit_account_id: form.debit_account_id || null,
       credit_account_id: form.credit_account_id || null,
-      description: form.description || null,
+      description: form.description || null
     }
     if (editItem) {
-      await supabase.from('account_mappings').update(payload).eq('id', editItem.id)
-    } else {
-      await supabase.from('account_mappings').insert(payload)
-    }
-    setSaving(false)
-    setShowForm(false)
-    fetchData()
+        // UPDATE optimistic
+        const prev = mappings
+        setMappings((curr) => curr.map((x) => (x.id === editItem.id ? { ...x, ...payload } : x)))
+        const { error } = await supabase.from('account_mappings').update(payload).eq('id', editItem.id)
+        if (error) { setMappings(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
+      } else {
+        // CREATE optimistic: id sementara dulu, diganti id asli dari server
+        const tempId = crypto.randomUUID()
+        const tempItem = { id: tempId, ...payload }
+        setMappings((curr) => [tempItem, ...curr])
+        const { data, error } = await supabase.from('account_mappings').insert(payload).select('id').single()
+        if (error) {
+          setMappings((curr) => curr.filter((x) => x.id !== tempId))
+          setSaving(false)
+          toast('error', 'Gagal simpan: ' + error.message)
+          return
+        }
+        if (data?.id) {
+          setMappings((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+        }
+      }
+      setSaving(false)
+      setShowForm(false)
+      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Hapus mapping ini?')) return
-    await supabase.from('account_mappings').delete().eq('id', id)
-    fetchData()
+    if (!confirm('Yakin hapus?')) return
+      // Optimistic delete
+      const prev = mappings
+      setMappings((curr) => curr.filter((x) => x.id !== id))
+      const { error } = await supabase.from('account_mappings').delete().eq('id', id)
+      if (error) { setMappings(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      toast('success', 'Berhasil dihapus')
   }
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Pemetaan Akun</h1>
-        <p className="page-subtitle">Mapping untuk jurnal otomatis per transaksi</p>
-      </div>
+      <PageHeader title="Pemetaan Akun" subtitle="Mapping untuk jurnal otomatis per transaksi" />
 
       <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem' }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
+        <button
+          onClick={openAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            padding: '0.625rem 1.25rem',
+            background: '#cc7030',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '0.5rem',
+            fontWeight: '600',
+            fontSize: '0.875rem',
+            cursor: 'pointer'
+          }}
+        >
           <Plus size={16} /> Tambah Mapping
         </button>
       </div>
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
         ) : mappings.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={mappings} keyOf={(m) => m.id} renderCard={(m) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Transaksi</span>
+                  <span className="mobile-card-value">{m.transaction_type}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Deskripsi</span>
+                  <span className="mobile-card-value">{m.description}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+        ) : mappings.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <GitBranch size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada mapping</p>
           </div>
@@ -120,23 +187,25 @@ export default function MappingPage() {
             <tbody>
               {mappings.map((m) => (
                 <tr key={m.id}>
-                  <td style={{ fontWeight: '600', textTransform: 'capitalize' }}>{m.transaction_type.replace(/_/g, ' ')}</td>
-                  <td>
-                    {m.debit_account ? (
-                      <span style={{ fontFamily: 'monospace' }}>{m.debit_account.code}</span>
-                    ) : '—'} {m.debit_account?.name ?? ''}
+                  <td style={{ fontWeight: '600', textTransform: 'capitalize' }}>
+                    {m.transaction_type.replace(/_/g, ' ')}
                   </td>
                   <td>
-                    {m.credit_account ? (
-                      <span style={{ fontFamily: 'monospace' }}>{m.credit_account.code}</span>
-                    ) : '—'} {m.credit_account?.name ?? ''}
+                    {m.debit_account ? <span style={{ fontFamily: 'monospace' }}>{m.debit_account.code}</span> : '—'}{' '}
+                    {m.debit_account?.name ?? ''}
                   </td>
-                  <td style={{ color: '#6b7280' }}>{m.description ?? '—'}</td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => openEdit(m)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', padding: '0.25rem' }}><Pencil size={15} /></button>
-                      <button onClick={() => handleDelete(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: '0.25rem' }}><Trash2 size={15} /></button>
-                    </div>
+                    {m.credit_account ? <span style={{ fontFamily: 'monospace' }}>{m.credit_account.code}</span> : '—'}{' '}
+                    {m.credit_account?.name ?? ''}
+                  </td>
+                  <td style={{ color: 'var(--neutral-600)' }}>{m.description ?? '—'}</td>
+                  <td>
+                    <ActionMenu
+                      items={[
+                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(m) },
+                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(m.id), danger: true }
+                      ]}
+                    />
                   </td>
                 </tr>
               ))}
@@ -145,53 +214,174 @@ export default function MappingPage() {
         )}
       </div>
 
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 480, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>{editItem ? 'Edit Mapping' : 'Tambah Mapping'}</h2>
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Tipe Transaksi *</label>
-                <select required value={form.transaction_type} onChange={(e) => setForm(f => ({ ...f, transaction_type: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
-                  <option value="">— Pilih —</option>
-                  {TRANSACTION_TYPES.map(t => <option key={t} value={t}>{t.replace(/_/g, ' ')}</option>)}
-                </select>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Akun Debit</label>
-                  <select value={form.debit_account_id} onChange={(e) => setForm(f => ({ ...f, debit_account_id: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
-                    <option value="">— Pilih Akun —</option>
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Akun Kredit</label>
-                  <select value={form.credit_account_id} onChange={(e) => setForm(f => ({ ...f, credit_account_id: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
-                    <option value="">— Pilih Akun —</option>
-                    {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Deskripsi</label>
-                <input type="text" value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={480} padding="2rem" zIndex={200}>
+        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+          {editItem ? 'Edit Mapping' : 'Tambah Mapping'}
+        </h2>
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Tipe Transaksi *
+            </label>
+            <select
+              required
+              value={form.transaction_type}
+              onChange={(e) => setForm((f) => ({ ...f, transaction_type: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: 'var(--surface)'
+              }}
+            >
+              <option value="">— Pilih —</option>
+              {TRANSACTION_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t.replace(/_/g, ' ')}
+                </option>
+              ))}
+            </select>
           </div>
-        </div>
-      )}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: 'var(--neutral-700)',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Akun Debit
+              </label>
+              <select
+                value={form.debit_account_id}
+                onChange={(e) => setForm((f) => ({ ...f, debit_account_id: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  background: 'var(--surface)'
+                }}
+              >
+                <option value="">— Pilih Akun —</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.code} - {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: 'var(--neutral-700)',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Akun Kredit
+              </label>
+              <select
+                value={form.credit_account_id}
+                onChange={(e) => setForm((f) => ({ ...f, credit_account_id: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  background: 'var(--surface)'
+                }}
+              >
+                <option value="">— Pilih Akun —</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.code} - {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Deskripsi
+            </label>
+            <input
+              type="text"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

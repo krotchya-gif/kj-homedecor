@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import {
   Package,
@@ -28,20 +29,85 @@ import {
   Activity,
   Wrench,
   AlertCircle,
+  ClipboardList
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { formatRp } from '@/lib/utils'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { StatCard } from '@/components/ui/StatCard'
+import { MotionStagger } from '@/components/ui/Motion'
+import { SectionCard } from '@/components/ui/SectionCard'
+import { useToast } from '@/components/ui/Toast'
 
-interface Order { id: string; status: string; payment_status: string; source?: string; total_amount?: number; created_at: string }
-interface PurchaseRequest { id: string; qty: number; estimated_cost: number; status: string; material?: { name: string } }
-interface OrderLog { id: string; order_id: string; action: string; notes?: string; created_at: string; staff?: { name: string } }
-interface OrderProgressPhoto { id: string; order_id: string; stage: string; photo_url: string; notes?: string; created_at: string }
-interface OrderWithLogs { id: string; order_number?: string; status: string; payment_status: string; created_at: string; customer?: { name: string }; recentLogs: OrderLog[]; progressPhotos?: OrderProgressPhoto[] }
-interface StatData { orders: Order[]; totalOrders: number; totalCustomers: number; totalProducts: number; pendingPRs: PurchaseRequest[]; ordersWithLogs: OrderWithLogs[] }
-interface InstallBooking { id: string; status: string; scheduled_date: string; scheduled_time: string; type: string; order?: { customer?: { name: string; phone: string; address: string } | null } }
+interface Order {
+  id: string
+  status: string
+  payment_status: string
+  source?: string
+  total_amount?: number
+  created_at: string
+}
+interface PurchaseRequest {
+  id: string
+  qty: number
+  estimated_cost: number
+  status: string
+  material?: { name: string }
+}
+interface OrderLog {
+  id: string
+  order_id: string
+  action: string
+  notes?: string
+  created_at: string
+  staff?: { name: string }
+}
+interface OrderProgressPhoto {
+  id: string
+  order_id: string
+  stage: string
+  photo_url: string
+  notes?: string
+  created_at: string
+}
+interface AdminOrderRow {
+  id: string
+  order_number?: string
+  status: string
+  payment_status: string
+  created_at: string
+  customer?: { name: string } | null
+  order_logs?: { id: string; action?: string; notes?: string; created_at: string; staff?: { name?: string } | null }[] | null
+  order_progress_photos?: { id: string; stage?: string; photo_url?: string; notes?: string; created_at: string }[] | null
+}
+
+interface OrderWithLogs {
+  id: string
+  order_number?: string
+  status: string
+  payment_status: string
+  created_at: string
+  customer?: { name: string }
+  recentLogs: OrderLog[]
+  progressPhotos?: OrderProgressPhoto[]
+}
+interface StatData {
+  orders: Order[]
+  totalOrders: number
+  totalCustomers: number
+  totalProducts: number
+  pendingPRs: PurchaseRequest[]
+  ordersWithLogs: OrderWithLogs[]
+}
+interface InstallBooking {
+  id: string
+  status: string
+  scheduled_date: string
+  scheduled_time: string
+  type: string
+  order?: { customer?: { name: string; phone: string; address: string } | null }
+}
 
 const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   created: { icon: <PackagePlus size={14} />, color: '#3b82f6' },
@@ -60,13 +126,19 @@ const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   done: { icon: <CheckCheck size={14} />, color: '#16a34a' },
   return_stock_in: { icon: <PackagePlus size={14} />, color: '#22c55e' },
   return_disposed: { icon: <XOctagon size={14} />, color: '#ef4444' },
-  refund_issued: { icon: <DollarSign size={14} />, color: '#f59e0b' },
+  refund_issued: { icon: <DollarSign size={14} />, color: '#f59e0b' }
 }
 
+const formatRp = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
 export default function AdminDashboardPage() {
+  const { toast } = useToast()
+  const router = useRouter()
   const [data, setData] = useState<StatData | null>(null)
   const [installBookings, setInstallBookings] = useState<InstallBooking[]>([])
   const [loading, setLoading] = useState(true)
+  const [surveyToday, setSurveyToday] = useState(0)
   const [approving, setApproving] = useState<string | null>(null)
   const [rejecting, setRejecting] = useState<string | null>(null)
   const [trendData, setTrendData] = useState<{ date: string; count: number }[]>([])
@@ -81,20 +153,23 @@ export default function AdminDashboardPage() {
     const channel = supabase
       .channel('admin-orders-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-        loadData()
+        // Background refresh tanpa spinner — jangan ganggu interaksi user
+        loadData(false)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_logs' }, () => {
-        loadData()
+        loadData(false)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_progress_photos' }, () => {
-        loadData()
+        loadData(false)
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'install_bookings' }, () => {
-        loadData()
+        loadData(false)
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   useEffect(() => {
@@ -114,7 +189,7 @@ export default function AdminDashboardPage() {
         const key = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
         dailyCount[key] = 0
       }
-      ;(trendOrders ?? []).forEach((o: any) => {
+      ;((trendOrders ?? []) as { created_at: string }[]).forEach((o) => {
         const key = new Date(o.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
         if (dailyCount[key] !== undefined) dailyCount[key]++
       })
@@ -123,61 +198,97 @@ export default function AdminDashboardPage() {
     loadTrend()
   }, [])
 
-  async function loadData() {
-    setLoading(true)
+  async function loadData(showLoading = true) {
+    if (showLoading) setLoading(true)
     // Fetch recent orders with their recent logs (max 10 orders, 5 logs each)
     const { data: ordersWithLogsData } = await supabase
       .from('orders')
-      .select(`
+      .select(
+        `
         id, order_number, status, payment_status, created_at,
         customer:customers(name),
         order_logs!order_logs_order_id_fkey(id, action, notes, created_at, staff:users(name)),
         order_progress_photos(id, stage, photo_url, notes, created_at)
-      `)
+      `
+      )
       .order('created_at', { ascending: false })
       .limit(10)
 
-    const formatted = (ordersWithLogsData ?? []).map((o: any) => ({
+    const formatted = ((ordersWithLogsData ?? []) as unknown as AdminOrderRow[]).map((o) => ({
       ...o,
-      recentLogs: (o.order_logs ?? []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5),
-      progressPhotos: o.order_progress_photos ?? [],
+      recentLogs: (o.order_logs ?? [])
+        .sort((a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 5),
+      progressPhotos: o.order_progress_photos ?? []
     }))
 
-    const [{ data: ordersData, count: totalOrders }, { data: customersData, count: totalCustomers }, { data: productsData, count: totalProducts }, { data: pendingPRs }, { data: installsData }] = await Promise.all([
+    const [
+      { data: ordersData, count: totalOrders },
+      { data: customersData, count: totalCustomers },
+      { data: productsData, count: totalProducts },
+      { data: pendingPRs },
+      { data: installsData }
+    ] = await Promise.all([
       supabase.from('orders').select('id, status, payment_status', { count: 'exact' }),
       supabase.from('customers').select('id', { count: 'exact' }),
       supabase.from('products').select('id', { count: 'exact' }),
       supabase.from('purchase_requests').select('*, material:materials(name)').eq('status', 'pending'),
-      supabase.from('install_bookings').select('id, status, scheduled_date, scheduled_time, type, order:orders(customer:customers(name, phone, address))').gte('scheduled_date', new Date().toISOString().split('T')[0]).in('status', ['scheduled', 'in_progress', 'revision']),
+      supabase
+        .from('install_bookings')
+        .select(
+          'id, status, scheduled_date, scheduled_time, type, order:orders(customer:customers(name, phone, address))'
+        )
+        .gte('scheduled_date', new Date().toISOString().split('T')[0])
+        .in('status', ['scheduled', 'in_progress', 'revision'])
     ])
 
-    setInstallBookings((installsData as any) ?? [])
+    setInstallBookings((installsData ?? []) as InstallBooking[])
     setData({
       orders: (ordersData ?? []) as Order[],
       totalOrders: totalOrders ?? 0,
       totalCustomers: totalCustomers ?? 0,
       totalProducts: totalProducts ?? 0,
       pendingPRs: pendingPRs ?? [],
-      ordersWithLogs: formatted,
+      ordersWithLogs: formatted as OrderWithLogs[]
     })
+
+    // Survey baru hari ini (notifikasi admin)
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const { count: surveyCount } = await supabase
+      .from('surveys')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', todayStart.toISOString())
+    setSurveyToday(surveyCount ?? 0)
+
     setLoading(false)
   }
 
   async function approvePR(id: string) {
     setApproving(id)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id }).eq('id', id)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const { error } = await supabase.from('purchase_requests').update({ status: 'approved', approved_by: user?.id ?? null }).eq('id', id)
+    if (error) { setApproving(null); toast('error', 'Gagal approve PR: ' + error.message); return }
     setApproving(null)
-    loadData()
+    // Optimistic: PR hilang dari daftar pending tanpa refetch (realtime tetap sync)
+    setData((prev) => (prev ? { ...prev, pendingPRs: prev.pendingPRs.filter((p) => p.id !== id) } : prev))
+    toast('success', 'PR disetujui')
   }
 
   async function rejectPR(id: string) {
     if (!confirm('Tolak PR ini?')) return
     setRejecting(id)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id }).eq('id', id)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const { error } = await supabase.from('purchase_requests').update({ status: 'rejected', approved_by: user?.id ?? null }).eq('id', id)
+    if (error) { setRejecting(null); toast('error', 'Gagal tolak PR: ' + error.message); return }
     setRejecting(null)
-    loadData()
+    // Optimistic: PR hilang dari daftar pending tanpa refetch
+    setData((prev) => (prev ? { ...prev, pendingPRs: prev.pendingPRs.filter((p) => p.id !== id) } : prev))
+    toast('success', 'PR ditolak')
   }
 
   if (loading || !data) {
@@ -194,8 +305,8 @@ export default function AdminDashboardPage() {
   const doneOrders = orders.filter((o) => o.status === 'done').length
   const inProduction = orders.filter((o) => o.status === 'production' || o.status === 'steam').length
   // Order sudah lunas tapi Admin belum sortir — perlu perhatian
-  const paidNotSorted = orders.filter((o) =>
-    o.payment_status === 'paid' && (o.status === 'new' || o.status === 'sorted')
+  const paidNotSorted = orders.filter(
+    (o) => o.payment_status === 'paid' && (o.status === 'new' || o.status === 'sorted')
   ).length
 
   // Real-time: today's orders
@@ -206,21 +317,64 @@ export default function AdminDashboardPage() {
   const todayRevenue = todayOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
 
   // Install stats
-  const scheduledInstalls = installBookings.filter(b => b.status === 'scheduled').length
-  const activeInstalls = installBookings.filter(b => b.status === 'in_progress').length
-  const revisionInstalls = installBookings.filter(b => b.status === 'revision').length
+  const scheduledInstalls = installBookings.filter((b) => b.status === 'scheduled').length
+  const activeInstalls = installBookings.filter((b) => b.status === 'in_progress').length
+  const revisionInstalls = installBookings.filter((b) => b.status === 'revision').length
 
   // Chart data: Order count by status
   const statusCounts: Record<string, number> = {}
-  orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1 })
+  orders.forEach((o) => {
+    statusCounts[o.status] = (statusCounts[o.status] ?? 0) + 1
+  })
   const STATUS_LABELS: Record<string, string> = {
-    new: 'Baru', sorted: 'Sorted', payment_ok: 'Payment OK', production: 'Produksi',
-    steam: 'Steam/QC', ready: 'Siap', packed: 'Packed', shipped: 'Dikirim', done: 'Selesai',
-    cancelled: 'Cancelled', returned: 'Returned',
+    new: 'Baru',
+    sorted: 'Sudah Disortir',
+    payment_ok: 'Pembayaran OK',
+    production: 'Produksi',
+    steam: 'Steam/QC',
+    ready: 'Siap',
+    packed: 'Dikemas',
+    shipped: 'Dikirim',
+    done: 'Selesai',
+    cancelled: 'Dibatalkan',
+    returned: 'Return'
+  }
+  const ACTION_LABELS: Record<string, string> = {
+    status_changed: 'Status Berubah',
+    order_created: 'Pesanan Dibuat',
+    order_deleted: 'Pesanan Dihapus',
+    payment_input: 'Pembayaran Diinput',
+    payment_added: 'Pembayaran Ditambah',
+    payment_approved: 'Pembayaran Disetujui',
+    payment_verified: 'Pembayaran Terverifikasi',
+    refund_issued: 'Refund Dikeluarkan',
+    sorted: 'Disortir',
+    packed: 'Dikemas',
+    shipped: 'Dikirim',
+    production: 'Produksi',
+    production_completed: 'Produksi Selesai',
+    steam: 'Steam/QC',
+    steam_qc_pass: 'Steam/QC Lolos',
+    steam_revision_requeue: 'Steam/QC Revisi',
+    ready: 'Siap',
+    done: 'Selesai',
+    cancelled: 'Dibatalkan',
+    returned: 'Return',
+    return_initiated: 'Return Diajukan',
+    return_stock_in: 'Stok Return Masuk',
+    return_disposed: 'Return Dimusnahkan',
+    qc_pass: 'QC Lolos',
+    qc_fail: 'QC Gagal',
+    penjahit_assigned: 'Penjahit Ditugaskan',
+    install_started: 'Pemasangan Dimulai',
+    install_revision: 'Revisi Pemasangan'
+  }
+  function formatLogAction(action: string): string {
+    return ACTION_LABELS[action] ?? action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
   }
   const statusChartData = Object.entries(statusCounts).map(([k, v]) => ({
     name: STATUS_LABELS[k] ?? k,
-    count: v,
+    count: v
   }))
 
   // Chart data: Revenue by source
@@ -229,276 +383,248 @@ export default function AdminDashboardPage() {
     const src = o.source ?? 'offline'
     revenueBySource[src] = (revenueBySource[src] ?? 0) + (o.total_amount ?? 0)
   })
-  const revenueChartData = Object.entries(revenueBySource).map(([k, v]) => ({
-    name: SOURCE_LABELS[k as keyof typeof SOURCE_LABELS] ?? k,
-    revenue: v,
-  })).sort((a, b) => b.revenue - a.revenue)
+  const revenueChartData = Object.entries(revenueBySource)
+    .map(([k, v]) => ({
+      name: SOURCE_LABELS[k as keyof typeof SOURCE_LABELS] ?? k,
+      revenue: v
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Dashboard Admin</h1>
-        <p className="page-subtitle">Selamat datang di KJ Homedecor Management System</p>
-      </div>
+      <PageHeader title="Dashboard Admin" subtitle="Selamat datang di KJ Homedecor Management System" />
 
-      {/* Stat Cards — Improved */}
-      <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
+      {/* Stat Cards — motion stagger + StatCard component (2026-07-31) */}
+      <MotionStagger className="stat-grid" style={{ marginBottom: '1.5rem' }}>
         {/* Real-time Hari Ini */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #16a34a' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Real-time Hari Ini</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#16a34a' }}>{todayOrderCount}</div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>pesanan baru</span>
-              </div>
-              <div className="stat-card-sub" style={{ color: '#059669', fontWeight: '600' }}>{formatRp(todayRevenue)} omzet</div>
-            </div>
-            <div style={{ background: '#d1fae5', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Activity size={20} style={{ color: '#16a34a' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Real-time Hari Ini"
+          value={todayOrderCount}
+          suffix="pesanan baru"
+          sub={<span style={{ color: '#059669', fontWeight: '600' }}>{formatRp(todayRevenue)} omzet</span>}
+          icon={Activity}
+          accent="#16a34a"
+          iconBg="#d1fae5"
+          delay={0}
+        />
 
         {/* Produksi Aktif */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #06b6d4' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Produksi Aktif</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#06b6d4' }}>{inProduction}</div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang diproduksi</span>
-              </div>
-              <div className="stat-card-sub">Gudang sedang kerjakan</div>
-            </div>
-            <div style={{ background: '#cffafe', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Wrench size={20} style={{ color: '#06b6d4' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Produksi Aktif"
+          value={inProduction}
+          suffix="sedang diproduksi"
+          sub="Gudang sedang kerjakan"
+          icon={Wrench}
+          accent="#06b6d4"
+          iconBg="#cffafe"
+          delay={0.05}
+        />
 
         {/* Instalasi Aktif */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Instalasi Aktif</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.375rem' }}>
-                <div className="stat-card-value" style={{ color: '#8b5cf6' }}>{activeInstalls}</div>
-                <span style={{ fontSize: '0.72rem', color: '#6b7280' }}>sedang pasang</span>
-              </div>
-              <div className="stat-card-sub">{scheduledInstalls} terjadwal · {revisionInstalls} revisi</div>
-            </div>
-            <div style={{ background: '#f5f3ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Calendar size={20} style={{ color: '#8b5cf6' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Instalasi Aktif"
+          value={activeInstalls}
+          suffix="sedang pasang"
+          sub={`${scheduledInstalls} terjadwal · ${revisionInstalls} revisi`}
+          icon={Calendar}
+          accent="#8b5cf6"
+          iconBg="#f5f3ff"
+          delay={0.1}
+        />
 
         {/* PR Pending */}
         {pendingPRs.length > 0 && (
-          <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div className="stat-card-label">PR Pending</div>
-                <div className="stat-card-value" style={{ color: '#f59e0b' }}>{pendingPRs.length}</div>
-                <div className="stat-card-sub">Perlu approve</div>
-              </div>
-              <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
-                <AlertCircle size={20} style={{ color: '#f59e0b' }} />
-              </div>
-            </div>
-          </div>
+          <StatCard
+            label="PR Pending"
+            value={pendingPRs.length}
+            sub="Perlu approve"
+            icon={AlertCircle}
+            accent="#f59e0b"
+            iconBg="#fef3c7"
+            delay={0.15}
+          />
         )}
 
+        {/* Survey Baru Hari Ini */}
+        <StatCard
+          label="Survey Baru Hari Ini"
+          value={surveyToday}
+          suffix={surveyToday === 1 ? 'survey masuk' : 'survey masuk'}
+          sub={<Link href="/admin/surveys" style={{ color: '#7c3aed', fontWeight: '600' }}>Lihat semua survey →</Link>}
+          icon={ClipboardList}
+          accent="#7c3aed"
+          iconBg="#f5f3ff"
+          delay={0.17}
+        />
+
         {/* Total Orders */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Pesanan</div>
-              <div className="stat-card-value" style={{ color: '#3b82f6' }}>{totalOrders}</div>
-              <div className="stat-card-sub" style={{ color: '#f59e0b' }}>{newOrders} pesanan baru</div>
-            </div>
-            <div style={{ background: '#eff6ff', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <ShoppingCart size={20} style={{ color: '#3b82f6' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Total Pesanan"
+          value={totalOrders}
+          sub={<span style={{ color: '#f59e0b' }}>{newOrders} pesanan baru</span>}
+          icon={ShoppingCart}
+          accent="#3b82f6"
+          iconBg="#eff6ff"
+          delay={0.2}
+        />
 
         {/* Pending Payment */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Menunggu Bayar</div>
-              <div className="stat-card-value" style={{ color: '#ef4444' }}>{pendingPayment}</div>
-              <div className="stat-card-sub">Perlu konfirmasi Finance</div>
-            </div>
-            <div style={{ background: '#fef2f2', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Clock size={20} style={{ color: '#ef4444' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Menunggu Bayar"
+          value={pendingPayment}
+          sub="Perlu konfirmasi Finance"
+          icon={Clock}
+          accent="#ef4444"
+          iconBg="#fef2f2"
+          delay={0.25}
+        />
 
         {/* Paid but Not Sorted — alert for Admin */}
         {paidNotSorted > 0 && (
-          <Link href="/admin/orders" style={{ textDecoration: 'none' }}>
-            <div className="stat-card" style={{ borderLeft: '4px solid #f59e0b', cursor: 'pointer' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div className="stat-card-label">Sudah Bayar Belum Disortir</div>
-                  <div className="stat-card-value" style={{ color: '#f59e0b' }}>{paidNotSorted}</div>
-                  <div className="stat-card-sub" style={{ color: '#92400e' }}>⚠️ Perlu sortir Admin</div>
-                </div>
-                <div style={{ background: '#fef3c7', borderRadius: '0.5rem', padding: '0.5rem' }}>
-                  <AlertCircle size={20} style={{ color: '#f59e0b' }} />
-                </div>
-              </div>
-            </div>
-          </Link>
+          <StatCard
+            label="Sudah Bayar Belum Disortir"
+            value={paidNotSorted}
+            sub={<span style={{ color: '#92400e' }}>⚠️ Perlu sortir Admin</span>}
+            icon={AlertCircle}
+            accent="#f59e0b"
+            iconBg="#fef3c7"
+            delay={0.3}
+            onClick={() => router.push('/admin/orders')}
+          />
         )}
 
         {/* Done Orders */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #22c55e' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Selesai</div>
-              <div className="stat-card-value" style={{ color: '#22c55e' }}>{doneOrders}</div>
-              <div className="stat-card-sub">Pesanan completed</div>
-            </div>
-            <div style={{ background: '#f0fdf4', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <CheckCheck size={20} style={{ color: '#22c55e' }} />
-            </div>
-          </div>
-        </div>
+        <StatCard
+          label="Selesai"
+          value={doneOrders}
+          sub="Pesanan completed"
+          icon={CheckCheck}
+          accent="#22c55e"
+          iconBg="#f0fdf4"
+          delay={0.35}
+        />
 
         {/* Total Customers */}
-        <div className="stat-card" style={{ borderLeft: '4px solid #ec4899' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <div className="stat-card-label">Total Pelanggan</div>
-              <div className="stat-card-value" style={{ color: '#ec4899' }}>{totalCustomers}</div>
-              <div className="stat-card-sub">Terdaftar</div>
-            </div>
-            <div style={{ background: '#fdf2f8', borderRadius: '0.5rem', padding: '0.5rem' }}>
-              <Users size={20} style={{ color: '#ec4899' }} />
-            </div>
-          </div>
-        </div>
-      </div>
+        <StatCard
+          label="Total Pelanggan"
+          value={totalCustomers}
+          sub="Terdaftar"
+          icon={Users}
+          accent="#ec4899"
+          iconBg="#fdf2f8"
+          delay={0.4}
+        />
+      </MotionStagger>
 
       {/* Charts Section */}
       {!loading && data && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <BarChart3 size={16} style={{ color: 'var(--brand-500)' }} />
-                  <CardTitle>Pesanan per Status</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {data.orders.length === 0 ? (
-                  <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <BarChart3 size={32} className="opacity-30" />
-                    <span>Belum ada data pesanan</span>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={statusChartData} barCategoryGap="20%">
-                      <defs>
-                        <linearGradient id="brandGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="var(--brand-400)" />
-                          <stop offset="100%" stopColor="var(--brand-600)" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                        formatter={(value, name) => [value, 'Jumlah']}
-                        cursor={{ fill: 'var(--muted)' }}
-                      />
-                      <Bar dataKey="count" fill="url(#brandGrad)" radius={[6, 6, 0, 0]} animationDuration={800} label={{ position: 'top', fontSize: 10, fontWeight: 600, fill: 'var(--muted-foreground)' }} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <TrendingUp size={16} color="#2563eb" />
-                  <CardTitle>Omzet per Sumber</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {data.orders.length === 0 ? (
-                  <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
-                    <TrendingUp size={32} className="opacity-30" />
-                    <span>Belum ada data omzet</span>
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <BarChart data={revenueChartData} barCategoryGap="20%">
-                      <defs>
-                        <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#60a5fa" />
-                          <stop offset="100%" stopColor="#2563eb" />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11 }} tickFormatter={v => formatRp(v).replace('Rp ', '').replaceAll('.', '')} axisLine={false} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                        formatter={(v) => [formatRp(v as number), 'Omzet']}
-                        cursor={{ fill: 'var(--muted)' }}
-                      />
-                      <Bar dataKey="revenue" fill="url(#blueGrad)" radius={[6, 6, 0, 0]} animationDuration={800} label={{ position: 'top', fontSize: 9, fontWeight: 600, fill: 'var(--muted-foreground)' }} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="mb-6">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <TrendingUp size={16} color="#16a34a" />
-                <CardTitle>Tren 30 Hari</CardTitle>
+          {/* Order by Status Bar Chart */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '1.5rem',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <SectionCard delay={0.08}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <BarChart3 size={16} color="#cc7030" />
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
+                  Pesanan per Status
+                </h3>
               </div>
-            </CardHeader>
-            <CardContent>
-              {trendData.length === 0 ? (
-                <div className="h-[200px] flex flex-col items-center justify-center text-muted-foreground gap-2">
-                  <TrendingUp size={32} className="opacity-30" />
-                  <span>Belum ada data tren</span>
+              {data.orders.length === 0 ? (
+                <div
+                  style={{
+                    height: 200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--neutral-400)'
+                  }}
+                >
+                  Tidak ada data
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={trendData}>
-                    <defs>
-                      <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#4ade80" />
-                        <stop offset="100%" stopColor="#16a34a" />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 8, border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      formatter={(value, name) => [value, 'Pesanan']}
-                    />
-                    <Line type="monotone" dataKey="count" stroke="url(#greenGrad)" strokeWidth={3} dot={{ r: 3, fill: '#16a34a', strokeWidth: 0 }} activeDot={{ r: 5, fill: '#16a34a', stroke: '#fff', strokeWidth: 2 }} animationDuration={1000} />
-                  </LineChart>
+                  <BarChart data={statusChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#cc7030" radius={[4, 4, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               )}
-            </CardContent>
-          </Card>
+            </SectionCard>
+
+            {/* Revenue by Source Bar Chart */}
+            <SectionCard delay={0.14}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <TrendingUp size={16} color="#2563eb" />
+                <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Omzet per Sumber</h3>
+              </div>
+              {data.orders.length === 0 ? (
+                <div
+                  style={{
+                    height: 200,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'var(--neutral-400)'
+                  }}
+                >
+                  Tidak ada data
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={revenueChartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
+                    />
+                    <Tooltip formatter={(v) => formatRp(v as number)} />
+                    <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </SectionCard>
+          </div>
+
+          {/* 30-Day Order Trend */}
+          <div className="section-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+              <TrendingUp size={16} color="#16a34a" />
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Tren 30 Hari</h3>
+            </div>
+            {trendData.length === 0 ? (
+              <div
+                style={{
+                  height: 200,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--neutral-400)'
+                }}
+              >
+                Tidak ada data
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </>
       )}
 
@@ -509,7 +635,7 @@ export default function AdminDashboardPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <AlertTriangle size={18} color="#f59e0b" />
-              <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>
                 Purchase Request Pending ({pendingPRs.length})
               </h2>
             </div>
@@ -524,26 +650,50 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pendingPRs.map(pr => (
+                  {pendingPRs.map((pr) => (
                     <tr key={pr.id}>
                       <td style={{ fontWeight: '600' }}>{pr.material?.name ?? '—'}</td>
-                      <td style={{ color: '#6b7280' }}>{pr.qty}</td>
-                      <td style={{ fontWeight: '600', color: '#cc7030' }}>
-                        {formatRp(pr.estimated_cost)}
-                      </td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{pr.qty}</td>
+                      <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(pr.estimated_cost)}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                           <button
                             onClick={() => approvePR(pr.id)}
                             disabled={approving === pr.id}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.75rem', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.78rem', fontWeight: '600', cursor: approving === pr.id ? 'not-allowed' : 'pointer', opacity: approving === pr.id ? 0.6 : 1 }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.375rem 0.75rem',
+                              background: '#22c55e',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.78rem',
+                              fontWeight: '600',
+                              cursor: approving === pr.id ? 'not-allowed' : 'pointer',
+                              opacity: approving === pr.id ? 0.6 : 1
+                            }}
                           >
                             <CheckCircle2 size={12} /> {approving === pr.id ? '...' : 'Approve'}
                           </button>
                           <button
                             onClick={() => rejectPR(pr.id)}
                             disabled={rejecting === pr.id}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.375rem 0.75rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.78rem', fontWeight: '600', cursor: rejecting === pr.id ? 'not-allowed' : 'pointer', opacity: rejecting === pr.id ? 0.6 : 1 }}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                              padding: '0.375rem 0.75rem',
+                              background: '#ef4444',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '0.375rem',
+                              fontSize: '0.78rem',
+                              fontWeight: '600',
+                              cursor: rejecting === pr.id ? 'not-allowed' : 'pointer',
+                              opacity: rejecting === pr.id ? 0.6 : 1
+                            }}
                           >
                             <XCircle size={12} /> {rejecting === pr.id ? '...' : 'Tolak'}
                           </button>
@@ -561,57 +711,138 @@ export default function AdminDashboardPage() {
       {/* Progress Pesanan — Improved Card UI */}
       <div style={{ marginTop: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151' }}>Progress Pesanan</h2>
-          <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
+          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>Progress Pesanan</h2>
+          <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{data.ordersWithLogs.length} pesanan terakhir</span>
         </div>
         {!data?.ordersWithLogs || data.ordersWithLogs.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.75rem', fontSize: '0.875rem' }}>
+          <div
+            style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: 'var(--neutral-400)',
+              background: 'var(--neutral-100)',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              fontSize: '0.875rem'
+            }}
+          >
             Belum ada pesanan
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1rem' }}>
             {data.ordersWithLogs.map((order) => {
-              const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: '#9ca3af' }
+              const actionStyle = ACTION_ICONS[order.status] ?? { icon: <Clock size={14} />, color: 'var(--neutral-400)' }
               const STATUS_COLORS: Record<string, string> = {
-                new: '#3b82f6', sorted: '#8b5cf6', payment_ok: '#f59e0b', production: '#06b6d4',
-                steam: '#0d9488', ready: '#14b8a6', packed: '#f97316', shipped: '#0d9488',
-                done: '#22c55e', returned: '#f59e0b', cancelled: '#dc2626',
+                new: '#3b82f6',
+                sorted: '#8b5cf6',
+                payment_ok: '#f59e0b',
+                production: '#06b6d4',
+                steam: '#0d9488',
+                ready: '#14b8a6',
+                packed: '#f97316',
+                shipped: '#0d9488',
+                done: '#22c55e',
+                returned: '#f59e0b',
+                cancelled: '#dc2626'
               }
               const PAYMENT_COLORS: Record<string, string> = {
-                pending: '#ef4444', partial: '#f59e0b', paid: '#22c55e',
+                pending: '#ef4444',
+                partial: '#f59e0b',
+                paid: '#22c55e'
               }
-              const statusColor = STATUS_COLORS[order.status] ?? '#9ca3af'
-              const payColor = PAYMENT_COLORS[order.payment_status] ?? '#9ca3af'
-              const photos = order.progressPhotos?.map(p => p.photo_url) ?? []
-              const stages = ['new', 'sorted', 'production', 'steam', 'ready', 'payment_ok', 'packed', 'shipped', 'done']
+              const statusColor = STATUS_COLORS[order.status] ?? 'var(--neutral-400)'
+              const payColor = PAYMENT_COLORS[order.payment_status] ?? 'var(--neutral-400)'
+              const photos = order.progressPhotos?.map((p) => p.photo_url) ?? []
+              const stages = [
+                'new',
+                'sorted',
+                'production',
+                'steam',
+                'ready',
+                'payment_ok',
+                'packed',
+                'shipped',
+                'done'
+              ]
               const currentStageIdx = stages.indexOf(order.status)
               const date = new Date(order.created_at)
               const dateStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })
               const timeStr = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 
               return (
-                <div key={order.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                <div
+                  key={order.id}
+                  style={{
+                    background: 'var(--surface)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '0.75rem',
+                    overflow: 'hidden'
+                  }}
+                >
                   {/* Card Header */}
-                  <div style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
+                  <div
+                    style={{
+                      padding: '0.75rem 1rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: statusColor + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusColor, flexShrink: 0 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          background: statusColor + '15',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: statusColor,
+                          flexShrink: 0
+                        }}
+                      >
                         {actionStyle.icon}
                       </div>
                       <div>
-                        <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#1f2937', lineHeight: 1.2 }}>
+                        <div style={{ fontWeight: '700', fontSize: '0.875rem', color: 'var(--neutral-800)', lineHeight: 1.2 }}>
                           {order.order_number || `#${order.id.slice(0, 8)}`}
                         </div>
-                        <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--neutral-600)' }}>
                           {order.customer?.name ?? '—'} · {dateStr}
                         </div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                      <span style={{ fontSize: '0.65rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: statusColor + '15', color: statusColor, textTransform: 'capitalize' }}>
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: '600',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: statusColor + '15',
+                          color: statusColor,
+                          textTransform: 'capitalize'
+                        }}
+                      >
                         {order.status.replace(/_/g, ' ')}
                       </span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: '600', padding: '0.15rem 0.5rem', borderRadius: '9999px', background: payColor + '15', color: payColor }}>
-                        {order.payment_status === 'partial' ? 'DP' : order.payment_status.toUpperCase()}
+                      <span
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: '600',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '9999px',
+                          background: payColor + '15',
+                          color: payColor
+                        }}
+                      >
+                        {order.payment_status === 'partial'
+            ? 'DP'
+            : order.payment_status === 'paid'
+              ? 'Lunas'
+              : 'Belum Bayar'}
                       </span>
                     </div>
                   </div>
@@ -623,10 +854,28 @@ export default function AdminDashboardPage() {
                         const filled = currentStageIdx >= i
                         const active = currentStageIdx === i
                         return (
-                          <div key={stage} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem' }}>
-                            <div style={{ width: '100%', height: 3, borderRadius: 2, background: filled ? statusColor : '#e5e7eb' }} />
+                          <div
+                            key={stage}
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              gap: '0.125rem'
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '100%',
+                                height: 3,
+                                borderRadius: 2,
+                                background: filled ? statusColor : 'var(--neutral-200)'
+                              }}
+                            />
                             {active && (
-                              <span style={{ fontSize: '0.5rem', color: statusColor, fontWeight: 600, marginTop: 2 }}>●</span>
+                              <span style={{ fontSize: '0.5rem', color: statusColor, fontWeight: 600, marginTop: 2 }}>
+                                ●
+                              </span>
                             )}
                           </div>
                         )
@@ -637,20 +886,45 @@ export default function AdminDashboardPage() {
                   {/* Activity Timeline */}
                   <div style={{ padding: '0.5rem 1rem', minHeight: 80 }}>
                     {order.recentLogs.length === 0 ? (
-                      <div style={{ fontSize: '0.72rem', color: '#9ca3af', padding: '0.5rem 0' }}>Belum ada aktivitas</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', padding: '0.5rem 0' }}>
+                        Belum ada aktivitas
+                      </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                         {order.recentLogs.slice(0, 3).map((log, i) => {
-                          const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: '#9ca3af' }
+                          const logStyle = ACTION_ICONS[log.action] ?? { icon: <Clock size={12} />, color: 'var(--neutral-400)' }
                           return (
-                            <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', paddingLeft: i > 0 ? '0.75rem' : 0, borderLeft: i > 0 ? '2px solid #e5e7eb' : 'none' }}>
-                              <span style={{ color: logStyle.color, display: 'flex', flexShrink: 0 }}>{logStyle.icon}</span>
-                              <span style={{ fontSize: '0.72rem', color: '#6b7280', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {log.action.replace(/_/g, ' ').toUpperCase()}
-                                {log.staff && <span style={{ color: '#9ca3af' }}> — {log.staff.name}</span>}
+                            <div
+                              key={log.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.5rem',
+                                paddingLeft: i > 0 ? '0.75rem' : 0,
+                                borderLeft: i > 0 ? '2px solid #e5e7eb' : 'none'
+                              }}
+                            >
+                              <span style={{ color: logStyle.color, display: 'flex', flexShrink: 0 }}>
+                                {logStyle.icon}
                               </span>
-                              <span style={{ fontSize: '0.65rem', color: '#9ca3af', flexShrink: 0 }}>
-                                {new Date(log.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                              <span
+                                style={{
+                                  fontSize: '0.75rem',
+                                  color: 'var(--neutral-600)',
+                                  flex: 1,
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {formatLogAction(log.action)}
+                                {log.staff && <span style={{ color: 'var(--neutral-400)' }}> — {log.staff.name}</span>}
+                              </span>
+                              <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)', flexShrink: 0 }}>
+                                {new Date(log.created_at).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </span>
                             </div>
                           )
@@ -663,12 +937,16 @@ export default function AdminDashboardPage() {
                   {photos.length > 0 && (
                     <div style={{ padding: '0.5rem 1rem', borderTop: '1px solid #f3f4f6' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-                        <Camera size={10} style={{ color: '#9ca3af' }} />
-                        <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{photos.length} foto</span>
+                        <Camera size={10} style={{ color: 'var(--neutral-400)' }} />
+                        <span style={{ fontSize: '0.65rem', color: 'var(--neutral-400)' }}>{photos.length} foto</span>
                       </div>
                       <LightboxGallery
                         photos={photos}
-                        onPhotoClick={(i) => { setLightboxPhotos(photos); setLightboxIndex(i); setLightboxOpen(true) }}
+                        onPhotoClick={(i) => {
+                          setLightboxPhotos(photos)
+                          setLightboxIndex(i)
+                          setLightboxOpen(true)
+                        }}
                         columns={4}
                         thumbSize="sm"
                       />
@@ -676,8 +954,19 @@ export default function AdminDashboardPage() {
                   )}
 
                   {/* Card Footer */}
-                  <div style={{ padding: '0.5rem 1rem', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                    <a href={`/admin/orders/${order.id}`} style={{ fontSize: '0.72rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}>
+                  <div
+                    style={{
+                      padding: '0.5rem 1rem',
+                      background: 'var(--neutral-100)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end'
+                    }}
+                  >
+                    <a
+                      href={`/admin/orders/${order.id}`}
+                      style={{ fontSize: '0.75rem', color: '#cc7030', fontWeight: 600, textDecoration: 'none' }}
+                    >
                       Lihat Detail →
                     </a>
                   </div>
@@ -694,8 +983,8 @@ export default function AdminDashboardPage() {
           photos={lightboxPhotos}
           currentIndex={lightboxIndex}
           onClose={() => setLightboxOpen(false)}
-          onNext={() => setLightboxIndex(i => i < lightboxPhotos.length - 1 ? i + 1 : i)}
-          onPrev={() => setLightboxIndex(i => i > 0 ? i - 1 : i)}
+          onNext={() => setLightboxIndex((i) => (i < lightboxPhotos.length - 1 ? i + 1 : i))}
+          onPrev={() => setLightboxIndex((i) => (i > 0 ? i - 1 : i))}
         />
       )}
     </div>

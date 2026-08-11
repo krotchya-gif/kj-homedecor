@@ -1,4 +1,5 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -11,11 +12,53 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+interface LooseRow {
+  id?: string
+  code?: string
+  name?: string
+  type?: string
+  balance?: number
+  date?: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  total?: number
+  amount?: number
+  qty?: number
+  status?: string
+  order_number?: string
+  payment_status?: string
+  total_amount?: number
+  total_price?: number
+  supplier_name?: string
+  stock_gudang?: number
+  min_stock_level?: number
+  cost_per_unit?: number
+  unit?: string
+  bank_name?: string
+  account_number?: string
+  account_holder?: string
+  account?: { code?: string; name?: string } | null
+  [k: string]: unknown
+}
+
+interface TagStat {
+  total?: number
+  qty?: number
+  count?: number
+}
+
 export default function PerformaTagPage() {
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
-  const [orders, setOrders] = useState<any[]>([])
+  const [orders, setOrders] = useState<LooseRow[]>([])
 
   const supabase = createClient()
 
@@ -28,29 +71,34 @@ export default function PerformaTagPage() {
       .lte('created_at', endDate + 'T23:59:59')
       .order('created_at', { ascending: false })
       .limit(500)
-    setOrders(data ?? [])
+    setOrders((data ?? []) as LooseRow[])
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [startDate, endDate])
+  useEffect(() => {
+    fetchData()
+  }, [startDate, endDate])
 
   // Group by source_tag
-  const tagStats = orders.reduce((acc: any, o) => {
-    const tag = o.source_tag ?? 'Tanpa Tag'
+  const tagStats = orders.reduce((acc: Record<string, TagStat>, o) => {
+    const tag = String(o.source_tag ?? 'Tanpa Tag')
     if (!acc[tag]) acc[tag] = { count: 0, total: 0 }
-    acc[tag].count++
-    acc[tag].total += o.total_amount ?? 0
+    const row = acc[tag]!
+    row.count = (row.count ?? 0) + 1
+    row.total = (row.total ?? 0) + (o.total_amount ?? 0)
     return acc
   }, {})
 
-  const tagData = Object.entries(tagStats).map(([tag, stats]: [string, any]) => ({
-    tag,
-    count: stats.count,
-    total: stats.total,
-  })).sort((a, b) => b.total - a.total)
+  const tagData = Object.entries(tagStats)
+    .map(([tag, stats]: [string, TagStat]) => ({
+      tag,
+      count: stats.count,
+      total: stats.total
+    }))
+    .sort((a, b) => (b.total ?? 0) - (a.total ?? 0))
 
-  const grandTotal = tagData.reduce((s, d) => s + d.total, 0)
-  const grandCount = tagData.reduce((s, d) => s + d.count, 0)
+  const grandTotal = tagData.reduce((s, d) => s + (d.total ?? 0), 0)
+  const grandCount = tagData.reduce((s, d) => s + (d.count ?? 0), 0)
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -66,14 +114,14 @@ export default function PerformaTagPage() {
       startY: 40,
       head: [['Tag/Platform', 'Jumlah Order', 'Total Revenue']],
       headStyles: { fillColor: [236, 72, 153] },
-      body: tagData.map(d => [d.tag, d.count.toString(), formatRp(d.total)]),
+      body: tagData.map((d) => [d.tag, (d.count ?? 0).toString(), formatRp(d.total ?? 0)]),
       foot: [['TOTAL', grandCount.toString(), formatRp(grandTotal)]],
       footStyles: { fillColor: [253, 242, 252], textColor: [131, 24, 67], fontStyle: 'bold' },
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 40, halign: 'center' },
-        2: { cellWidth: 50, halign: 'right' },
-      },
+        2: { cellWidth: 50, halign: 'right' }
+      }
     })
 
     doc.save(`performa-tag-${startDate}-${endDate}.pdf`)
@@ -82,15 +130,13 @@ export default function PerformaTagPage() {
   return (
     <div>
       <BackButton href="/finance/laporan" />
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h1 className="page-title">Performa Per Tag</h1>
-          <p className="page-subtitle">Ringkasan laba rugi per tag/marketplace</p>
-        </div>
-        <ReportPDFButton onClick={downloadPDF} label="Download PDF" />
-      </div>
+      <PageHeader
+        title="Performa Per Tag"
+        subtitle="Ringkasan laba rugi per tag/marketplace"
+        action={<ReportPDFButton onClick={downloadPDF} label="Download PDF" />}
+      />
 
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="section-card">
         <DateRangePicker
           startDate={startDate}
           endDate={endDate}
@@ -101,9 +147,9 @@ export default function PerformaTagPage() {
 
       <div className="data-table">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
         ) : tagData.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Belum ada data order</div>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data order</div>
         ) : (
           <table>
             <thead>
@@ -114,16 +160,16 @@ export default function PerformaTagPage() {
               </tr>
             </thead>
             <tbody>
-              {tagData.map(d => (
+              {tagData.map((d) => (
                 <tr key={d.tag}>
                   <td style={{ fontWeight: '600' }}>{d.tag}</td>
-                  <td style={{ textAlign: 'right', color: '#6b7280' }}>{d.count}</td>
-                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(d.total)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--neutral-600)' }}>{(d.count ?? 0)}</td>
+                  <td style={{ fontWeight: '700', textAlign: 'right', color: '#cc7030' }}>{formatRp(d.total ?? 0)}</td>
                 </tr>
               ))}
               <tr style={{ borderTop: '2px solid #e5e7eb', background: '#fdf2f8' }}>
                 <td style={{ fontWeight: '800' }}>TOTAL</td>
-                <td style={{ fontWeight: '800', textAlign: 'right', color: '#6b7280' }}>{grandCount}</td>
+                <td style={{ fontWeight: '800', textAlign: 'right', color: 'var(--neutral-600)' }}>{grandCount}</td>
                 <td style={{ fontWeight: '800', textAlign: 'right', color: '#db2777' }}>{formatRp(grandTotal)}</td>
               </tr>
             </tbody>

@@ -1,0 +1,7 @@
+node_modules
+.next
+out
+graphify-out
+public/uploads
+*.lock
+src/lib/tiktok-shop-sdk

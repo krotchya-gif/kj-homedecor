@@ -32,31 +32,35 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.props.fallback) return this.props.fallback
 
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 300,
-          padding: '3rem 2rem',
-          textAlign: 'center',
-        }}>
-          <div style={{
-            width: 56,
-            height: 56,
-            borderRadius: '50%',
-            background: '#fef2f2',
+        <div
+          style={{
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            marginBottom: '1rem',
-          }}>
+            minHeight: 300,
+            padding: '3rem 2rem',
+            textAlign: 'center'
+          }}
+        >
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: '#fef2f2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: '1rem'
+            }}
+          >
             <AlertTriangle size={24} color="#ef4444" />
           </div>
-          <h2 style={{ fontSize: '1rem', fontWeight: '700', color: '#374151', marginBottom: '0.5rem' }}>
-           Terjadi kesalahan
+          <h2 style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
+            Terjadi kesalahan
           </h2>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1.5rem', maxWidth: 400 }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--neutral-600)', marginBottom: '1.5rem', maxWidth: 400 }}>
             {this.state.error?.message ?? 'Tidak dapat memuat halaman ini.'}
           </p>
           <button
@@ -72,7 +76,7 @@ export class ErrorBoundary extends Component<Props, State> {
               borderRadius: '0.5rem',
               fontSize: '0.875rem',
               fontWeight: '600',
-              cursor: 'pointer',
+              cursor: 'pointer'
             }}
           >
             <RefreshCw size={14} /> Coba lagi

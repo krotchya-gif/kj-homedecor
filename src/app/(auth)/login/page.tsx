@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
 
 const ROLE_DASHBOARDS: Record<string, string> = {
   admin: '/admin',
@@ -11,7 +12,8 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   penjahit: '/penjahit',
   finance: '/finance',
   installer: '/installer',
-  owner: '/owner',
+  surveyor: '/surveyor',
+  owner: '/owner'
 }
 
 export default function LoginPage() {
@@ -23,6 +25,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [attempts, setAttempts] = useState(0)
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const { toast } = useToast()
 
   const isLocked = lockedUntil !== null && Date.now() < lockedUntil
 
@@ -32,6 +35,7 @@ export default function LoginPage() {
     if (isLocked) {
       const remaining = Math.ceil((lockedUntil - Date.now()) / 1000)
       setError(`Terlalu banyak percobaan. Coba lagi dalam ${remaining} detik.`)
+      toast('error', `Terlalu banyak percobaan. Coba lagi dalam ${remaining} detik.`)
       return
     }
 
@@ -43,7 +47,7 @@ export default function LoginPage() {
 
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       })
 
       if (authError) {
@@ -53,9 +57,11 @@ export default function LoginPage() {
           const lockout = Date.now() + 5 * 60 * 1000 // 5 minutes
           setLockedUntil(lockout)
           setError('Terlalu banyak percobaan login. Kunci selama 5 menit.')
+          toast('error', 'Terlalu banyak percobaan login. Kunci selama 5 menit.')
           setAttempts(0)
         } else {
           setError(`Email atau password salah. Sisa percobaan: ${5 - newAttempts}`)
+          toast('error', `Email atau password salah. Sisa percobaan: ${5 - newAttempts}`)
         }
         return
       }
@@ -63,11 +69,7 @@ export default function LoginPage() {
       if (data.user) {
         setAttempts(0)
         setLockedUntil(null)
-        const { data: staffData } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', data.user.id)
-          .single()
+        const { data: staffData } = await supabase.from('users').select('role').eq('id', data.user.id).single()
 
         const role = staffData?.role ?? 'admin'
         router.push(ROLE_DASHBOARDS[role] ?? '/admin')
@@ -75,6 +77,7 @@ export default function LoginPage() {
       }
     } catch {
       setError('Terjadi kesalahan. Silakan coba lagi.')
+      toast('error', 'Terjadi kesalahan. Silakan coba lagi.')
     } finally {
       setLoading(false)
     }
@@ -97,7 +100,7 @@ export default function LoginPage() {
               borderRadius: '0.5rem',
               padding: '0.75rem 1rem',
               fontSize: '0.875rem',
-              marginBottom: '1rem',
+              marginBottom: '1rem'
             }}
           >
             {error}
@@ -113,8 +116,8 @@ export default function LoginPage() {
                 display: 'block',
                 fontSize: '0.875rem',
                 fontWeight: '500',
-                color: '#374151',
-                marginBottom: '0.375rem',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.375rem'
               }}
             >
               Email
@@ -127,7 +130,7 @@ export default function LoginPage() {
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af',
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -140,14 +143,14 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.5rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
-                  transition: 'border-color 0.15s',
+                  transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#cc7030')}
-                onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--input-border)')}
               />
             </div>
           </div>
@@ -160,8 +163,8 @@ export default function LoginPage() {
                 display: 'block',
                 fontSize: '0.875rem',
                 fontWeight: '500',
-                color: '#374151',
-                marginBottom: '0.375rem',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.375rem'
               }}
             >
               Password
@@ -174,7 +177,7 @@ export default function LoginPage() {
                   left: '0.875rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: '#9ca3af',
+                  color: 'var(--neutral-400)'
                 }}
               />
               <input
@@ -187,14 +190,14 @@ export default function LoginPage() {
                 style={{
                   width: '100%',
                   padding: '0.75rem 2.5rem 0.75rem 2.5rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.9rem',
                   outline: 'none',
-                  transition: 'border-color 0.15s',
+                  transition: 'border-color 0.15s'
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#cc7030')}
-                onBlur={(e) => (e.target.style.borderColor = '#d1d5db')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--input-border)')}
               />
               <button
                 type="button"
@@ -207,8 +210,8 @@ export default function LoginPage() {
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
-                  color: '#9ca3af',
-                  padding: 0,
+                  color: 'var(--neutral-400)',
+                  padding: 0
                 }}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -223,8 +226,8 @@ export default function LoginPage() {
             style={{
               width: '100%',
               padding: '0.875rem',
-              background: loading ? '#e5e7eb' : isLocked ? '#e5e7eb' : '#cc7030',
-              color: loading ? '#9ca3af' : isLocked ? '#9ca3af' : '#fff',
+              background: loading ? 'var(--neutral-300)' : isLocked ? 'var(--neutral-300)' : '#cc7030',
+              color: loading ? 'var(--neutral-400)' : isLocked ? 'var(--neutral-400)' : '#fff',
               border: 'none',
               borderRadius: '0.5rem',
               fontSize: '0.95rem',
@@ -235,7 +238,7 @@ export default function LoginPage() {
               justifyContent: 'center',
               gap: '0.5rem',
               transition: 'all 0.15s',
-              marginTop: '0.5rem',
+              marginTop: '0.5rem'
             }}
           >
             {loading ? (
@@ -254,8 +257,8 @@ export default function LoginPage() {
           style={{
             textAlign: 'center',
             fontSize: '0.78rem',
-            color: '#9ca3af',
-            marginTop: '1.5rem',
+            color: 'var(--neutral-400)',
+            marginTop: '1.5rem'
           }}
         >
           Akun dibuat oleh Admin. Hubungi admin jika belum punya akses.

@@ -38,6 +38,10 @@ export async function POST(request: Request) {
 
   if (!po_id) return NextResponse.json({ error: { message: 'po_id is required' } }, { status: 400 })
 
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+
   // Get current PO with PR info
   const { data: currentPO, error: fetchErr } = await supabase
     .from('purchase_orders')
@@ -50,7 +54,10 @@ export async function POST(request: Request) {
   }
 
   if (currentPO.status !== 'delivered') {
-    return NextResponse.json({ error: { message: `PO status is '${currentPO.status}', must be 'delivered' first` } }, { status: 400 })
+    return NextResponse.json(
+      { error: { message: `PO status is '${currentPO.status}', must be 'delivered' first` } },
+      { status: 400 }
+    )
   }
 
   // Update PO status to received
@@ -62,7 +69,7 @@ export async function POST(request: Request) {
   if (updateErr) return NextResponse.json({ error: { message: 'Internal server error' } }, { status: 500 })
 
   // Increment stock_gudang for the material
-  const pr = currentPO.pr as any
+  const pr = currentPO.pr as unknown as { qty?: number; material_id?: string; material?: { name?: string; unit?: string } | null } | null
   if (pr?.material_id) {
     const materialQty = Number(pr.qty)
     if (!isNaN(materialQty) && materialQty > 0) {
@@ -72,7 +79,10 @@ export async function POST(request: Request) {
         // Fallback direct update
         const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', pr.material_id).single()
         if (mat) {
-          await supabase.from('materials').update({ stock_gudang: (mat.stock_gudang ?? 0) + materialQty }).eq('id', pr.material_id)
+          await supabase
+            .from('materials')
+            .update({ stock_gudang: (mat.stock_gudang ?? 0) + materialQty })
+            .eq('id', pr.material_id)
         }
       }
       // Record inventory movement
@@ -82,7 +92,7 @@ export async function POST(request: Request) {
         qty: materialQty,
         to_location: 'gudang',
         reason: `PO delivery confirmed by Gudang — PO ${po_id.slice(0, 8)}`,
-        created_by: user?.id ?? null,
+        created_by: user?.id ?? null
       })
     }
   }

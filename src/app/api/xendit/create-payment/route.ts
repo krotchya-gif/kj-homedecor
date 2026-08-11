@@ -58,16 +58,16 @@ export async function POST(request: Request) {
       payer_name: customer_name || order.customer?.name || 'Customer',
       description: `Pembayaran Order KJ Homedecor - ${order_id.slice(0, 8)}`,
       payment_methods: payment_type === 'QRIS' ? ['QRIS'] : ['BANK_TRANSFER'],
-      ...(payment_type === 'QRIS' ? { payment_method: 'QRIS' } : {}),
+      ...(payment_type === 'QRIS' ? { payment_method: 'QRIS' } : {})
     }
 
     const xenditResponse = await fetch('https://api.xendit.co/v2/invoices', {
       method: 'POST',
       headers: {
-        'Authorization': `Basic ${Buffer.from(xenditApiKey + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
+        Authorization: `Basic ${Buffer.from(xenditApiKey + ':').toString('base64')}`,
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify(xenditPayload),
+      body: JSON.stringify(xenditPayload)
     })
 
     if (!xenditResponse.ok) {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       type: paymentType,
       amount,
       date: new Date().toISOString(),
-      notes: `Xendit ${payment_type} - Invoice ${xenditData.id}`,
+      notes: `Xendit ${payment_type} - Invoice ${xenditData.id}`
     })
 
     if (insertError) {
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
         invoice_url: xenditData.invoice_url,
         amount: xenditData.amount,
         status: xenditData.status,
-        expiry_date: xenditData.expiry_date,
+        expiry_date: xenditData.expiry_date
       }
     })
   } catch (err) {

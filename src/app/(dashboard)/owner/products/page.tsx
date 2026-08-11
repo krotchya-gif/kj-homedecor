@@ -1,8 +1,12 @@
+
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Package, Loader2, Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Package, Loader2, Search } from 'lucide-react'
+import Pagination from '@/components/ui/Pagination'
 
 interface Product {
   id: string
@@ -17,13 +21,13 @@ interface ProductStats {
   id: string
   name: string
   sku: string
+  qty?: number
   total_qty: number
   total_revenue: number
 }
 
-const ITEMS_PER_PAGE = 25
-
 export default function OwnerProductsPage() {
+  const [ITEMS_PER_PAGE, setItemsPerPage] = useState(25)
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -31,14 +35,13 @@ export default function OwnerProductsPage() {
 
   const supabase = createClient()
 
-  useEffect(() => { loadProducts() }, [])
+  useEffect(() => {
+    loadProducts()
+  }, [])
 
   async function loadProducts() {
     setLoading(true)
-    const { data } = await supabase
-      .from('products')
-      .select('*, category:categories(name)')
-      .order('name')
+    const { data } = await supabase.from('products').select('*, category:categories(name)').order('name')
     setProducts(data ?? [])
     setLoading(false)
   }
@@ -49,14 +52,14 @@ export default function OwnerProductsPage() {
       .select('product_id, qty, price, product:products(name, sku)')
 
     const stats: Record<string, ProductStats> = {}
-    ;(orderItems ?? []).forEach((item: any) => {
+    ;((orderItems ?? []) as { product_id: string; qty?: number; price?: number; custom_specs?: string | null; product?: { name?: string; sku?: string } | null }[]).forEach((item) => {
       if (!stats[item.product_id]) {
         stats[item.product_id] = {
           id: item.product_id,
-          name: item.product?.name ?? 'Unknown',
+          name: item.product?.name ?? item.custom_specs ?? 'Unknown',
           sku: item.product?.sku ?? '',
           total_qty: 0,
-          total_revenue: 0,
+          total_revenue: 0
         }
       }
       stats[item.product_id].total_qty += item.qty ?? 1
@@ -67,16 +70,22 @@ export default function OwnerProductsPage() {
   }
 
   const [stats, setStats] = useState<ProductStats[]>([])
-  useEffect(() => { getProductStats().then(setStats) }, [])
+  useEffect(() => {
+    getProductStats().then(setStats)
+  }, [])
 
-  const filtered = products.filter(p =>
-    !search ||
-    p.name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.sku?.toLowerCase().includes(search.toLowerCase())
+  const filtered = products.filter(
+    (p) =>
+      !search ||
+      p.name?.toLowerCase().includes(search.toLowerCase()) ||
+      p.sku?.toLowerCase().includes(search.toLowerCase())
   )
 
   const filteredStats = search
-    ? stats.filter(s => s.name?.toLowerCase().includes(search.toLowerCase()) || s.sku?.toLowerCase().includes(search.toLowerCase()))
+    ? stats.filter(
+        (s) =>
+          s.name?.toLowerCase().includes(search.toLowerCase()) || s.sku?.toLowerCase().includes(search.toLowerCase())
+      )
     : stats
 
   // Pagination for "All Products"
@@ -86,27 +95,43 @@ export default function OwnerProductsPage() {
   const paginatedProducts = filtered.slice(startIndex, endIndex)
 
   // Reset to page 1 when search changes
-  useEffect(() => { setCurrentPage(1) }, [search])
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [search])
 
-  const formatRp = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+  const formatRp = (n: number) =>
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Top Produk</h1>
-        <p className="page-subtitle">Produk terlaris berdasarkan revenue dan quantity</p>
-      </div>
+      <PageHeader title="Top Produk" subtitle="Produk terlaris berdasarkan revenue dan quantity" />
 
       {/* Search */}
       <div style={{ marginBottom: '1rem', maxWidth: 320 }}>
         <div style={{ position: 'relative' }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--neutral-400)'
+            }}
+          />
           <input
             type="text"
             placeholder="Cari produk..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
           />
         </div>
       </div>
@@ -118,11 +143,50 @@ export default function OwnerProductsPage() {
       ) : (
         <>
           {/* Top Products by Revenue */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Top 10 Produk (Revenue)</h2>
+          <div
+            style={{
+              background: 'var(--surface)',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.75rem',
+              overflow: 'hidden',
+              marginBottom: '1.5rem'
+            }}
+          >
+            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: 'var(--neutral-100)' }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
+                Top 10 Produk (Revenue)
+              </h2>
             </div>
-            <div className="data-table">
+                  {/* Mobile: card list — Top Produk */}
+                  <div className="mobile-only">
+                    {loading ? (
+                      <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+                    ) : filteredStats.length === 0 ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+                    ) : (
+                      <MobileCards items={filteredStats.slice(0, 10)} keyOf={(p) => p.id} renderCard={(p) => (
+                        <div className="mobile-card">
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Produk</span>
+                              <span className="mobile-card-value">{p.name}</span>
+                            </div>
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">SKU</span>
+                              <span className="mobile-card-value" style={{ fontWeight: '400' }}>{p.sku}</span>
+                            </div>
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Qty Terjual</span>
+                              <span className="mobile-card-value">{p.qty ?? 0}</span>
+                            </div>
+                            <div className="mobile-card-row">
+                              <span className="mobile-card-label">Revenue</span>
+                              <span className="mobile-card-value" style={{ color: '#cc7030' }}>{formatRp(p.total_revenue)}</span>
+                            </div>
+                        </div>
+                      )} />
+                    )}
+                  </div>
+                  <div className="data-table desktop-only">
               <table>
                 <thead>
                   <tr>
@@ -137,25 +201,32 @@ export default function OwnerProductsPage() {
                   {filteredStats.slice(0, 10).map((p, i) => (
                     <tr key={p.id}>
                       <td>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                          width: 22, height: 22, borderRadius: '50%',
-                          background: i < 3 ? '#cc7030' : '#e5e7eb',
-                          color: i < 3 ? '#fff' : '#6b7280',
-                          fontSize: '0.7rem', fontWeight: '700'
-                        }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            background: i < 3 ? '#cc7030' : 'var(--neutral-200)',
+                            color: i < 3 ? '#fff' : 'var(--neutral-600)',
+                            fontSize: '0.75rem',
+                            fontWeight: '700'
+                          }}
+                        >
                           {i + 1}
                         </span>
                       </td>
                       <td style={{ fontWeight: '600' }}>{p.name}</td>
-                      <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
-                      <td style={{ color: '#6b7280' }}>{p.total_qty}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
+                      <td style={{ color: 'var(--neutral-600)' }}>{p.total_qty}</td>
                       <td style={{ fontWeight: '700', color: '#cc7030' }}>{formatRp(p.total_revenue)}</td>
                     </tr>
                   ))}
                   {filteredStats.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>
                         Tidak ada data
                       </td>
                     </tr>
@@ -166,14 +237,43 @@ export default function OwnerProductsPage() {
           </div>
 
           {/* All Products with Pagination */}
-          <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-            <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#374151', margin: 0 }}>Semua Produk</h2>
-              <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div
+              style={{
+                padding: '1rem 1.25rem',
+                borderBottom: '1px solid #e5e7eb',
+                background: 'var(--neutral-100)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.5rem'
+              }}
+            >
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>Semua Produk</h2>
+              <span style={{ fontSize: '0.78rem', color: 'var(--neutral-600)' }}>
                 Menampilkan {startIndex + 1}–{Math.min(endIndex, filtered.length)} dari {filtered.length}
               </span>
             </div>
-            <div className="data-table all-products-table">
+            <div className="mobile-only">
+              <MobileCards items={filtered} keyOf={(p) => p.id} renderCard={(p) => (
+                <div className="mobile-card">
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Produk</span>
+                    <span className="mobile-card-value">{p.name}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Harga</span>
+                    <span className="mobile-card-value">{formatRp(p.price)}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Stok Toko</span>
+                    <span className="mobile-card-value">{p.stock_toko}</span>
+                  </div>
+                </div>
+              )} />
+            </div>
+            <div className="data-table all-products-table desktop-only">
               <table>
                 <thead>
                   <tr>
@@ -185,18 +285,23 @@ export default function OwnerProductsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedProducts.map(p => (
+                  {paginatedProducts.map((p) => (
                     <tr key={p.id}>
                       <td style={{ fontWeight: '600' }}>{p.name}</td>
-                      <td style={{ color: '#6b7280', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
-                      <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{p.category?.name ?? '—'}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
+                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{p.category?.name ?? '—'}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
                       <td>
-                        <span style={{
-                          padding: '0.2rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600',
-                          background: (p.stock_toko ?? 0) > 0 ? '#d1fae5' : '#fee2e2',
-                          color: (p.stock_toko ?? 0) > 0 ? '#065f46' : '#991b1b',
-                        }}>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '999px',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            background: (p.stock_toko ?? 0) > 0 ? '#d1fae5' : '#fee2e2',
+                            color: (p.stock_toko ?? 0) > 0 ? '#065f46' : '#991b1b'
+                          }}
+                        >
                           {(p.stock_toko ?? 0).toLocaleString()}
                         </span>
                       </td>
@@ -204,7 +309,7 @@ export default function OwnerProductsPage() {
                   ))}
                   {paginatedProducts.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: '#9ca3af', padding: '2rem' }}>
+                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>
                         <Package size={28} style={{ opacity: 0.3, margin: '0 auto 0.75rem', display: 'block' }} />
                         Tidak ada produk
                       </td>
@@ -215,39 +320,19 @@ export default function OwnerProductsPage() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
-              <div style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.875rem',
-                    background: currentPage === 1 ? '#f3f4f6' : '#fff',
-                    border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    fontSize: '0.82rem', color: currentPage === 1 ? '#9ca3af' : '#374151', fontWeight: '600',
-                    opacity: currentPage === 1 ? 0.5 : 1
-                  }}
-                >
-                  <ChevronLeft size={14} /> Prev
-                </button>
-                <span style={{ fontSize: '0.82rem', color: '#6b7280', padding: '0 0.5rem' }}>
-                  Halaman {currentPage} dari {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.875rem',
-                    background: currentPage === totalPages ? '#f3f4f6' : '#fff',
-                    border: '1px solid #d1d5db', borderRadius: '0.5rem', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                    fontSize: '0.82rem', color: currentPage === totalPages ? '#9ca3af' : '#374151', fontWeight: '600',
-                    opacity: currentPage === totalPages ? 0.5 : 1
-                  }}
-                >
-                  Next <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              pageSize={ITEMS_PER_PAGE}
+              onPageSizeChange={(s) => {
+                setItemsPerPage(s)
+                setCurrentPage(1)
+              }}
+              totalItems={filtered.length}
+              startIndex={startIndex + 1}
+              endIndex={Math.min(endIndex, filtered.length)}
+            />
           </div>
         </>
       )}

@@ -41,11 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Check if any user with this role already exists
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('role', role)
-      .maybeSingle()
+    const { data: existing } = await supabase.from('users').select('id').eq('role', role).maybeSingle()
 
     if (existing) {
       return NextResponse.json({ error: `${role} account already exists` }, { status: 409 })
@@ -85,7 +81,6 @@ export async function POST(request: Request) {
       message: `${role} account created`,
       credentials: { email, password }
     })
-
   } catch (err) {
     console.error('Setup error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })

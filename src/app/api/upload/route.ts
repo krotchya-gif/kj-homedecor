@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { requireAuth, checkRateLimit } from '@/lib/auth'
 
 const FolderSchema = z.enum([
-  'products', 'banners', 'portfolio', 'evidence', 'documents',
-  'videos', 'order_progress', 'returns', 'qc', 'install',
+  'products',
+  'banners',
+  'portfolio',
+  'evidence',
+  'documents',
+  'videos',
+  'order_progress',
+  'returns',
+  'qc',
+  'install',
+  'survey'
 ])
 
 const ALLOWED_TYPES = {
@@ -21,31 +29,40 @@ const ALLOWED_TYPES = {
   returns: ['image/jpeg', 'image/png', 'image/webp'],
   qc: ['image/jpeg', 'image/png', 'image/webp'],
   install: ['image/jpeg', 'image/png', 'image/webp'],
+  survey: ['image/jpeg', 'image/png', 'image/webp']
 }
 
 const MAX_SIZES = {
-  products: 5 * 1024 * 1024,    // 5MB
-  banners: 5 * 1024 * 1024,       // 5MB
-  portfolio: 2 * 1024 * 1024,     // 2MB
-  evidence: 2 * 1024 * 1024,      // 2MB
-  documents: 5 * 1024 * 1024,    // 5MB
-  videos: 100 * 1024 * 1024,     // 100MB
-  order_progress: 2 * 1024 * 1024,  // 2MB
-  returns: 2 * 1024 * 1024,        // 2MB
-  qc: 2 * 1024 * 1024,            // 2MB
-  install: 2 * 1024 * 1024,       // 2MB
+  products: 5 * 1024 * 1024,
+  banners: 5 * 1024 * 1024,
+  portfolio: 2 * 1024 * 1024,
+  evidence: 2 * 1024 * 1024,
+  documents: 5 * 1024 * 1024,
+  videos: 100 * 1024 * 1024,
+  order_progress: 2 * 1024 * 1024,
+  returns: 2 * 1024 * 1024,
+  qc: 2 * 1024 * 1024,
+  install: 2 * 1024 * 1024,
+  survey: 5 * 1024 * 1024
 }
+
+const BUCKET = 'kj-uploads'
+
+// Service-role client — upload langsung ke Supabase Storage (bucket kj-uploads, public).
+// SEBELUMNYA: file ditulis ke public/uploads/ (disk) → HILANG saat deploy Hostinger
+// (immutable) → semua preview & URL /uploads/... 404 di production. (fix 2026-08-10)
+const serviceClient = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(request: NextRequest) {
   try {
-    const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-    if (rateLimit.blocked) {
-      return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-    }
-
-    const auth = await requireAuth()
-    if (auth.error) return auth.error
-    const supabase = auth.supabase
+    const supabase = await createClient()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
     const formData = await request.formData()
     const file = formData.get('file') as File | null
@@ -61,9 +78,8 @@ export async function POST(request: NextRequest) {
     }
 
     const folder = parsed.data
-    const folderKey = folder
-    const allowedTypes = ALLOWED_TYPES[folderKey]
-    const maxSize = MAX_SIZES[folderKey]
+    const allowedTypes = ALLOWED_TYPES[folder]
+    const maxSize = MAX_SIZES[folder]
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
@@ -99,53 +115,31 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
     const filename = `${timestamp}-${random}.${ext}`
+    const objectPath = `${folder}/${filename}`
 
-    // Ensure folder exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', folderKey)
-    await mkdir(uploadDir, { recursive: true })
-
-    // Write file
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Magic bytes validation to prevent MIME spoofing
-    if (buffer.length > 0) {
-      const magicBytes: Record<string, Uint8Array[]> = {
-        'image/jpeg': [new Uint8Array([0xFF, 0xD8, 0xFF])],
-        'image/png': [new Uint8Array([0x89, 0x50, 0x4E, 0x47])],
-        'image/webp': [new Uint8Array([0x52, 0x49, 0x46, 0x46])], // RIFF header
-        'application/pdf': [new Uint8Array([0x25, 0x50, 0x44, 0x46])],
-        'video/mp4': [new Uint8Array([0x00, 0x00, 0x00]), new Uint8Array([0x66, 0x74, 0x79, 0x70])],
-        'video/webm': [new Uint8Array([0x1A, 0x45, 0xDF, 0xA3])],
-      }
+    const { error: upErr } = await serviceClient.storage.from(BUCKET).upload(objectPath, buffer, {
+      contentType: file.type,
+      cacheControl: '3600',
+      upsert: false
+    })
 
-      const magicCheckers = magicBytes[file.type]
-      if (magicCheckers) {
-        const header = new Uint8Array(buffer.slice(0, 16))
-        const matchesMagic = magicCheckers.some((magic) => {
-          return magic.every((byte, i) => header[i] === byte)
-        })
-        if (!matchesMagic) {
-          return NextResponse.json(
-            { data: null, error: { message: 'File content does not match its declared type' } },
-            { status: 400 }
-          )
-        }
-      }
+    if (upErr) {
+      console.error('Storage upload error:', upErr)
+      return NextResponse.json({ data: null, error: { message: 'Gagal upload ke storage' } }, { status: 500 })
     }
 
-    const filepath = path.join(uploadDir, filename)
-    await writeFile(filepath, buffer)
-
-    // Return public URL
-    const url = `/uploads/${folderKey}/${filename}`
+    // Public URL permanen (Supabase Storage — tidak hilang saat deploy)
+    const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objectPath}`
 
     return NextResponse.json({
       success: true,
       url,
       filename,
       size: file.size,
-      type: file.type,
+      type: file.type
     })
   } catch (error) {
     console.error('Upload error:', error)

@@ -9,26 +9,21 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   gudang: '/gudang',
   penjahit: '/penjahit',
   installer: '/installer',
-  owner: '/owner',
+  surveyor: '/surveyor',
+  owner: '/owner'
 }
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
 
   if (!user) {
     redirect('/login')
   }
 
-  const { data: staffData } = await supabase
-    .from('users')
-    .select('name, role')
-    .eq('id', user.id)
-    .single()
+  const { data: staffData } = await supabase.from('users').select('name, role').eq('id', user.id).single()
 
   const role = staffData?.role ?? 'admin'
   const name = staffData?.name ?? user.email ?? 'Staff'

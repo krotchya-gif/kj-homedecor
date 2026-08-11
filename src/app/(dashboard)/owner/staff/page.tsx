@@ -1,4 +1,7 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
+import { PageHeader } from '@/components/ui/PageHeader'
+import Link from 'next/link'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -20,12 +23,13 @@ const ROLE_LABELS: Record<string, string> = {
   penjahit: 'Penjahit',
   finance: 'Finance',
   installer: 'Installer',
-  owner: 'Owner',
+  surveyor: 'Surveyor',
+  owner: 'Owner'
 }
 
 const STATUS_COLORS: Record<string, string> = {
   active: '#d1fae5',
-  inactive: '#fee2e2',
+  inactive: '#fee2e2'
 }
 
 export default function OwnerStaffPage() {
@@ -35,14 +39,13 @@ export default function OwnerStaffPage() {
 
   const supabase = createClient()
 
-  useEffect(() => { loadStaff() }, [])
+  useEffect(() => {
+    loadStaff()
+  }, [])
 
   async function loadStaff() {
     setLoading(true)
-    const { data } = await supabase
-      .from('users')
-      .select('*, order_logs(count)')
-      .order('role')
+    const { data } = await supabase.from('users').select('*, order_logs(count)').order('role')
 
     // @ts-ignore
     const sorted = (data ?? []).sort((a: StaffUser, b: StaffUser) => {
@@ -54,23 +57,43 @@ export default function OwnerStaffPage() {
     setLoading(false)
   }
 
-  const filtered = staff.filter(s =>
-    !search ||
-    s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.email?.toLowerCase().includes(search.toLowerCase()) ||
-    s.role?.toLowerCase().includes(search.toLowerCase())
+  const filtered = staff.filter(
+    (s) =>
+      !search ||
+      s.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.email?.toLowerCase().includes(search.toLowerCase()) ||
+      s.role?.toLowerCase().includes(search.toLowerCase())
   )
 
   // Stats
   const roleCounts: Record<string, number> = {}
-  staff.forEach(s => { roleCounts[s.role] = (roleCounts[s.role] ?? 0) + 1 })
+  staff.forEach((s) => {
+    roleCounts[s.role] = (roleCounts[s.role] ?? 0) + 1
+  })
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Manajemen Staff</h1>
-        <p className="page-subtitle">Semua akun staff dan peran mereka</p>
-      </div>
+      <PageHeader
+        title="Manajemen Staff"
+        subtitle="Semua akun staff dan peran mereka"
+        action={
+          <Link
+            href="/admin/staff"
+            style={{
+              padding: '0.625rem 1.25rem',
+              background: '#cc7030',
+              color: '#fff',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              fontSize: '0.85rem',
+              textDecoration: 'none',
+              display: 'inline-block'
+            }}
+          >
+            ➕ Kelola Staff
+          </Link>
+        }
+      />
 
       {/* Stats */}
       <div className="stat-grid" style={{ marginBottom: '1.5rem' }}>
@@ -91,13 +114,29 @@ export default function OwnerStaffPage() {
       {/* Search */}
       <div style={{ marginBottom: '1rem' }}>
         <div style={{ position: 'relative', maxWidth: 320 }}>
-          <Search size={15} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+          <Search
+            size={15}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--neutral-400)'
+            }}
+          />
           <input
             type="text"
             placeholder="Cari nama, email, atau role..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 1rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 1rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
           />
         </div>
       </div>
@@ -108,8 +147,33 @@ export default function OwnerStaffPage() {
           <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
         </div>
       ) : (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          <div className="data-table">
+        <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+                {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={filtered} keyOf={(s) => s.id} renderCard={(s) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Nama</span>
+                  <span className="mobile-card-value">{s.name}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Role</span>
+                  <span className="mobile-card-value">{s.role}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Status</span>
+                  <span className="mobile-card-value">{s.status}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
             <table>
               <thead>
                 <tr>
@@ -121,44 +185,57 @@ export default function OwnerStaffPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(s => (
+                {filtered.map((s) => (
                   <tr key={s.id}>
                     <td style={{ fontWeight: '600' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: '50%',
-                          background: '#cc7030', color: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.75rem', fontWeight: '700', flexShrink: 0
-                        }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            background: '#cc7030',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            flexShrink: 0
+                          }}
+                        >
                           {s.name?.charAt(0).toUpperCase()}
                         </div>
                         {s.name}
                       </div>
                     </td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{s.email}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{s.email}</td>
                     <td>
-                      <span style={{
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '999px',
-                        fontSize: '0.72rem',
-                        fontWeight: '600',
-                        background: s.role === 'owner' ? '#f3e8ff' : s.role === 'admin' ? '#fff3e8' : '#e0e7ff',
-                        color: s.role === 'owner' ? '#7c3aed' : s.role === 'admin' ? '#cc7030' : '#3730a3',
-                      }}>
+                      <span
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          background: s.role === 'owner' ? '#f3e8ff' : s.role === 'admin' ? '#fff3e8' : '#e0e7ff',
+                          color: s.role === 'owner' ? '#7c3aed' : s.role === 'admin' ? '#cc7030' : '#3730a3'
+                        }}
+                      >
                         <Shield size={10} style={{ marginRight: 4 }} />
                         {ROLE_LABELS[s.role] ?? s.role}
                       </span>
                     </td>
                     <td>
-                      <span style={{
-                        padding: '0.2rem 0.6rem',
-                        borderRadius: '999px',
-                        fontSize: '0.72rem',
-                        fontWeight: '600',
-                        background: STATUS_COLORS[s.status] ?? '#f3f4f6',
-                        color: s.status === 'active' ? '#065f46' : '#991b1b',
-                      }}>
+                      <span
+                        style={{
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '999px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          background: STATUS_COLORS[s.status] ?? 'var(--neutral-100)',
+                          color: s.status === 'active' ? '#065f46' : '#991b1b'
+                        }}
+                      >
                         {s.status}
                       </span>
                     </td>

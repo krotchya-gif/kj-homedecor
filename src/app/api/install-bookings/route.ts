@@ -14,21 +14,15 @@ const CreateInstallBookingSchema = z.object({
   installer_id: z.string().uuid().optional(),
   scheduled_date: z.string(),
   address: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().optional()
 })
 
 export async function GET(request: Request) {
-  const auth = await requireAuth()
-  if (auth.error) return auth.error
-  const { supabase, user } = auth
-
-  // IDOR protection: non-admin/owner/finance can only see their own bookings
-  const { data: requester } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  const userRole = requester?.role ?? ''
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const installer_id = searchParams.get('installer_id')
@@ -37,8 +31,9 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
   const offset = (page - 1) * limit
 
-  let query = supabase.from('install_bookings')
-    .select('*, customer:customers(name, phone, address), installer:users(name), order:orders(id)', { count: 'exact' })
+  let query = supabase
+    .from('install_bookings')
+    .select('*, customer:customers(name, phone, address), installer:users(name), order:orders(id)')
     .order('scheduled_date', { ascending: false })
 
   if (userRole !== 'admin' && userRole !== 'owner' && userRole !== 'finance') {
@@ -53,18 +48,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-
-  const auth = await requireAuthRole(['admin', 'owner', 'installer'])
-  if (auth.error) return auth.error
-  const { supabase, user, userData } = auth
-
-  const userRole = userData?.role
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body = await request.json()
   const parsed = CreateInstallBookingSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
+  if (!parsed.success)
+    return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
 
   // Restrict installer_id: installer role can only set their own ID
   if (userRole === 'installer' && body.installer_id && body.installer_id !== user.id) {

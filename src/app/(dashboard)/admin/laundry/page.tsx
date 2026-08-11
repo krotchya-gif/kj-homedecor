@@ -1,19 +1,29 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
+import MobileCards from '@/components/ui/MobileCards'
+import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, WashingMachine, CheckCircle2, Clock, User } from 'lucide-react'
 import type { LaundryOrder, LaundryRate, User as UserType } from '@/types'
+import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  pending: { bg: '#fef3c7', text: '#92400e', label: 'Pending' },
+  pending: { bg: '#fef3c7', text: '#92400e', label: 'Menunggu' },
   in_progress: { bg: '#dbeafe', text: '#1e40af', label: 'Diproses' },
-  done: { bg: '#d1fae5', text: '#065f46', label: 'Selesai' },
+  done: { bg: '#d1fae5', text: '#065f46', label: 'Selesai' }
 }
 
-const fmt = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+const fmt = (n: number) =>
+  new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    maximumFractionDigits: 0
+  }).format(n)
 
 export default function AdminLaundryPage() {
+  const { toast } = useToast()
   const [orders, setOrders] = useState<LaundryOrder[]>([])
   const [laundryStaff, setLaundryStaff] = useState<UserType[]>([])
   const [rate, setRate] = useState<LaundryRate | null>(null)
@@ -32,7 +42,7 @@ export default function AdminLaundryPage() {
     kg: '',
     meter: '',
     description: '',
-    assigned_to: '',
+    assigned_to: ''
   })
 
   const supabase = createClient()
@@ -40,24 +50,34 @@ export default function AdminLaundryPage() {
   async function fetchData() {
     setLoading(true)
     const [ordersRes, staffRes, rateRes] = await Promise.all([
-      supabase.from('laundry_orders').select('*').order('created_at', { ascending: false }),
+      supabase.from('laundry_orders').select('*').order('created_at', { ascending: false }).limit(100),
       supabase.from('users').select('*').eq('role', 'laundry').eq('status', 'active'),
-      supabase.from('laundry_rates').select('*').eq('is_active', true).single(),
+      supabase.from('laundry_rates').select('*').eq('is_active', true).maybeSingle()
     ])
     setOrders((ordersRes.data as LaundryOrder[]) ?? [])
     setLaundryStaff((staffRes.data as UserType[]) ?? [])
     setRate(rateRes.data as LaundryRate | null)
-    if (rateRes.data) setRateForm({ rate_per_kg: String((rateRes.data as LaundryRate).rate_per_kg) })
+    if (rateRes.data)
+      setRateForm({
+        rate_per_kg: String((rateRes.data as LaundryRate).rate_per_kg)
+      })
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('laundry_orders').insert({
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    // CREATE optimistic: item masuk UI dulu, id asli di-replace dari server
+    const tempId = crypto.randomUUID()
+    const tempItem = {
+      id: tempId,
       customer_name: form.customer_name,
       customer_phone: form.customer_phone || null,
       kg: Number(form.kg) || 0,
@@ -66,102 +86,328 @@ export default function AdminLaundryPage() {
       status: 'pending',
       assigned_to: form.assigned_to || null,
       created_by: user?.id ?? null,
-      received_at: new Date().toISOString(),
-    })
+      received_at: new Date().toISOString()
+    } as LaundryOrder
+    setOrders((curr) => [tempItem, ...curr])
+    const { data: newOrder, error: createErr } = await supabase
+      .from('laundry_orders')
+      .insert({
+        customer_name: form.customer_name,
+        customer_phone: form.customer_phone || null,
+        kg: Number(form.kg) || 0,
+        meter: Number(form.meter) || 0,
+        description: form.description || null,
+        status: 'pending',
+        assigned_to: form.assigned_to || null,
+        created_by: user?.id ?? null,
+        received_at: new Date().toISOString()
+      })
+      .select('id')
+      .single()
+    if (createErr) {
+      setOrders((curr) => curr.filter((o) => o.id !== tempId))
+      setSaving(false)
+      toast('error', 'Gagal buat laundry: ' + createErr.message)
+      return
+    }
+    if (newOrder?.id) {
+      setOrders((curr) => curr.map((o) => (o.id === tempId ? { ...o, id: newOrder.id } : o)))
+    }
     setSaving(false)
     setShowForm(false)
-    setForm({ customer_name: '', customer_phone: '', kg: '', meter: '', description: '', assigned_to: '' })
-    fetchData()
+    setForm({
+      customer_name: '',
+      customer_phone: '',
+      kg: '',
+      meter: '',
+      description: '',
+      assigned_to: ''
+    })
+    toast('success', 'Order laundry berhasil dibuat')
   }
 
   async function handleUpdateStatus(id: string, status: 'pending' | 'in_progress' | 'done') {
     const updates: Record<string, unknown> = { status }
     if (status === 'done') updates.completed_at = new Date().toISOString()
-    await supabase.from('laundry_orders').update(updates).eq('id', id)
-    fetchData()
+    // Optimistic update + rollback
+    const prev = orders
+    setOrders((curr) => curr.map((o) => (o.id === id ? { ...o, ...updates } : o)))
+    const { error } = await supabase.from('laundry_orders').update(updates).eq('id', id)
+    if (error) { setOrders(prev); toast('error', 'Gagal update status laundry: ' + error.message); return }
+    toast('success', `Status laundry → ${status}`)
   }
 
   async function handleUpdateRate(e: React.FormEvent) {
     e.preventDefault()
     setRateSaving(true)
     const rateValue = Number(rateForm.rate_per_kg) || 0
+    let err: { message: string } | null = null
     if (rate) {
-      await supabase.from('laundry_rates').update({
-        rate_per_kg: rateValue,
-        updated_at: new Date().toISOString(),
-      }).eq('id', rate.id)
+      const res = await supabase
+        .from('laundry_rates')
+        .update({
+          rate_per_kg: rateValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', rate.id)
+      err = res.error
+      if (!res.error) {
+        // Optimistic update: rate di state langsung berubah
+        setRate((prev) => (prev ? { ...prev, rate_per_kg: rateValue, updated_at: new Date().toISOString() } : prev))
+      }
     } else {
-      await supabase.from('laundry_rates').insert({
-        name: 'Default Rate',
-        rate_per_kg: rateValue,
-        is_active: true,
-        updated_at: new Date().toISOString(),
-      })
+      const res = await supabase
+        .from('laundry_rates')
+        .insert({
+          name: 'Default Rate',
+          rate_per_kg: rateValue,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .select('id')
+        .single()
+      err = res.error
+      if (!res.error && res.data) {
+        setRate({
+          id: res.data.id,
+          name: 'Default Rate',
+          rate_per_kg: rateValue,
+          is_active: true,
+          updated_at: new Date().toISOString()
+        } as LaundryRate)
+      }
     }
     setRateSaving(false)
+    if (err) { toast('error', 'Gagal simpan rate laundry: ' + err.message); return }
     setShowRateModal(false)
-    fetchData()
+    toast('success', 'Rate laundry tersimpan')
   }
 
   const filtered = orders.filter((o) => {
-    const matchSearch = !search || o.customer_name.toLowerCase().includes(search.toLowerCase()) || (o.customer_phone || '').includes(search)
+    const matchSearch =
+      !search ||
+      o.customer_name.toLowerCase().includes(search.toLowerCase()) ||
+      (o.customer_phone || '').includes(search)
     const matchStatus = !filterStatus || o.status === filterStatus
     return matchSearch && matchStatus
   })
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Laundry Orders</h1>
-          <p className="page-subtitle">Kelola pesanan laundry dari customer</p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setShowRateModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1rem', background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer' }}>
-            Rate: {rate ? fmt(rate.rate_per_kg) + '/kg' : '...'}
-          </button>
-          <button onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.625rem 1.25rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', fontWeight: '600', fontSize: '0.875rem', cursor: 'pointer' }}>
-            <Plus size={16} /> Input Laundry
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Laundry Orders"
+        subtitle="Kelola pesanan laundry dari customer"
+        action={
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              onClick={() => setShowRateModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1rem',
+                background: 'var(--neutral-100)',
+                color: 'var(--neutral-700)',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              Rate: {rate ? fmt(rate.rate_per_kg) + '/kg' : '...'}
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: '600',
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={16} /> Input Laundry
+            </button>
+          </div>
+        }
+      />
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.75rem',
+          marginBottom: '1.5rem',
+          flexWrap: 'wrap'
+        }}
+      >
         <div style={{ position: 'relative', flex: '1', minWidth: 200 }}>
-          <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-          <input type="text" placeholder="Cari nama atau telepon..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.625rem 0.75rem 0.625rem 2.25rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
+          <Search
+            size={16}
+            style={{
+              position: 'absolute',
+              left: '0.75rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--neutral-400)'
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Cari nama atau telepon..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '0.625rem 0.75rem 0.625rem 2.25rem',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
+              fontSize: '0.875rem',
+              outline: 'none'
+            }}
+          />
         </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          style={{ padding: '0.625rem 0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          style={{
+            padding: '0.625rem 0.75rem',
+            border: '1px solid #d1d5db',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            outline: 'none',
+            background: 'var(--surface)'
+          }}
+        >
           <option value="">Semua Status</option>
-          <option value="pending">Pending</option>
+          <option value="pending">Menunggu</option>
           <option value="in_progress">Diproses</option>
           <option value="done">Selesai</option>
         </select>
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-        {(['pending', 'in_progress', 'done'] as const).map(s => {
-          const count = orders.filter(o => o.status === s).length
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '1rem',
+          marginBottom: '1.5rem'
+        }}
+      >
+        {(['pending', 'in_progress', 'done'] as const).map((s) => {
+          const count = orders.filter((o) => o.status === s).length
           const c = STATUS_COLORS[s]
           return (
-            <div key={s} style={{ background: c.bg, borderRadius: '0.75rem', padding: '1rem 1.25rem', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.75rem', fontWeight: '700', color: c.text }}>{count}</div>
-              <div style={{ fontSize: '0.75rem', fontWeight: '600', color: c.text, marginTop: '0.25rem' }}>{c.label}</div>
+            <div
+              key={s}
+              style={{
+                background: c.bg,
+                borderRadius: '0.75rem',
+                padding: '1rem 1.25rem',
+                textAlign: 'center'
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '1.75rem',
+                  fontWeight: '700',
+                  color: c.text
+                }}
+              >
+                {count}
+              </div>
+              <div
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '600',
+                  color: c.text,
+                  marginTop: '0.25rem'
+                }}
+              >
+                {c.label}
+              </div>
             </div>
           )
         })}
       </div>
 
       {/* Table */}
-      <div className="data-table">
+      {/* Mobile: card list */}
+      <div className="mobile-only">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
         ) : filtered.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
+            <WashingMachine size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
+            <p>Belum ada pesanan laundry</p>
+          </div>
+        ) : (
+          <MobileCards
+            items={filtered}
+            keyOf={(o) => o.id}
+            renderCard={(o) => {
+              const sc = STATUS_COLORS[o.status]
+              const staff = laundryStaff.find((s) => s.id === o.assigned_to)
+              return (
+                <div className="mobile-card">
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Customer</span>
+                    <span className="mobile-card-value">{o.customer_name}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Tanggal</span>
+                    <span className="mobile-card-value" style={{ fontWeight: '400' }}>
+                      {new Date(o.received_at).toLocaleDateString('id-ID')}
+                    </span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Berat</span>
+                    <span className="mobile-card-value">{o.kg} kg{o.meter ? ` · ${o.meter} m` : ''}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Staff</span>
+                    <span className="mobile-card-value" style={{ fontWeight: '400' }}>{staff?.name ?? '—'}</span>
+                  </div>
+                  <div className="mobile-card-row">
+                    <span className="mobile-card-label">Status</span>
+                    <span className="mobile-card-value">
+                      <span style={{ background: sc.bg, color: sc.text, padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600' }}>
+                        {sc.label}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="mobile-card-actions">
+                    {o.status === 'pending' && (
+                      <button onClick={() => handleUpdateStatus(o.id, 'in_progress')} style={{ background: '#3b82f6', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Proses
+                      </button>
+                    )}
+                    {o.status === 'in_progress' && (
+                      <button onClick={() => handleUpdateStatus(o.id, 'done')} style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                        Selesai
+                      </button>
+                    )}
+                    {o.status === 'done' && <span style={{ color: '#16a34a', fontWeight: '600', fontSize: '0.8rem' }}>✓ Selesai</span>}
+                  </div>
+                </div>
+              )
+            }}
+          />
+        )}
+      </div>
+      <div className="data-table desktop-only">
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <WashingMachine size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada pesanan laundry</p>
           </div>
@@ -180,36 +426,93 @@ export default function AdminLaundryPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(o => {
+              {filtered.map((o) => {
                 const sc = STATUS_COLORS[o.status]
-                const staff = laundryStaff.find(s => s.id === o.assigned_to)
+                const staff = laundryStaff.find((s) => s.id === o.assigned_to)
                 return (
                   <tr key={o.id}>
-                    <td style={{ color: '#6b7280', fontSize: '0.8rem' }}>{new Date(o.received_at).toLocaleDateString('id-ID')}</td>
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>
+                      {new Date(o.received_at).toLocaleDateString('id-ID')}
+                    </td>
                     <td style={{ fontWeight: '500' }}>{o.customer_name}</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem' }}>{o.customer_phone || '—'}</td>
-                    <td><span style={{ fontWeight: '600' }}>{o.kg}</span> kg</td>
-                    <td style={{ color: '#6b7280', fontSize: '0.85rem', maxWidth: 200 }}>{o.description || '—'}</td>
-                    <td style={{ fontSize: '0.85rem' }}>{staff ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <User size={12} /> {staff.name}
+                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{o.customer_phone || '—'}</td>
+                    <td>
+                      <span style={{ fontWeight: '600' }}>{o.kg}</span> kg
+                    </td>
+                    <td
+                      style={{
+                        color: 'var(--neutral-600)',
+                        fontSize: '0.85rem',
+                        maxWidth: 200
+                      }}
+                    >
+                      {o.description || '—'}
+                    </td>
+                    <td style={{ fontSize: '0.85rem' }}>
+                      {staff ? (
+                        <span
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                        >
+                          <User size={12} /> {staff.name}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          background: sc.bg,
+                          color: sc.text,
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.375rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}
+                      >
+                        {sc.label}
                       </span>
-                    ) : '—'}</td>
-                    <td><span style={{ background: sc.bg, color: sc.text, padding: '0.25rem 0.5rem', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600' }}>{sc.label}</span></td>
+                    </td>
                     <td>
                       {o.status === 'pending' && (
-                        <button onClick={() => handleUpdateStatus(o.id, 'in_progress')} style={{ padding: '0.375rem 0.75rem', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}>
+                        <button
+                          onClick={() => handleUpdateStatus(o.id, 'in_progress')}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            background: '#3b82f6',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
                           Proses
                         </button>
                       )}
                       {o.status === 'in_progress' && (
-                        <button onClick={() => handleUpdateStatus(o.id, 'done')} style={{ padding: '0.375rem 0.75rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '0.375rem', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer' }}>
+                        <button
+                          onClick={() => handleUpdateStatus(o.id, 'done')}
+                          style={{
+                            padding: '0.375rem 0.75rem',
+                            background: '#16a34a',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
                           Selesai
                         </button>
                       )}
-                      {o.status === 'done' && (
-                        <CheckCircle2 size={18} color="#16a34a" />
-                      )}
+                      {o.status === 'done' && <CheckCircle2 size={18} color="#16a34a" />}
                     </td>
                   </tr>
                 )
@@ -220,86 +523,312 @@ export default function AdminLaundryPage() {
       </div>
 
       {/* Input Form Modal */}
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowForm(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 480, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>🧺 Input Pesanan Laundry</h2>
-            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Nama Customer *</label>
-                <input required type="text" placeholder="Nama customer" value={form.customer_name}
-                  onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Telepon</label>
-                <input type="text" placeholder="08xxxxxxxxxx" value={form.customer_phone}
-                  onChange={e => setForm(f => ({ ...f, customer_phone: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Berat (kg) *</label>
-                  <input required type="number" step="0.01" min="0" placeholder="0" value={form.kg}
-                    onChange={e => setForm(f => ({ ...f, kg: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Meter (m)</label>
-                  <input type="number" step="0.01" min="0" placeholder="0" value={form.meter}
-                    onChange={e => setForm(f => ({ ...f, meter: e.target.value }))}
-                    style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-                </div>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Assign Staff</label>
-                <select value={form.assigned_to} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff' }}>
-                  <option value="">Belum assign</option>
-                  {laundryStaff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Keterangan</label>
-                <input type="text" placeholder="Gorden 15kg, Vitras 5kg, dll..." value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={saving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: saving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
+      <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={480} padding="2rem" zIndex={200}>
+        <h2
+          style={{
+            fontSize: '1.1rem',
+            fontWeight: '700',
+            marginBottom: '1.5rem'
+          }}
+        >
+          🧺 Input Pesanan Laundry
+        </h2>
+        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Nama Customer *
+            </label>
+            <input
+              required
+              type="text"
+              placeholder="Nama customer"
+              value={form.customer_name}
+              onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Telepon
+            </label>
+            <input
+              type="text"
+              placeholder="08xxxxxxxxxx"
+              value={form.customer_phone}
+              onChange={(e) => setForm((f) => ({ ...f, customer_phone: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.75rem'
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: 'var(--neutral-700)',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Berat (kg) *
+              </label>
+              <input
+                required
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0"
+                value={form.kg}
+                onChange={(e) => setForm((f) => ({ ...f, kg: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '0.8rem',
+                  fontWeight: '600',
+                  color: 'var(--neutral-700)',
+                  marginBottom: '0.3rem'
+                }}
+              >
+                Meter (m)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0"
+                value={form.meter}
+                onChange={(e) => setForm((f) => ({ ...f, meter: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '0.625rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Assign Staff
+            </label>
+            <select
+              value={form.assigned_to}
+              onChange={(e) => setForm((f) => ({ ...f, assigned_to: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: 'var(--surface)'
+              }}
+            >
+              <option value="">Belum assign</option>
+              {laundryStaff.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Keterangan
+            </label>
+            <input
+              type="text"
+              placeholder="Gorden 15kg, Vitras 5kg, dll..."
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: saving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {saving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Rate Update Modal */}
-      {showRateModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowRateModal(false) }}>
-          <div style={{ background: '#fff', borderRadius: '0.875rem', padding: '2rem', width: '100%', maxWidth: 400, boxShadow: '0 25px 60px rgba(0,0,0,0.25)' }}>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Update Rate Laundry</h2>
-            <form onSubmit={handleUpdateRate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }}>Rate per kg (IDR)</label>
-                <input required type="number" step="100" min="0" placeholder="5000" value={rateForm.rate_per_kg}
-                  onChange={e => setRateForm(f => ({ ...f, rate_per_kg: e.target.value }))}
-                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                <button type="button" onClick={() => setShowRateModal(false)} style={{ flex: 1, padding: '0.75rem', border: '1px solid #d1d5db', borderRadius: '0.5rem', background: '#fff', cursor: 'pointer', fontWeight: '600' }}>Batal</button>
-                <button type="submit" disabled={rateSaving} style={{ flex: 1, padding: '0.75rem', background: '#cc7030', color: '#fff', border: 'none', borderRadius: '0.5rem', cursor: rateSaving ? 'not-allowed' : 'pointer', fontWeight: '600' }}>
-                  {rateSaving ? 'Menyimpan...' : 'Simpan'}
-                </button>
-              </div>
-            </form>
+      <Modal open={showRateModal} onClose={() => setShowRateModal(false)} maxWidth={400} padding="2rem" zIndex={200}>
+        <h2
+          style={{
+            fontSize: '1.1rem',
+            fontWeight: '700',
+            marginBottom: '1.5rem'
+          }}
+        >
+          Update Rate Laundry
+        </h2>
+        <form onSubmit={handleUpdateRate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Rate per kg (IDR)
+            </label>
+            <input
+              required
+              type="number"
+              step="100"
+              min="0"
+              placeholder="5000"
+              value={rateForm.rate_per_kg}
+              onChange={(e) => setRateForm((f) => ({ ...f, rate_per_kg: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '0.625rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none'
+              }}
+            />
           </div>
-        </div>
-      )}
+          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowRateModal(false)}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={rateSaving}
+              style={{
+                flex: 1,
+                padding: '0.75rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: rateSaving ? 'not-allowed' : 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              {rateSaving ? 'Menyimpan...' : 'Simpan'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

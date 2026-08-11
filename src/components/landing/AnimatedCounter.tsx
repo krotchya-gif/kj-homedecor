@@ -9,12 +9,7 @@ interface AnimatedCounterProps {
   duration?: number
 }
 
-export default function AnimatedCounter({
-  target,
-  suffix = '',
-  prefix = '',
-  duration = 1800,
-}: AnimatedCounterProps) {
+export default function AnimatedCounter({ target, suffix = '', prefix = '', duration = 1800 }: AnimatedCounterProps) {
   const [count, setCount] = useState(0)
   const [started, setStarted] = useState(false)
   const ref = useRef<HTMLSpanElement>(null)
@@ -48,7 +43,9 @@ export default function AnimatedCounter({
 
   return (
     <span ref={ref}>
-      {prefix}{count}{suffix}
+      {prefix}
+      {count}
+      {suffix}
     </span>
   )
 }

@@ -29,8 +29,9 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
   const offset = (page - 1) * limit
 
-  let query = supabase.from('purchase_orders')
-    .select('*, supplier:suppliers(name), pr:purchase_requests(material:materials(name))', { count: 'exact' })
+  let query = supabase
+    .from('purchase_orders')
+    .select('*, supplier:suppliers(name), pr:purchase_requests(material:materials(name))')
     .order('created_at', { ascending: false })
   if (status) query = query.eq('status', status)
 

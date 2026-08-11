@@ -6,11 +6,7 @@ import { requireAuthRole, checkRateLimit } from '@/lib/auth'
 export async function GET() {
   try {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('landing_settings')
-      .select('*')
-      .eq('id', 'hero')
-      .single()
+    const { data } = await supabase.from('landing_settings').select('*').eq('key', 'hero').single()
 
     return NextResponse.json({ data: data ?? null, error: null })
   } catch (err) {
@@ -32,6 +28,22 @@ export async function PUT(request: Request) {
     const { supabase } = auth
 
     const body = await request.json()
+    const supabase = await createClient()
+
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+    }
+
+    // Check admin role
+    const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
+
+    if (staffData?.role !== 'admin' && staffData?.role !== 'owner') {
+      return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+    }
+
     const {
       hero_title,
       hero_subtitle,
@@ -80,7 +92,7 @@ export async function PUT(request: Request) {
       hero_background_overlay_opacity,
       theme_border_radius,
       theme_font_heading,
-      theme_font_body,
+      theme_font_body
     } = body
 
     // Validate HEX colors if provided
@@ -90,7 +102,7 @@ export async function PUT(request: Request) {
       { name: 'theme_secondary_color', value: theme_secondary_color },
       { name: 'theme_accent_color', value: theme_accent_color },
       { name: 'theme_background_color', value: theme_background_color },
-      { name: 'theme_text_color', value: theme_text_color },
+      { name: 'theme_text_color', value: theme_text_color }
     ]
 
     for (const field of colorFields) {
@@ -112,8 +124,10 @@ export async function PUT(request: Request) {
     }
 
     // Validate overlay opacity if provided
-    if (hero_background_overlay_opacity !== undefined &&
-        (hero_background_overlay_opacity < 0 || hero_background_overlay_opacity > 1)) {
+    if (
+      hero_background_overlay_opacity !== undefined &&
+      (hero_background_overlay_opacity < 0 || hero_background_overlay_opacity > 1)
+    ) {
       return NextResponse.json(
         { data: null, error: { message: 'Invalid hero_background_overlay_opacity: must be between 0 and 1' } },
         { status: 400 }
@@ -171,9 +185,9 @@ export async function PUT(request: Request) {
         theme_border_radius,
         theme_font_heading,
         theme_font_body,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .eq('id', 'hero')
+      .eq('key', 'hero')
       .select()
       .single()
 

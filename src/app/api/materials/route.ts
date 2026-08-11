@@ -15,13 +15,15 @@ const CreateMaterialSchema = z.object({
   stock_toko: z.number().min(0).optional(),
   unit: z.string().optional(),
   cost_per_unit: z.number().min(0).optional(),
-  min_stock: z.number().min(0).optional(),
+  min_stock: z.number().min(0).optional()
 })
 
 export async function GET(request: Request) {
-  const auth = await requireAuth()
-  if (auth.error) return auth.error
-  const { supabase } = auth
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, Number(searchParams.get('page')) || 1)
@@ -38,16 +40,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-
-  const auth = await requireAuthRole(['admin', 'owner', 'gudang'])
-  if (auth.error) return auth.error
-  const { supabase } = auth
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body = await request.json()
   const parsed = CreateMaterialSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
+  if (!parsed.success)
+    return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
 
   // Whitelist fields
   const insertData: Record<string, any> = {}

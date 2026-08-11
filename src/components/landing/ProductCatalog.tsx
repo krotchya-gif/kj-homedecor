@@ -28,11 +28,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   }, [])
 
   async function fetchSettings() {
-    const { data } = await supabase
-      .from('landing_settings')
-      .select('whatsapp_number')
-      .eq('id', 'hero')
-      .single()
+    const { data } = await supabase.from('landing_settings').select('whatsapp_number').eq('key', 'hero').single()
     if (data?.whatsapp_number) setWhatsappNumber(data.whatsapp_number)
   }
 
@@ -40,14 +36,14 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
     setLoading(true)
     const [{ data: prods }, { data: cats }] = await Promise.all([
       supabase.from('products').select('*, category:categories(*)').eq('is_catalog_visible', true).order('name'),
-      supabase.from('categories').select('*').order('name'),
+      supabase.from('categories').select('*').order('name')
     ])
     setProducts((prods as Product[]) ?? [])
     setCategories((cats as Category[]) ?? [])
     setLoading(false)
   }
 
-  const filtered = products.filter(p => {
+  const filtered = products.filter((p) => {
     const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase())
     const matchCat = !selectedCategory || p.category_id === selectedCategory
     return matchSearch && matchCat
@@ -63,160 +59,325 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   return (
     <div>
       {!maxProducts && (
-      /* Search & Filter Bar - Improved */
-      <div style={{ background: '#fff', borderRadius: '1rem', padding: '1.25rem', border: '1px solid #e5e7eb', marginBottom: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-        <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Search */}
-          <div style={{ position: 'relative', flex: '1', minWidth: 240 }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
-            <input
-              type="text"
-              placeholder="Cari produk..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 2.5rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', transition: 'border-color 0.15s' }}
-              onFocus={e => e.target.style.borderColor = 'var(--brand-500)'}
-              onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-            />
-          </div>
+        /* Search & Filter Bar - Improved */
+        <div
+          style={{
+            background: 'var(--surface)',
+            borderRadius: '1rem',
+            padding: '1.25rem',
+            border: '1px solid #e5e7eb',
+            marginBottom: '2rem',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+          }}
+        >
+          <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Search */}
+            <div style={{ position: 'relative', flex: '1', minWidth: 240 }}>
+              <Search
+                size={16}
+                style={{
+                  position: 'absolute',
+                  left: '0.875rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--neutral-400)'
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Cari produk..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem 0.75rem 2.5rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  fontSize: '0.875rem',
+                  outline: 'none',
+                  transition: 'border-color 0.15s'
+                }}
+                onFocus={(e) => (e.target.style.borderColor = 'var(--brand-500)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--neutral-200)')}
+              />
+            </div>
 
-          {/* Category filter */}
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value)}
-            style={{ padding: '0.75rem 1rem', border: '1px solid #e5e7eb', borderRadius: '0.5rem', fontSize: '0.875rem', outline: 'none', background: '#fff', cursor: 'pointer', color: '#374151', transition: 'border-color 0.15s' }}
-            onFocus={e => e.target.style.borderColor = 'var(--brand-500)'}
-            onBlur={e => e.target.style.borderColor = '#e5e7eb'}
-          >
-            <option value="">Semua Kategori</option>
-            {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-
-          {/* Clear filters */}
-          {(search || selectedCategory) && (
-            <button
-              onClick={() => { setSearch(''); setSelectedCategory('') }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.625rem 1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', color: '#dc2626', fontWeight: '500', transition: 'background 0.15s' }}
-              onMouseEnter={e => (e.currentTarget as HTMLButtonElement).style.background = '#fee2e2'}
-              onMouseLeave={e => (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2'}
+            {/* Category filter */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              style={{
+                padding: '0.75rem 1rem',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                fontSize: '0.875rem',
+                outline: 'none',
+                background: 'var(--surface)',
+                cursor: 'pointer',
+                color: 'var(--neutral-700)',
+                transition: 'border-color 0.15s'
+              }}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--brand-500)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--neutral-200)')}
             >
-              <X size={13} /> Reset
-            </button>
-          )}
+              <option value="">Semua Kategori</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
 
-          <div style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#9ca3af', background: '#f9fafb', padding: '0.5rem 0.875rem', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}>
-            <span style={{ fontWeight: '600', color: '#374151' }}>{filtered.length}</span> produk
+            {/* Clear filters */}
+            {(search || selectedCategory) && (
+              <button
+                onClick={() => {
+                  setSearch('')
+                  setSelectedCategory('')
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  padding: '0.625rem 1rem',
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  color: '#dc2626',
+                  fontWeight: '500',
+                  transition: 'background 0.15s'
+                }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#fee2e2')}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#fef2f2')}
+              >
+                <X size={13} /> Reset
+              </button>
+            )}
+
+            <div
+              style={{
+                marginLeft: 'auto',
+                fontSize: '0.8rem',
+                color: 'var(--neutral-400)',
+                background: 'var(--neutral-100)',
+                padding: '0.5rem 0.875rem',
+                borderRadius: '0.5rem',
+                border: '1px solid #e5e7eb'
+              }}
+            >
+              <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{filtered.length}</span> produk
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* Product Grid */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af', background: '#fff', borderRadius: '1rem', border: '1px solid #e5e7eb' }}>
-          <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: 'var(--brand-500)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 1rem' }} />
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '4rem',
+            color: 'var(--neutral-400)',
+            background: 'var(--surface)',
+            borderRadius: '1rem',
+            border: '1px solid #e5e7eb'
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              border: '3px solid #e5e7eb',
+              borderTopColor: 'var(--brand-500)',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem'
+            }}
+          />
           <p>Memuat produk...</p>
         </div>
       ) : displayProducts.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '4rem', color: '#9ca3af', background: '#fff', borderRadius: '1rem', border: '1px solid #e5e7eb' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '4rem',
+            color: 'var(--neutral-400)',
+            background: 'var(--surface)',
+            borderRadius: '1rem',
+            border: '1px solid #e5e7eb'
+          }}
+        >
           <Package size={40} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
-          <p style={{ fontSize: '1rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem' }}>Tidak ada produk ditemukan</p>
+          <p style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>
+            Tidak ada produk ditemukan
+          </p>
           <p style={{ fontSize: '0.875rem' }}>Coba ubah kata kunci atau filter kategori</p>
         </div>
       ) : (
         <>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.5rem' }}>
-          {displayProducts.map(p => (
-            <div key={p.id} style={{ background: '#fff', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e5e7eb', transition: 'transform 0.2s, box-shadow 0.2s', cursor: 'pointer' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'; (e.currentTarget as HTMLDivElement).style.boxShadow = 'none' }}
-            >
-              {/* Image */}
-              <Link href={`/products/${p.id}`} style={{ display: 'block' }}>
-                <div style={{ aspectRatio: '4/3', background: 'linear-gradient(135deg, #fdf8f3 0%, #f5e6d3 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-                  {(p.images as string[])?.length > 0 ? (
-                    <Image src={(p.images as string[])[0]} alt={p.name} fill style={{ objectFit: 'cover', transition: 'transform 0.3s' }} sizes="(max-width: 640px) 50vw, 25vw" />
-                  ) : (
-                    <Package size={40} style={{ color: '#DDC0B433' }} />
-                  )}
-                  {/* Category badge overlay */}
-                  <div style={{ position: 'absolute', top: '0.75rem', left: '0.75rem', background: 'rgba(255,255,255,0.95)', padding: '0.25rem 0.625rem', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '600', color: 'var(--brand-500)' }}>
-                    {p.category?.name ?? 'Produk'}
-                  </div>
-                </div>
-              </Link>
-
-              {/* Body */}
-              <div style={{ padding: '1.125rem' }}>
-                <Link href={`/products/${p.id}`} style={{ textDecoration: 'none' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginBottom: '0.5rem', lineHeight: 1.3 }}>
-                    {p.name}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.5rem' }}>
+            {displayProducts.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  background: 'var(--surface)',
+                  borderRadius: '1rem',
+                  overflow: 'hidden',
+                  border: '1px solid #e5e7eb',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+                  ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+                  ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
+                }}
+              >
+                {/* Image */}
+                <Link href={`/products/${p.id}`} style={{ display: 'block' }}>
+                  <div
+                    style={{
+                      aspectRatio: '4/3',
+                      background: 'linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-200) 100%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}
+                  >
+                    {(p.images as string[])?.length > 0 ? (
+                      <Image
+                        src={(p.images as string[])[0]}
+                        alt={p.name}
+                        fill
+                        style={{ objectFit: 'cover', transition: 'transform 0.3s' }}
+                        sizes="(max-width: 640px) 50vw, 25vw"
+                      />
+                    ) : (
+                      <Package size={40} style={{ color: '#DDC0B433' }} />
+                    )}
+                    {/* Category badge overlay */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '0.75rem',
+                        left: '0.75rem',
+                        background: 'rgba(255,255,255,0.95)',
+                        padding: '0.25rem 0.625rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: 'var(--brand-500)'
+                      }}
+                    >
+                      {p.category?.name ?? 'Produk'}
+                    </div>
                   </div>
                 </Link>
-                <div style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1rem' }}>
-                  {formatRp(p.price)}
-                  <span style={{ fontSize: '0.75rem', fontWeight: '500', color: '#6b7280', marginLeft: '0.25rem' }}>/unit</span>
+
+                {/* Body */}
+                <div style={{ padding: '1.125rem' }}>
+                  <Link href={`/products/${p.id}`} style={{ textDecoration: 'none' }}>
+                    <div
+                      style={{
+                        fontSize: '1rem',
+                        fontWeight: '700',
+                        color: 'var(--neutral-800)',
+                        marginBottom: '0.5rem',
+                        lineHeight: 1.3
+                      }}
+                    >
+                      {p.name}
+                    </div>
+                  </Link>
+                  <div
+                    style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1rem' }}
+                  >
+                    {formatRp(p.price)}
+                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--neutral-600)', marginLeft: '0.25rem' }}>
+                      /unit
+                    </span>
+                  </div>
+
+                  {/* WhatsApp order button */}
+                  <a
+                    href={getWhatsAppLink(p)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: '#22c55e',
+                      color: '#fff',
+                      borderRadius: '0.5rem',
+                      textDecoration: 'none',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      transition: 'background 0.15s'
+                    }}
+                    onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#16a34a')}
+                    onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#22c55e')}
+                  >
+                    <MessageCircle size={16} /> Pesan via WhatsApp
+                  </a>
                 </div>
-
-                {/* WhatsApp order button */}
-                <a
-                  href={getWhatsAppLink(p)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                    width: '100%', padding: '0.75rem',
-                    background: '#22c55e', color: '#fff',
-                    borderRadius: '0.5rem', textDecoration: 'none',
-                    fontSize: '0.85rem', fontWeight: '600',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLAnchorElement).style.background = '#16a34a'}
-                  onMouseLeave={e => (e.currentTarget as HTMLAnchorElement).style.background = '#22c55e'}
-                >
-                  <MessageCircle size={16} /> Pesan via WhatsApp
-                </a>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* View All button */}
-        {showViewAll && filtered.length > (maxProducts ?? 0) && (
-          <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
-            <Link
-              href="/catalog"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                padding: '1rem 2.5rem',
-                background: 'transparent', color: 'var(--brand-500)',
-                borderRadius: '0.625rem', textDecoration: 'none',
-                fontSize: '1rem', fontWeight: '600',
-                border: '2px solid var(--brand-500)',
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'var(--brand-500)'
-                ;(e.currentTarget as HTMLAnchorElement).style.color = '#fff'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
-                ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--brand-500)'
-              }}
-            >
-              <Search size={18} /> Lihat Semua Katalog ({filtered.length} produk)
-            </Link>
+            ))}
           </div>
-        )}
+
+          {/* View All button */}
+          {showViewAll && filtered.length > (maxProducts ?? 0) && (
+            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+              <Link
+                href="/catalog"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '1rem 2.5rem',
+                  background: 'transparent',
+                  color: 'var(--brand-500)',
+                  borderRadius: '0.625rem',
+                  textDecoration: 'none',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  border: '2px solid var(--brand-500)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLAnchorElement).style.background = 'var(--brand-500)'
+                  ;(e.currentTarget as HTMLAnchorElement).style.color = '#fff'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
+                  ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--brand-500)'
+                }}
+              >
+                <Search size={18} /> Lihat Semua Katalog ({filtered.length} produk)
+              </Link>
+            </div>
+          )}
         </>
       )}
 
       <style jsx global>{`
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </div>

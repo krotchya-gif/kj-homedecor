@@ -1,4 +1,6 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -14,7 +16,7 @@ interface Retur {
   return_date: string
   reason: string
   status: string
-  piutang?: { customer: { name: string }, invoice_number: string, amount: number }
+  piutang?: { customer: { name: string }; invoice_number: string; amount: number }
 }
 
 export default function ReturPage() {
@@ -31,24 +33,48 @@ export default function ReturPage() {
       .select('*, customer:customers(name)')
       .gt('return_amount', 0)
       .order('created_at', { ascending: false })
-    setRetur((data as any[]) ?? [])
+    setRetur((data ?? []) as Retur[])
     setLoading(false)
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    fetchData()
+  }, [])
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Retur Piutang</h1>
-        <p className="page-subtitle">Daftar retur piutang pelanggan</p>
-      </div>
+      <PageHeader title="Retur Piutang" subtitle="Daftar retur piutang pelanggan" />
 
-      <div className="data-table">
+            {/* Mobile: card list */}
+      <div className="mobile-only">
         {loading ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</div>
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
         ) : retur.length === 0 ? (
-          <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af' }}>
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={retur} keyOf={(r) => r.id} renderCard={(r) => (
+            <div className="mobile-card">
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Jumlah</span>
+                  <span className="mobile-card-value">{r.piutang?.amount ?? r.return_amount ?? 0}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Alasan</span>
+                  <span className="mobile-card-value">{r.reason}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Tanggal</span>
+                  <span className="mobile-card-value">{r.return_date ?? "—"}</span>
+                </div>
+            </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+        ) : retur.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <RotateCcw size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
             <p>Belum ada retur</p>
           </div>
@@ -67,9 +93,20 @@ export default function ReturPage() {
                 <tr key={r.id}>
                   <td style={{ fontWeight: '500' }}>{r.piutang?.customer?.name ?? '—'}</td>
                   <td style={{ fontFamily: 'monospace' }}>{r.piutang?.invoice_number ?? '—'}</td>
-                  <td style={{ fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>{formatRp(r.return_amount ?? 0)}</td>
+                  <td style={{ fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>
+                    {formatRp(r.return_amount ?? 0)}
+                  </td>
                   <td>
-                    <span style={{ padding: '0.15rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600', background: '#fef3c7', color: '#92400e' }}>
+                    <span
+                      style={{
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '999px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        background: '#fef3c7',
+                        color: '#92400e'
+                      }}
+                    >
                       Retur
                     </span>
                   </td>

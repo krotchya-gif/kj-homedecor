@@ -11,13 +11,15 @@ const CreatePurchaseRequestSchema = z.object({
   material_id: z.string().uuid(),
   qty: z.number().min(1),
   notes: z.string().optional(),
-  urgency: z.enum(['normal', 'urgent']).optional(),
+  urgency: z.enum(['normal', 'urgent']).optional()
 })
 
 export async function GET(request: Request) {
-  const auth = await requireAuth()
-  if (auth.error) return auth.error
-  const { supabase } = auth
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
@@ -25,8 +27,9 @@ export async function GET(request: Request) {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 50))
   const offset = (page - 1) * limit
 
-  let query = supabase.from('purchase_requests')
-    .select('*, material:materials(name, cost_per_unit)', { count: 'exact' })
+  let query = supabase
+    .from('purchase_requests')
+    .select('*, material:materials(name, cost_per_unit)')
     .order('created_at', { ascending: false })
   if (status) query = query.eq('status', status)
 
@@ -36,16 +39,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-
-  const auth = await requireAuthRole(['admin', 'owner', 'gudang'])
-  if (auth.error) return auth.error
-  const { supabase, user } = auth
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const body = await request.json()
   const parsed = CreatePurchaseRequestSchema.safeParse(body)
-  if (!parsed.success) return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
+  if (!parsed.success)
+    return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
 
   // Whitelist fields + add creator
   const insertData: Record<string, any> = {}

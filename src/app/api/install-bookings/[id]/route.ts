@@ -49,18 +49,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params
   const body = await request.json()
 
-  // Restrict installer_id changes: only admin/owner can reassign
-  if (userRole === 'installer' && body.installer_id !== undefined && body.installer_id !== user.id) {
-    return NextResponse.json({ data: null, error: { message: 'Installer cannot reassign booking to another installer' } }, { status: 403 })
+  // 1. Auth check
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
 
-  // Whitelist allowed fields
-  const allowedUpdate: Record<string, any> = {}
-  for (const field of ALLOWED_INSTALL_BOOKING_FIELDS) {
-    if (body[field] !== undefined) allowedUpdate[field] = body[field]
-  }
-
-  // 2. V3: Kalau status berubah, panggil RPC `advance_install_booking_status`
+  // 2. Kalau status berubah, panggil RPC `advance_install_booking_status`
   //    untuk atomic cascade ke orders.status
   if (body.status && body.status !== undefined) {
     // Auto-set actual_date when marking done
@@ -69,12 +66,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Panggil RPC — handles status update + orders.status cascade + order_logs insert
-    const { data: rpcResult, error: rpcErr } = await supabase
-      .rpc('advance_install_booking_status', {
-        p_booking_id: id,
-        p_new_status: body.status,
-        p_staff_id: user.id,
-      })
+    const { data: rpcResult, error: rpcErr } = await supabase.rpc('advance_install_booking_status', {
+      p_booking_id: id,
+      p_new_status: body.status,
+      p_staff_id: user.id
+    })
 
     if (rpcErr) {
       console.error('advance_install_booking_status RPC failed:', rpcErr)
@@ -84,12 +80,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       )
     }
 
-    // Kalau ada field lain di body, update manual
-    if (Object.keys(allowedUpdate).length > 0) {
-      const { error: updateErr } = await supabase
-        .from('install_bookings')
-        .update(allowedUpdate)
-        .eq('id', id)
+    // Kalau ada field lain di body (selain status & actual_date), update manual
+    // (mis. notes, installer_id, scheduled_date, scheduled_time)
+    const otherFields: Record<string, unknown> = { ...body }
+    delete otherFields.status
+    delete otherFields.actual_date
+
+    if (Object.keys(otherFields).length > 0) {
+      const { error: updateErr } = await supabase.from('install_bookings').update(otherFields).eq('id', id)
       if (updateErr) {
         console.warn('Failed to update other install_bookings fields:', updateErr)
       }

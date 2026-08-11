@@ -1,22 +1,37 @@
 'use client'
+import { PageHeader } from '@/components/ui/PageHeader'
 
 import Link from 'next/link'
 import { FileText, ExternalLink } from 'lucide-react'
 
 const SUB_MODULES = [
-  { title: 'Jurnal Otomatis', desc: 'Input dan kelola jurnal manual', href: '/finance/journal/auto', icon: <FileText size={20} />, color: 'blue' },
+  {
+    title: 'Jurnal Otomatis',
+    desc: 'Input dan kelola jurnal manual',
+    href: '/finance/journal/auto',
+    icon: <FileText size={20} />,
+    color: 'blue'
+  }
 ]
 
 export default function JournalPage() {
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">JURNAL</h1>
-        <p className="page-subtitle">Input dan kelola jurnal manual</p>
-      </div>
+      <PageHeader title="JURNAL" subtitle="Input dan kelola jurnal manual" />
 
       <div style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Menu</h2>
+        <h2
+          style={{
+            fontSize: '0.9rem',
+            fontWeight: '600',
+            color: 'var(--neutral-600)',
+            marginBottom: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em'
+          }}
+        >
+          Menu
+        </h2>
         <div className="module-grid">
           {SUB_MODULES.map((m) => (
             <Link key={m.href} href={m.href} className="module-card">
@@ -31,9 +46,25 @@ export default function JournalPage() {
       </div>
 
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-          <h2 style={{ fontSize: '0.9rem', fontWeight: '600', color: '#6b7280', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Laporan Keuangan</h2>
-          <Link href="/finance/laporan" className="flex items-center gap-1.5 text-sm font-medium text-orange-600 hover:text-orange-700">
+        <div
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}
+        >
+          <h2
+            style={{
+              fontSize: '0.9rem',
+              fontWeight: '600',
+              color: 'var(--neutral-600)',
+              margin: 0,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+          >
+            Laporan Keuangan
+          </h2>
+          <Link
+            href="/finance/laporan"
+            className="flex items-center gap-1.5 text-sm font-medium text-orange-600 hover:text-orange-700"
+          >
             <ExternalLink size={14} />
             Lihat Semua
           </Link>

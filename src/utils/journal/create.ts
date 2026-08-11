@@ -25,7 +25,7 @@ export async function createJournalEntry(options: CreateJournalOptions) {
   const res = await fetch('/api/journal', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(options),
+    body: JSON.stringify(options)
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error ?? 'Failed to create journal entry')
@@ -39,7 +39,9 @@ export async function getAccountMapping(transactionType: string) {
   const supabase = createClient()
   const { data } = await supabase
     .from('account_mappings')
-    .select('*, debit_account:accounts!debit_account_id(id, code, name), credit_account:accounts!credit_account_id(id, code, name)')
+    .select(
+      '*, debit_account:accounts!debit_account_id(id, code, name), credit_account:accounts!credit_account_id(id, code, name)'
+    )
     .eq('transaction_type', transactionType)
     .eq('is_active', true)
     .single()
@@ -67,7 +69,9 @@ export async function createSimpleJournal(options: {
   const creditAccountId = mapping?.credit_account_id ?? options.credit_account_id
 
   if (!debitAccountId || !creditAccountId) {
-    throw new Error(`No mapping or fallback accounts for transaction type "${transaction_type}" — configure in /finance/accounts/mapping`)
+    throw new Error(
+      `No mapping or fallback accounts for transaction type "${transaction_type}" — configure in /finance/accounts/mapping`
+    )
   }
 
   return createJournalEntry({
@@ -78,7 +82,7 @@ export async function createSimpleJournal(options: {
     is_auto: true,
     lines: [
       { account_id: debitAccountId, debit: amount, credit: 0 },
-      { account_id: creditAccountId, debit: 0, credit: amount },
-    ],
+      { account_id: creditAccountId, debit: 0, credit: amount }
+    ]
   })
 }
