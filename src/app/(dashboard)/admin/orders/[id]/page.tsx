@@ -467,75 +467,73 @@ export default function OrderDetailPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    const now = new Date().toISOString()
 
-    // 1) Update orders status ke scheduled + simpan jadwal
-    const { error: ordErr } = await supabase
-      .from('orders')
-      .update({
-        status: 'scheduled',
-        scheduled_installation_date: scheduleForm.date,
-        scheduled_installation_time: scheduleForm.time || null
-      })
-      .eq('id', id)
-      .eq('status', 'packed')
-    if (ordErr) {
-      setScheduling(false)
-      toast('error', 'Gagal update status order: ' + ordErr.message)
-      return
-    }
+    // F-18 fix: SATU JALUR — semua perubahan status booking lewat API route
+    // (RPC advance_install_booking_status cascade orders.status → 'scheduled' + order_logs).
+    let bookingId = orderBooking?.id ?? null
 
-    // 2) Upsert install_bookings (type pasang) — assign installer + jadwal
-    const customerAddr =
-      (order.customer as { address?: string } | null)?.address ?? 'Alamat belum di-set'
-    let bookingErr: { message: string } | null = null
-    if (orderBooking) {
-      // Update booking yang sudah ada (auto-created / pending)
-      const { error } = await supabase
-        .from('install_bookings')
-        .update({
+    try {
+      // 1) Kalau booking belum ada (auto-created pending belum pernah dibuat),
+      //    buat dulu (status pending) lalu PUT ke scheduled.
+      if (!bookingId) {
+        const customerAddr =
+          (order.customer as { address?: string } | null)?.address ?? 'Alamat belum di-set'
+        const { data: newBooking, error: insErr } = await supabase
+          .from('install_bookings')
+          .insert({
+            order_id: id,
+            type: 'pasang',
+            status: 'pending',
+            installer_id: scheduleForm.installer_id,
+            scheduled_date: scheduleForm.date,
+            scheduled_time: scheduleForm.time || null,
+            address: customerAddr,
+            notes: `Dijadwalkan dari detail pesanan oleh Admin — installer & tanggal dipilih langsung.`
+          })
+          .select('id')
+          .single()
+        if (insErr || !newBooking) throw new Error(insErr?.message ?? 'Gagal buat booking')
+        bookingId = newBooking.id
+      }
+
+      // 2) PUT ke API route — RPC update status + cascade orders + log install_started,
+      //    field lain (installer_id, jadwal) di-update via otherFields.
+      const res = await fetch(`/api/install-bookings/${bookingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'scheduled',
           installer_id: scheduleForm.installer_id,
           scheduled_date: scheduleForm.date,
-          scheduled_time: scheduleForm.time || null,
-          status: 'scheduled'
+          scheduled_time: scheduleForm.time || null
         })
-        .eq('id', orderBooking.id)
-      bookingErr = error
-    } else {
-      // Insert baru
-      const { error } = await supabase.from('install_bookings').insert({
-        order_id: id,
-        type: 'pasang',
-        status: 'scheduled',
-        installer_id: scheduleForm.installer_id,
-        scheduled_date: scheduleForm.date,
-        scheduled_time: scheduleForm.time || null,
-        address: customerAddr,
-        notes: `Dijadwalkan dari detail pesanan oleh Admin — installer & tanggal dipilih langsung.`
       })
-      bookingErr = error
-    }
-    if (bookingErr) {
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error?.message ?? `HTTP ${res.status}`)
+
+      // 3) Kolom jadwal di orders (tidak disentuh RPC) — set dengan guard status
+      const { error: schedErr } = await supabase
+        .from('orders')
+        .update({
+          scheduled_installation_date: scheduleForm.date,
+          scheduled_installation_time: scheduleForm.time || null
+        })
+        .eq('id', id)
+        .eq('status', 'scheduled')
+      if (schedErr) console.error('Gagal simpan jadwal di orders:', schedErr)
+
+      const installerName = installers.find((i) => i.id === scheduleForm.installer_id)?.name ?? '—'
       setScheduling(false)
-      toast('error', 'Order sudah ke Terjadwal Pasang, TAPI gagal assign booking: ' + bookingErr.message)
-      return
+      setShowScheduleModal(false)
+      setScheduleForm({ date: '', time: '', installer_id: '' })
+      toast('success', `✅ Order terjadwal pasang: ${scheduleForm.date} — Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
+      load()
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err)
+      console.error('Jadwal pasang gagal:', err)
+      setScheduling(false)
+      toast('error', '⚠️ Gagal jadwalkan pasang: ' + errMsg)
     }
-
-    // 3) Log
-    const installerName = installers.find((i) => i.id === scheduleForm.installer_id)?.name ?? '—'
-    const { error: logErr } = await supabase.from('order_logs').insert({
-      order_id: id,
-      action: 'install_scheduled',
-      notes: `Jadwal pasang: ${scheduleForm.date}${scheduleForm.time ? ' ' + scheduleForm.time : ''} — Installer: ${installerName}`,
-      staff_id: user?.id ?? null
-    })
-    if (logErr) { console.error('Gagal catat log jadwal pasang:', logErr) }
-
-    setScheduling(false)
-    setShowScheduleModal(false)
-    setScheduleForm({ date: '', time: '', installer_id: '' })
-    toast('success', `✅ Order terjadwal pasang: ${scheduleForm.date} — Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
-    load()
   }
 
   async function handleCancel() {

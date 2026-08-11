@@ -111,15 +111,22 @@ export default function InstallerChecklistPage() {
       return
     }
 
-    // Update booking status to done
-    const { error: doneErr } = await supabase
-      .from('install_bookings')
-      .update({
-        status: 'done',
-        actual_date: new Date().toISOString()
-      })
-      .eq('id', selectedBooking)
-    if (doneErr) { console.error(doneErr); toast('error', 'Checklist tersimpan, tapi gagal update status booking: ' + doneErr.message); setSubmitting(false); return }
+    // F-18 fix: selesaikan booking lewat API route (satu jalur) —
+    // RPC advance_install_booking_status cascade orders.status → 'done' + order_logs
+    const res = await fetch(`/api/install-bookings/${selectedBooking}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'done', actual_date: new Date().toISOString() })
+    })
+    const json = await res.json().catch(() => null)
+    if (!res.ok || !json) {
+      toast(
+        'error',
+        'Checklist tersimpan, tapi gagal selesaikan booking: ' + (json?.error?.message ?? `HTTP ${res.status}`)
+      )
+      setSubmitting(false)
+      return
+    }
 
     setSaved(true)
     setSubmitting(false)
@@ -130,7 +137,7 @@ export default function InstallerChecklistPage() {
       setPhotos([])
       // Optimistic update: booking pindah ke tab done tanpa refetch
       setBookings((curr) => curr.map((b) => (b.id === selectedBooking ? { ...b, status: 'done' } : b)))
-      toast('success', 'Checklist selesai — booking ditandai selesai')
+      toast('success', 'Checklist selesai — pesanan selesai')
     }, 1500)
   }
 

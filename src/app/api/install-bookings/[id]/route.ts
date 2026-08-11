@@ -5,6 +5,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params
   const supabase = await createClient()
 
+  // F-18 fix: GET wajib login (sebelumnya tanpa auth check sama sekali)
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  }
+
   const { data, error } = await supabase
     .from('install_bookings')
     .select('*, customer:customers(*), installer:users(name), order:orders(*)')
@@ -26,6 +34,31 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  }
+
+  // F-18 fix: role check — admin/owner bebas; installer hanya booking miliknya
+  // dan hanya status lanjutan (in_progress/done/revision); lainnya ditolak.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  const role = requester?.role ?? ''
+  const isAdmin = requester?.status === 'active' && ['admin', 'owner'].includes(role)
+  const isInstaller = requester?.status === 'active' && role === 'installer'
+
+  if (!isAdmin && !isInstaller) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
+  if (isInstaller) {
+    const { data: booking } = await supabase
+      .from('install_bookings')
+      .select('installer_id')
+      .eq('id', id)
+      .single()
+    if (!booking || booking.installer_id !== user.id) {
+      return NextResponse.json({ data: null, error: { message: 'Forbidden: bukan booking Anda' } }, { status: 403 })
+    }
+    if (body.status && !['in_progress', 'done', 'revision'].includes(body.status)) {
+      return NextResponse.json({ data: null, error: { message: 'Installer hanya bisa: in_progress / done / revision' } }, { status: 403 })
+    }
   }
 
   // 2. Kalau status berubah, panggil RPC `advance_install_booking_status`

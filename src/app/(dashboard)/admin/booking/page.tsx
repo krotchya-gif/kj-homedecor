@@ -244,19 +244,25 @@ export default function AdminBookingPage() {
           : b
       )
     )
-    const { error: acceptErr } = await supabase
-      .from('install_bookings')
-      .update({
-        scheduled_date: acceptForm.scheduled_date,
-        scheduled_time: acceptForm.scheduled_time,
-        installer_id: acceptForm.installer_id,
-        status: 'scheduled'
+
+    // F-18 fix: SATU JALUR — lewat API route (RPC cascade ke orders.status)
+    try {
+      const res = await fetch(`/api/install-bookings/${selectedBooking.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'scheduled',
+          scheduled_date: acceptForm.scheduled_date,
+          scheduled_time: acceptForm.scheduled_time,
+          installer_id: acceptForm.installer_id
+        })
       })
-      .eq('id', selectedBooking.id)
-    if (acceptErr) {
+      const json = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(json?.error?.message ?? `HTTP ${res.status}`)
+    } catch (err) {
       setBookings(prev)
       setSaving(false)
-      toast('error', 'Gagal accept booking: ' + acceptErr.message)
+      toast('error', 'Gagal accept booking: ' + (err instanceof Error ? err.message : String(err)))
       return
     }
 
