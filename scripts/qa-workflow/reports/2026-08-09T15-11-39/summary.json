@@ -1,0 +1,170 @@
+[
+  {
+    "wf": "WF12 Publik",
+    "case": "Positif: landing render lengkap 0 error",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Percantik Ruanganmu\" present ✓"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Produk Pilihan\" present ✓"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Portofolio\" present ✓"
+      },
+      {
+        "name": "screenshot:landing-hero",
+        "pass": true,
+        "note": "screenshot landing-hero"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Lihat Semua Katalog\" present ✓"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Positif: halaman katalog lengkap",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/catalog"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Katalog Lengkap\" present ✓"
+      },
+      {
+        "name": "screenshot:katalog",
+        "pass": true,
+        "note": "screenshot katalog"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Positif: booking publik lengkap sukses",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/booking"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Masukkan nama lengkap\"] = QA-WF12 Booking"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"08xxxxxxxxxx\"] = 081299887766"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Visit Toko\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"15\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 600ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"10:00\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "screenshot:booking-lengkap",
+        "pass": true,
+        "note": "screenshot booking-lengkap"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Booking Sekarang\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 2000ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (1)"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Negatif: booking tanpa nama → tombol disabled (tidak bisa submit)",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/booking"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "expectDisabled",
+        "pass": true,
+        "note": "expectDisabled button[type=\"submit\"] disabled ✓"
+      },
+      {
+        "name": "screenshot:booking-kosong-disabled",
+        "pass": true,
+        "note": "screenshot booking-kosong-disabled"
+      }
+    ]
+  }
+]

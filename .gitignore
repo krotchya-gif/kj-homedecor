@@ -61,8 +61,8 @@ tmp_*
 nul
 nul.*
 
-# QA workflow screenshots (regenerable)
-scripts/qa-workflow/reports/
+# QA workflow screenshots (regenerable) — scripts/ dihapus dari repo (2026-08-11)
+# scripts/qa-workflow/reports/
 
 # runtime uploads
 public/uploads/*
@@ -70,3 +70,10 @@ public/uploads/*
 
 # playwright MCP artifacts
 .playwright-mcp/
+
+# Python cache (tidak relevan utk repo)
+__pycache__/
+*.pyc
+
+# Hermes agent internal (plans/notes lokal)
+.hermes/

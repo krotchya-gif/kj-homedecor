@@ -1,0 +1,1492 @@
+[
+  {
+    "wf": "WF1 Order Pipeline",
+    "case": "Positif: buat order lengkap muncul dgn nomor order",
+    "pass": false,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/customers"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Pelanggan\" present ✓"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Tambah\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 600ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Nama lengkap\"] = QA-WF1 Customer"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"08xxx\"] = 0812555666777"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast \"berhasil\" ✓"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/orders"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Pesanan\" present ✓"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Buat Pesanan\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Ketik nama atau no HP untuk cari...\"] = QA-WF1"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1000ms"
+      },
+      {
+        "name": "screenshot:autocomplete",
+        "pass": true,
+        "note": "screenshot autocomplete"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"QA-WF1 Customer\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": false,
+        "note": "toast TIDAK berisi \"berhasil\" (body: Total pesanan harus lebih dari 0.)"
+      }
+    ],
+    "error": "toast TIDAK berisi \"berhasil\" (body: Total pesanan harus lebih dari 0.)"
+  },
+  {
+    "wf": "WF1 Order Pipeline",
+    "case": "Negatif: submit form kosong → ditolak validasi (toast error, 0 order dibuat)",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/orders"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Buat Pesanan\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast \"wajib\" ✓"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=0 ✓ (SELECT count(*) AS n FROM orders WHERE customer_id IS NULL A…)"
+      },
+      {
+        "name": "screenshot:setelah-submit-kosong",
+        "pass": true,
+        "note": "screenshot setelah-submit-kosong"
+      }
+    ]
+  },
+  {
+    "wf": "WF2 Pembayaran & Verifikasi",
+    "case": "CRUD: seed order lunas → approve payment via UI → verified_by terisi",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO customers (id, name, phone) VALUES (gen_random_u…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO orders (id, order_number, customer_id, source, c…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO payments (id, order_id, type, amount, date, note…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/payments"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Payment Tracking\" present ✓"
+      },
+      {
+        "name": "screenshot:payment-seeded",
+        "pass": true,
+        "note": "screenshot payment-seeded"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM payments WHERE order_id IN (SELECT…)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM orders WHERE order_number = 'ORD-Q…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF2 Pembayaran & Verifikasi",
+    "case": "Positif: tab filter pembayaran bekerja",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/payments"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1000ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"BELUM BAYAR\" present ✓"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"LUNAS\" present ✓"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Refund\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "screenshot:tab-refund",
+        "pass": true,
+        "note": "screenshot tab-refund"
+      }
+    ]
+  },
+  {
+    "wf": "WF3 Survey Gorden",
+    "case": "CRUD-C: buat survey lengkap → tersimpan + ttd",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login surveyor@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/surveyor/survey/new"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1000ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Nama customer\"] = QA-WF3 Klien"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Alamat lokasi survey\"] = Jl. QA Automation No. 3"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"➕ Tambah Ruangan\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 600ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Contoh: Ruang Tamu\"] = Ruang QA"
+      },
+      {
+        "name": "screenshot:form-survey",
+        "pass": true,
+        "note": "screenshot form-survey"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Simpan →\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "draw",
+        "pass": true,
+        "note": "draw di canvas (1292x160)"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Nama surveyor yang bertanda tangan\"] = QA Surveyor"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Simpan Survey\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 3000ms"
+      },
+      {
+        "name": "expectUrl",
+        "pass": true,
+        "note": "expectUrl http://localhost:3002/surveyor/survey/b9ecc96e-bd8d-49ab-9aea-b918cefc1764 ✓"
+      },
+      {
+        "name": "screenshot:detail-survey",
+        "pass": true,
+        "note": "screenshot detail-survey"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE client_name ILIKE 'Q…)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE client_name ILIKE 'Q…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF3 Survey Gorden",
+    "case": "CRUD-D: hapus survey via detail → DB kosong",
+    "pass": false,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login surveyor@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO surveys (id, survey_number, client_name, client_…)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE survey_number = 'QA-…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/surveyor/history"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 2000ms"
+      },
+      {
+        "name": "clickText",
+        "pass": false,
+        "note": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('text=QA-WF3 Delete').first()\u001b[22m\n\u001b[2m    - locator resolved to <span class=\"mobile-card-value\">QA-WF3 Delete</span>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    15 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+      }
+    ],
+    "error": "locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('text=QA-WF3 Delete').first()\u001b[22m\n\u001b[2m    - locator resolved to <span class=\"mobile-card-value\">QA-WF3 Delete</span>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    15 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+  },
+  {
+    "wf": "WF3 Survey Gorden",
+    "case": "Negatif: simpan survey tanpa nama customer ditolak",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login surveyor@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/surveyor/survey/new"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Simpan →\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (0)"
+      }
+    ]
+  },
+  {
+    "wf": "WF4 Booking & Pemasangan",
+    "case": "Positif: tambah booking manual muncul di list",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/booking"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Booking & Pemasangan\" present ✓"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Tambah Manual\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[required][type=\"text\"] = QA-WF4 Booking"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[required][type=\"tel\"] = 0812111222333"
+      },
+      {
+        "name": "screenshot:form-booking",
+        "pass": true,
+        "note": "screenshot form-booking"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (1)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM install_bookings WHERE customer_na…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF4 Booking & Pemasangan",
+    "case": "Negatif: booking tanpa customer ditolak",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/booking"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Tambah Manual\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (0)"
+      }
+    ]
+  },
+  {
+    "wf": "WF5 Produksi",
+    "case": "CRUD: seed order produksi → job muncul di list",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO customers (id, name, phone) VALUES (gen_random_u…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO orders (id, order_number, customer_id, source, c…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/gudang/production"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Produksi\" present ✓"
+      },
+      {
+        "name": "screenshot:production-job-seeded",
+        "pass": true,
+        "note": "screenshot production-job-seeded"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM orders WHERE order_number = 'ORD-Q…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF5 Produksi",
+    "case": "Positif: job list render normal",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/gudang/production"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "screenshot:production-list",
+        "pass": true,
+        "note": "screenshot production-list"
+      }
+    ]
+  },
+  {
+    "wf": "WF6 Steam & QC",
+    "case": "CRUD: tambah record steam/laundry → verify DB",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/gudang/steam"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Steam\" present ✓"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Input Laundry\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "screenshot:form-laundry",
+        "pass": true,
+        "note": "screenshot form-laundry"
+      }
+    ]
+  },
+  {
+    "wf": "WF6 Steam & QC",
+    "case": "Positif: halaman QC render",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/gudang/qc"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"QC\" present ✓"
+      },
+      {
+        "name": "screenshot:qc-list",
+        "pass": true,
+        "note": "screenshot qc-list"
+      }
+    ]
+  },
+  {
+    "wf": "WF7 Pengiriman",
+    "case": "CRUD: seed order ready → pack via UI → status dikemas",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO customers (id, name, phone) VALUES (gen_random_u…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO orders (id, order_number, customer_id, source, c…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/shipping"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"ORD-QA-WF7\" present ✓"
+      },
+      {
+        "name": "screenshot:shipping-seeded",
+        "pass": true,
+        "note": "screenshot shipping-seeded"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM orders WHERE order_number = 'ORD-Q…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF7 Pengiriman",
+    "case": "Positif: halaman shipping render",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/shipping"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Pengiriman\" present ✓"
+      },
+      {
+        "name": "screenshot:shipping-list",
+        "pass": true,
+        "note": "screenshot shipping-list"
+      }
+    ]
+  },
+  {
+    "wf": "WF8 Material & Stok",
+    "case": "Positif: posisi stok render + tab Material/Produk",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/gudang/stock"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Posisi Stok\" present ✓"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Produk\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "screenshot:stock-produk",
+        "pass": true,
+        "note": "screenshot stock-produk"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Material\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "screenshot:stock-material",
+        "pass": true,
+        "note": "screenshot stock-material"
+      }
+    ]
+  },
+  {
+    "wf": "WF8 Material & Stok",
+    "case": "CRUD: seed material stok minim → alert muncul",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO materials (id, name, unit, stock_gudang, stock_t…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/gudang/alerts"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "screenshot:alert-material",
+        "pass": true,
+        "note": "screenshot alert-material"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM materials WHERE name ILIKE 'QA-WF8…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF9 HPP & Laporan Keuangan",
+    "case": "CRUD: seed produk+BOM → hitung & simpan HPP → price ter-update",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO materials (id, name, unit, stock_gudang, stock_t…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO products (id, name, sku, price, stock_toko, is_c…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO bom (id, product_id, material_id, qty_per_unit) …)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/owner/hpp"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"HPP\" present ✓"
+      },
+      {
+        "name": "screenshot:hpp-seeded",
+        "pass": true,
+        "note": "screenshot hpp-seeded"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM bom WHERE product_id IN (SELECT id…)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM products WHERE name ILIKE 'QA-WF9%…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF9 HPP & Laporan Keuangan",
+    "case": "Positif: laporan laba-rugi render",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/owner/laporan/laba-rugi"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Laba Rugi\" present ✓"
+      },
+      {
+        "name": "screenshot:laba-rugi",
+        "pass": true,
+        "note": "screenshot laba-rugi"
+      }
+    ]
+  },
+  {
+    "wf": "WF9 HPP & Laporan Keuangan",
+    "case": "Positif: neraca render",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/owner/laporan/neraca"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Neraca\" present ✓"
+      },
+      {
+        "name": "screenshot:neraca",
+        "pass": true,
+        "note": "screenshot neraca"
+      }
+    ]
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "CRUD-C: tambah tagihan via UI → verify DB",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO suppliers (id, name, contact) VALUES (gen_random…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/hutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Hutang\" present ✓"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Tambah Tagihan\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "selectLabel",
+        "pass": true,
+        "note": "selectLabel form select = \"QA-WF10 Supplier\""
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[type=\"text\"] = INV-QA-WF10-UI"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[type=\"date\"] = 2026-08-09"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[type=\"number\"] = 150000"
+      },
+      {
+        "name": "screenshot:form-tagihan-isi",
+        "pass": true,
+        "note": "screenshot form-tagihan-isi"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (1)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM hutang WHERE invoice_number = 'INV…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "CRUD-R: seed hutang → tampil di list + DB",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO suppliers (id, name, contact) VALUES (gen_random…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO hutang (id, supplier_id, invoice_number, invoice…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/hutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "screenshot:hutang-seeded",
+        "pass": true,
+        "note": "screenshot hutang-seeded"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=2 ✓ (SELECT count(*) AS n FROM hutang WHERE invoice_number = 'INV…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "Negatif: bayar melebihi sisa hutang → ditolak + paid_amount tetap 0",
+    "pass": false,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO suppliers (id, name, contact) VALUES (gen_random…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO hutang (id, supplier_id, invoice_number, invoice…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/hutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "click",
+        "pass": false,
+        "note": "page.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Bayar\")')\u001b[22m\n\u001b[2m    - locator resolved to 6 elements. Proceeding with the first one: <button>Bayar</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    15 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+      }
+    ],
+    "error": "page.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('button:has-text(\"Bayar\")')\u001b[22m\n\u001b[2m    - locator resolved to 6 elements. Proceeding with the first one: <button>Bayar</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not visible\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    15 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not visible\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n"
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "Positif: halaman piutang render + channel",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/piutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Piutang\" present ✓"
+      },
+      {
+        "name": "screenshot:piutang-list",
+        "pass": true,
+        "note": "screenshot piutang-list"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/piutang/channel"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1000ms"
+      },
+      {
+        "name": "screenshot:piutang-channel",
+        "pass": true,
+        "note": "screenshot piutang-channel"
+      }
+    ]
+  },
+  {
+    "wf": "WF11 TikTok Shop Sync",
+    "case": "Positif: halaman TikTok Shop render",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/owner/tiktok"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"TikTok\" present ✓"
+      },
+      {
+        "name": "screenshot:tiktok-page",
+        "pass": true,
+        "note": "screenshot tiktok-page"
+      }
+    ]
+  },
+  {
+    "wf": "WF11 TikTok Shop Sync",
+    "case": "CRUD-R: order TikTok ada + detail order punya item",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/orders"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"TikTok\" present ✓"
+      },
+      {
+        "name": "screenshot:orders-tiktok",
+        "pass": true,
+        "note": "screenshot orders-tiktok"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=105 ✓ (SELECT count(*) AS n FROM orders WHERE source = 'tiktok'…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF11 TikTok Shop Sync",
+    "case": "Positif: statistik marketplace render",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/owner/marketplace"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Marketplace\" present ✓"
+      },
+      {
+        "name": "screenshot:marketplace-page",
+        "pass": true,
+        "note": "screenshot marketplace-page"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Positif: landing render lengkap 0 error",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Percantik Ruanganmu\" present ✓"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Produk Pilihan\" present ✓"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Portofolio\" present ✓"
+      },
+      {
+        "name": "screenshot:landing-hero",
+        "pass": true,
+        "note": "screenshot landing-hero"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Lihat Semua Katalog\" present ✓"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Positif: halaman katalog lengkap",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/catalog"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Katalog Lengkap\" present ✓"
+      },
+      {
+        "name": "screenshot:katalog",
+        "pass": true,
+        "note": "screenshot katalog"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Positif: booking publik lengkap sukses",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/booking"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Masukkan nama lengkap\"] = QA-WF12 Booking"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"08xxxxxxxxxx\"] = 081299887766"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Visit Toko\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"15\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 600ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"10:00\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "screenshot:booking-lengkap",
+        "pass": true,
+        "note": "screenshot booking-lengkap"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Booking Sekarang\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 2000ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (1)"
+      }
+    ]
+  },
+  {
+    "wf": "WF12 Publik",
+    "case": "Negatif: booking tanpa nama → tombol disabled (tidak bisa submit)",
+    "pass": true,
+    "steps": [
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/booking"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "expectDisabled",
+        "pass": true,
+        "note": "expectDisabled button[type=\"submit\"] disabled ✓"
+      },
+      {
+        "name": "screenshot:booking-kosong-disabled",
+        "pass": true,
+        "note": "screenshot booking-kosong-disabled"
+      }
+    ]
+  }
+]

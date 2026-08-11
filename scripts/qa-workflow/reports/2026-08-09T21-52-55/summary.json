@@ -1,0 +1,56 @@
+[
+  {
+    "wf": "WF1 Order Pipeline",
+    "case": "Positif: buat order lengkap muncul dgn nomor order",
+    "pass": false,
+    "steps": [],
+    "error": "login gagal (masih di /login)"
+  },
+  {
+    "wf": "WF1 Order Pipeline",
+    "case": "Temuan QA: submit form kosong tidak crash (order dibuat, pelanggan kosong)",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/orders"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Buat Pesanan\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 2000ms"
+      },
+      {
+        "name": "expectUrl",
+        "pass": true,
+        "note": "expectUrl http://localhost:3002/admin/orders ✓"
+      },
+      {
+        "name": "screenshot:setelah-submit-kosong",
+        "pass": true,
+        "note": "screenshot setelah-submit-kosong"
+      }
+    ]
+  }
+]

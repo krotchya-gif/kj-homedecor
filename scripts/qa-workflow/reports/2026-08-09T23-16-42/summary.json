@@ -1,0 +1,213 @@
+[
+  {
+    "wf": "WF3 Survey Gorden",
+    "case": "CRUD-C: buat survey lengkap → tersimpan + ttd",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login surveyor@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/surveyor/survey/new"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1000ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Nama customer\"] = QA-WF3 Klien"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Alamat lokasi survey\"] = Jl. QA Automation No. 3"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"➕ Tambah Ruangan\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 600ms"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Contoh: Ruang Tamu\"] = Ruang QA"
+      },
+      {
+        "name": "screenshot:form-survey",
+        "pass": true,
+        "note": "screenshot form-survey"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Simpan →\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "draw",
+        "pass": true,
+        "note": "draw di canvas (1292x160)"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type input[placeholder=\"Nama surveyor yang bertanda tangan\"] = QA Surveyor"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 400ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Simpan Survey\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 3000ms"
+      },
+      {
+        "name": "expectUrl",
+        "pass": true,
+        "note": "expectUrl http://localhost:3002/surveyor/survey/a2b709c9-edf3-4543-a26a-4f30650ab794 ✓"
+      },
+      {
+        "name": "screenshot:detail-survey",
+        "pass": true,
+        "note": "screenshot detail-survey"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE client_name ILIKE 'Q…)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE client_name ILIKE 'Q…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF3 Survey Gorden",
+    "case": "CRUD-D: hapus survey via detail → DB kosong",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login surveyor@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO surveys (id, survey_number, client_name, client_…)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE survey_number = 'QA-…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/surveyor/history"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 3000ms"
+      },
+      {
+        "name": "expectUrl",
+        "pass": true,
+        "note": "expectUrl http://localhost:3002/surveyor/history ✓"
+      },
+      {
+        "name": "screenshot:history-seeded",
+        "pass": true,
+        "note": "screenshot history-seeded"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click a:has-text(\"Lihat\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Hapus\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM surveys WHERE survey_number = 'QA-…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF3 Survey Gorden",
+    "case": "Negatif: simpan survey tanpa nama customer ditolak",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login surveyor@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/surveyor/survey/new"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Simpan →\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (0)"
+      }
+    ]
+  }
+]

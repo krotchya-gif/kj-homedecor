@@ -1,0 +1,236 @@
+[
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "CRUD-C: tambah tagihan via UI → verify DB",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO suppliers (id, name, contact) VALUES (gen_random…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/hutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Hutang\" present ✓"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button:has-text(\"Tambah Tagihan\")"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "selectLabel",
+        "pass": true,
+        "note": "selectLabel form select = \"QA-WF10 Supplier\""
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[type=\"text\"] = INV-QA-WF10-UI"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[type=\"date\"] = 2026-08-09"
+      },
+      {
+        "name": "type",
+        "pass": true,
+        "note": "type form input[type=\"number\"] = 150000"
+      },
+      {
+        "name": "screenshot:form-tagihan-isi",
+        "pass": true,
+        "note": "screenshot form-tagihan-isi"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click form button[type=\"submit\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "expectToast",
+        "pass": true,
+        "note": "toast muncul (1)"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=1 ✓ (SELECT count(*) AS n FROM hutang WHERE invoice_number = 'INV…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "CRUD-R: seed hutang → tampil di list + DB",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO suppliers (id, name, contact) VALUES (gen_random…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO hutang (id, supplier_id, invoice_number, invoice…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/hutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "screenshot:hutang-seeded",
+        "pass": true,
+        "note": "screenshot hutang-seeded"
+      },
+      {
+        "name": "dbExpect",
+        "pass": true,
+        "note": "dbExpect count=2 ✓ (SELECT count(*) AS n FROM hutang WHERE invoice_number = 'INV…)"
+      }
+    ]
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "Negatif: bayar melebihi sisa hutang → ditolak + paid_amount tetap 0",
+    "pass": false,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO suppliers (id, name, contact) VALUES (gen_random…)"
+      },
+      {
+        "name": "dbExec",
+        "pass": true,
+        "note": "dbExec OK (INSERT INTO hutang (id, supplier_id, invoice_number, invoice…)"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/hutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1500ms"
+      },
+      {
+        "name": "click",
+        "pass": true,
+        "note": "click button[aria-label=\"Menu aksi\"]"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Bayar\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "type",
+        "pass": false,
+        "note": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"0\"]')\u001b[22m\n"
+      }
+    ],
+    "error": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[placeholder=\"0\"]')\u001b[22m\n"
+  },
+  {
+    "wf": "WF10 Hutang & Piutang",
+    "case": "Positif: halaman piutang render + channel",
+    "pass": true,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/piutang"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1200ms"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Piutang\" present ✓"
+      },
+      {
+        "name": "screenshot:piutang-list",
+        "pass": true,
+        "note": "screenshot piutang-list"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/finance/piutang/channel"
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 1000ms"
+      },
+      {
+        "name": "screenshot:piutang-channel",
+        "pass": true,
+        "note": "screenshot piutang-channel"
+      }
+    ]
+  }
+]

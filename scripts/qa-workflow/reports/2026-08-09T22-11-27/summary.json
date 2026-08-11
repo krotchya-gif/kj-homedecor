@@ -1,0 +1,73 @@
+[
+  {
+    "wf": "WF4 Booking & Pemasangan",
+    "case": "Positif: tambah booking manual muncul di list",
+    "pass": false,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/booking"
+      },
+      {
+        "name": "expectText",
+        "pass": true,
+        "note": "expectText \"Booking & Pemasangan\" present ✓"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Tambah Manual\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "type",
+        "pass": false,
+        "note": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form input[required][type=\"text\"]')\u001b[22m\n"
+      }
+    ],
+    "error": "page.fill: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form input[required][type=\"text\"]')\u001b[22m\n"
+  },
+  {
+    "wf": "WF4 Booking & Pemasangan",
+    "case": "Negatif: booking tanpa customer ditolak",
+    "pass": false,
+    "steps": [
+      {
+        "name": "login",
+        "pass": true,
+        "note": "login owner@kjhomedecor.com"
+      },
+      {
+        "name": "goto",
+        "pass": true,
+        "note": "goto http://localhost:3002/admin/booking"
+      },
+      {
+        "name": "clickText",
+        "pass": true,
+        "note": "clickText \"Tambah Manual\""
+      },
+      {
+        "name": "wait",
+        "pass": true,
+        "note": "wait 800ms"
+      },
+      {
+        "name": "click",
+        "pass": false,
+        "note": "page.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form button[type=\"submit\"]')\u001b[22m\n"
+      }
+    ],
+    "error": "page.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('form button[type=\"submit\"]')\u001b[22m\n"
+  }
+]
