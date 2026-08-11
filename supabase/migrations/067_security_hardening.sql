@@ -13,6 +13,16 @@
 BEGIN;
 
 -- ============================================================
+-- 0. Fix accounts_type_check (DB live punya versi lama tanpa 'revenue'
+--    dan beberapa baris lama ber-type di luar daftar standar).
+--    NOT VALID: constraint berlaku untuk INSERT/UPDATE BARU tanpa men-scan
+--    baris lama (yang perlu dibersihkan manual / via backfill terpisah).
+-- ============================================================
+ALTER TABLE public.accounts DROP CONSTRAINT IF EXISTS accounts_type_check;
+ALTER TABLE public.accounts ADD CONSTRAINT accounts_type_check
+  CHECK (type IN ('asset', 'liability', 'equity', 'revenue', 'expense')) NOT VALID;
+
+-- ============================================================
 -- 1. Akun Penjualan Retur + mapping sales_return (F-9)
 --    Refund = uang kembali ke customer = mengurangi omzet.
 --    Dr Penjualan Retur (contra revenue) / Cr Kas.
@@ -405,22 +415,28 @@ BEGIN
 END;
 $$;
 
--- Revoke PUBLIC/anon dari RPC stock & pipeline
-REVOKE ALL ON FUNCTION public.increment_stock_toko FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.increment_stock_toko FROM anon;
-REVOKE ALL ON FUNCTION public.increment_stock_gudang FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.increment_stock_gudang FROM anon;
-REVOKE ALL ON FUNCTION public.decrement_stock_gudang FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.decrement_stock_gudang FROM anon;
-REVOKE ALL ON FUNCTION public.consume_materials_for_production FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.consume_materials_for_production FROM anon;
-REVOKE ALL ON FUNCTION public.advance_install_booking_status FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.advance_install_booking_status FROM anon;
+-- Revoke PUBLIC/anon dari RPC stock & pipeline (signature eksplisit —
+-- ada versi lama ber-arg INTEGER dari migration 028 yang juga harus di-revoke/drop)
+REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM anon;
+REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM anon;
+REVOKE ALL ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) FROM anon;
+REVOKE ALL ON FUNCTION public.consume_materials_for_production(UUID, UUID, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.consume_materials_for_production(UUID, UUID, UUID) FROM anon;
+REVOKE ALL ON FUNCTION public.advance_install_booking_status(UUID, TEXT, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.advance_install_booking_status(UUID, TEXT, UUID) FROM anon;
 
-GRANT EXECUTE ON FUNCTION public.increment_stock_toko TO authenticated;
-GRANT EXECUTE ON FUNCTION public.increment_stock_gudang TO authenticated;
-GRANT EXECUTE ON FUNCTION public.decrement_stock_gudang TO authenticated;
-GRANT EXECUTE ON FUNCTION public.consume_materials_for_production TO authenticated;
-GRANT EXECUTE ON FUNCTION public.advance_install_booking_status TO authenticated;
+-- Drop versi lama ber-arg INTEGER (028) yang TIDAK punya role check
+DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.decrement_stock_gudang(UUID, INTEGER);
+
+GRANT EXECUTE ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.consume_materials_for_production(UUID, UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.advance_install_booking_status(UUID, TEXT, UUID) TO authenticated;
 
 COMMIT;
