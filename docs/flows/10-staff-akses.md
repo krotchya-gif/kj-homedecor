@@ -1,0 +1,40 @@
+# Flow 10 — Staff & Hak Akses
+
+> Kelola pengguna (staff) dan role akses di aplikasi.
+
+## Aktor
+| Role | Bisa apa |
+|---|---|
+| Owner | **Semua**: tambah/ubah/hapus staff, aktif/nonaktifkan akun, semua menu |
+| Admin | Kelola order/pelanggan/produk, tapi bukan staff |
+| Role lain | Hanya menu sesuai perannya |
+
+## Role yang tersedia
+| Role | Menu utama |
+|---|---|
+| `owner` | Semua menu + kelola staff |
+| `admin` | Pesanan, katalog, pelanggan, booking, pengiriman, dll (tanpa kelola staff) |
+| `finance` | Pembayaran, kas, hutang, piutang, laporan |
+| `gudang` | Sortir, produksi, steam/QC, packing, pembelian |
+| `penjahit` | Job produksi miliknya |
+| `installer` | Jadwal pemasangan |
+| `surveyor` | Survey (hanya milik sendiri) |
+
+## Langkah-langkah
+1. Owner buka **Pengaturan → Staff**
+2. **Tambah staff**: nama, email, password (min 6 karakter), pilih role
+3. Staff langsung bisa **login** dengan email + password tersebut
+4. **Ubah**: nama/role (Owner)
+5. **Nonaktifkan akun** → staff tidak bisa login lagi (aktifkan kembali kapan saja)
+6. **Hapus** → akun dihapus
+
+## Aturan
+- Hanya **Owner** yang bisa kelola staff (API dicek di server — bukan hanya UI)
+- Password wajib minimal 6 karakter (divalidasi di server)
+- Staff tidak boleh mengubah role/hak akses sendiri
+- `user.md` di repo = daftar akun & role — **wajib disinkronkan** setiap ada perubahan
+
+## Keamanan
+- Semua endpoint API memverifikasi **role** di server (RLS + role check)
+- Surveyor hanya melihat data miliknya (RLS `surveyor_id = auth.uid()`)
+- Admin/Owner melihat semua
