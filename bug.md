@@ -12,8 +12,8 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-002 | Pipeline macet di Kemas (ready → packed) — gudang tidak bisa advance | ✅ Fixed | — |
 | BUG-003 | Role admin diblokir di stage production/steam/ready (🔒) | ✅ Fixed | — |
 | BUG-004 | Approve pembayaran (Cek Bayar) gagal jika DP diinput admin | ✅ Fixed (Opsi B) | — |
-| BUG-005 | Role drift: TS `Role` vs DB CHECK constraint vs pemakaian app | 🟡 Terbuka | Sedang |
-| BUG-006 | `x-pathname` header diklaim tapi tidak pernah di-set | 🟡 Terbuka | Rendah |
+| BUG-005 | Role drift: TS `Role` vs DB CHECK constraint vs pemakaian app | ✅ Fixed | — |
+| BUG-006 | `x-pathname` header diklaim tapi tidak pernah di-set | ✅ Fixed | — |
 | BUG-007 | Pipeline pasang: booking installer tidak terhubung dari order detail (order nyangkut di Terjadwal Pasang) | ✅ Fixed | — |
 | BUG-008 | Harga jual produk diinput admin (tebakan) padahal belum tahu HPP → harga asal-asalan tampil di katalog | ✅ Fixed (Opsi A) | — |
 | BUG-009 | **Pembukuan server mati**: `createJournalEntry` pakai `fetch('/api/journal')` URL relatif → di Next.js route handler throw → jurnal order/PO tidak pernah dibuat | ✅ Fixed | — |
@@ -33,6 +33,15 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-023 | **UI finance**: handleQcApprove dead, refund tab mobile salah render, dashboard angka menyesatkan, cash tanpa validasi, transfer race, mutasi saldo salah, mapping-diff error, PDF reports rusak, tarif upah hardcode, kronologi-hpp mislabeled | ✅ Fixed | — |
 | BUG-024 | **Drift**: Role type tanpa surveyor, x-pathname tak di-set, proxy login map surveyor, rename sidebar, finance akses marketplace/tiktok | ✅ Fixed | — |
 | BUG-025 | **Sisa audit F-31/53/58/40/41/42/44/12/19/57/54/33/20/22/25/59/60/65/23/62/63/64/66/67/68/69/71**: dua kolom sumber order, statistik halaman-aktif, buku besar tanpa detail, piutang UI, akun kas di form payment, jurnal non-atomik, kas tidak live, saldo awal manual, pagination laporan, guard payroll paid, jurnal order diam-diam gagal, toast ganda, tanggal masa depan, FK error mentah, desimal & timezone | ✅ Fixed (migration 064) | Migration 064 = RPC `create_journal_atomic` (entry+lines+saldo kas SATU transaksi + idempotency key) |
+| BUG-026 | **F-18 booking installer tidak cascade ke orders**: checklist installer & admin accept booking update `install_bookings` langsung → orders.status tidak pernah `scheduled`/`done` | ✅ Fixed | Semua status booking lewat 1 jalur (API → RPC `advance_install_booking_status`) + role check installer |
+| BUG-027 | **F-2 DP order = `paid` palsu + gate tanpa-DP** | ✅ Fixed | DP tidak lagi isi `lunas_amount` fiktif; order `pending` diblokir advance (UI+API, kecuali finance) |
+| BUG-028 | **F-16/F-17 pipeline gate bocor**: packing tanpa cek lunas; regresi status (penjahit/steam fail); production selesai tanpa steam_job | ✅ Fixed | Gate `paid` di gudang/qc & admin/shipping; guard `.eq('status',...)`; auto-create steam_job |
+| BUG-029 | **F-13/14 e-commerce off-ledger**: order TikTok dicatat `paid` tanpa payment/jurnal; settlement tanpa jurnal; cancel TikTok tak sinkron; cancel order tanpa reversal jurnal | ✅ Fixed | sync-to-main-orders + payment + jurnal idempotent; webhook/create-piutang berjurnal; cancel reversal |
+| BUG-030 | **F-9 refund menciptakan piutang** (Dr Piutang/Cr Kas) | ✅ Fixed | Mapping `sales_return` (Dr Penjualan Retur/Cr Kas) + retur piutang berjurnal |
+| BUG-031 | **Security API lanjutan**: TikTok auth/sync tanpa role check (bocor app_secret), purchase-requests/[id] mass-assignment, fail-open `?? 'admin'`, users write bebas | ✅ Fixed | Role check TikTok/PR/staff; `toClientError()` redaksi error 26 route; deny (bukan fail-open) |
+| BUG-032 | **RLS & RPC hardening**: policy permisif (laundry_payroll/rates, style_rates, assets, account_categories, users, tiktok owner_all USING(true)), RPC stock tanpa role check | ✅ Fixed (migration 067) | RLS role-based + REVOKE PUBLIC/anon + role check di 5 RPC |
+| BUG-033 | **`users_role_check` hilang role laundry** (migration 060) → insert role laundry gagal 23514 | ✅ Fixed (migration 070) | Drop + recreate constraint lengkap |
+| BUG-034 | **F-61 sumber piutang ganda**: laporan campur orders vs tabel piutang | ✅ Fixed | Sumber utama = tabel `piutang` (umur-piutang, dashboard, payments) + halaman rekonsiliasi read-only |
 
 ---
 
