@@ -1139,6 +1139,21 @@ export default function OrderDetailPage() {
                   >
                     {STATUS_LABELS[s]}
                   </span>
+                  {current && (
+                    <span
+                      style={{
+                        fontSize: '0.6rem',
+                        fontWeight: '600',
+                        color: '#cc7030',
+                        background: 'rgba(204,112,48,0.12)',
+                        borderRadius: '0.25rem',
+                        padding: '0.1rem 0.35rem',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      Saat Ini
+                    </span>
+                  )}
                 </div>
                 {i < ORDER_STATUSES.length - 1 && (
                   <div
