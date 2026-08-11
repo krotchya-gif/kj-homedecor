@@ -14,6 +14,10 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+export function formatRp(amount: number): string {
+  return formatCurrency(amount)
+}
+
 export function generateOrderNumber(): string {
   const year = new Date().getFullYear()
   const num = Math.floor(Math.random() * 9999) + 1
