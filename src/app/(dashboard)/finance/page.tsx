@@ -54,6 +54,9 @@ interface Order {
 export default function FinanceDashboard() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
+  const [piutang, setPiutang] = useState<
+    { id: string; amount: number; paid_amount: number; return_amount: number; created_at: string; invoice_date?: string }[]
+  >([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -63,11 +66,19 @@ export default function FinanceDashboard() {
 
   async function loadOrders() {
     setLoading(true)
-    const { data } = await supabase
-      .from('orders')
-      .select('id, status, payment_status, total_amount, dp_amount, lunas_amount, created_at, source')
-      .order('created_at', { ascending: false })
-    setOrders((data as Order[]) ?? [])
+    const [ordersRes, piutangRes] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('id, status, payment_status, total_amount, dp_amount, lunas_amount, created_at, source')
+        .order('created_at', { ascending: false }),
+      // F-61 fix: piutang dari TABEL piutang (sumber utama) — bukan orders
+      supabase
+        .from('piutang')
+        .select('id, amount, paid_amount, return_amount, created_at, invoice_date')
+        .in('status', ['pending', 'partial'])
+    ])
+    setOrders((ordersRes.data as Order[]) ?? [])
+    setPiutang((piutangRes.data ?? []) as never[])
     setLoading(false)
   }
 
@@ -102,11 +113,9 @@ export default function FinanceDashboard() {
     .filter(([_, v]) => v > 0)
     .map(([k, v]) => ({ name: STATUS_LABELS[k] ?? k, value: v }))
 
-  // Piutang aging (orders with payment_status != paid, exclude cancelled)
-  // F-16 fix: pakai SISA tagihan (total − dp − lunas), bukan total penuh
-  const piutangOrders = orders.filter((o) => o.payment_status !== 'paid' && o.status !== 'cancelled')
-  const piutangTotal = piutangOrders.reduce(
-    (s, o) => s + Math.max(0, (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0)),
+  // F-61 fix: piutang aging & total dari TABEL piutang (sumber utama)
+  const piutangTotal = piutang.reduce(
+    (s, p) => s + Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)),
     0
   )
 
@@ -115,12 +124,13 @@ export default function FinanceDashboard() {
   const needsVerification = orders.filter((o) => o.status === 'new')
   const needsVerificationPaid = needsVerification.filter((o) => o.payment_status === 'paid')
 
-  // Piutang aging buckets (based on days since created)
+  // Piutang aging buckets (based on invoice_date/created_at)
   const now = new Date()
   const aging = { '<30': 0, '30-60': 0, '60-90': 0, '>90': 0 }
-  piutangOrders.forEach((o) => {
-    const days = Math.floor((now.getTime() - new Date(o.created_at).getTime()) / (1000 * 60 * 60 * 24))
-    const sisa = Math.max(0, (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0))
+  piutang.forEach((p) => {
+    const anchor = p.invoice_date ?? p.created_at ?? ''
+    const days = Math.floor((now.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
+    const sisa = Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0))
     if (days < 30) aging['<30'] += sisa
     else if (days < 60) aging['30-60'] += sisa
     else if (days < 90) aging['60-90'] += sisa
@@ -150,7 +160,7 @@ export default function FinanceDashboard() {
         <StatCard
           label="Total Piutang"
           value={formatRp(piutangTotal)}
-          sub={`${piutangOrders.length} pesanan belum lunas`}
+          sub={`${piutang.length} faktur belum lunas`}
           icon={DollarSign}
           accent="#16a34a"
           iconBg="#f0fdf4"

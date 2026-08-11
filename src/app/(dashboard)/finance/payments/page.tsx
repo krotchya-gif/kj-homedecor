@@ -70,6 +70,10 @@ export default function FinancePaymentsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [allOrders, setAllOrders] = useState<Order[]>([])
+  // F-61 fix: total piutang dari tabel piutang (sumber utama)
+  const [piutangData, setPiutangData] = useState<
+    { amount: number; paid_amount: number; return_amount: number }[]
+  >([])
   // F-12 fix: daftar akun kas untuk pilihan di form pembayaran
   const [cashAccounts, setCashAccounts] = useState<{ id: string; name: string }[]>([])
   const supabase = createClient()
@@ -87,7 +91,7 @@ export default function FinancePaymentsPage() {
     const from = (currentPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    const [ordersData, returnsData, statsData] = await Promise.all([
+    const [ordersData, returnsData, statsData, piutangData] = await Promise.all([
       supabase
         .from('orders')
         .select(
@@ -105,13 +109,21 @@ export default function FinancePaymentsPage() {
       supabase
         .from('orders')
         .select('payment_status, total_amount, dp_amount, lunas_amount')
-        .neq('payment_status', 'cancelled')
+        .neq('payment_status', 'cancelled'),
+      // F-61 fix: Total Piutang dari TABEL piutang (sumber utama)
+      supabase
+        .from('piutang')
+        .select('amount, paid_amount, return_amount')
+        .in('status', ['pending', 'partial'])
     ])
 
     setOrders((ordersData.data ?? []) as unknown as Order[])
     setTotalCount(ordersData.count ?? 0)
     setRefundList((returnsData.data ?? []) as ReturnRow[])
     setAllOrders((statsData.data ?? []) as unknown as Order[])
+    setPiutangData(
+      (piutangData.data ?? []) as unknown as { amount: number; paid_amount: number; return_amount: number }[]
+    )
     // F-12 fix: muat daftar akun kas untuk pilihan di form pembayaran
     const { data: cashAcc } = await supabase
       .from('accounts')
@@ -533,9 +545,7 @@ export default function FinancePaymentsPage() {
             val: fmt(
               Math.max(
                 0,
-                allOrders
-                  .filter((o) => o.payment_status !== 'paid')
-                  .reduce((s, o) => s + (o.total_amount - o.dp_amount - o.lunas_amount), 0)
+                piutangData.reduce((s, p) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0), 0)
               )
             ),
             color: '#cc7030'

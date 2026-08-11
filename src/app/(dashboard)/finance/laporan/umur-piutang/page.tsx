@@ -29,6 +29,10 @@ interface LooseRow {
   total_debit?: number
   total_credit?: number
   total?: number
+  invoice_number?: string
+  invoice_date?: string
+  paid_amount?: number
+  return_amount?: number
   amount?: number
   qty?: number
   status?: string
@@ -60,12 +64,13 @@ export default function UmurPiutangPage() {
 
   async function fetchData() {
     setLoading(true)
-    // BUG-015 fix: rentang tanggal + select dp/lunas (untuk sisa tagihan)
+    // F-61 fix: sumber utama piutang = TABEL piutang (faktur manual + settlement
+    // marketplace). Sebelumnya baca orders → faktur tanpa order tidak masuk &
+    // orders tanpa faktur ikut dihitung (2 angka beda antar laporan).
     const { data } = await supabase
-      .from('orders')
-      .select('id, created_at, total_amount, dp_amount, lunas_amount, status, payment_status, customer:customers(name)')
-      .neq('payment_status', 'paid')
-      .neq('status', 'cancelled')
+      .from('piutang')
+      .select('id, created_at, invoice_date, amount, paid_amount, return_amount, status, customer:customers(name)')
+      .in('status', ['pending', 'partial'])
       .gte('created_at', startDate)
       .lte('created_at', endDate + 'T23:59:59')
       .order('created_at', { ascending: false })
@@ -89,10 +94,13 @@ export default function UmurPiutangPage() {
   const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
 
   orders.forEach((o) => {
-    const days = Math.floor((asOf.getTime() - new Date(o.created_at ?? '').getTime()) / (1000 * 60 * 60 * 24))
-    const bucket = getBucket(days)
-    // BUG-015 fix: jumlahkan SISA tagihan (total − dp − lunas), bukan total penuh
-    const sisa = (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0)
+    // aging pakai invoice_date kalau ada, fallback created_at
+    const anchor = o.invoice_date ?? o.created_at ?? ''
+    const days = Math.floor((asOf.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
+    // F-69 fix: tanggal masa depan → days negatif, clamp ke 0
+    const bucket = getBucket(Math.max(0, days))
+    // BUG-015 fix: jumlahkan SISA tagihan (amount − paid − return), bukan amount penuh
+    const sisa = (o.amount ?? 0) - (o.paid_amount ?? 0) - (o.return_amount ?? 0)
     buckets[bucket] += sisa > 0 ? sisa : 0
   })
 

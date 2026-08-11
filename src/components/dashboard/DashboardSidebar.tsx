@@ -31,7 +31,8 @@ import {
   ShoppingBag,
   ClipboardPlus,
   History,
-  ClipboardList
+  ClipboardList,
+  Scale
 } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -161,7 +162,8 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         { label: 'Akun', href: '/finance/accounts', icon: <Book size={18} /> },
         { label: 'Aset', href: '/finance/assets', icon: <LandPlot size={18} /> },
         { label: 'Jurnal', href: '/finance/journal', icon: <FileText size={18} /> },
-        { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> }
+        { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> },
+        { label: 'Rekonsiliasi', href: '/finance/rekonsiliasi', icon: <Scale size={18} /> }
       ]
     },
     {
