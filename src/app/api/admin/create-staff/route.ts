@@ -42,11 +42,13 @@ export async function POST(request: NextRequest) {
     const {
       data: { user: requester }
     } = await supabase.auth.getUser()
-    if (requester) {
-      const { data: requesterData } = await supabase.from('users').select('role').eq('id', requester.id).single()
-      if (requesterData?.role !== 'admin' && requesterData?.role !== 'owner') {
-        return NextResponse.json({ error: 'Hanya Admin yang dapat membuat akun staff' }, { status: 403 })
-      }
+    // BUG (security): wajib login — kalau requester null, jangan lanjut!
+    if (!requester) {
+      return NextResponse.json({ error: 'Unauthorized — silakan login' }, { status: 401 })
+    }
+    const { data: requesterData } = await supabase.from('users').select('role').eq('id', requester.id).single()
+    if (requesterData?.role !== 'admin' && requesterData?.role !== 'owner') {
+      return NextResponse.json({ error: 'Hanya Admin yang dapat membuat akun staff' }, { status: 403 })
     }
 
     // Create auth user

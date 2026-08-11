@@ -33,6 +33,7 @@ export async function proxy(request: NextRequest) {
       penjahit: '/penjahit',
       finance: '/finance',
       installer: '/installer',
+      surveyor: '/surveyor',
       owner: '/owner'
     }
 
@@ -63,8 +64,13 @@ export async function proxy(request: NextRequest) {
       (route) => pathname === route || pathname.startsWith(route + '/')
     )
 
+    // 2026-08-11: finance boleh akses /owner/marketplace & /owner/tiktok (data settlement
+    // dipakai finance untuk piutang channel) — whitelist path spesifik, bukan seluruh /owner.
+    const isFinanceAllowedOwnerPath =
+      userRole === 'finance' && (pathname.startsWith('/owner/marketplace') || pathname.startsWith('/owner/tiktok'))
+
     const allowedRoles = dashboardPrefix ? ROLE_DASHBOARD_MAP[dashboardPrefix] : undefined
-    if (allowedRoles && !allowedRoles.includes(userRole)) {
+    if (allowedRoles && !allowedRoles.includes(userRole) && !isFinanceAllowedOwnerPath) {
       // Redirect to user's own dashboard
       const dashboards: Record<string, string> = {
         admin: '/admin',
@@ -78,6 +84,9 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(dashboards[userRole] ?? '/login', request.url))
     }
   }
+
+  // BUG-006 fix: set x-pathname header untuk validasi role di layout (defense-in-depth)
+  supabaseResponse.headers.set('x-pathname', pathname)
 
   return supabaseResponse
 }

@@ -73,12 +73,37 @@ export default function FinanceSettingsPage() {
   async function handleSaveCashBalances() {
     setSaving(true)
     let hadError: { message: string } | null = null
+    const previous: Record<string, number> = {}
+    // F-25 fix (2026-08-11): saldo awal via jurnal pembuka (Dr Kas / Cr Modal) —
+    // agar neraca balance dari awal. Simpan nilai lama untuk delta.
     for (const [id, balance] of Object.entries(cashForm)) {
+      const { data: acc } = await supabase.from('cash_accounts').select('balance, account_id').eq('id', id).single()
+      previous[id] = Number(acc?.balance ?? 0)
       const { error } = await supabase
         .from('cash_accounts')
         .update({ balance: Number(balance) || 0 })
         .eq('id', id)
       if (error) hadError = error
+
+      // Jurnal pembuka untuk SELISIH (Dr Kas / Cr Modal Pemilik — saldo awal)
+      const newBalance = Number(balance) || 0
+      const delta = newBalance - previous[id]
+      if (delta !== 0 && acc?.account_id) {
+        try {
+          const { createSimpleJournal } = await import('@/utils/journal/create')
+          await createSimpleJournal({
+            transaction_type: 'opening_balance',
+            reference_type: 'cash_account',
+            reference_id: id,
+            description: `Saldo awal kas/bank ${id.slice(0, 8)}`,
+            amount: Math.abs(delta),
+            debit_account_id: acc.account_id, // Dr Kas
+            credit_account_id: '44444444-4444-4444-8444-444444444401' // Cr Modal Pemilik
+          })
+        } catch (jErr) {
+          console.error('Gagal buat jurnal pembuka:', jErr)
+        }
+      }
     }
     await fetchData()
     setSaving(false)

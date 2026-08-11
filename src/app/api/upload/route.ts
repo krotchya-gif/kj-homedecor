@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
     const allowedTypes = ALLOWED_TYPES[folder]
     const maxSize = MAX_SIZES[folder]
 
+    // Security fix (2026-08-11): validasi ganda —
+    // (1) cek MIME dari client (spoofable),
+    // (2) cek MAGIC BYTES file (bukti nyata).
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { data: null, error: { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` } },
@@ -103,6 +106,24 @@ export async function POST(request: NextRequest) {
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+
+    // Magic bytes check (2026-08-11): verifikasi isi file, bukan cuma header client.
+    const isAllowedMagic =
+      folder === 'videos'
+        ? buffer.length > 12 &&
+          ((buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x00 && buffer[3] === 0x18) || // mp4 ftyp
+            (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3)) // webm
+        : buffer.length > 8 &&
+          ((buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) || // jpeg
+            (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) || // png
+            (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) || // webp RIFF
+            (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46)) // pdf
+    if (!isAllowedMagic) {
+      return NextResponse.json(
+        { data: null, error: { message: 'Konten file tidak sesuai tipe yang diizinkan' } },
+        { status: 400 }
+      )
+    }
 
     const { error: upErr } = await serviceClient.storage.from(BUCKET).upload(objectPath, buffer, {
       contentType: file.type,

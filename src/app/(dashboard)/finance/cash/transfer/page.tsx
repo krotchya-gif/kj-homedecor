@@ -69,10 +69,23 @@ export default function TransferPage() {
     setSaving(true)
     try {
       const amount = Number(form.amount) || 0
+      // F-36/F-18 fix: validasi nominal + saldo cukup (pakai state terbaru)
+      if (!form.amount || isNaN(amount) || amount <= 0) {
+        toast('error', 'Nominal wajib diisi dan lebih dari 0.')
+        return
+      }
+      if (form.from_account_id === form.to_account_id) {
+        toast('error', 'Akun asal dan tujuan harus berbeda.')
+        return
+      }
       const fromAcc = cashAccounts.find((c) => c.id === form.from_account_id)
       const toAcc = cashAccounts.find((c) => c.id === form.to_account_id)
       if (!fromAcc || !toAcc) {
         toast('error', 'Pilih akun asal dan tujuan terlebih dahulu.')
+        return
+      }
+      if ((fromAcc.balance ?? 0) < amount) {
+        toast('error', `Saldo akun asal tidak cukup (Rp ${(fromAcc.balance ?? 0).toLocaleString('id-ID')}).`)
         return
       }
 
@@ -94,17 +107,17 @@ export default function TransferPage() {
         toast('error', '⚠️ Gagal transfer: ' + (json?.error?.message ?? `HTTP ${res.status}`))
         return
       }
-      // Update both balances directly
-      const { error: fromErr } = await supabase
-        .from('cash_accounts')
-        .update({ balance: fromAcc.balance - amount })
-        .eq('id', form.from_account_id)
-      if (fromErr) { console.error('Update balance akun asal gagal:', fromErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun asal tidak ter-update: ' + fromErr.message) }
-      const { error: toErr } = await supabase
-        .from('cash_accounts')
-        .update({ balance: toAcc.balance + amount })
-        .eq('id', form.to_account_id)
-      if (toErr) { console.error('Update balance akun tujuan gagal:', toErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun tujuan tidak ter-update: ' + toErr.message) }
+      // F-18 fix: pakai RPC atomik (bukan read-modify-write stale)
+      const { error: fromRpc } = await supabase.rpc('update_cash_account_balance', {
+        p_id: form.from_account_id,
+        p_amount: -amount
+      })
+      if (fromRpc) { console.error('RPC saldo asal gagal:', fromRpc); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun asal tidak ter-update: ' + fromRpc.message) }
+      const { error: toRpc } = await supabase.rpc('update_cash_account_balance', {
+        p_id: form.to_account_id,
+        p_amount: amount
+      })
+      if (toRpc) { console.error('RPC saldo tujuan gagal:', toRpc); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun tujuan tidak ter-update: ' + toRpc.message) }
       setShowForm(false)
       fetchData()
       toast('success', 'Transfer kas berhasil dicatat')

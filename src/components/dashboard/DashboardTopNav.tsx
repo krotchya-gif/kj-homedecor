@@ -30,7 +30,8 @@ import {
   FileText,
   ClipboardPlus,
   History,
-  ClipboardList
+  ClipboardList,
+  ShoppingBag
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
@@ -91,7 +92,9 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { label: 'Kas & Bank', href: '/finance/cash', icon: <LandPlot size={18} /> },
     { label: 'Aset', href: '/finance/assets', icon: <LandPlot size={18} /> },
     { label: 'Jurnal', href: '/finance/journal', icon: <FileText size={18} /> },
-    { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
+    { label: 'Cek Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
+    { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingBag size={18} /> },
+    { label: 'TikTok Shop', href: '/owner/tiktok', icon: <ShoppingBag size={18} /> },
     { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: <WashingMachine size={18} /> },
     { label: 'Laporan Keuangan', href: '/finance/laporan', icon: <BarChart3 size={18} /> }
   ],

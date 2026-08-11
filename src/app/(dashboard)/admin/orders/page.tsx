@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
+import { createSimpleJournal } from '@/utils/journal/create'
 import Pagination from '@/components/ui/Pagination'
 import MobileCards from '@/components/ui/MobileCards'
 
@@ -324,6 +325,35 @@ export default function OrdersPage() {
       if (payErr) {
         console.error('Auto-catat pembayaran gagal:', payErr)
         toast('error', '⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message)
+      }
+
+      // F-24 fix (2026-08-11): jurnal order_created + payment_received harus dibuat
+      // dari SEMUA jalur (sebelumnya cuma POST /api/orders yang berjurnal).
+      try {
+        await createSimpleJournal({
+          transaction_type: 'order_created',
+          reference_type: 'order',
+          reference_id: newOrder.id,
+          description: `Order baru ${orderNumber ?? ''} — ${form.customer_name.trim()}`,
+          amount: totalAmt
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal order:', jErr)
+        toast('warning', 'Order dibuat, TAPI jurnal GAGAL. Periksa mapping akun.')
+      }
+    }
+    // Order TANPA DP — tetap harus jurnal order_created (piutang penuh)
+    else if (newOrder && totalAmt > 0) {
+      try {
+        await createSimpleJournal({
+          transaction_type: 'order_created',
+          reference_type: 'order',
+          reference_id: newOrder.id,
+          description: `Order baru ${orderNumber ?? ''} — ${form.customer_name.trim()}`,
+          amount: totalAmt
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal order (tanpa DP):', jErr)
       }
     }
 

@@ -10,7 +10,8 @@ import autoTable from 'jspdf-autotable'
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-const RATES = { gorden: 500, vitras: 300, roman: 600, kupu_kupu: 700, poni_lurus: 2000, poni_gel: 3000 }
+// F-30 fix: tarif upah dipindah ke state (di-load dari tabel style_rates)
+// const RATES = { gorden: 500, ... } — HAPUS, pakai state `rates` dari DB.
 
 interface FinanceReportRow {
   id?: string
@@ -39,12 +40,21 @@ export default function FinanceReportsPage() {
   const [loading, setLoading] = useState(true)
   const [month, setMonth] = useState(new Date().getMonth())
   const [year, setYear] = useState(new Date().getFullYear())
+  // F-30 fix: tarif upah dari DB (style_rates), bukan hardcode frontend
+  const [rates, setRates] = useState<{ gorden: number; vitras: number; roman: number; kupu_kupu: number; poni_lurus: number; poni_gel: number }>({
+    gorden: 500,
+    vitras: 300,
+    roman: 600,
+    kupu_kupu: 700,
+    poni_lurus: 2000,
+    poni_gel: 3000
+  })
   const supabase = createClient()
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [oRes, rRes, lRes] = await Promise.all([
+      const [oRes, rRes, lRes, ratesRes] = await Promise.all([
         supabase
           .from('orders')
           .select('total_amount, dp_amount, lunas_amount, payment_status, source, created_at')
@@ -53,11 +63,22 @@ export default function FinanceReportsPage() {
           .from('production_reports')
           .select('*, job:production_jobs(penjahit_id, penjahit:users(name))')
           .order('created_at', { ascending: false }),
-        supabase.from('lembur_records').select('*, staff:users(name)').order('date', { ascending: false })
+        supabase.from('lembur_records').select('*, staff:users(name)').order('date', { ascending: false }),
+        supabase.from('style_rates').select('*')
       ])
       setOrders((oRes.data ?? []) as FinanceReportRow[])
       setReports((rRes.data ?? []) as FinanceReportRow[])
       setLembur((lRes.data ?? []) as FinanceReportRow[])
+      // F-30: peta style → rate (fallback ke nilai default jika tabel kosong)
+      const rows = (ratesRes.data ?? []) as { style?: string; rate_per_meter?: number }[]
+      if (rows.length > 0) {
+        const map = { gorden: 500, vitras: 300, roman: 600, kupu_kupu: 700, poni_lurus: 2000, poni_gel: 3000 }
+        for (const r of rows) {
+          const key = String(r.style ?? '').toLowerCase()
+          if (key in map && r.rate_per_meter) (map as Record<string, number>)[key] = Number(r.rate_per_meter)
+        }
+        setRates(map)
+      }
       setLoading(false)
     }
     load()
@@ -108,12 +129,12 @@ export default function FinanceReportsPage() {
   }, {})
 
   const calcUpah = (p: PenjahitMap[string]) =>
-    p.gorden * RATES.gorden +
-    p.vitras * RATES.vitras +
-    p.roman * RATES.roman +
-    p.kupu_kupu * RATES.kupu_kupu +
-    p.poni_lurus * RATES.poni_lurus +
-    p.poni_gel * RATES.poni_gel
+    p.gorden * rates.gorden +
+    p.vitras * rates.vitras +
+    p.roman * rates.roman +
+    p.kupu_kupu * rates.kupu_kupu +
+    p.poni_lurus * rates.poni_lurus +
+    p.poni_gel * rates.poni_gel
 
   const totalLemburJam = periodLembur.reduce((s, l) => s + (l.jam ?? 0), 0)
 
@@ -124,7 +145,8 @@ export default function FinanceReportsPage() {
     doc.text('KJ Homedecor — Laporan Keuangan', 14, 20)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor('var(--neutral-600)')
+    // F-29 fix: jsPDF tidak menerima CSS variable — pakai nilai RGB konkret
+    doc.setTextColor(107, 114, 128)
     doc.text(`Periode: ${MONTHS[month]} ${year} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
     doc.setTextColor('#000')
 

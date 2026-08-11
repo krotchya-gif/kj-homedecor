@@ -142,7 +142,7 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         { label: 'Mutasi Kas', href: '/finance/cash/mutation', icon: <ArrowLeftRight size={18} /> },
         { label: 'Pemasukan', href: '/finance/cash/income', icon: <TrendingUp size={18} /> },
         { label: 'Pengeluaran', href: '/finance/cash/expense', icon: <DollarSign size={18} /> },
-        { label: 'Transfer Kas', href: '/finance/cash/transfer', icon: <ArrowLeftRight size={18} /> }
+        { label: 'Transfer Internal Kas', href: '/finance/cash/transfer', icon: <ArrowLeftRight size={18} /> }
       ]
     },
     {
@@ -150,7 +150,9 @@ const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       items: [
         { label: 'Hutang', href: '/finance/hutang', icon: <CreditCard size={18} /> },
         { label: 'Piutang', href: '/finance/piutang', icon: <ArrowLeftRight size={18} /> },
-        { label: 'Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> }
+        { label: 'Cek Pembayaran', href: '/finance/payments', icon: <DollarSign size={18} /> },
+        { label: 'Marketplace', href: '/owner/marketplace', icon: <ShoppingBag size={18} /> },
+        { label: 'TikTok Shop', href: '/owner/tiktok', icon: <ShoppingBag size={18} /> }
       ]
     },
     {

@@ -75,8 +75,9 @@ export default function CashMutationPage() {
 
   const runningBalance = useMemo(() => {
     if (!journals.length) return []
+    // F-37 fix: running balance = saldo AKTUAL akun + akumulasi delta transaksi
+    // (sebelumnya mulai dari 0 → kolom saldo menyesatkan).
     const openingBalance = cashAcc?.balance ?? 0
-    // Calculate opening balance before the filtered period
     const result: (JournalLine & { entry?: JournalEntry | null; runningBalance?: number })[] = []
     let balance = 0
     journals.forEach((j) => {
@@ -85,7 +86,7 @@ export default function CashMutationPage() {
       balance += debit - credit
       result.push({
         ...j,
-        runningBalance: balance
+        runningBalance: openingBalance + balance
       })
     })
     return result

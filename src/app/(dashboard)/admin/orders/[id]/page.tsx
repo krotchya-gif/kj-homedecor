@@ -31,6 +31,7 @@ import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { Modal } from '@/components/ui/Modal'
 import { generateInvoicePDF, generatePackingListPDF } from '@/lib/invoice'
 import { useToast } from '@/components/ui/Toast'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 // Pipeline: ORDER_STATUSES now conditional based on order.classification
 // Use shared util ORDER_STAGES_BY_CLASSIFICATION untuk single source of truth
@@ -900,6 +901,22 @@ export default function OrderDetailPage() {
       verified_at: new Date().toISOString()
     })
     if (payErr) { setSavingPayment(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
+
+    // BUG/F-24 fix (2026-08-11): pembayaran via admin detail JUGA harus bikin jurnal
+    // (sebelumnya hanya finance/payments yang berjurnal → buku besar tidak lengkap).
+    try {
+      await createSimpleJournal({
+        transaction_type: 'payment_received',
+        reference_type: 'order',
+        reference_id: id,
+        description: `Pembayaran ${paymentForm.type === 'dp' ? 'DP' : 'Lunas'} Rp${amount.toLocaleString('id-ID')} oleh Admin`,
+        amount
+      })
+    } catch (jErr) {
+      console.error('Gagal buat jurnal pembayaran admin:', jErr)
+      toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun.')
+    }
+
     // Update order dp/lunas
     const newDp = paymentForm.type === 'dp' ? order.dp_amount + amount : order.dp_amount
     const newLunas =

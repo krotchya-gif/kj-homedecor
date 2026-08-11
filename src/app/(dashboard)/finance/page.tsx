@@ -45,6 +45,8 @@ interface Order {
   status: string
   payment_status: string
   total_amount: number
+  dp_amount?: number
+  lunas_amount?: number
   created_at: string
   source: string
 }
@@ -63,7 +65,7 @@ export default function FinanceDashboard() {
     setLoading(true)
     const { data } = await supabase
       .from('orders')
-      .select('id, status, payment_status, total_amount, created_at, source')
+      .select('id, status, payment_status, total_amount, dp_amount, lunas_amount, created_at, source')
       .order('created_at', { ascending: false })
     setOrders((data as Order[]) ?? [])
     setLoading(false)
@@ -72,12 +74,13 @@ export default function FinanceDashboard() {
   const currentYear = new Date().getFullYear()
 
   // Monthly revenue (12 months)
+  // F-15 fix: hanya order yang SUDAH di-approve (bukan new) & TIDAK cancelled
   const monthlyRevenue: Record<string, number> = {}
   MONTHS_SHORT.forEach((m) => {
     monthlyRevenue[m] = 0
   })
   orders.forEach((o) => {
-    if (o.payment_status === 'paid') {
+    if (o.payment_status === 'paid' && o.status !== 'new' && o.status !== 'cancelled') {
       const d = new Date(o.created_at)
       if (d.getFullYear() === currentYear) {
         const month = MONTHS_SHORT[d.getMonth()]
@@ -87,9 +90,10 @@ export default function FinanceDashboard() {
   })
   const monthlyData = MONTHS_SHORT.map((m) => ({ month: m, revenue: monthlyRevenue[m] }))
 
-  // Payment status distribution
+  // Payment status distribution (exclude cancelled)
   const statusCounts: Record<string, number> = { paid: 0, partial: 0, pending: 0 }
   orders.forEach((o) => {
+    if (o.status === 'cancelled') return
     const s = o.payment_status ?? 'pending'
     statusCounts[s] = (statusCounts[s] ?? 0) + 1
   })
@@ -98,9 +102,13 @@ export default function FinanceDashboard() {
     .filter(([_, v]) => v > 0)
     .map(([k, v]) => ({ name: STATUS_LABELS[k] ?? k, value: v }))
 
-  // Piutang aging (orders with payment_status != paid)
-  const piutangOrders = orders.filter((o) => o.payment_status !== 'paid' && o.payment_status !== 'cancelled')
-  const piutangTotal = piutangOrders.reduce((s, o) => s + (o.total_amount ?? 0), 0)
+  // Piutang aging (orders with payment_status != paid, exclude cancelled)
+  // F-16 fix: pakai SISA tagihan (total − dp − lunas), bukan total penuh
+  const piutangOrders = orders.filter((o) => o.payment_status !== 'paid' && o.status !== 'cancelled')
+  const piutangTotal = piutangOrders.reduce(
+    (s, o) => s + Math.max(0, (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0)),
+    0
+  )
 
   // Orders waiting for Finance verification (2026-07-31: gate di DEPAN — status='new' menunggu Finance approve ke payment_ok)
   // Finance approve → status='payment_ok' (verifikasi DP/bukti transfer sebelum produksi, anti transfer palsu)
@@ -112,10 +120,11 @@ export default function FinanceDashboard() {
   const aging = { '<30': 0, '30-60': 0, '60-90': 0, '>90': 0 }
   piutangOrders.forEach((o) => {
     const days = Math.floor((now.getTime() - new Date(o.created_at).getTime()) / (1000 * 60 * 60 * 24))
-    if (days < 30) aging['<30'] += o.total_amount ?? 0
-    else if (days < 60) aging['30-60'] += o.total_amount ?? 0
-    else if (days < 90) aging['60-90'] += o.total_amount ?? 0
-    else aging['>90'] += o.total_amount ?? 0
+    const sisa = Math.max(0, (o.total_amount ?? 0) - (o.dp_amount ?? 0) - (o.lunas_amount ?? 0))
+    if (days < 30) aging['<30'] += sisa
+    else if (days < 60) aging['30-60'] += sisa
+    else if (days < 90) aging['60-90'] += sisa
+    else aging['>90'] += sisa
   })
   const agingData = [
     { bucket: '<30 hari', amount: aging['<30'] },
@@ -149,9 +158,9 @@ export default function FinanceDashboard() {
         />
 
         <StatCard
-          label="Total Pesanan"
-          value={orders.length}
-          sub="Semua status"
+            label="Total Pesanan"
+          value={orders.filter((o) => o.status !== 'cancelled').length}
+          sub="Tanpa yang dibatalkan"
           icon={BarChart3}
           accent="#2563eb"
           iconBg="#eff6ff"

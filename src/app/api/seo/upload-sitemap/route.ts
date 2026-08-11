@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { createClient } from '@/utils/supabase/server'
+
+// Security fix (2026-08-11): route ini SEBELUMNYA TANPA AUTH — siapa pun bisa
+// menimpa public/sitemap.xml. Sekarang: hanya admin/owner yang boleh.
 
 export async function POST(req: NextRequest) {
   try {
+    const supabase = await createClient()
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
+    if (!requester || !['admin', 'owner'].includes(requester.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 

@@ -48,13 +48,6 @@ interface ReturnRow {
   order?: { id: string; customer?: { name?: string } | null } | null
 }
 
-interface QcJob {
-  id: string
-  result?: string
-  status?: string
-  order?: (Order & { customer?: Customer }) | null
-}
-
 export default function FinancePaymentsPage() {
   const { toast } = useToast()
   const [PAGE_SIZE, setPageSize] = useState(20)
@@ -70,10 +63,9 @@ export default function FinancePaymentsPage() {
   })
   const [saving, setSaving] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null)
-  const [activeTab, setActiveTab] = useState<'payment' | 'refund' | 'qc'>('payment')
+  const [activeTab, setActiveTab] = useState<'payment' | 'refund'>('payment')
   const [refundList, setRefundList] = useState<ReturnRow[]>([])
   const [processingRefund, setProcessingRefund] = useState<string | null>(null)
-  const [qcOrders, setQcOrders] = useState<QcJob[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const supabase = createClient()
@@ -91,7 +83,7 @@ export default function FinancePaymentsPage() {
     const from = (currentPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    const [ordersData, returnsData, qcData] = await Promise.all([
+    const [ordersData, returnsData] = await Promise.all([
       supabase
         .from('orders')
         .select(
@@ -104,22 +96,12 @@ export default function FinancePaymentsPage() {
         .from('returns')
         .select('*, order:orders(id, customer:customers(name))')
         .order('created_at', { ascending: false })
-        .limit(100),
-      supabase
-        .from('steam_jobs')
-        .select(
-          '*, order:orders(id, total_amount, dp_amount, lunas_amount, payment_status, status, customer:customers(name, phone))'
-        )
-        .eq('result', 'pass')
-        .eq('status', 'done')
         .limit(100)
     ])
 
     setOrders((ordersData.data ?? []) as unknown as Order[])
     setTotalCount(ordersData.count ?? 0)
     setRefundList((returnsData.data ?? []) as ReturnRow[])
-    const qcApproved = ((qcData.data ?? []) as QcJob[]).filter((sq) => sq.order?.payment_status !== 'paid')
-    setQcOrders(qcApproved)
     setLoading(false)
   }
   useEffect(() => {
@@ -150,12 +132,23 @@ export default function FinancePaymentsPage() {
     setSaving(true)
     const amount = Number(payForm.amount)
     // Validasi nominal (temuan audit 2026-08-10): tolak <= 0 dan > sisa tagihan
-    if (!payForm.amount || amount <= 0) {
+    if (!payForm.amount || isNaN(amount) || amount <= 0) {
       setSaving(false)
       toast('error', 'Nominal pembayaran wajib diisi dan lebih dari 0.')
       return
     }
-    const sisaTagihan = (selected.total_amount ?? 0) - (selected.dp_amount ?? 0) - (selected.lunas_amount ?? 0)
+    // F-48 fix: refetch order fresh (hindari stale state / race saat 2 finance bayar)
+    const { data: fresh } = await supabase
+      .from('orders')
+      .select('id, total_amount, dp_amount, lunas_amount')
+      .eq('id', selected.id)
+      .single()
+    if (!fresh) {
+      setSaving(false)
+      toast('error', 'Order tidak ditemukan.')
+      return
+    }
+    const sisaTagihan = (fresh.total_amount ?? 0) - (fresh.dp_amount ?? 0) - (fresh.lunas_amount ?? 0)
     if (amount > sisaTagihan) {
       setSaving(false)
       toast('error', `Nominal melebihi sisa tagihan (Rp ${sisaTagihan.toLocaleString('id-ID')}).`)
@@ -202,9 +195,10 @@ export default function FinancePaymentsPage() {
       staff_id: currentUser?.id
     })
     if (logErr) { console.error('Gagal catat log pembayaran:', logErr) }
-    const newDp = payForm.type === 'dp' ? selected.dp_amount + amount : selected.dp_amount
-    const newLunas = payForm.type === 'lunas' ? selected.lunas_amount + amount : selected.lunas_amount
-    const total = selected.total_amount
+    // F-48 fix: pakai nilai FRESH (bukan selected yang basi)
+    const newDp = payForm.type === 'dp' ? fresh.dp_amount + amount : fresh.dp_amount
+    const newLunas = payForm.type === 'lunas' ? fresh.lunas_amount + amount : fresh.lunas_amount
+    const total = fresh.total_amount
     const paidSum = newDp + newLunas
     const newPayStatus = paidSum >= total && total > 0 ? 'paid' : paidSum > 0 ? 'partial' : 'pending'
     const { error: ordErr } = await supabase
@@ -215,6 +209,8 @@ export default function FinancePaymentsPage() {
         payment_status: newPayStatus
       })
       .eq('id', selected.id)
+      .eq('dp_amount', fresh.dp_amount)
+      .eq('lunas_amount', fresh.lunas_amount)
     if (ordErr) { setSaving(false); toast('error', 'Pembayaran tercatat, tapi gagal update order: ' + ordErr.message); return }
     setSaving(false)
     setSelected(null)
@@ -326,43 +322,6 @@ export default function FinancePaymentsPage() {
       )
       return
     }
-    load()
-  }
-
-  async function handleQcApprove(order: Order) {
-    if (
-      !confirm(
-        `Konfirmasi Approve Order\n\nPelanggan: ${order.customer?.name ?? '-'}\nTotal: ${fmt(order.total_amount)} — Lunas\n\nStatus akan berubah menjadi "Siap Kirim" dan order siap dikemas/dikirim.`
-      )
-    )
-      return
-    const paidSum = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
-    if (paidSum < (order.total_amount ?? 0)) {
-      toast('error', `Gagal Approve — Sisa pembayaran ${fmt((order.total_amount ?? 0) - paidSum)}, order belum lunas!`)
-      return
-    }
-    const verifiedPayment = await getVerifiedPayment(order.id)
-    if (!verifiedPayment) {
-      toast('error', 'Gagal Approve — Belum ada pembayaran yang diverifikasi.')
-      return
-    }
-    if (order.status !== 'steam') {
-      toast(
-        'error',
-        `Status order belum bisa diapprove. Order saat ini: "${(STATUS_LABELS as Record<string, string>)[order.status]}"`
-      )
-      return
-    }
-    const { error: qcErr } = await supabase.from('orders').update({ status: 'ready' }).eq('id', order.id).eq('status', 'steam')
-    if (qcErr) { toast('error', 'Gagal update status ke Siap: ' + qcErr.message); return }
-    const { error: qcLogErr } = await supabase.from('order_logs').insert({
-      order_id: order.id,
-      action: 'payment_approved',
-      notes: `QC Approved — Finance approve oleh ${currentUser?.name ?? 'Finance'} — lunas Rp${paidSum.toLocaleString('id-ID')}`,
-      staff_id: currentUser?.id
-    })
-    if (qcLogErr) { console.error('Gagal catat log approve:', qcLogErr) }
-    toast('success', 'Order berhasil diapprove! Status berubah menjadi "Siap Kirim". Order siap dikemas dan dikirim.')
     load()
   }
 
@@ -548,7 +507,6 @@ export default function FinancePaymentsPage() {
       >
         {[
           { key: 'payment', label: '💰 Pembayaran', count: orders.length },
-          { key: 'qc', label: '✅ QC Approved', count: qcOrders.length },
           {
             key: 'refund',
             label: '💸 Refund',
@@ -557,7 +515,7 @@ export default function FinancePaymentsPage() {
         ].map((t) => (
           <button
             key={t.key}
-            onClick={() => setActiveTab(t.key as 'payment' | 'refund' | 'qc')}
+            onClick={() => setActiveTab(t.key as 'payment' | 'refund')}
             style={{
               padding: '0.75rem 1.5rem',
               background: 'none',
@@ -613,26 +571,29 @@ export default function FinancePaymentsPage() {
             </div>
           ) : (
             <>
-                  {/* Mobile: card list */}
+                  {/* Mobile: card list — F-52 fix: render REFUND, bukan filtered (orders) */}
       <div className="mobile-only">
         {loading ? (
           <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
-        ) : filtered.length === 0 ? (
+        ) : refundList.filter((r) => r.refund_status === 'pending').length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(o) => o.id} renderCard={(o) => (
+          <MobileCards
+            items={refundList.filter((r) => r.refund_status === 'pending')}
+            keyOf={(r) => r.id}
+            renderCard={(r) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Order</span>
-                  <span className="mobile-card-value">{o.order_number ?? o.id.slice(0, 8)}</span>
+                  <span className="mobile-card-value">{r.order_id?.slice(0, 8)}</span>
                 </div>
                 <div className="mobile-card-row">
-                  <span className="mobile-card-label">Customer</span>
-                  <span className="mobile-card-value">{o.customer?.name}</span>
+                  <span className="mobile-card-label">Alasan</span>
+                  <span className="mobile-card-value">{r.reason ?? '—'}</span>
                 </div>
                 <div className="mobile-card-row">
-                  <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">{o.status}</span>
+                  <span className="mobile-card-label">Refund</span>
+                  <span className="mobile-card-value" style={{ color: '#cc7030' }}>{fmt(r.refund_amount ?? 0)}</span>
                 </div>
             </div>
           )} />
@@ -966,168 +927,6 @@ export default function FinancePaymentsPage() {
           endIndex={Math.min(currentPage * PAGE_SIZE, totalCount)}
         />
         </>
-      )}
-
-      {activeTab === 'qc' && (
-        <div>
-          <div
-            style={{
-              background: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              borderRadius: '0.75rem',
-              padding: '1rem 1.25rem',
-              marginBottom: '1.25rem'
-            }}
-          >
-            <div style={{ fontSize: '0.85rem', color: '#166534' }}>
-              <strong>✅ QC Approved</strong> — Order yang sudah LULUS QC Steam/QC dari Gudang.
-            </div>
-          </div>
-          {qcOrders.length === 0 ? (
-            <div className="section-card">
-              <CheckCircle2 size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
-              <p>Tidak ada order yang menunggu approval</p>
-            </div>
-          ) : (
-            <>
-            <div className="mobile-only">
-              <MobileCards items={qcOrders} keyOf={(qc) => qc.id} renderCard={(qc) => {
-                const o = qc.order
-                return (
-                  <div className="mobile-card">
-                    <div className="mobile-card-row">
-                      <span className="mobile-card-label">Pelanggan</span>
-                      <span className="mobile-card-value">{o?.customer?.name ?? '—'}</span>
-                    </div>
-                    <div className="mobile-card-row">
-                      <span className="mobile-card-label">Total</span>
-                      <span className="mobile-card-value" style={{ color: '#cc7030' }}>{fmt(o?.total_amount ?? 0)}</span>
-                    </div>
-                    <div className="mobile-card-row">
-                      <span className="mobile-card-label">Sisa</span>
-                      <span className="mobile-card-value">{fmt((o?.total_amount ?? 0) - (o?.dp_amount ?? 0) - (o?.lunas_amount ?? 0))}</span>
-                    </div>
-                    <div className="mobile-card-row">
-                      <span className="mobile-card-label">Status</span>
-                      <span className="mobile-card-value" style={{ fontWeight: '400' }}>{o?.payment_status ?? qc.status}</span>
-                    </div>
-                  </div>
-                )
-              }} />
-            </div>
-            <div className="data-table desktop-only">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Pelanggan</th>
-                    <th>Total</th>
-                    <th>DP</th>
-                    <th>Lunas</th>
-                    <th>Sisa</th>
-                    <th>Status Bayar</th>
-                    <th>QC Steam</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {qcOrders.map((qc) => {
-                    const o = qc.order
-                    const sisa = (o?.total_amount ?? 0) - (o?.dp_amount ?? 0) - (o?.lunas_amount ?? 0)
-                    return (
-                      <tr key={qc.id}>
-                        <td style={{ fontWeight: '500' }}>{o?.customer?.name ?? '—'}</td>
-                        <td style={{ fontWeight: '600', color: '#cc7030' }}>{fmt(o?.total_amount ?? 0)}</td>
-                        <td>{fmt(o?.dp_amount ?? 0)}</td>
-                        <td>{fmt(o?.lunas_amount ?? 0)}</td>
-                        <td
-                          style={{
-                            fontWeight: '600',
-                            color: sisa > 0 ? '#ef4444' : '#16a34a'
-                          }}
-                        >
-                          {fmt(sisa)}
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              background: PAYMENT_COLORS[o?.payment_status ?? 'pending'].bg,
-                              color: PAYMENT_COLORS[o?.payment_status ?? 'pending'].text,
-                              padding: '0.2rem 0.6rem',
-                              borderRadius: '999px',
-                              fontSize: '0.75rem',
-                              fontWeight: '600'
-                            }}
-                          >
-                            {(PAYMENT_STATUS_LABELS as Record<string, string>)[o?.payment_status ?? 'pending']}
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            style={{
-                              background: '#d1fae5',
-                              color: '#065f46',
-                              padding: '0.2rem 0.6rem',
-                              borderRadius: '999px',
-                              fontSize: '0.75rem',
-                              fontWeight: '600'
-                            }}
-                          >
-                            ✅ Pass
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button
-                              onClick={() => {
-                                setSelected(o ?? null)
-                                setPayForm({
-                                  type: 'dp',
-                                  amount: String(sisa > 0 ? sisa : ''),
-                                  date: new Date().toISOString().slice(0, 10)
-                                })
-                              }}
-                              style={{
-                                padding: '0.3rem 0.75rem',
-                                background: '#cc7030',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '0.375rem',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Input Bayar
-                            </button>
-                            <button
-                              onClick={() => handleQcApprove(o!)}
-                              style={{
-                                padding: '0.3rem 0.75rem',
-                                background: '#16a34a',
-                                color: '#fff',
-                                border: 'none',
-                                borderRadius: '0.375rem',
-                                fontSize: '0.75rem',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.2rem'
-                              }}
-                            >
-                              <CheckCircle2 size={12} /> Approve
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-            </>
-          )}
-        </div>
       )}
 
       <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth={440} padding="2rem" zIndex={200}>

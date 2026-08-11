@@ -65,6 +65,8 @@ export async function POST(request: Request) {
               amount,
               date: new Date().toISOString(),
               notes: `Xendit ${type} — ${id}`,
+              verified_by: null, // verified saat webhook (system) — tidak ada user session
+              verified_at: new Date().toISOString(),
               xendit_payment_id: id // unique dedup key
             })
             .select('id')
@@ -84,6 +86,23 @@ export async function POST(request: Request) {
           // Payment successfully inserted — now update order lunas_amount
           const newLunas = order.lunas_amount + amount
           const isFullyPaid = newLunas >= order.total_amount
+
+          // F-13 fix (2026-08-11): webhook juga harus bikin jurnal payment_received
+          // (sebelumnya Xendit payment TANPA jurnal → kas tidak tercatat di buku besar).
+          try {
+            const { createSimpleJournal } = await import('@/utils/journal/create')
+            await createSimpleJournal({
+              transaction_type: 'payment_received',
+              reference_type: 'order',
+              reference_id: order.id,
+              description: `Pembayaran Xendit ${type} — ${id}`,
+              amount,
+              baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+              supabase
+            })
+          } catch (jErr) {
+            console.error('Gagal buat jurnal Xendit payment:', jErr)
+          }
 
           // Webhook hanya update payment info (lunas_amount + payment_status).
           // Status pipeline TIDAK di-auto-advance — Admin/Finance yang atur manual.

@@ -136,6 +136,21 @@ export default function FakturPage() {
         }
         if (data?.id) {
           setPiutang((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+
+          // F-10 fix (2026-08-11): faktur piutang wajib jurnal Dr Piutang / Cr Penjualan
+          // (sebelumnya cuma insert tabel piutang → piutang tidak pernah masuk buku besar)
+          try {
+            await createSimpleJournal({
+              transaction_type: 'order_created',
+              reference_type: 'piutang',
+              reference_id: data.id,
+              description: `Faktur piutang ${form.invoice_number ?? ''} — ${form.amount}`,
+              amount: Number(form.amount) || 0
+            })
+          } catch (jErr) {
+            console.error('Gagal buat jurnal faktur piutang:', jErr)
+            toast('warning', 'Faktur tersimpan, TAPI jurnal GAGAL. Periksa mapping akun.')
+          }
         }
       }
       setSaving(false)

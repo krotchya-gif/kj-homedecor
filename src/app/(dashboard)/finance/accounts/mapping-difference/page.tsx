@@ -75,11 +75,14 @@ export default function MappingDifferencePage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    // F-50 fix: pakai transaction_type dari state (default ecommerce_fee),
+    // jangan hardcode 'exchange_rate_diff' yang sudah dipakai migration 063.
+    const ttype = form.transaction_type || 'ecommerce_fee'
     const payload = {
-      transaction_type: 'exchange_rate_diff',
+      transaction_type: ttype,
       debit_account_id: form.debit_account_id || null,
       credit_account_id: form.credit_account_id || null,
-      description: form.description || 'Pemetaan selisih kurs/selisih harga'
+      description: form.description || 'Pemetaan biaya lain / selisih harga'
     }
     if (editItem) {
         // UPDATE optimistic

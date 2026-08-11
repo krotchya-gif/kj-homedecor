@@ -16,18 +16,20 @@ export async function POST(req: NextRequest) {
     // Verify signature: hex(HMAC-SHA256(app_secret, raw_body)) in authorization header
     const appSecret = process.env.TIKTOK_APP_SECRET
     const signature = req.headers.get('authorization') || req.headers.get('x-tt-signature')
+    // Security fix (2026-08-11): FAIL-CLOSED — kalau app secret tidak di-set,
+    // webhook DITOLAK (bukan di-skip seperti sebelumnya → webhook tidak aman).
     if (!appSecret) {
-      console.warn('TikTok webhook: TIKTOK_APP_SECRET not set — signature verification skipped')
-    } else {
-      if (!signature) {
-        console.error('TikTok webhook: missing signature header')
-        return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
-      }
-      const expected = crypto.createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex')
-      if (signature !== expected) {
-        console.error('TikTok webhook: invalid signature')
-        return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-      }
+      console.error('TikTok webhook: TIKTOK_APP_SECRET not set — rejecting webhook')
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
+    }
+    if (!signature) {
+      console.error('TikTok webhook: missing signature header')
+      return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
+    }
+    const expected = crypto.createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex')
+    if (signature !== expected) {
+      console.error('TikTok webhook: invalid signature')
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
 
     // Log webhook for debugging

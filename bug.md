@@ -28,6 +28,10 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-018 | `exec_sql` backdoor (SECURITY DEFINER) di DB dari migration 055; tidak dipakai src/ tapi berbahaya | ✅ Fixed (migration 063) | — |
 | BUG-019 | RLS tabel keuangan `FOR ALL authenticated` + `api/journal` tanpa role check + RPC `update_cash_account_balance` tanpa role | ✅ Fixed | — |
 | BUG-020 | **FALSE POSITIVE (verified)**: F-35/F-72 "NUMERIC string concat" — semua kolom NUMERIC = `number` di runtime, `+` = aritmetika | ❌ Bukan bug | — |
+| BUG-021 | **Security API**: create-staff fail-open, purchase-orders no-auth, po-delivery fail-open, seo-upload no-auth, surveys/[id] tanpa ownership, TikTok webhook fail-open, upload MIME spoofable | ✅ Fixed | — |
+| BUG-022 | **Pembukuan bocor**: payment admin detail & auto-payment tanpa jurnal, Xendit tanpa jurnal, faktur piutang tanpa jurnal, payroll & aset tanpa jurnal, saldo awal tanpa jurnal pembuka | ✅ Fixed | — |
+| BUG-023 | **UI finance**: handleQcApprove dead, refund tab mobile salah render, dashboard angka menyesatkan, cash tanpa validasi, transfer race, mutasi saldo salah, mapping-diff error, PDF reports rusak, tarif upah hardcode, kronologi-hpp mislabeled | ✅ Fixed | — |
+| BUG-024 | **Drift**: Role type tanpa surveyor, x-pathname tak di-set, proxy login map surveyor, rename sidebar, finance akses marketplace/tiktok | ✅ Fixed | — |
 
 ---
 

@@ -73,6 +73,11 @@ export default function IncomePage() {
     setSaving(true)
     try {
       const amount = Number(form.amount) || 0
+    // F-36 fix: validasi nominal > 0
+    if (!form.amount || isNaN(amount) || amount <= 0) {
+      toast('error', 'Nominal wajib diisi dan lebih dari 0.')
+      return
+    }
       const cashAcc = cashAccounts.find((c) => c.id === form.cash_account_id)
       if (!cashAcc) {
         toast('error', 'Pilih akun kas terlebih dahulu.')

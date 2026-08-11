@@ -203,6 +203,12 @@ export default function HutangPage() {
       console.error('Gagal buat jurnal bayar hutang:', jErr)
       toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun di /finance/accounts/mapping.')
     }
+
+    // F-39 fix: simpan catatan pembayaran (sebelumnya dikumpulkan tapi tidak pernah disimpan)
+    if (payForm.notes?.trim()) {
+      const { error: noteErr } = await supabase.from('hutang').update({ notes: payForm.notes.trim() }).eq('id', paymentItem.id)
+      if (noteErr) console.error('Gagal simpan catatan pembayaran:', noteErr)
+    }
     setSaving(false)
     setShowPayment(false)
     // Optimistic update: sisa hutang langsung berubah tanpa refetch

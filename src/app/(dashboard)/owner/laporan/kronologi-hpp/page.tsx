@@ -81,7 +81,7 @@ export default function KronologiHPPPage() {
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Harga Pokok Penjualan per Periode', 14, 34)
+    doc.text('Omzet Penjualan per Periode', 14, 34)
 
     autoTable(doc, {
       startY: 40,
@@ -109,7 +109,7 @@ export default function KronologiHPPPage() {
       <BackButton href="/owner/laporan" />
       <PageHeader
         title="Kronologi HPP"
-        subtitle="Harga pokok penjualan per periode - Tampilan Owner (Read Only)"
+        subtitle="Omzet penjualan per periode - Tampilan Owner (Read Only)"
         action={<ReportPDFButton onClick={downloadPDF} label="Download PDF" />}
       />
 

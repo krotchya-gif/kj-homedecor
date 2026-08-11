@@ -2,6 +2,21 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { logSurveyActivity } from '@/lib/survey-log'
 
+// Security fix (2026-08-11): tambah ownership check — surveyor hanya bisa
+// akses survey milik sendiri; admin/owner boleh semua.
+
+async function canAccess(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, surveyId: string): Promise<{ ok: boolean; role?: string; error?: NextResponse }> {
+  const { data: me } = await supabase.from('users').select('role').eq('id', userId).single()
+  if (!me) return { ok: false, error: NextResponse.json({ error: { message: 'Staff tidak ditemukan' } }, { status: 403 }) }
+  if (['admin', 'owner'].includes(me.role)) return { ok: true, role: me.role }
+
+  const { data: survey } = await supabase.from('surveys').select('surveyor_id').eq('id', surveyId).single()
+  if (!survey || survey.surveyor_id !== userId) {
+    return { ok: false, error: NextResponse.json({ error: { message: 'Forbidden — bukan survey Anda' } }, { status: 403 }) }
+  }
+  return { ok: true, role: me.role }
+}
+
 /** GET /api/surveys/[id] — detail survey (rooms + photos + surveyor) */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -10,6 +25,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     data: { user }
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+
+  const access = await canAccess(supabase, user.id, id)
+  if (!access.ok) return access.error
 
   const { data, error } = await supabase
     .from('surveys')
@@ -32,6 +50,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     data: { user }
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+
+  const access = await canAccess(supabase, user.id, id)
+  if (!access.ok) return access.error
 
   const body = await request.json()
 
@@ -113,6 +134,9 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     data: { user }
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+
+  const access = await canAccess(supabase, user.id, id)
+  if (!access.ok) return access.error
 
   const { data: surveyInfo } = await supabase.from('surveys').select('survey_number').eq('id', id).maybeSingle()
   const { error } = await supabase.from('surveys').delete().eq('id', id)

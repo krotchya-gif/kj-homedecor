@@ -5,6 +5,10 @@ import { createSimpleJournal } from '@/utils/journal/create'
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   const { data, error } = await supabase
     .from('purchase_orders')
@@ -23,6 +27,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const {
     data: { user }
   } = await supabase.auth.getUser()
+  // Security fix: wajib login + role gudang/admin/owner
+  if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
+  if (!requester || !['gudang', 'admin', 'owner', 'finance'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
 
   // Get current PO data (before update)
   const { data: currentPO } = await supabase
@@ -31,8 +41,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  // Handle status transitions
-  const updates: Record<string, unknown> = { ...body }
+  // Security fix: whitelist field (jangan body mentah)
+  const ALLOWED_FIELDS = ['status', 'supplier_id', 'qty', 'actual_cost', 'notes']
+  const updates: Record<string, unknown> = {}
+  for (const k of ALLOWED_FIELDS) {
+    if (k in body) updates[k] = body[k]
+  }
 
   if (body.status === 'received') {
     updates.received_at = new Date().toISOString()

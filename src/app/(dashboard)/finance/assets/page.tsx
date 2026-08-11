@@ -133,6 +133,26 @@ export default function AssetsPage() {
         }
         if (data?.id) {
           setAssets((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
+
+          // F-11/F-51 fix (2026-08-11): pembelian aset wajib jurnal
+          // Dr Peralatan Toko / Cr Kas (agar aset masuk neraca)
+          const purchaseValue = Number(form.purchase_value) || 0
+          if (purchaseValue > 0) {
+            try {
+              const { createSimpleJournal } = await import('@/utils/journal/create')
+              await createSimpleJournal({
+                transaction_type: 'asset_purchase',
+                reference_type: 'asset',
+                reference_id: data.id,
+                description: `Pembelian aset ${form.name}`,
+                amount: purchaseValue,
+                debit_account_id: '22222222-2222-4222-8222-222222222208', // Peralatan Toko
+                credit_account_id: '22222222-2222-4222-8222-222222222201' // Kas
+              })
+            } catch (jErr) {
+              console.error('Gagal buat jurnal pembelian aset:', jErr)
+            }
+          }
         }
       }
       setSaving(false)

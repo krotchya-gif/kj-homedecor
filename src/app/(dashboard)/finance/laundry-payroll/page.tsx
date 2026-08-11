@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Wallet, CheckCircle2, Clock, TrendingUp, Download } from 'lucide-react'
 import type { User, LaundryOrder, LaundryRate, LaundryPayroll } from '@/types'
 import { useToast } from '@/components/ui/Toast'
+import { createSimpleJournal } from '@/utils/journal/create'
 
 const MONTHS = [
   'Januari',
@@ -106,6 +107,23 @@ export default function LaundryPayrollPage() {
     setPayrolls((curr) => curr.map((p) => (p.id === payrollId ? { ...p, status: 'paid' } : p)))
     const { error } = await supabase.from('laundry_payroll').update({ status: 'paid' }).eq('id', payrollId)
     if (error) { setPayrolls(prev); setSaving(false); toast('error', 'Gagal mark paid: ' + error.message); return }
+    // F-11 fix (2026-08-11): gaji dibayar wajib jurnal Dr Beban Gaji / Cr Kas
+    const target = payrolls.find((p) => p.id === payrollId)
+    const staffName = staff.find((s) => s.id === target?.staff_id)?.name ?? ''
+    if (target && target.total_amount > 0) {
+      try {
+        await createSimpleJournal({
+          transaction_type: 'expense_paid',
+          reference_type: 'laundry_payroll',
+          reference_id: payrollId,
+          description: `Pembayaran gaji laundry ${staffName} (${target.period_month}/${target.period_year})`,
+          amount: target.total_amount
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal payroll:', jErr)
+        toast('warning', 'Payroll ditandai lunas, TAPI jurnal GAGAL. Periksa mapping akun.')
+      }
+    }
     setSaving(false)
     setShowPaidModal(null)
     toast('success', 'Payroll ditandai lunas')

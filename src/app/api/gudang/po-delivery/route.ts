@@ -25,6 +25,12 @@ export async function POST(request: Request) {
   const {
     data: { user }
   } = await supabase.auth.getUser()
+  // Security fix: wajib login + role gudang/admin/owner (sebelumnya fail-open!)
+  if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
+  if (!requester || !['gudang', 'admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ error: { message: 'Forbidden' } }, { status: 403 })
+  }
 
   // Get current PO with PR info
   const { data: currentPO, error: fetchErr } = await supabase

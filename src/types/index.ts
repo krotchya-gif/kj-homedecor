@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'gudang' | 'penjahit' | 'finance' | 'installer' | 'owner' | 'laundry'
+export type Role = 'admin' | 'gudang' | 'penjahit' | 'finance' | 'installer' | 'owner' | 'surveyor' | 'laundry'
 
 export type OrderSource = 'shopee' | 'tokopedia' | 'tiktok' | 'offline' | 'landing_page'
 
