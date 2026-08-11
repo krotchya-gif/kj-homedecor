@@ -81,3 +81,7 @@ __pycache__/
 
 # Hermes agent internal (plans/notes lokal)
 .hermes/
+
+# Supabase CLI local state
+supabase/.temp/
+

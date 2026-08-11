@@ -146,7 +146,16 @@ export default function AccountsListPage() {
       const prev = accounts
       setAccounts((curr) => curr.filter((x) => x.id !== id))
       const { error } = await supabase.from('accounts').delete().eq('id', id)
-      if (error) { setAccounts(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      if (error) {
+        setAccounts(prev)
+        // F-66 fix: FK error dibungkus pesan ramah (bukan error mentah Supabase)
+        if (error.code === '23503') {
+          toast('error', 'Akun tidak bisa dihapus — masih dipakai transaksi/jurnal. Nonaktifkan saja atau kosongkan dulu pemakaiannya.')
+        } else {
+          toast('error', 'Gagal hapus: ' + error.message)
+        }
+        return
+      }
       toast('success', 'Berhasil dihapus')
   }
 

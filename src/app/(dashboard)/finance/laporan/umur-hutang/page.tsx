@@ -101,12 +101,14 @@ export default function UmurHutangPage() {
     // aging pakai due_date kalau ada, fallback invoice_date
     const anchor = h.due_date ?? h.invoice_date ?? ''
     const days = Math.floor((asOf.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
-    const bucket = getBucket(days)
+    // F-69 fix: tanggal invoice di masa depan → days negatif. Clamp ke 0 + tandai.
+    const isFuture = Number.isFinite(days) && days < 0
+    const bucket = isFuture ? 'Belum Jatuh Tempo' : getBucket(Math.max(0, days))
     const sisa = (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)
-    return { ...h, days, bucket, sisa }
+    return { ...h, days: isFuture ? 0 : days, bucket, sisa, isFuture }
   })
 
-  const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0 }
+  const buckets: Record<string, number> = { '< 30 hari': 0, '30-60 hari': 0, '60-90 hari': 0, '> 90 hari': 0, 'Belum Jatuh Tempo': 0 }
   enriched.forEach((h) => {
     // BUG-015 fix: jumlahkan SISA tagihan, bukan amount penuh
     buckets[h.bucket] = (buckets[h.bucket] ?? 0) + (h.sisa > 0 ? h.sisa : 0)
@@ -256,7 +258,8 @@ export default function UmurHutangPage() {
                 '< 30 hari': { bg: '#dcfce7', text: '#166534' },
                 '30-60 hari': { bg: '#fef9c3', text: '#854d0e' },
                 '60-90 hari': { bg: '#ffedd5', text: '#9a3412' },
-                '> 90 hari': { bg: '#fee2e2', text: '#991b1b' }
+                '> 90 hari': { bg: '#fee2e2', text: '#991b1b' },
+                'Belum Jatuh Tempo': { bg: '#e0e7ff', text: '#3730a3' }
               }
               const c = colors[d.bucket]
               return (

@@ -14,6 +14,10 @@ import ReportPDFButton from '@/components/ui/ReportPDFButton'
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
+// F-67 fix: format dengan 2 desimal untuk mendeteksi selisih kecil (A ≠ L+E)
+const formatRpDec = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+
 function formatDateDisplay(dateStr: string) {
   if (!dateStr || dateStr === '2099-12-31') return 'Semua'
   const d = new Date(dateStr + 'T00:00:00')
@@ -254,6 +258,22 @@ export default function NeracaPage() {
                       <td style={{ fontWeight: '700' }}>TOTAL</td>
                       <td style={{ textAlign: 'right', fontWeight: '800', color: '#16a34a' }}>
                         {formatRp(totalEquity)}
+                      </td>
+                    </tr>
+                    {/* F-67 fix: tampilkan selisih dengan 2 desimal agar drift kecil terlihat */}
+                    <tr>
+                      <td style={{ fontSize: '0.75rem', color: 'var(--neutral-500)' }}>
+                        Selisih (Aset − Liab − Ekuitas)
+                      </td>
+                      <td
+                        style={{
+                          textAlign: 'right',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          color: Math.abs(totalAssets - totalLiabilities - totalEquity) < 1 ? '#16a34a' : '#dc2626'
+                        }}
+                      >
+                        {formatRpDec(totalAssets - totalLiabilities - totalEquity)}
                       </td>
                     </tr>
                   </tbody>

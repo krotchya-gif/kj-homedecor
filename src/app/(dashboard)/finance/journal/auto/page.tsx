@@ -19,9 +19,15 @@ interface LooseRow {
   total_credit?: number
 }
 
+const formatRp = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
 export default function AutoJournalPage() {
   const [entries, setEntries] = useState<LooseRow[]>([])
   const [loading, setLoading] = useState(true)
+  // F-65 fix: pagination — tidak ada batas 50 yang menyembunyikan jurnal lama
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 50
 
   const supabase = createClient()
 
@@ -31,14 +37,18 @@ export default function AutoJournalPage() {
       .from('journal_entries')
       .select('*, lines:journal_lines(count)')
       .order('entry_date', { ascending: false })
-      .limit(50)
     setEntries((data ?? []) as LooseRow[])
+    setPage(0)
     setLoading(false)
   }
 
   useEffect(() => {
     fetchData()
   }, [])
+
+  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE))
+  const pageEntries = entries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+  const goto = (n: number) => setPage(Math.min(Math.max(0, n), pageCount - 1))
 
   return (
     <div>
@@ -93,17 +103,24 @@ export default function AutoJournalPage() {
               </tr>
             </thead>
             <tbody>
-              {entries.map((e) => (
+              {pageEntries.map((e) => (
                 <tr key={e.id}>
                   <td style={{ color: 'var(--neutral-600)' }}>{e.entry_date ?? '—'}</td>
                   <td style={{ fontWeight: '500' }}>{e.description ?? '—'}</td>
                   <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{e.reference_type ?? '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{e.total_debit ?? 0}</td>
-                  <td style={{ textAlign: 'right' }}>{e.total_credit ?? 0}</td>
+                  <td style={{ textAlign: 'right' }}>{formatRp(Number(e.total_debit ?? e.debit ?? 0))}</td>
+                  <td style={{ textAlign: 'right' }}>{formatRp(Number(e.total_credit ?? e.credit ?? 0))}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+        )}
+        {!loading && entries.length > 0 && pageCount > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', padding: '1rem 0' }}>
+            <button onClick={() => goto(page - 1)} disabled={page === 0} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.4rem', border: '1px solid #d1d5db', cursor: 'pointer', fontSize: '0.8rem' }}>‹ Prev</button>
+            <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>{page + 1} / {pageCount} ({entries.length} jurnal)</span>
+            <button onClick={() => goto(page + 1)} disabled={page >= pageCount - 1} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.4rem', border: '1px solid #d1d5db', cursor: 'pointer', fontSize: '0.8rem' }}>Next ›</button>
+          </div>
         )}
       </div>
     </div>

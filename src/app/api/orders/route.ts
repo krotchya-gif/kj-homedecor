@@ -65,6 +65,8 @@ export async function POST(request: Request) {
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
   // BUG-009: wajib baseUrl di server context (fetch relatif throw di Node/Next route handler)
+  // F-62 fix: kegagalan jurnal TIDAK boleh diam-diam — return warning agar terlihat di client
+  let journalWarning: string | null = null
   if (order && data.total_amount && data.total_amount > 0) {
     try {
       await createSimpleJournal({
@@ -74,12 +76,16 @@ export async function POST(request: Request) {
         description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} — ${data.customer_id ?? ''}`,
         amount: data.total_amount,
         baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+        // F-54 fix: idempotent per order — retry tidak bikin jurnal ganda
+        idempotency_key: `order_created:${order.id}`,
         supabase
       })
     } catch (e) {
-      console.warn('Failed to create journal entry for order:', e)
+      const errMsg = e instanceof Error ? e.message : String(e)
+      console.error('Gagal buat jurnal order_created:', errMsg)
+      journalWarning = 'Order tersimpan, TAPI jurnal order_created GAGAL: ' + errMsg
     }
   }
 
-  return NextResponse.json({ data: order, error: null })
+  return NextResponse.json({ data: order, error: null, warning: journalWarning })
 }

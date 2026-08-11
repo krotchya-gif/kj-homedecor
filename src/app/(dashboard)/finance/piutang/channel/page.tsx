@@ -40,9 +40,10 @@ export default function ChannelPage() {
         aggregated[ch] = { channel: ch, total_amount: 0, total_paid: 0, total_return: 0 }
       }
       const row = aggregated[ch]!
-      row.total_amount = (row.total_amount ?? 0) + (p.amount ?? 0)
-      row.total_paid = (row.total_paid ?? 0) + (p.paid_amount ?? 0)
-      row.total_return = (row.total_return ?? 0) + (p.return_amount ?? 0)
+      // F-71 fix: Number() eksplisit — mencegah string concat / float drift
+      row.total_amount = (row.total_amount ?? 0) + Number(p.amount ?? 0)
+      row.total_paid = (row.total_paid ?? 0) + Number(p.paid_amount ?? 0)
+      row.total_return = (row.total_return ?? 0) + Number(p.return_amount ?? 0)
     })
     setChannels(Object.values(aggregated))
     setLoading(false)
@@ -70,8 +71,14 @@ export default function ChannelPage() {
                   <span className="mobile-card-value">{c.channel ?? 'offline'}</span>
                 </div>
                 <div className="mobile-card-row">
-                  <span className="mobile-card-label">Deskripsi</span>
-                  <span className="mobile-card-value">{c.channel ?? 'offline'}</span>
+                  <span className="mobile-card-label">Total Piutang</span>
+                  <span className="mobile-card-value">{formatRp(c.total_amount ?? 0)}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Sisa</span>
+                  <span className="mobile-card-value">
+                    {formatRp((c.total_amount ?? 0) - (c.total_paid ?? 0) - (c.total_return ?? 0))}
+                  </span>
                 </div>
             </div>
           )} />

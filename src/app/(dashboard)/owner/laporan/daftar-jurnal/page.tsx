@@ -18,6 +18,9 @@ export default function DaftarJurnalPage() {
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
   const [entries, setEntries] = useState<JournalEntry[]>([])
+  // F-59 fix: pagination — tidak ada batas 100 yang menyembunyikan jurnal lama
+  const [page, setPage] = useState(0)
+  const PAGE_SIZE = 50
 
   const supabase = createClient()
 
@@ -29,14 +32,18 @@ export default function DaftarJurnalPage() {
       .gte('entry_date', startDate)
       .lte('entry_date', endDate)
       .order('entry_date', { ascending: false })
-      .limit(100)
     setEntries(data ?? [])
+    setPage(0)
     setLoading(false)
   }
 
   useEffect(() => {
     fetchData()
   }, [startDate, endDate])
+
+  const pageCount = Math.max(1, Math.ceil(entries.length / PAGE_SIZE))
+  const pageEntries = entries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+  const goto = (n: number) => setPage(Math.min(Math.max(0, n), pageCount - 1))
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -113,7 +120,7 @@ export default function DaftarJurnalPage() {
               </tr>
             </thead>
             <tbody>
-              {entries.map((e) =>
+              {pageEntries.map((e) =>
                 e.lines?.map((line: JournalLine, idx: number) => (
                   <tr key={`${e.id}-${idx}`}>
                     {idx === 0 && (
@@ -136,6 +143,13 @@ export default function DaftarJurnalPage() {
               )}
             </tbody>
           </table>
+        )}
+        {!loading && entries.length > 0 && pageCount > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', padding: '1rem 0' }}>
+            <button onClick={() => goto(page - 1)} disabled={page === 0} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.4rem', border: '1px solid #d1d5db', cursor: 'pointer', fontSize: '0.8rem' }}>‹ Prev</button>
+            <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>{page + 1} / {pageCount} ({entries.length} jurnal)</span>
+            <button onClick={() => goto(page + 1)} disabled={page >= pageCount - 1} style={{ padding: '0.4rem 0.8rem', borderRadius: '0.4rem', border: '1px solid #d1d5db', cursor: 'pointer', fontSize: '0.8rem' }}>Next ›</button>
+          </div>
         )}
       </div>
     </div>

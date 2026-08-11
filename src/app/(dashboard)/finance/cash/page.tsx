@@ -36,8 +36,7 @@ export default function CashPage() {
     account_id: '',
     bank_name: '',
     account_number: '',
-    account_holder: '',
-    balance: ''
+    account_holder: ''
   })
 
   const supabase = createClient()
@@ -65,7 +64,7 @@ export default function CashPage() {
 
   function openAdd() {
     setEditItem(null)
-    setForm({ account_id: '', bank_name: '', account_number: '', account_holder: '', balance: '' })
+    setForm({ account_id: '', bank_name: '', account_number: '', account_holder: '' })
     setShowForm(true)
   }
 
@@ -75,8 +74,7 @@ export default function CashPage() {
       account_id: c.account_id ?? '',
       bank_name: c.bank_name ?? '',
       account_number: c.account_number ?? '',
-      account_holder: c.account_holder ?? '',
-      balance: String(c.balance ?? 0)
+      account_holder: c.account_holder ?? ''
     })
     setShowForm(true)
   }
@@ -84,12 +82,19 @@ export default function CashPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    // F-22 fix: akun COA WAJIB (journal_lines.account_id NOT NULL)
+    if (!form.account_id) {
+      setSaving(false)
+      toast('error', 'Akun COA wajib dipilih.')
+      return
+    }
+    // F-20/F-25 fix: saldo TIDAK diinput manual — hanya bergerak via jurnal
+    // (create_journal_atomic meng-update balance otomatis saat ada transaksi)
     const payload = {
-      account_id: form.account_id || null,
+      account_id: form.account_id,
       bank_name: form.bank_name,
       account_number: form.account_number,
-      account_holder: form.account_holder || null,
-      balance: Number(form.balance) || 0
+      account_holder: form.account_holder || null
     }
     if (editItem) {
         // UPDATE optimistic
@@ -198,7 +203,7 @@ export default function CashPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Saldo</span>
-                  <span className="mobile-card-value">{c.balance ?? 0}</span>
+                  <span className="mobile-card-value">{formatRp(c.balance ?? 0)}</span>
                 </div>
                 <div className="mobile-card-actions">
                   <button onClick={() => openEdit(c)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
@@ -268,9 +273,10 @@ export default function CashPage() {
                 marginBottom: '0.3rem'
               }}
             >
-              Akun COA
+              Akun COA *
             </label>
             <select
+              required
               value={form.account_id}
               onChange={(e) => setForm((f) => ({ ...f, account_id: e.target.value }))}
               style={{
@@ -372,33 +378,6 @@ export default function CashPage() {
                 }}
               />
             </div>
-          </div>
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '0.8rem',
-                fontWeight: '600',
-                color: 'var(--neutral-700)',
-                marginBottom: '0.3rem'
-              }}
-            >
-              Saldo Awal
-            </label>
-            <input
-              type="number"
-              placeholder="0"
-              value={form.balance}
-              onChange={(e) => setForm((f) => ({ ...f, balance: e.target.value }))}
-              style={{
-                width: '100%',
-                padding: '0.625rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.5rem',
-                fontSize: '0.875rem',
-                outline: 'none'
-              }}
-            />
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
             <button

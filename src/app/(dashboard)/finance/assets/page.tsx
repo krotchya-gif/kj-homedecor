@@ -166,7 +166,16 @@ export default function AssetsPage() {
       const prev = assets
       setAssets((curr) => curr.filter((x) => x.id !== id))
       const { error } = await supabase.from('assets').delete().eq('id', id)
-      if (error) { setAssets(prev); toast('error', 'Gagal hapus: ' + error.message); return }
+      if (error) {
+        setAssets(prev)
+        // F-66 fix: FK error dibungkus pesan ramah
+        if (error.code === '23503') {
+          toast('error', 'Aset tidak bisa dihapus — masih terhubung ke jurnal/transaksi. Arsipkan atau gunakan menu lain.')
+        } else {
+          toast('error', 'Gagal hapus: ' + error.message)
+        }
+        return
+      }
       toast('success', 'Berhasil dihapus')
   }
 

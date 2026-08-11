@@ -107,7 +107,11 @@ export default function FinanceSettingsPage() {
     }
     await fetchData()
     setSaving(false)
-    if (hadError) { toast('error', '⚠️ Beberapa saldo gagal disimpan: ' + hadError.message) }
+    // F-63 fix: jangan tampilkan toast sukses DAN error bersamaan
+    if (hadError) {
+      toast('error', '⚠️ Beberapa saldo gagal disimpan: ' + hadError.message)
+      return
+    }
     toast('success', 'Saldo kas/bank berhasil disimpan!')
   }
 

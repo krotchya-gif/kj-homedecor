@@ -14,6 +14,7 @@ export interface CreateJournalOptions {
   reference_id?: string
   description: string
   entry_date?: string
+  idempotency_key?: string
   lines: JournalLineInput[]
   is_auto?: boolean
   baseUrl?: string
@@ -62,6 +63,9 @@ export async function getAccountMapping(transactionType: string, supabase?: Supa
 /**
  * Create a simple 2-line journal (debit + credit) using an account mapping.
  * Falls back to manual accounts if mapping not configured.
+ * F-12 fix: `debit_account_id`/`credit_account_id` yang DIKIRIM eksplisit
+ * (mis. pilihan akun kas di form pembayaran) menang atas mapping — mapping
+ * hanya jadi fallback saat tidak dikirim.
  */
 export async function createSimpleJournal(options: {
   transaction_type: string
@@ -72,14 +76,16 @@ export async function createSimpleJournal(options: {
   debit_account_id?: string
   credit_account_id?: string
   entry_date?: string
+  idempotency_key?: string
   baseUrl?: string
   supabase?: SupabaseClient
 }) {
   const { transaction_type, reference_type, reference_id, description, amount, entry_date, baseUrl, supabase } = options
 
   const mapping = await getAccountMapping(transaction_type, supabase)
-  const debitAccountId = mapping?.debit_account_id ?? options.debit_account_id
-  const creditAccountId = mapping?.credit_account_id ?? options.credit_account_id
+  // F-12: akun eksplisit dari pemanggil (mis. pilihan akun kas di UI) > mapping
+  const debitAccountId = options.debit_account_id ?? mapping?.debit_account_id
+  const creditAccountId = options.credit_account_id ?? mapping?.credit_account_id
 
   if (!debitAccountId || !creditAccountId) {
     throw new Error(
@@ -92,6 +98,7 @@ export async function createSimpleJournal(options: {
     reference_id,
     description,
     entry_date: entry_date ?? new Date().toISOString().split('T')[0],
+    idempotency_key: options.idempotency_key,
     is_auto: true,
     baseUrl: options.baseUrl,
     lines: [

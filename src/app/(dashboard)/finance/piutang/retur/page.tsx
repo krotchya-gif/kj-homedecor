@@ -11,12 +11,12 @@ const formatRp = (n: number) =>
 
 interface Retur {
   id: string
-  piutang_id: string
+  invoice_number?: string
   return_amount: number
-  return_date: string
-  reason: string
+  notes?: string
   status: string
-  piutang?: { customer: { name: string }; invoice_number: string; amount: number }
+  created_at?: string
+  customer?: { name?: string } | null
 }
 
 export default function ReturPage() {
@@ -27,10 +27,11 @@ export default function ReturPage() {
 
   async function fetchData() {
     setLoading(true)
-    // Simplified - show return transactions
+    // F-44 fix: `piutang` TIDAK punya kolom reason/return_date — pakai kolom nyata
+    // (return_amount > 0, notes sebagai alasan, created_at sebagai tanggal)
     const { data } = await supabase
       .from('piutang')
-      .select('*, customer:customers(name)')
+      .select('id, invoice_number, return_amount, notes, status, created_at, customer:customers(name)')
       .gt('return_amount', 0)
       .order('created_at', { ascending: false })
     setRetur((data ?? []) as Retur[])
@@ -56,15 +57,15 @@ export default function ReturPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">{r.piutang?.amount ?? r.return_amount ?? 0}</span>
+                  <span className="mobile-card-value">{formatRp(r.return_amount ?? 0)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Alasan</span>
-                  <span className="mobile-card-value">{r.reason}</span>
+                  <span className="mobile-card-value">{r.notes ?? '—'}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{r.return_date ?? "—"}</span>
+                  <span className="mobile-card-value">{r.created_at ? new Date(r.created_at).toLocaleDateString('id-ID') : '—'}</span>
                 </div>
             </div>
           )} />
@@ -91,8 +92,8 @@ export default function ReturPage() {
             <tbody>
               {retur.map((r) => (
                 <tr key={r.id}>
-                  <td style={{ fontWeight: '500' }}>{r.piutang?.customer?.name ?? '—'}</td>
-                  <td style={{ fontFamily: 'monospace' }}>{r.piutang?.invoice_number ?? '—'}</td>
+                  <td style={{ fontWeight: '500' }}>{r.customer?.name ?? '—'}</td>
+                  <td style={{ fontFamily: 'monospace' }}>{r.invoice_number ?? '—'}</td>
                   <td style={{ fontWeight: '600', color: '#dc2626', textAlign: 'right' }}>
                     {formatRp(r.return_amount ?? 0)}
                   </td>

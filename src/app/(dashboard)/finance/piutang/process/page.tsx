@@ -34,9 +34,11 @@ export default function ProcessReturPage() {
 
   async function fetchData() {
     setLoading(true)
+    // F-41 fix: hanya tampilkan piutang aktif (pending/partial), bukan paid/cancelled
     const { data } = await supabase
       .from('piutang')
       .select('*, customer:customers(name)')
+      .in('status', ['pending', 'partial'])
       .order('created_at', { ascending: false })
     setPiutang((data ?? []) as LooseRow[])
     setLoading(false)
@@ -113,7 +115,7 @@ export default function ProcessReturPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">{(p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)}</span>
+                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>

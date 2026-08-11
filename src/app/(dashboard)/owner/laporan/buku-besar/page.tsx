@@ -3,13 +3,14 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { fetchAccountBalances } from '@/lib/ledger'
+import { fetchAccountBalances, fetchAccountLines, type AccountLine } from '@/lib/ledger'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { useRef } from 'react'
+import { Modal } from '@/components/ui/Modal'
 
 const formatRp = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -32,6 +33,10 @@ export default function BukuBesarPage() {
   const [selectedCodes, setSelectedCodes] = useState<Set<string> | null>(null)
   const [filterOpen, setFilterOpen] = useState(false)
   const filterRef = useRef<HTMLDivElement>(null)
+  // F-58 fix: detail transaksi per akun
+  const [detailAccount, setDetailAccount] = useState<LooseRow | null>(null)
+  const [detailLines, setDetailLines] = useState<AccountLine[]>([])
+  const [detailLoading, setDetailLoading] = useState(false)
 
   // Tutup dropdown saat klik di luar
   useEffect(() => {
@@ -72,6 +77,17 @@ export default function BukuBesarPage() {
   const filtered = selectedCodes === null ? accounts : accounts.filter((a) => selectedCodes.has(a.code ?? ''))
   const totalPreview = filtered.reduce((s, a) => s + (a.balance ?? 0), 0)
   const filterActive = selectedCodes !== null
+
+  async function openDetail(a: LooseRow) {
+    setDetailAccount(a)
+    setDetailLoading(true)
+    const { data, error } = await fetchAccountLines(supabase, String(a.id ?? ''), startDate, endDate)
+    setDetailLines((data ?? []) as AccountLine[])
+    if (error) {
+      setDetailLines([])
+    }
+    setDetailLoading(false)
+  }
 
   function downloadPDF() {
     const doc = new jsPDF()
@@ -283,7 +299,13 @@ export default function BukuBesarPage() {
             </thead>
             <tbody>
               {filtered.map((a) => (
-                <tr key={a.id}>
+                <tr
+                  key={a.id}
+                  onClick={() => openDetail(a)}
+                  style={{ cursor: 'pointer', transition: 'background 0.15s' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--neutral-100)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = '')}
+                >
                   <td style={{ fontFamily: 'monospace', fontWeight: '600' }}>{a.code}</td>
                   <td style={{ fontWeight: '500' }}>{a.name}</td>
                   <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{a.type}</td>
@@ -306,6 +328,66 @@ export default function BukuBesarPage() {
           </table>
         )}
       </div>
+
+      {/* F-58 fix: detail transaksi per akun */}
+      <Modal open={!!detailAccount} onClose={() => setDetailAccount(null)} maxWidth={640} padding="1.5rem" zIndex={300}>
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ fontSize: '1.05rem', fontWeight: '800', color: 'var(--neutral-900)' }}>
+            {detailAccount?.code} — {detailAccount?.name}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: 'var(--neutral-500)', marginTop: '0.2rem' }}>
+            Detail transaksi periode {startDate} s/d {endDate}
+          </div>
+        </div>
+
+        {detailLoading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+        ) : detailLines.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
+            Belum ada transaksi di periode ini
+          </div>
+        ) : (
+          <div style={{ maxHeight: 420, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: '0.6rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+              <thead>
+                <tr style={{ background: 'var(--neutral-100)', position: 'sticky', top: 0 }}>
+                  <th style={{ textAlign: 'left', padding: '0.5rem 0.6rem' }}>Tanggal</th>
+                  <th style={{ textAlign: 'left', padding: '0.5rem 0.6rem' }}>Keterangan</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0.6rem' }}>Debit</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0.6rem' }}>Kredit</th>
+                  <th style={{ textAlign: 'right', padding: '0.5rem 0.6rem' }}>Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailLines.map((l, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.45rem 0.6rem', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
+                      {l.entry_date}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.6rem', color: 'var(--neutral-700)' }}>
+                      {l.description}
+                      {l.reference_type ? (
+                        <span style={{ display: 'block', fontSize: '0.68rem', color: 'var(--neutral-400)' }}>
+                          ref: {l.reference_type}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', color: '#166534' }}>
+                      {l.debit > 0 ? formatRp(l.debit) : '—'}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', color: '#b91c1c' }}>
+                      {l.credit > 0 ? formatRp(l.credit) : '—'}
+                    </td>
+                    <td style={{ padding: '0.45rem 0.6rem', textAlign: 'right', fontWeight: '700', color: '#cc7030' }}>
+                      {formatRp(l.running_balance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

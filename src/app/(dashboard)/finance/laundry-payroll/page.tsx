@@ -75,6 +75,11 @@ export default function LaundryPayrollPage() {
 
       const existing = payrolls.find((p) => p.staff_id === s.id)
       if (existing) {
+        // F-23 fix: jangan timpa payroll yang SUDAH dibayar
+        if (existing.status === 'paid') {
+          toast('warning', `Payroll ${staff.find((x) => x.id === s.id)?.name ?? ''} sudah dibayar — tidak diubah.`)
+          continue
+        }
         const { error: updErr } = await supabase
           .from('laundry_payroll')
           .update({

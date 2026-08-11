@@ -40,6 +40,8 @@ export default function FakturPage() {
   const { toast } = useToast()
   const [piutang, setPiutang] = useState<Piutang[]>([])
   const [customers, setCustomers] = useState<{ id: string; name?: string }[]>([])
+  // F-42 fix: dropdown order (valid FK) — bukan free-text yang bikin insert gagal
+  const [orders, setOrders] = useState<{ id: string; order_number?: string; customer?: { name?: string } | null }[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
@@ -71,6 +73,12 @@ export default function FakturPage() {
     setPiutang((data as Piutang[]) ?? [])
     const { data: cust } = await supabase.from('customers').select('id, name').order('name')
     setCustomers(cust ?? [])
+    const { data: ord } = await supabase
+      .from('orders')
+      .select('id, order_number, customer:customers(name)')
+      .order('created_at', { ascending: false })
+      .limit(500)
+    setOrders((ord ?? []) as { id: string; order_number?: string; customer?: { name?: string } | null }[])
     setLoading(false)
   }
 
@@ -293,11 +301,11 @@ export default function FakturPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
-                  <span className="mobile-card-value">{p.amount ?? 0}</span>
+                  <span className="mobile-card-value">{formatRp(p.amount ?? 0)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">{(p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)}</span>
+                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -546,22 +554,28 @@ export default function FakturPage() {
                 marginBottom: '0.3rem'
               }}
             >
-              Order ID (opsional)
+              Order (opsional)
             </label>
-            <input
-              type="text"
+            <select
               value={form.order_id}
               onChange={(e) => setForm((f) => ({ ...f, order_id: e.target.value }))}
-              placeholder="Link ke order jika ada"
               style={{
                 width: '100%',
                 padding: '0.625rem',
                 border: '1px solid #d1d5db',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
-                outline: 'none'
+                outline: 'none',
+                background: 'var(--surface)'
               }}
-            />
+            >
+              <option value="">— Tanpa Order —</option>
+              {orders.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.order_number ?? o.id.slice(0, 8)} — {o.customer?.name ?? 'Tanpa nama'}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label

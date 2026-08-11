@@ -59,7 +59,27 @@ export default function MutasiKasPage() {
   async function fetchData() {
     setLoading(true)
     const { data } = await supabase.from('cash_accounts').select('*, account:accounts(code, name)').order('bank_name')
-    setCashAccounts((data ?? []) as LooseRow[])
+    const cash = (data ?? []) as LooseRow[]
+
+    // F-33 fix: saldo LIVE dari journal_lines (bukan kolom balance yang sering basi).
+    // Saldo per akun kas = Σdebit − Σcredit baris jurnal akun tsb (normal debit).
+    const accountIds = cash.map((c) => c.account_id).filter(Boolean) as string[]
+    let lines: { account_id: string; debit: number; credit: number }[] = []
+    if (accountIds.length > 0) {
+      const { data: journalLines } = await supabase
+        .from('journal_lines')
+        .select('account_id, debit, credit, entry:journal_entries!inner(entry_date)')
+        .in('account_id', accountIds)
+        .gte('entry.entry_date', startDate)
+        .lte('entry.entry_date', endDate)
+      lines = (journalLines ?? []) as { account_id: string; debit: number; credit: number }[]
+    }
+    const sums = new Map<string, number>()
+    for (const l of lines) {
+      sums.set(l.account_id, (sums.get(l.account_id) ?? 0) + (Number(l.debit) - Number(l.credit)))
+    }
+    const withBalance = cash.map((c) => ({ ...c, balance: sums.get(String(c.account_id)) ?? 0 }))
+    setCashAccounts(withBalance)
     setLoading(false)
   }
 

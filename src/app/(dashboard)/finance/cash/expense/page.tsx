@@ -91,6 +91,8 @@ export default function ExpensePage() {
           description: form.description || 'Pengeluaran',
           entry_date: form.entry_date || new Date().toISOString().split('T')[0],
           reference_type: 'pengeluaran',
+          // F-54 fix: idempotency key — klik ganda tidak bikin jurnal ganda
+          idempotency_key: `pengeluaran:${crypto.randomUUID()}`,
           lines: [
             { account_id: form.expense_account_id, debit: amount, credit: 0 },
             { account_id: cashAcc.account_id, debit: 0, credit: amount }
@@ -102,11 +104,7 @@ export default function ExpensePage() {
       toast('error', '⚠️ ' + (json?.error?.message ?? `Gagal mencatat pengeluaran (HTTP ${res.status})`))
       return
     }
-    const { error: rpcErr } = await supabase.rpc('update_cash_account_balance', {
-      p_id: form.cash_account_id,
-      p_amount: -amount
-    })
-    if (rpcErr) { console.error('RPC update_cash_account_balance gagal:', rpcErr); toast('warning', '⚠️ Jurnal tercatat, tapi saldo kas TIDAK ter-update: ' + rpcErr.message) }
+    // F-19 fix: saldo kas di-update ATOMIK dalam create_journal_atomic (1 transaksi)
     setShowForm(false)
     fetchData()
     toast('success', 'Pengeluaran tercatat')

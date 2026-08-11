@@ -32,6 +32,7 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-022 | **Pembukuan bocor**: payment admin detail & auto-payment tanpa jurnal, Xendit tanpa jurnal, faktur piutang tanpa jurnal, payroll & aset tanpa jurnal, saldo awal tanpa jurnal pembuka | ✅ Fixed | — |
 | BUG-023 | **UI finance**: handleQcApprove dead, refund tab mobile salah render, dashboard angka menyesatkan, cash tanpa validasi, transfer race, mutasi saldo salah, mapping-diff error, PDF reports rusak, tarif upah hardcode, kronologi-hpp mislabeled | ✅ Fixed | — |
 | BUG-024 | **Drift**: Role type tanpa surveyor, x-pathname tak di-set, proxy login map surveyor, rename sidebar, finance akses marketplace/tiktok | ✅ Fixed | — |
+| BUG-025 | **Sisa audit F-31/53/58/40/41/42/44/12/19/57/54/33/20/22/25/59/60/65/23/62/63/64/66/67/68/69/71**: dua kolom sumber order, statistik halaman-aktif, buku besar tanpa detail, piutang UI, akun kas di form payment, jurnal non-atomik, kas tidak live, saldo awal manual, pagination laporan, guard payroll paid, jurnal order diam-diam gagal, toast ganda, tanggal masa depan, FK error mentah, desimal & timezone | ✅ Fixed (migration 064) | Migration 064 = RPC `create_journal_atomic` (entry+lines+saldo kas SATU transaksi + idempotency key) |
 
 ---
 

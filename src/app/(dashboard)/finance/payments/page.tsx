@@ -59,7 +59,8 @@ export default function FinancePaymentsPage() {
   const [payForm, setPayForm] = useState({
     type: 'dp',
     amount: '',
-    date: new Date().toISOString().slice(0, 10)
+    date: new Date().toISOString().slice(0, 10),
+    cash_account_id: ''
   })
   const [saving, setSaving] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null)
@@ -68,6 +69,9 @@ export default function FinancePaymentsPage() {
   const [processingRefund, setProcessingRefund] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [allOrders, setAllOrders] = useState<Order[]>([])
+  // F-12 fix: daftar akun kas untuk pilihan di form pembayaran
+  const [cashAccounts, setCashAccounts] = useState<{ id: string; name: string }[]>([])
   const supabase = createClient()
 
   async function load() {
@@ -83,7 +87,7 @@ export default function FinancePaymentsPage() {
     const from = (currentPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
 
-    const [ordersData, returnsData] = await Promise.all([
+    const [ordersData, returnsData, statsData] = await Promise.all([
       supabase
         .from('orders')
         .select(
@@ -96,12 +100,25 @@ export default function FinancePaymentsPage() {
         .from('returns')
         .select('*, order:orders(id, customer:customers(name))')
         .order('created_at', { ascending: false })
-        .limit(100)
+        .limit(100),
+      // F-53 fix: stat card dihitung dari SEMUA order, bukan halaman aktif
+      supabase
+        .from('orders')
+        .select('payment_status, total_amount, dp_amount, lunas_amount')
+        .neq('payment_status', 'cancelled')
     ])
 
     setOrders((ordersData.data ?? []) as unknown as Order[])
     setTotalCount(ordersData.count ?? 0)
     setRefundList((returnsData.data ?? []) as ReturnRow[])
+    setAllOrders((statsData.data ?? []) as unknown as Order[])
+    // F-12 fix: muat daftar akun kas untuk pilihan di form pembayaran
+    const { data: cashAcc } = await supabase
+      .from('accounts')
+      .select('id, name')
+      .eq('is_cash_account', true)
+      .order('code')
+    setCashAccounts((cashAcc ?? []) as { id: string; name: string }[])
     setLoading(false)
   }
   useEffect(() => {
@@ -155,14 +172,25 @@ export default function FinancePaymentsPage() {
       return
     }
     const now = new Date().toISOString()
-    const { error: payErr } = await supabase.from('payments').insert({
-      order_id: selected.id,
-      type: payForm.type,
-      amount,
-      date: payForm.date,
-      verified_by: currentUser?.id ?? null,
-      verified_at: now
-    })
+    // F-64 fix: tanggal pembayaran tidak boleh di masa depan
+    const todayStr = new Date().toISOString().slice(0, 10)
+    if (payForm.date > todayStr) {
+      setSaving(false)
+      toast('error', 'Tanggal pembayaran tidak boleh di masa depan.')
+      return
+    }
+    const { data: paymentRow, error: payErr } = await supabase
+      .from('payments')
+      .insert({
+        order_id: selected.id,
+        type: payForm.type,
+        amount,
+        date: payForm.date,
+        verified_by: currentUser?.id ?? null,
+        verified_at: now
+      })
+      .select('id')
+      .single()
     if (payErr) { setSaving(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
 
     // Auto-create journal entry for payment
@@ -173,7 +201,11 @@ export default function FinancePaymentsPage() {
         reference_id: selected.id,
         description: `${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} dari order ${selected.order_number ?? selected.id.slice(0, 8)} — ${selected.customer?.name ?? ''}`,
         amount,
-        entry_date: payForm.date
+        entry_date: payForm.date,
+        // F-12 fix: debit ke akun kas yang DIPILIH (default mapping Xendit Cash)
+        debit_account_id: payForm.cash_account_id || undefined,
+        // F-54 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
+        idempotency_key: paymentRow?.id ? `payment:${paymentRow.id}` : undefined
       })
     } catch (e) {
       // CRITICAL: journal entry gagal = double-entry accounting rusak.
@@ -217,7 +249,8 @@ export default function FinancePaymentsPage() {
     setPayForm({
       type: 'dp',
       amount: '',
-      date: new Date().toISOString().slice(0, 10)
+      date: new Date().toISOString().slice(0, 10),
+      cash_account_id: ''
     })
     load()
   }
@@ -467,17 +500,17 @@ export default function FinancePaymentsPage() {
         {[
           {
             label: 'Belum Bayar',
-            val: orders.filter((o) => o.payment_status === 'pending').length,
+            val: allOrders.filter((o) => o.payment_status === 'pending').length,
             color: '#ef4444'
           },
           {
             label: 'Bayar DP',
-            val: orders.filter((o) => o.payment_status === 'partial').length,
+            val: allOrders.filter((o) => o.payment_status === 'partial').length,
             color: '#f59e0b'
           },
           {
             label: 'Lunas',
-            val: orders.filter((o) => o.payment_status === 'paid').length,
+            val: allOrders.filter((o) => o.payment_status === 'paid').length,
             color: '#22c55e'
           },
           {
@@ -485,7 +518,7 @@ export default function FinancePaymentsPage() {
             val: fmt(
               Math.max(
                 0,
-                orders
+                allOrders
                   .filter((o) => o.payment_status !== 'paid')
                   .reduce((s, o) => s + (o.total_amount - o.dp_amount - o.lunas_amount), 0)
               )
@@ -847,7 +880,8 @@ export default function FinancePaymentsPage() {
                                 setPayForm({
                                   type: 'dp',
                                   amount: String(sisa > 0 ? sisa : ''),
-                                  date: new Date().toISOString().slice(0, 10)
+                                  date: new Date().toISOString().slice(0, 10),
+                                  cash_account_id: ''
                                 })
                               }}
                               style={{
@@ -1026,6 +1060,39 @@ export default function FinancePaymentsPage() {
                     marginBottom: '0.3rem'
                   }}
                 >
+                  Akun Kas Masuk
+                </label>
+                <select
+                  value={payForm.cash_account_id}
+                  onChange={(e) => setPayForm((f) => ({ ...f, cash_account_id: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    background: 'var(--surface)'
+                  }}
+                >
+                  <option value="">— Default (dari mapping) —</option>
+                  {cashAccounts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: 'var(--neutral-700)',
+                    marginBottom: '0.3rem'
+                  }}
+                >
                   Jumlah (Rp) *
                 </label>
                 <input
@@ -1060,6 +1127,7 @@ export default function FinancePaymentsPage() {
                 <input
                   type="date"
                   value={payForm.date}
+                  max={new Date().toISOString().slice(0, 10)}
                   onChange={(e) => setPayForm((f) => ({ ...f, date: e.target.value }))}
                   style={{
                     width: '100%',

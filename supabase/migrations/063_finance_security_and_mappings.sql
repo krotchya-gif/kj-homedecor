@@ -12,11 +12,22 @@ BEGIN;
 
 -- ============================================================
 -- 1. BUG-018: Hapus backdoor exec_sql (tidak dipakai src/ sama sekali)
+--    Note: pakai loop DO (bukan DROP IF EXISTS + REVOKE) karena
+--    REVOKE tidak punya IF EXISTS -> 42883 kalau fungsi tak ada.
+--    DROP FUNCTION otomatis mencabut semua privilege.
 -- ============================================================
-DROP FUNCTION IF EXISTS public.exec_sql;
-REVOKE ALL ON FUNCTION public.exec_sql FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.exec_sql FROM anon;
-REVOKE ALL ON FUNCTION public.exec_sql FROM authenticated;
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT p.oid::regprocedure AS proc
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.nspname = 'public' AND p.pronamespace = n.oid
+    WHERE p.proname = 'exec_sql'
+  LOOP
+    EXECUTE format('DROP FUNCTION %s', r.proc);
+  END LOOP;
+END $$;
 
 -- ============================================================
 -- 2. Helper role finance/admin/owner (dipakai RLS & RPC)
@@ -143,7 +154,7 @@ INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_
   ('refund_issued',
    '22222222-2222-4222-8222-222222222205'::uuid,  -- Piutang Customer
    '22222222-2222-4222-8222-222222222204'::uuid,  -- Xendit Cash
-   'Refund — Piutang (Debit) / Kas (Kredit)')
+   'Refund — Piutang (Debit) / Kas (Kredit)', true)
 ON CONFLICT (transaction_type) DO UPDATE SET
   debit_account_id = EXCLUDED.debit_account_id,
   credit_account_id = EXCLUDED.credit_account_id,
@@ -155,7 +166,7 @@ INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_
   ('hutang_paid',
    '33333333-3333-4333-8333-333333333301'::uuid,  -- Hutang Supplier
    '22222222-2222-4222-8222-222222222201'::uuid,  -- Kas
-   'Bayar hutang — Hutang Supplier (Debit) / Kas (Kredit)')
+   'Bayar hutang — Hutang Supplier (Debit) / Kas (Kredit)', true)
 ON CONFLICT (transaction_type) DO UPDATE SET
   debit_account_id = EXCLUDED.debit_account_id,
   credit_account_id = EXCLUDED.credit_account_id,
@@ -167,7 +178,7 @@ INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_
   ('piutang_received',
    '22222222-2222-4222-8222-222222222201'::uuid,  -- Kas
    '22222222-2222-4222-8222-222222222205'::uuid,  -- Piutang Customer
-   'Terima piutang — Kas (Debit) / Piutang (Kredit)')
+   'Terima piutang — Kas (Debit) / Piutang (Kredit)', true)
 ON CONFLICT (transaction_type) DO UPDATE SET
   debit_account_id = EXCLUDED.debit_account_id,
   credit_account_id = EXCLUDED.credit_account_id,
@@ -183,7 +194,7 @@ INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_
   ('ecommerce_fee',
    '66666666-6666-4666-8666-666666666606'::uuid,  -- Beban Biaya Lain E-commerce
    '22222222-2222-4222-8222-222222222205'::uuid,  -- Piutang Customer
-   'Komisi/biaya marketplace — Beban (Debit) / Piutang (Kredit)')
+   'Komisi/biaya marketplace — Beban (Debit) / Piutang (Kredit)', true)
 ON CONFLICT (transaction_type) DO UPDATE SET
   debit_account_id = EXCLUDED.debit_account_id,
   credit_account_id = EXCLUDED.credit_account_id,

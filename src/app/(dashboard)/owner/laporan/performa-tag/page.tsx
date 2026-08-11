@@ -66,11 +66,10 @@ export default function PerformaTagPage() {
     setLoading(true)
     const { data } = await supabase
       .from('orders')
-      .select('source_tag, total_amount, created_at')
+      .select('source, total_amount, created_at')
       .gte('created_at', startDate)
-      .lte('created_at', endDate + 'T23:59:59')
+      .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
       .order('created_at', { ascending: false })
-      .limit(500)
     setOrders((data ?? []) as LooseRow[])
     setLoading(false)
   }
@@ -79,9 +78,20 @@ export default function PerformaTagPage() {
     fetchData()
   }, [startDate, endDate])
 
-  // Group by source_tag
+  // F-31 fix: group by kolom `source` (bukan source_tag yang tidak pernah diisi)
+  const SOURCE_LABELS: Record<string, string> = {
+    shopee: 'Shopee',
+    tokopedia: 'Tokopedia',
+    tiktok: 'TikTok',
+    offline: 'Offline',
+    landing_page: 'Landing Page',
+    website: 'Website',
+    manual: 'Manual',
+    whatsapp: 'WhatsApp'
+  }
   const tagStats = orders.reduce((acc: Record<string, TagStat>, o) => {
-    const tag = String(o.source_tag ?? 'Tanpa Tag')
+    const raw = String(o.source ?? '')
+    const tag = raw ? SOURCE_LABELS[raw] ?? raw : 'Tanpa Tag'
     if (!acc[tag]) acc[tag] = { count: 0, total: 0 }
     const row = acc[tag]!
     row.count = (row.count ?? 0) + 1

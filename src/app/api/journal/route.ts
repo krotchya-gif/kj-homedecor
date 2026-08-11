@@ -15,6 +15,7 @@ const CreateJournalSchema = z
     reference_id: z.string().uuid('reference_id harus UUID').optional().nullable(),
     description: z.string().min(1, 'Deskripsi wajib').max(500),
     entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'entry_date format YYYY-MM-DD').optional(),
+    idempotency_key: z.string().max(200).optional().nullable(),
     lines: z.array(JournalLineSchema).min(1, 'Minimal 1 baris').max(50, 'Maksimal 50 baris')
   })
   .refine((d) => d.lines.every((l) => (l.debit > 0) !== (l.credit > 0)), {
@@ -24,10 +25,11 @@ const CreateJournalSchema = z
 /**
  * Helper function to create a journal entry with lines.
  *
- * BUG-019 fix (2026-08-11):
- * - Role check: hanya finance/admin/owner yang boleh menulis jurnal
- * - Validasi Zod: UUID, non-negatif, balanced, max 50 baris
- * - `is_auto` SELALU di-set server (client tidak bisa spoof)
+ * F-57/F-19/F-54 fix (2026-08-12):
+ * - Insert entry + lines + update saldo kas via SATU RPC atomik
+ *   (create_journal_atomic) — bukan 2 query + rollback manual
+ * - Idempotency key: retry/klik ganda tidak bikin jurnal ganda
+ * - Role check + is_auto selalu server-side (client tidak bisa spoof)
  */
 export async function POST(request: Request) {
   const supabase = await createClient()
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
   }
 
-  const { lines, description, reference_type, reference_id, entry_date } = parsed.data
+  const { lines, description, reference_type, reference_id, entry_date, idempotency_key } = parsed.data
 
   // BUG-019: is_auto SELALU server-side (false untuk POST manual)
   const isAuto = false
@@ -73,42 +75,31 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create journal entry
-    const { data: entry, error: entryError } = await supabase
-      .from('journal_entries')
-      .insert({
-        entry_date: entry_date ?? new Date().toISOString().split('T')[0],
-        description,
-        reference_type: reference_type ?? null,
-        reference_id: reference_id ?? null,
-        total_debit: totalDebit,
-        total_credit: totalCredit,
-        is_auto: isAuto,
-        created_by: user.id
-      })
-      .select()
-      .single()
+    // F-57/F-19 fix: satu RPC atomik (entry + lines + saldo kas) — bukan 2 query
+    const { data: rpcData, error: rpcError } = await supabase.rpc('create_journal_atomic', {
+      p_idempotency_key: idempotency_key ?? null,
+      p_reference_type: reference_type ?? null,
+      p_reference_id: reference_id ?? null,
+      p_description: description,
+      p_entry_date: entry_date ?? new Date().toISOString().split('T')[0],
+      p_is_auto: isAuto,
+      p_lines: lines.map((l) => ({
+        account_id: l.account_id,
+        debit: l.debit,
+        credit: l.credit,
+        description: l.description ?? null
+      })),
+      p_created_by: user.id
+    })
 
-    if (entryError) {
-      return NextResponse.json({ data: null, error: { message: 'Gagal menyimpan jurnal' } }, { status: 500 })
+    if (rpcError) {
+      return NextResponse.json(
+        { data: null, error: { message: 'Gagal menyimpan jurnal' } },
+        { status: 500 }
+      )
     }
 
-    // Create journal lines
-    const linesToInsert = lines.map((l) => ({
-      entry_id: entry.id,
-      account_id: l.account_id,
-      debit: l.debit,
-      credit: l.credit,
-      description: l.description ?? null
-    }))
-
-    const { error: linesError } = await supabase.from('journal_lines').insert(linesToInsert)
-    if (linesError) {
-      await supabase.from('journal_entries').delete().eq('id', entry.id)
-      return NextResponse.json({ data: null, error: { message: 'Gagal menyimpan baris jurnal' } }, { status: 500 })
-    }
-
-    return NextResponse.json({ data: entry, error: null }, { status: 201 })
+    return NextResponse.json({ data: rpcData, error: null }, { status: 201 })
   } catch {
     return NextResponse.json({ data: null, error: { message: 'Internal error' } }, { status: 500 })
   }

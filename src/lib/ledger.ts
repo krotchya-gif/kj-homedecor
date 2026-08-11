@@ -62,3 +62,59 @@ export async function fetchAccountBalances(
 
   return { data, error: null }
 }
+
+export interface AccountLine {
+  entry_date: string
+  description: string
+  reference_type: string | null
+  debit: number
+  credit: number
+  running_balance: number
+}
+
+/**
+ * F-58 fix: ambil DETAIL transaksi (journal_lines) per akun untuk Buku Besar,
+ * diurutkan per tanggal dengan running balance.
+ * Tanda saldo mengikuti normal-side akun (asset/expense debit; liability/equity/revenue credit).
+ */
+export async function fetchAccountLines(
+  supabase: SupabaseClient,
+  accountId: string,
+  startDate = '2020-01-01',
+  endDate = '2099-12-31'
+): Promise<{ data: AccountLine[]; error: unknown }> {
+  const { data: account, error: accErr } = await supabase.from('accounts').select('type, normal_side').eq('id', accountId).single()
+  if (accErr) return { data: [], error: accErr }
+
+  const { data: lines, error: lineError } = await supabase
+    .from('journal_lines')
+    .select('debit, credit, description, entry:journal_entries!inner(entry_date, description, reference_type)')
+    .eq('account_id', accountId)
+    .gte('entry.entry_date', startDate)
+    .lte('entry.entry_date', endDate)
+    .order('entry_date', { foreignTable: 'entry' })
+
+  if (lineError) return { data: [], error: lineError }
+
+  const isDebitNormal = account?.normal_side ? account.normal_side === 'debit' : ['asset', 'expense'].includes(account?.type)
+  let running = 0
+  const data = (lines ?? [])
+    .map((l) => {
+      const entry = Array.isArray(l.entry) ? l.entry[0] : l.entry
+      const debit = Number(l.debit ?? 0)
+      const credit = Number(l.credit ?? 0)
+      const delta = isDebitNormal ? debit - credit : credit - debit
+      running += delta
+      return {
+        entry_date: String(entry?.entry_date ?? ''),
+        description: String(entry?.description ?? l.description ?? ''),
+        reference_type: (entry?.reference_type as string | null) ?? null,
+        debit,
+        credit,
+        running_balance: running
+      }
+    })
+    .sort((a, b) => a.entry_date.localeCompare(b.entry_date))
+
+  return { data, error: null }
+}

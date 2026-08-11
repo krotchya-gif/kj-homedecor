@@ -96,6 +96,8 @@ export default function TransferPage() {
           description: form.description || 'Transfer kas',
           entry_date: form.entry_date || new Date().toISOString().split('T')[0],
           reference_type: 'transfer',
+          // F-54 fix: idempotency key — klik ganda tidak bikin jurnal ganda
+          idempotency_key: `transfer:${crypto.randomUUID()}`,
           lines: [
             { account_id: toAcc.account_id, debit: amount, credit: 0 },
             { account_id: fromAcc.account_id, debit: 0, credit: amount }
@@ -107,17 +109,8 @@ export default function TransferPage() {
         toast('error', '⚠️ Gagal transfer: ' + (json?.error?.message ?? `HTTP ${res.status}`))
         return
       }
-      // F-18 fix: pakai RPC atomik (bukan read-modify-write stale)
-      const { error: fromRpc } = await supabase.rpc('update_cash_account_balance', {
-        p_id: form.from_account_id,
-        p_amount: -amount
-      })
-      if (fromRpc) { console.error('RPC saldo asal gagal:', fromRpc); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun asal tidak ter-update: ' + fromRpc.message) }
-      const { error: toRpc } = await supabase.rpc('update_cash_account_balance', {
-        p_id: form.to_account_id,
-        p_amount: amount
-      })
-      if (toRpc) { console.error('RPC saldo tujuan gagal:', toRpc); toast('warning', '⚠️ Jurnal tercatat, tapi saldo akun tujuan tidak ter-update: ' + toRpc.message) }
+      // F-19/F-18 fix: saldo kas asal & tujuan di-update ATOMIK dalam create_journal_atomic
+      // (baris-baris akun kas otomatis mengubah cash_accounts.balance dalam 1 transaksi)
       setShowForm(false)
       fetchData()
       toast('success', 'Transfer kas berhasil dicatat')

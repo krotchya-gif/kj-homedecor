@@ -62,7 +62,7 @@ export default function KronologiHPPPage() {
       .from('orders')
       .select('id, order_number, created_at, total_amount, payment_status')
       .gte('created_at', startDate)
-      .lte('created_at', endDate + 'T23:59:59')
+      .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
       .order('created_at', { ascending: false })
       .limit(200)
     setOrders((data ?? []) as LooseRow[])
