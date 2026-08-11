@@ -13,6 +13,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
   finance: '/finance',
   installer: '/installer',
   surveyor: '/surveyor',
+  laundry: '/laundry',
   owner: '/owner'
 }
 
