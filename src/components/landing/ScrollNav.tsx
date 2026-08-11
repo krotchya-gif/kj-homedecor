@@ -14,8 +14,17 @@ interface ScrollNavProps {
 export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNavProps) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { resolvedTheme } = useTheme()
-  const isDark = resolvedTheme === 'dark'
+  // Hydration fix: saat SSR, resolvedTheme = undefined → server selalu render
+  // versi terang. Kalau client langsung pakai tema gelap (dari localStorage),
+  // style berbeda → hydration mismatch. Gate dengan mounted: render pertama
+  // selalu identik dgn server, setelah mount baru pakai tema asli.
+  const isDark = mounted && resolvedTheme === 'dark'
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
