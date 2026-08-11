@@ -18,7 +18,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.users (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
-  role        TEXT NOT NULL CHECK (role IN ('admin','gudang','penjahit','finance','installer','owner','laundry')),
+  role        TEXT NOT NULL CHECK (role IN ('admin','gudang','penjahit','finance','installer','owner','surveyor','laundry')),
   status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive')),
   avatar_url  TEXT,
   email       TEXT,
@@ -1412,7 +1412,694 @@ ON CONFLICT (transaction_type) DO UPDATE SET
   is_active         = true;
 
 -- ============================================================
--- 9. NOTIFY: Refresh PostgREST schema cache
+-- 10. SINKRONISASI FINAL (migration 053-071 — kondisi live 2026-08-12)
+--     Semua tambahan dari migration terbaru yang sudah di-push ke live.
+--     Idempotent: IF NOT EXISTS / DROP IF EXISTS / CREATE OR REPLACE.
+-- ============================================================
+
+-- ---------- 10.1 Kolom & index baru ----------
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS source_tag TEXT;
+
+ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS idempotency_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS journal_entries_idempotency_unique
+  ON public.journal_entries (idempotency_key) WHERE idempotency_key IS NOT NULL;
+
+ALTER TABLE public.piutang ADD COLUMN IF NOT EXISTS remaining NUMERIC DEFAULT 0;
+
+ALTER TABLE public.laundry_orders
+  ADD COLUMN IF NOT EXISTS kg_actual NUMERIC,
+  ADD COLUMN IF NOT EXISTS reported_by UUID,
+  ADD COLUMN IF NOT EXISTS reported_at TIMESTAMPTZ;
+
+-- Trigger updated_at orders (056)
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
+CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON public.orders
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Constraint users_role_check FINAL (070): 8 role
+-- (inline CHECK di CREATE TABLE users otomatis bernama users_role_check —
+--  drop lalu recreate dengan daftar lengkap utk konsistensi)
+ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE public.users ADD CONSTRAINT users_role_check
+  CHECK (role IN ('admin','gudang','penjahit','finance','installer','owner','surveyor','laundry'));
+
+-- Constraint accounts_type_check FINAL (067): NOT VALID (baris lama di luar daftar)
+ALTER TABLE public.accounts DROP CONSTRAINT IF EXISTS accounts_type_check;
+ALTER TABLE public.accounts ADD CONSTRAINT accounts_type_check
+  CHECK (type IN ('asset','liability','equity','revenue','expense')) NOT VALID;
+
+-- ---------- 10.2 Tabel baru: TikTok Shop (053) ----------
+CREATE TABLE IF NOT EXISTS public.tiktok_shop_settings (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  shop_name       VARCHAR(255),
+  shop_region     VARCHAR(10) DEFAULT 'ID',
+  app_key         TEXT NOT NULL,
+  app_secret      TEXT NOT NULL,
+  shop_cipher     VARCHAR(255),
+  access_token    TEXT,
+  refresh_token   TEXT,
+  token_expires_at TIMESTAMPTZ,
+  seller_name     VARCHAR(255),
+  open_id         VARCHAR(255),
+  is_active       BOOLEAN DEFAULT false,
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  updated_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.tiktok_shop_orders (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tiktok_order_id VARCHAR(100) UNIQUE NOT NULL,
+  order_status    VARCHAR(50),
+  payment_status  VARCHAR(50),
+  total_amount    NUMERIC(15,2) DEFAULT 0,
+  shipping_amount NUMERIC(15,2) DEFAULT 0,
+  platform_fee    NUMERIC(15,2) DEFAULT 0,
+  commission_fee  NUMERIC(15,2) DEFAULT 0,
+  net_amount      NUMERIC(15,2) DEFAULT 0,
+  currency        VARCHAR(10) DEFAULT 'IDR',
+  buyer_name      VARCHAR(255),
+  buyer_phone     VARCHAR(50),
+  shipping_address TEXT,
+  order_data      JSONB,
+  synced_at       TIMESTAMPTZ DEFAULT now(),
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  updated_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.tiktok_shop_statements (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  statement_id    VARCHAR(100) UNIQUE NOT NULL,
+  statement_type  VARCHAR(50),
+  total_amount    NUMERIC(15,2) DEFAULT 0,
+  status          VARCHAR(50),
+  currency        VARCHAR(10) DEFAULT 'IDR',
+  start_date      DATE,
+  end_date        DATE,
+  paid_at         TIMESTAMPTZ,
+  transaction_count INTEGER DEFAULT 0,
+  statement_data  JSONB,
+  is_synced       BOOLEAN DEFAULT false,
+  piutang_id      UUID REFERENCES public.piutang(id) ON DELETE SET NULL,
+  synced_at       TIMESTAMPTZ DEFAULT now(),
+  created_at      TIMESTAMPTZ DEFAULT now()
+);
+
+-- ---------- 10.3 Tabel baru: Survey (060) ----------
+CREATE TABLE IF NOT EXISTS public.surveys (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  survey_number  TEXT UNIQUE,
+  client_name    TEXT NOT NULL,
+  client_address TEXT,
+  survey_date    DATE NOT NULL DEFAULT CURRENT_DATE,
+  surveyor_id    UUID REFERENCES public.users(id),
+  status         TEXT NOT NULL DEFAULT 'draft'
+    CHECK (status IN ('draft','tersimpan','diproses','selesai')),
+  gps_lat        NUMERIC,
+  gps_lng        NUMERIC,
+  notes          TEXT,
+  signature      TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.survey_rooms (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  survey_id     UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
+  room_name     TEXT NOT NULL,
+  width_cm      NUMERIC,
+  height_cm     NUMERIC,
+  model_gorden  TEXT,
+  fabric_name   TEXT,
+  fabric_photo  TEXT,
+  vitras_name   TEXT,
+  vitras_photo  TEXT,
+  rel_gorden    TEXT,
+  rel_vitras    TEXT,
+  hook          TEXT,
+  notes         TEXT,
+  sort_order    INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.survey_room_photos (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  room_id       UUID NOT NULL REFERENCES public.survey_rooms(id) ON DELETE CASCADE,
+  url           TEXT NOT NULL,
+  sort_order    INTEGER NOT NULL DEFAULT 0,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.survey_logs (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  survey_id   UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
+  action      TEXT NOT NULL,
+  detail      TEXT,
+  created_by  UUID REFERENCES public.users(id),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Trigger survey updated_at
+DROP TRIGGER IF EXISTS trg_surveys_updated_at ON public.surveys;
+CREATE TRIGGER trg_surveys_updated_at BEFORE UPDATE ON public.surveys
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Relasi order -> survey (060)
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS survey_id UUID REFERENCES public.surveys(id);
+CREATE INDEX IF NOT EXISTS idx_orders_survey_id ON public.orders(survey_id);
+
+-- ---------- 10.4 Tabel baru: notifications (live — dipakai api/notifications) ----------
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id     UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  title       TEXT NOT NULL,
+  message     TEXT,
+  type        TEXT DEFAULT 'info',
+  link        TEXT,
+  is_read     BOOLEAN NOT NULL DEFAULT false,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id, is_read);
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own notifications" ON public.notifications
+  FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+-- ---------- 10.5 Fungsi role helper (SECURITY DEFINER — BUKAN subquery di policy) ----------
+CREATE OR REPLACE FUNCTION public.is_finance_role()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND status = 'active' AND role IN ('finance','admin','owner')
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_finance_role() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_finance_role() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_finance_role() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.is_admin_or_owner_sd()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND status = 'active' AND role IN ('admin','owner')
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_admin_or_owner_sd() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_admin_or_owner_sd() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_admin_or_owner_sd() TO authenticated;
+
+-- ---------- 10.6 Fungsi lain final ----------
+CREATE OR REPLACE FUNCTION public.generate_survey_number()
+RETURNS TEXT AS $$
+  SELECT 'KJ-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' ||
+    LPAD(CAST(COALESCE(
+      (SELECT MAX(SUBSTRING(survey_number FROM 'KJ-\d{8}-(\d+)$')::int)
+       FROM public.surveys WHERE survey_number LIKE 'KJ-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-%'),
+      0) + 1 AS TEXT), 3, '0');
+$$ LANGUAGE SQL;
+
+CREATE OR REPLACE FUNCTION public.update_cash_account_balance(p_id UUID, p_amount NUMERIC)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT public.is_finance_role() THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner';
+  END IF;
+  UPDATE public.cash_accounts
+  SET balance = COALESCE(balance, 0) + p_amount, updated_at = NOW()
+  WHERE id = p_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.update_cash_account_balance FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.update_cash_account_balance FROM anon;
+GRANT EXECUTE ON FUNCTION public.update_cash_account_balance TO authenticated;
+
+-- RPC jurnal atomik (064/066 — nama FINAL create_journal_atomic)
+-- isi body mengikuti migration 066 (role check + idempotency + update saldo kas)
+CREATE OR REPLACE FUNCTION public.create_journal_atomic(
+  p_idempotency_key TEXT,
+  p_reference_type TEXT,
+  p_reference_id UUID,
+  p_description TEXT,
+  p_entry_date DATE,
+  p_is_auto BOOLEAN,
+  p_lines JSONB,
+  p_created_by UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_entry_id UUID;
+  v_total_debit NUMERIC := 0;
+  v_total_credit NUMERIC := 0;
+  v_line RECORD;
+  v_duplicate UUID;
+  v_result JSONB;
+BEGIN
+  IF NOT public.is_finance_role() AND auth.jwt() ->> 'role' <> 'service_role' THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner';
+  END IF;
+  IF p_lines IS NULL OR jsonb_array_length(p_lines) = 0 THEN
+    RAISE EXCEPTION 'Minimal 1 baris jurnal';
+  END IF;
+  IF p_idempotency_key IS NOT NULL THEN
+    SELECT id INTO v_duplicate FROM public.journal_entries WHERE idempotency_key = p_idempotency_key;
+    IF v_duplicate IS NOT NULL THEN
+      SELECT jsonb_build_object('id', id, 'idempotent', true, 'entry_date', entry_date, 'description', description)
+        INTO v_result FROM public.journal_entries WHERE id = v_duplicate;
+      RETURN v_result;
+    END IF;
+  END IF;
+  FOR v_line IN SELECT * FROM jsonb_to_recordset(p_lines) AS x(account_id UUID, debit NUMERIC, credit NUMERIC)
+  LOOP
+    IF v_line.account_id IS NULL THEN RAISE EXCEPTION 'account_id wajib di setiap baris'; END IF;
+    IF (v_line.debit > 0) = (v_line.credit > 0) THEN
+      RAISE EXCEPTION 'Setiap baris harus punya tepat satu sisi (debit ATAU credit)';
+    END IF;
+    v_total_debit := v_total_debit + COALESCE(v_line.debit, 0);
+    v_total_credit := v_total_credit + COALESCE(v_line.credit, 0);
+  END LOOP;
+  IF ABS(v_total_debit - v_total_credit) > 0.01 THEN
+    RAISE EXCEPTION 'Journal tidak balance - debit %, credit %', v_total_debit, v_total_credit;
+  END IF;
+  INSERT INTO public.journal_entries (entry_date, description, reference_type, reference_id,
+    total_debit, total_credit, is_auto, created_by, idempotency_key)
+  VALUES (p_entry_date, p_description, p_reference_type, p_reference_id,
+    v_total_debit, v_total_credit, COALESCE(p_is_auto, false), p_created_by, p_idempotency_key)
+  RETURNING id INTO v_entry_id;
+  INSERT INTO public.journal_lines (entry_id, account_id, debit, credit, description)
+  SELECT v_entry_id, (x.record).account_id, COALESCE((x.record).debit, 0),
+    COALESCE((x.record).credit, 0), COALESCE((x.record).description, NULL)
+  FROM (SELECT * FROM jsonb_to_recordset(p_lines) AS x(account_id UUID, debit NUMERIC, credit NUMERIC, description TEXT)) x;
+  UPDATE public.cash_accounts ca
+  SET balance = COALESCE(ca.balance, 0) + t.delta, updated_at = NOW()
+  FROM (
+    SELECT account_id, SUM(debit - credit) AS delta
+    FROM public.journal_lines WHERE entry_id = v_entry_id GROUP BY account_id
+  ) t
+  WHERE ca.account_id = t.account_id;
+  SELECT jsonb_build_object('id', v_entry_id, 'idempotent', false,
+    'entry_date', p_entry_date, 'description', p_description) INTO v_result;
+  RETURN v_result;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.create_journal_atomic FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.create_journal_atomic FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_journal_atomic TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_journal_atomic TO service_role;
+
+-- RPC reset data (068 — owner only)
+CREATE OR REPLACE FUNCTION public.reset_transactional_data()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_counts JSONB;
+  v_is_owner BOOLEAN;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role = 'owner')
+    INTO v_is_owner;
+  IF NOT v_is_owner THEN RAISE EXCEPTION 'Forbidden: hanya Owner yang bisa reset data'; END IF;
+  SELECT jsonb_build_object(
+    'orders', (SELECT count(*) FROM public.orders),
+    'payments', (SELECT count(*) FROM public.payments),
+    'journal_entries', (SELECT count(*) FROM public.journal_entries),
+    'customers', (SELECT count(*) FROM public.customers)
+  ) INTO v_counts;
+  TRUNCATE TABLE
+    public.customers, public.orders, public.install_bookings, public.surveys,
+    public.production_jobs, public.production_reports, public.laundry_orders,
+    public.laundry_payroll, public.laundry_records, public.lembur_records,
+    public.purchase_requests, public.purchase_orders, public.inventory_movements,
+    public.stock_opname_sessions, public.journal_entries, public.hutang,
+    public.piutang, public.assets, public.tiktok_shop_orders,
+    public.tiktok_shop_statements, public.material_price_history,
+    public.low_stock_alerts, public.notifications
+  CASCADE;
+  UPDATE public.cash_accounts SET balance = 0, updated_at = NOW();
+  UPDATE public.materials SET stock_gudang = 0, stock_toko = 0;
+  UPDATE public.products SET stock_toko = 0;
+  DROP TABLE IF EXISTS public.orders_pipeline_reset_backup_20260602;
+  RETURN jsonb_build_object('success', true, 'message', 'Data transaksional berhasil di-reset', 'counts_before', v_counts);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.reset_transactional_data FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.reset_transactional_data FROM anon;
+GRANT EXECUTE ON FUNCTION public.reset_transactional_data TO authenticated;
+
+-- Versi FINAL RPC stock & pipeline dengan role check (067)
+CREATE OR REPLACE FUNCTION public.increment_stock_toko(product_id UUID, amount NUMERIC)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
+    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
+  END IF;
+  UPDATE public.products SET stock_toko = COALESCE(stock_toko, 0) + GREATEST(amount, 0) WHERE id = product_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.increment_stock_gudang(material_id UUID, amount NUMERIC)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
+    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
+  END IF;
+  UPDATE public.materials SET stock_gudang = COALESCE(stock_gudang, 0) + GREATEST(amount, 0) WHERE id = material_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.decrement_stock_gudang(material_id UUID, amount NUMERIC)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
+    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
+  END IF;
+  UPDATE public.materials SET stock_gudang = GREATEST(COALESCE(stock_gudang, 0) - GREATEST(amount, 0), 0) WHERE id = material_id;
+END;
+$$;
+
+-- Drop versi lama RPC stock ber-arg INTEGER (tanpa role check)
+DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.decrement_stock_gudang(UUID, INTEGER);
+
+REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM anon;
+GRANT EXECUTE ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) TO authenticated;
+REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM anon;
+GRANT EXECUTE ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) TO authenticated;
+REVOKE ALL ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) FROM anon;
+GRANT EXECUTE ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) TO authenticated;
+
+-- advance_install_booking_status FINAL (067: role check + search_path; body 061)
+CREATE OR REPLACE FUNCTION public.advance_install_booking_status(
+  p_booking_id UUID,
+  p_new_status TEXT,
+  p_staff_id UUID
+) RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_order_id UUID;
+  v_booking_type TEXT;
+  v_old_status TEXT;
+  v_order_classification TEXT;
+  v_is_admin BOOLEAN;
+  v_is_owner_installer BOOLEAN;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM public.users
+    WHERE id = COALESCE(p_staff_id, auth.uid()) AND status = 'active' AND role IN ('admin','owner')) INTO v_is_admin;
+  IF NOT v_is_admin THEN
+    SELECT EXISTS (SELECT 1 FROM public.install_bookings ib
+      WHERE ib.id = p_booking_id AND ib.installer_id = COALESCE(p_staff_id, auth.uid())) INTO v_is_owner_installer;
+    IF NOT v_is_owner_installer THEN
+      RAISE EXCEPTION 'Forbidden: bukan admin/owner atau installer booking ini';
+    END IF;
+  END IF;
+  SELECT ib.order_id, ib.status, ib.type INTO v_order_id, v_old_status, v_booking_type
+  FROM public.install_bookings ib WHERE ib.id = p_booking_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'install_bookings.id % tidak ditemukan', p_booking_id; END IF;
+  IF p_new_status NOT IN ('pending','scheduled','in_progress','done','revision','cancelled') THEN
+    RAISE EXCEPTION 'Invalid status: %', p_new_status;
+  END IF;
+  UPDATE public.install_bookings SET status = p_new_status WHERE id = p_booking_id;
+  IF v_booking_type = 'pasang' AND v_order_id IS NOT NULL THEN
+    SELECT classification INTO v_order_classification FROM public.orders WHERE id = v_order_id;
+    IF v_order_classification = 'pasang' THEN
+      IF p_new_status = 'scheduled' THEN
+        UPDATE public.orders SET status = 'scheduled' WHERE id = v_order_id;
+        INSERT INTO public.order_logs (order_id, action, staff_id, notes)
+          VALUES (v_order_id, 'install_started', p_staff_id, 'Install booking scheduled');
+      ELSIF p_new_status = 'in_progress' THEN
+        UPDATE public.orders SET status = 'installing' WHERE id = v_order_id;
+        INSERT INTO public.order_logs (order_id, action, staff_id, notes)
+          VALUES (v_order_id, 'install_started', p_staff_id, 'Install sedang berjalan');
+      ELSIF p_new_status = 'done' THEN
+        UPDATE public.orders SET status = 'done' WHERE id = v_order_id;
+        INSERT INTO public.order_logs (order_id, action, staff_id, notes)
+          VALUES (v_order_id, 'install_done', p_staff_id, 'Install selesai');
+      END IF;
+    END IF;
+  END IF;
+  RETURN jsonb_build_object('booking_id', p_booking_id, 'order_id', v_order_id,
+    'old_status', v_old_status, 'new_status', p_new_status,
+    'order_status_cascaded', (v_booking_type = 'pasang' AND v_order_id IS NOT NULL));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.advance_install_booking_status FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.advance_install_booking_status FROM anon;
+GRANT EXECUTE ON FUNCTION public.advance_install_booking_status TO authenticated;
+
+-- consume_materials_for_production FINAL (067: role check; body 051)
+CREATE OR REPLACE FUNCTION public.consume_materials_for_production(
+  p_production_job_id UUID,
+  p_order_id UUID,
+  p_consumed_by UUID
+) RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_item RECORD;
+  v_bom RECORD;
+  v_qty NUMERIC;
+  v_existing_id UUID;
+  v_consumption_count INTEGER := 0;
+  v_total_qty NUMERIC := 0;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.users
+    WHERE id = COALESCE(p_consumed_by, auth.uid()) AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
+    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.production_jobs WHERE id = p_production_job_id) THEN
+    RAISE EXCEPTION 'production_job_id % tidak ditemukan', p_production_job_id;
+  END IF;
+  SELECT id INTO v_existing_id FROM public.order_material_consumption
+  WHERE production_job_id = p_production_job_id LIMIT 1;
+  IF v_existing_id IS NOT NULL THEN
+    SELECT COUNT(*), COALESCE(SUM(qty_consumed), 0) INTO v_consumption_count, v_total_qty
+    FROM public.order_material_consumption WHERE production_job_id = p_production_job_id;
+    RETURN jsonb_build_object('already_consumed', true, 'consumption_count', v_consumption_count, 'total_qty', v_total_qty);
+  END IF;
+  FOR v_item IN SELECT product_id, qty FROM public.order_items
+    WHERE order_id = p_order_id AND product_id IS NOT NULL
+  LOOP
+    FOR v_bom IN SELECT material_id, qty_per_unit FROM public.bom WHERE product_id = v_item.product_id
+    LOOP
+      v_qty := COALESCE(v_bom.qty_per_unit, 0) * COALESCE(v_item.qty, 0);
+      IF v_qty <= 0 THEN CONTINUE; END IF;
+      UPDATE public.materials SET stock_gudang = GREATEST(COALESCE(stock_gudang, 0) - v_qty, 0)
+      WHERE id = v_bom.material_id;
+      INSERT INTO public.order_material_consumption (order_id, production_job_id, material_id, qty_consumed, consumed_by)
+      VALUES (p_order_id, p_production_job_id, v_bom.material_id, v_qty, p_consumed_by);
+      INSERT INTO public.inventory_movements (material_id, order_id, production_job_id, type, qty, reason, created_by)
+      VALUES (v_bom.material_id, p_order_id, p_production_job_id, 'out', v_qty,
+        'BOM consumption - production job ' || p_production_job_id::text, p_consumed_by);
+      v_consumption_count := v_consumption_count + 1;
+      v_total_qty := v_total_qty + v_qty;
+    END LOOP;
+  END LOOP;
+  RETURN jsonb_build_object('already_consumed', false, 'consumption_count', v_consumption_count, 'total_qty', v_total_qty);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.consume_materials_for_production FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.consume_materials_for_production FROM anon;
+GRANT EXECUTE ON FUNCTION public.consume_materials_for_production TO authenticated;
+
+-- ---------- 10.7 Policy FINAL (hardened — 063/067/071) ----------
+-- users: SELECT semua staff; WRITE admin/owner via SECURITY DEFINER (BUKAN subquery!)
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.users;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.users;
+DROP POLICY IF EXISTS "Admin manage users" ON public.users;
+CREATE POLICY "All staff read users" ON public.users
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage users" ON public.users
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+
+-- payments / journal_entries / journal_lines: SELECT staff, WRITE finance
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.payments;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.payments;
+CREATE POLICY "All staff read payments" ON public.payments
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage payments" ON public.payments
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.journal_entries;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.journal_entries;
+CREATE POLICY "All staff read journal_entries" ON public.journal_entries
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage journal_entries" ON public.journal_entries
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.journal_lines;
+DROP POLICY IF EXISTS "Authenticated users can manage journal lines" ON public.journal_lines;
+CREATE POLICY "All staff read journal_lines" ON public.journal_lines
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage journal_lines" ON public.journal_lines
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+-- launder/payroll/rates/style/assets/account_categories (055 buka lagi -> 067 tutup)
+DROP POLICY IF EXISTS "Authenticated users can manage laundry payroll" ON public.laundry_payroll;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.laundry_payroll;
+CREATE POLICY "All staff read laundry_payroll" ON public.laundry_payroll
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage laundry_payroll" ON public.laundry_payroll
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage laundry rates" ON public.laundry_rates;
+CREATE POLICY "All staff read laundry_rates" ON public.laundry_rates
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage laundry_rates" ON public.laundry_rates
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage style rates" ON public.style_rates;
+CREATE POLICY "All staff read style_rates" ON public.style_rates
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage style_rates" ON public.style_rates
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage assets" ON public.assets;
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.assets;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.assets;
+CREATE POLICY "All staff read assets" ON public.assets
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage assets" ON public.assets
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage account categories" ON public.account_categories;
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.account_categories;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.account_categories;
+CREATE POLICY "All staff read account_categories" ON public.account_categories
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage account_categories" ON public.account_categories
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+-- TikTok (067): revoke anon + role-based
+DROP POLICY IF EXISTS "owner_all_tiktok_settings" ON public.tiktok_shop_settings;
+DROP POLICY IF EXISTS "owner_all_tiktok_orders" ON public.tiktok_shop_orders;
+DROP POLICY IF EXISTS "owner_all_tiktok_statements" ON public.tiktok_shop_statements;
+REVOKE ALL ON public.tiktok_shop_settings FROM anon;
+REVOKE ALL ON public.tiktok_shop_orders FROM anon;
+REVOKE ALL ON public.tiktok_shop_statements FROM anon;
+CREATE POLICY "TikTok staff read settings" ON public.tiktok_shop_settings
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
+CREATE POLICY "TikTok owner manage settings" ON public.tiktok_shop_settings
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "TikTok staff read orders" ON public.tiktok_shop_orders
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
+CREATE POLICY "TikTok owner manage orders" ON public.tiktok_shop_orders
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "TikTok staff read statements" ON public.tiktok_shop_statements
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
+CREATE POLICY "TikTok owner manage statements" ON public.tiktok_shop_statements
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+
+-- Survey (060): surveyor milik sendiri; admin/owner semua
+ALTER TABLE public.surveys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.survey_rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.survey_room_photos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS surveys_admin_owner ON public.surveys;
+CREATE POLICY surveys_admin_owner ON public.surveys FOR ALL USING (public.is_admin_or_owner_sd());
+DROP POLICY IF EXISTS surveys_surveyor_own ON public.surveys;
+CREATE POLICY surveys_surveyor_own ON public.surveys
+  FOR ALL USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'surveyor' AND surveyor_id = auth.uid());
+DROP POLICY IF EXISTS survey_rooms_admin_owner ON public.survey_rooms;
+CREATE POLICY survey_rooms_admin_owner ON public.survey_rooms FOR ALL USING (public.is_admin_or_owner_sd());
+DROP POLICY IF EXISTS survey_rooms_surveyor_own ON public.survey_rooms;
+CREATE POLICY survey_rooms_surveyor_own ON public.survey_rooms
+  FOR ALL USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'surveyor'
+    AND EXISTS (SELECT 1 FROM public.surveys s WHERE s.id = survey_id AND s.surveyor_id = auth.uid()));
+DROP POLICY IF EXISTS survey_photos_admin_owner ON public.survey_room_photos;
+CREATE POLICY survey_photos_admin_owner ON public.survey_room_photos FOR ALL USING (public.is_admin_or_owner_sd());
+DROP POLICY IF EXISTS survey_photos_surveyor_own ON public.survey_room_photos;
+CREATE POLICY survey_photos_surveyor_own ON public.survey_room_photos
+  FOR ALL USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'surveyor'
+    AND EXISTS (SELECT 1 FROM public.survey_rooms r JOIN public.surveys s ON s.id = r.survey_id
+      WHERE r.id = room_id AND s.surveyor_id = auth.uid()));
+
+-- returns: finance update (063)
+DROP POLICY IF EXISTS "Admins and finance can update returns" ON public.returns;
+CREATE POLICY "Finance can update returns" ON public.returns
+  FOR UPDATE USING (public.is_finance_role());
+
+-- ---------- 10.8 Akun & mapping baru (067: sales_return; 063: hutang/piutang/ecommerce) ----------
+INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account, description)
+VALUES (
+  '55555555-5555-4555-8555-555555555503', '4103', 'Penjualan Retur', 'revenue',
+  '11111111-1111-4111-8111-111111111107', false, 'Pengurang omzet saat barang diretur / refund ke customer'
+)
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, type = EXCLUDED.type, description = EXCLUDED.description;
+
+INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_account_id, description, is_active)
+VALUES (
+  'sales_return',
+  '55555555-5555-4555-8555-555555555503',
+  '22222222-2222-4222-8222-222222222204',
+  'Refund/retur - Penjualan Retur (Debit) / Kas (Kredit)', true
+)
+ON CONFLICT (transaction_type) DO UPDATE SET
+  debit_account_id = EXCLUDED.debit_account_id, credit_account_id = EXCLUDED.credit_account_id,
+  description = EXCLUDED.description, is_active = true;
+
+UPDATE public.account_mappings SET is_active = false WHERE transaction_type = 'refund_issued';
+
+INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_account_id, description, is_active)
+VALUES
+  ('hutang_paid', '33333333-3333-4333-8333-333333333301', '22222222-2222-4222-8222-222222222201', 'Bayar hutang - Hutang Supplier (Debit) / Kas (Kredit)', true),
+  ('piutang_received', '22222222-2222-4222-8222-222222222201', '22222222-2222-4222-8222-222222222205', 'Terima piutang - Kas (Debit) / Piutang (Kredit)', true),
+  ('ecommerce_fee', '66666666-6666-4666-8666-666666666606', '22222222-2222-4222-8222-222222222205', 'Komisi/biaya marketplace - Beban (Debit) / Piutang (Kredit)', true)
+ON CONFLICT (transaction_type) DO UPDATE SET
+  debit_account_id = EXCLUDED.debit_account_id, credit_account_id = EXCLUDED.credit_account_id,
+  description = EXCLUDED.description, is_active = true;
+
+UPDATE public.accounts
+SET name = 'Beban Biaya Lain E-commerce', description = 'Komisi, iklan, fee marketplace (selisih gross vs net settlement)'
+WHERE id = '66666666-6666-4666-8666-666666666606'::uuid;
+
+-- ============================================================
+-- 11. NOTIFY: Refresh PostgREST schema cache
 -- ============================================================
 NOTIFY pgrst, 'reload schema';
 
@@ -1420,6 +2107,8 @@ NOTIFY pgrst, 'reload schema';
 -- SELESAI
 -- ============================================================
 -- Catatan:
+-- - File ini = SATU-SATUNYA referensi schema (lihat AGENTS.md).
+-- - Section 10 = sinkronisasi final migration 053-071 (kondisi live 2026-08-12).
 -- - Migration 041 (reset_pipeline_to_sorted) di-skip — hanya data migration
 -- - Migration 057 dynamic FK fix di-skip — ON DELETE SET NULL sudah di-handle di CREATE TABLE
 -- - Migration 058 (SECURITY DEFINER audit) di-skip — dokumentasi saja
