@@ -2,7 +2,7 @@
 
 > Panduan ini menjelaskan **siapa mengerjakan apa, di halaman mana, dan kapan**.
 > Ditulis dengan bahasa sederhana supaya mudah dipahami semua orang.
-> Terakhir diperbarui: 2026-08-11.
+> Terakhir diperbarui: 2026-08-12.
 
 ---
 
@@ -22,7 +22,10 @@
    - [Laundry](#48-laundry)
 5. [Cara Membuat Produk & Menentukan Harga](#5-cara-membuat-produk--menentukan-harga)
 6. [Cara Cek Pembayaran (Approve)](#6-cara-cek-pembayaran-approve)
-7. [Tanya-Jawab (FAQ)](#7-tanya-jawab-faq)
+7. [Dokumen Pesanan (Invoice, Faktur, Surat Jalan)](#7-dokumen-pesanan-invoice-faktur-surat-jalan)
+8. [Cek Kesehatan Keuangan (Rekonsiliasi)](#8-cek-kesehatan-keuangan-rekonsiliasi)
+9. [Reset Data (Hapus Semua Data)](#9-reset-data-hapus-semua-data)
+10. [Tanya-Jawab (FAQ)](#10-tanya-jawab-faq)
 
 ---
 
@@ -44,14 +47,14 @@ Aplikasi ini dipakai untuk mengurus toko gorden dari **pesanan masuk → dijahit
 
 | Peran | Alamat halaman | Tugas pokok |
 |---|---|---|
-| Pemilik (Owner) | `/owner` | Melihat semuanya, mengatur harga jual, laporan keuangan |
+| Pemilik (Owner) | `/owner` | Melihat semuanya, mengatur harga jual, laporan keuangan, reset data |
 | Admin | `/admin` | Membuat pesanan, mengurus katalog, mengatur jadwal pasang |
 | Keuangan (Finance) | `/finance` | Menerima pembayaran, menyetujui cek bayar, mengurus uang |
 | Gudang | `/gudang` | Sortir, produksi, cek kualitas (steam/QC), mengemas, stok bahan |
 | Penjahit | `/penjahit` | Mengerjakan jahitan |
 | Pemasang (Installer) | `/installer` | Mengantar & memasang gorden |
 | Surveyor | `/surveyor` | Mengukur ruangan pelanggan |
-| Laundry | (tidak punya halaman sendiri) | Dicatat lewat menu Admin → Laundry |
+| Laundry | `/laundry` | Menerima tugas laundry, melaporkan selesai + berat cucian |
 
 > **Penting:** Gudang tidak bisa membuka halaman admin (`/admin`). Tapi itu tidak masalah — semua kerjaan gudang sudah bisa diselesaikan di halaman gudang sendiri (lihat bagian 4.4).
 
@@ -85,7 +88,7 @@ Baru → Cek Bayar → Sudah Disortir → Produksi → Steam/QC → Siap → Dik
 | Dikemas → **Terkirim** | Pemasang / Admin | `/installer/schedule` atau `/admin/shipping` | Pilih kurir + **wajib foto resi** |
 | Dikemas → **Terjadwal Pasang** | Admin | detail pesanan | Pilih tanggal + pemasang (khusus pesanan Pasang) |
 | Terjadwal → **Sedang Dipasang** | Pemasang | `/installer/schedule` | — |
-| Sedang Dipasang → **Selesai** | Pemasang | `/installer/checklist` | Isi checklist + foto hasil |
+| Sedang Dipasang → **Selesai** | Pemasang | `/installer/checklist` | Isi checklist + foto hasil (pesanan otomatis jadi Selesai) |
 | Terkirim → **Selesai** | Admin | detail pesanan | — |
 
 ### Foto bukti (wajib di tahap tertentu)
@@ -236,8 +239,18 @@ Halaman `/surveyor`.
 
 ### 4.8 Laundry
 
-- Karyawan laundry **tidak punya halaman sendiri** — dicatat lewat menu **Admin → Laundry**
-- Gajinya diurus di **Finance → Laundry Payroll**
+Halaman `/laundry` — untuk karyawan laundry.
+
+| Menu | Kegunaan |
+|---|---|
+| **Tugas Laundry** | ⭐ Daftar tugas yang diberikan Admin: klik **"Terima"** → kerjakan → klik **"Lapor Selesai"** + isi **berat cucian sebenarnya (kg)** |
+
+**Aturan laundry:**
+- Hanya melihat **tugas yang ditugaskan kepada saya** (Admin yang menunjuk saat membuat tugas)
+- **Berat yang saya laporkan** inilah yang dipakai menghitung gaji — jadi isi jujur sesuai timbangan!
+- Gaji dihitung otomatis di **Finance → Laundry Payroll** (berat × tarif per kg)
+
+> 💡 Admin juga tetap bisa melihat semua tugas & membuat tugas baru di **Admin → Laundry**. Tapi berat yang dipakai untuk gaji tetap berat yang dilaporkan karyawan laundry.
 
 ---
 
@@ -309,23 +322,80 @@ LANGKAH 4 — OTOMATIS MUNCUL DI WEBSITE
 
 3. Aturan terakhir:
    - Tercatat otomatis ≠ disetujui. Pesanan TIDAK pernah maju tanpa klik Finance.
-   - Pesanan BELUM LUNAS → HANYA Finance yang bisa menyetujui atau menerima pelunasan.
-   - Pesanan belum lunas TIDAK BISA dikemas, dikirim, atau diselesaikan.
+   - Pesanan yang DIBUAT TANPA DP sama sekali → TIDAK BISA maju sama sekali
+     sampai Finance menerima DP/pelunasan lalu meng-approve.
+   - Pesanan dengan DP (sebagian) → boleh diproses sampai tahap Siap,
+     TAPI pesanan belum lunas TIDAK BISA dikemas, dikirim, atau diselesaikan.
      (Tidak ada yang bisa memaksa, termasuk Admin.)
 ```
 
 ### Contoh kasus
 
 | Situasi | Yang terjadi |
-|---|---|
+|---|---|---|
 | Admin buat pesanan + DP lunas | Tercatat otomatis. Finance klik Approve → langsung Cek Bayar |
 | Admin buat pesanan + DP sebagian | Tercatat DP. Finance Approve → Cek Bayar. Nanti Finance terima pelunasan (wajib sebelum dikemas) |
-| Admin buat pesanan tanpa DP | Belum ada catatan. Finance harus terima DP/lunasan dulu → baru bisa Approve |
+| Admin buat pesanan tanpa DP | Tidak bisa maju sama sekali — Finance harus terima DP/pelunasan dulu, baru bisa Approve |
 | Pesanan Siap tapi belum lunas | Finance terima pelunasan dulu → baru bisa dikemas |
 
 ---
 
-## 7. Tanya-Jawab (FAQ)
+## 7. Dokumen Pesanan (Invoice, Faktur, Surat Jalan)
+
+Di **halaman detail pesanan** (Admin) ada 4 tombol dokumen yang bisa langsung di-download sebagai PDF:
+
+| Tombol | Isi dokumen | Kapan dipakai |
+|---|---|---|
+| **Invoice** | Tagihan ke pelanggan (DP & sisa bayar) | Saat pesanan dibuat / minta bayar |
+| **Packing List** | Daftar barang yang dikemas (untuk dicek saat packing) | Saat barang mau dikirim/dipasang |
+| **Faktur** | Faktur penjualan — sama seperti invoice, ada kolom tanda tangan Penerima & penjual | Pelanggan butuh dokumen resmi |
+| **Surat Jalan** | Daftar barang yang dibawa + alamat pelanggan + kolom tanda tangan Diterima | Ikut barang saat dikirim/dipasang |
+
+> 💡 Nomor dokumen pakai nomor pesanan: `KJ-FAKTUR-ORD-2026-0001`, `KJ-SURATJALAN-ORD-2026-0001`, dst. Semua di-download otomatis sebagai file PDF.
+
+---
+
+## 8. Cek Kesehatan Keuangan (Rekonsiliasi)
+
+Halaman `/finance` → **Akuntansi → Rekonsiliasi**.
+
+Fungsinya: **mengecek apakah catatan keuangan satu sama lain cocok**.
+
+Ada 4 kartu:
+- **Piutang** — catatan piutang vs pesanan yang belum dibayar
+- **Kas** — buku kas besar vs saldo di rekening
+- **Revenue (omzet)** — pendapatan tercatat vs total pesanan
+- **Hutang** — catatan utang vs pembukuan
+
+**Cara membaca:**
+- Kartu **hijau** ✅ = selisih Rp 0 (sehat, semuanya cocok)
+- Kartu **merah** ⚠️ = ada selisih (ada yang belum tercatat)
+
+> Halaman ini hanya **melihat** (tidak bisa mengubah apa pun). Kalau ada selisih, beri tahu Owner/Finance untuk diperiksa.
+
+---
+
+## 9. Reset Data (Hapus Semua Data)
+
+> ⚠️ **HANYA OWNER. Hati-hati — tidak bisa dibatalkan!**
+
+Halaman `/owner` → **Pengaturan → Reset Data Transaksional**.
+
+**Yang dihapus:** semua pesanan, pembayaran, jurnal keuangan, hutang & piutang, pelanggan, laundry, produksi/QC, survey, purchase order, data TikTok/Shopee, aset — dan **saldo kas & stok direset ke 0**.
+
+**Yang TETAP ada:** akun login karyawan, daftar produk, bahan baku, supplier, BOM, tarif laundry/gorden, tampilan website, pengaturan marketplace.
+
+**Cara reset:**
+1. Klik tombol **"Reset Data"**
+2. Baca peringatan → klik **"Lanjutkan"**
+3. Ketik kata **`RESET`** (huruf besar) → tombol "Ya, Reset Data" baru bisa diklik
+4. Data terhapus. Mulai transaksi baru (jangan lupa isi saldo awal kas di Finance → Pengaturan)
+
+> 💡 Cocok dipakai saat mulai dari nol (misal mau demo ulang atau ganti periode pembukuan).
+
+---
+
+## 10. Tanya-Jawab (FAQ)
 
 **1. Kenapa gudang tidak bisa lihat halaman admin / detail pesanan?**
 Karena halaman admin khusus Admin dan Owner. Gudang sudah punya semua alat kerjanya sendiri di halaman gudang — termasuk mengecek jahitan (Steam/QC) dan mengemas. Jadi tidak perlu akses ke halaman admin.
@@ -358,6 +428,15 @@ Pemberitahuan di dalam aplikasi — saat ini dipakai untuk memberi tahu Admin/Ow
 **10. Pesanan dari TikTok/Shopee caranya beda?**
 Tidak. Pesanan marketplace masuk otomatis (pembayarannya sudah dijamin platform) dan langsung lanjut ke tahap sortir seperti biasa.
 
+**11. Karyawan laundry bisa login sendiri sekarang?**
+Bisa! Karyawan laundry login di `/laundry`: menerima tugas, lalu melaporkan selesai + berat cucian. Berat itulah dasar gajinya.
+
+**12. Cara dapat Faktur / Surat Jalan?**
+Buka detail pesanan → klik tombol **Faktur** atau **Surat Jalan** → PDF langsung ter-download.
+
+**13. Reset data itu bahaya nggak?**
+Berbahaya kalau asal klik — semua data transaksi hilang permanen. Makanya hanya Owner yang bisa, dan harus ketik `RESET` sebagai konfirmasi. Data master (produk, bahan, akun, karyawan) tetap aman.
+
 ---
 
-*Panduan: 2026-08-11 · Dibuat sesuai kode aplikasi yang berjalan · Riwayat perbaikan bug: lihat `bug.md`*
+*Panduan: 2026-08-12 · Dibuat sesuai kode aplikasi yang berjalan · Riwayat perbaikan bug: lihat `bug.md`*
