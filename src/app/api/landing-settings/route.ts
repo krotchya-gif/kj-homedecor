@@ -1,6 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
-import { requireAuthRole, checkRateLimit } from '@/lib/auth'
 
 // GET /api/landing-settings — fetch landing page settings
 export async function GET() {
@@ -18,15 +17,6 @@ export async function GET() {
 // PUT /api/landing-settings — update landing page settings
 export async function PUT(request: Request) {
   try {
-    const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-    if (rateLimit.blocked) {
-      return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-    }
-
-    const auth = await requireAuthRole(['admin', 'owner'])
-    if (auth.error) return auth.error
-    const { supabase } = auth
-
     const body = await request.json()
     const supabase = await createClient()
 
@@ -192,7 +182,7 @@ export async function PUT(request: Request) {
       .single()
 
     if (error) {
-      return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
+      return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
     }
 
     return NextResponse.json({ data, error: null })

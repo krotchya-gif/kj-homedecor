@@ -74,7 +74,7 @@ export default function BookingCalendar({
   function getDateOccupiedLevel(dateStr: string): 'none' | 'low' | 'medium' | 'high' {
     if (!occupiedDates.has(dateStr)) return 'none'
     if (!occupiedSlots) return 'medium'
-    const count = Array.from(occupiedSlots).filter(s => s.startsWith(dateStr)).length
+    const count = occupiedSlots.size
     if (count >= 8) return 'high'
     if (count >= 4) return 'medium'
     return 'low'

@@ -6,10 +6,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 
 - **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4
 - **Backend:** Supabase (PostgreSQL, Auth, Realtime)
-- **UI Components:** Shadcn/ui (@base-ui/react) + custom components
-- **Auth:** Supabase Auth + custom auth helpers (`src/lib/auth.ts`)
-- **Proxy:** Next.js 16 `proxy.ts` for auth guard, role-based access, and pathname headers
-- **Payments:** Xendit API (VA/QRIS) with HMAC webhook verification
+- **Payments:** Xendit API (VA/QRIS)
 - **PDF:** jsPDF + autoTable (Invoice & Packing List)
 - **Charts:** Recharts (Owner, Admin, Finance dashboards)
 - **Image Compression:** browser-image-compression
@@ -22,9 +19,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 ### Admin (`/admin`)
 
 - Order management dengan filter by status + create order (Kirim/Pasang)
-- V3 Pipeline branching: alur **kirim** (8 stage) vs **pasang** (9 stage, auto-create booking)
 - Order detail dengan visual pipeline, photo upload per status, BOM auto-suggest
-- Role-based status transitions + payment gate (`packed/shipped/done` requires `paid`)
 - Invoice PDF + Packing List PDF generation
 - Pipeline ETA (Estimasi Selesai per order)
 - Catalog management (products, categories, banners)
@@ -33,14 +28,13 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Portfolio/inspiration blog posts
 - Sales reports dengan MoM growth indicators
 - Shipping workflow (resi + courier)
-- SEO management + Landing page settings (theme customization)
+- SEO management + Landing page settings
 - Staff account creation
-- Real-time admin dashboard (8 stat cards + bar/line charts)
 
 ### Owner (`/owner`)
 
 - Real-time dashboard: today's new orders + active installations
-- 12-month revenue trend chart (polished Recharts: gradient, animasi, donut)
+- 12-month revenue trend chart
 - Marketplace breakdown (bar + pie charts)
 - Top products by revenue
 - HPP Calculator (BOM-based)
@@ -53,26 +47,22 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - BOM & Material cost management
 - HPP Calculator with auto/manual modes
 - Payment tracking (DP → Lunas) with approval gate
-- Hutang (accounts payable) management + supplier invoice tracking
-- Piutang (accounts receivable) management per channel
-- Chart of Accounts + account mapping
-- Journal entries (manual + auto)
-- Cash & Bank management
-- Asset management
-- Laundry payroll
-- **Laporan Keuangan (10 reports)** with DateRangePicker + PDF export
-- Finance dashboard: monthly revenue bar chart + payment status donut chart
+- Supplier management + PO from approved PRs
+- Piutang (accounts receivable) management
+- Accounts, Journal, Cash, Assets
+- **Laporan Keuangan (10 reports)**
+- Reports: revenue, penjahit wages, overtime
 
 ### Gudang (`/gudang`)
 
 - Production job queue dengan **BOM preview** material sebelum mulai kerja
 - **Block "Mulai" kalau BOM material insufficient** — modal warning + opsi tetap lanjut
-- Steam QC (jahitan penjahit) + revision loop auto re-queue
-- QC per-item checklist (`order_items.ready`)
-- Stock position dengan tab: Material, Produk, Barang Masuk, Edit Stok
+- Laundry/Steam (same page, tabs)
+- Stock position dengan **4 tab**: Material, Produk, Barang Masuk, **Edit Stok**
 - **Edit Stok**: tombol [+][−][✎] per row — quick adjust + edit modal dengan alasan
-- **📦 Pesanan Datang**: list PO delivered — Gudang konfirmasi receipt
+- **📦 Pesanan Datang**: list PO delivered — Gudang konfirmasi receipt sebelum stok bertambah
 - Low stock alerts with 1-click PR creation
+- QC (Pass/Fail/Revision with photo evidence)
 - Lembur (overtime) logging
 - Stock Opname: buat sesi → hitung fisik → Owner approve → adjustment otomatis
 
@@ -81,7 +71,6 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Job queue dengan meter tracking
 - Monthly performance reports
 - Work history
-- Realtime subscriptions for new jobs
 
 ### Installer (`/installer`)
 
@@ -95,22 +84,8 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - `/` — Landing page with hero, categories, products, portfolio
 - `/catalog` — Full product catalog with search
 - `/products/[slug]` — Product detail
-- `/booking` — Public booking form (date + time slot picker + BookingCalendar)
-- `/login` — Staff login (rate-limited: 5 attempts → 5 min lockout)
-
----
-
-## Security
-
-- **Proxy** (`src/proxy.ts`): Auth guard for all dashboard routes + role-based access control + `x-pathname` header
-- **Auth helpers** (`src/lib/auth.ts`): `requireAuth()`, `requireRole()`, `requireAuthRole()`, `checkRateLimit()`
-- **Rate limiting**: In-memory per-IP limiter on all POST/PUT/DELETE endpoints
-- **Mass assignment protection**: Whitelist field approach on all mutation endpoints
-- **IDOR protection**: Role-based and ownership-based filtering on data access
-- **Input validation**: Zod schemas on all creation endpoints
-- **File upload**: MIME type + magic bytes + extension validation
-- **Xendit webhook**: HMAC-SHA256 timing-safe verification
-- **RLS policies**: 6 migration files (053-058) fixing RLS gaps
+- `/booking` — Public booking form (date + time slot picker)
+- `/login` — Staff login
 
 ---
 
@@ -121,64 +96,48 @@ src/
 ├── app/
 │   ├── page.tsx                    # Landing page (public)
 │   ├── (auth)/login/              # Staff login
+│   ├── (auth)/register/           # Staff registration (admin only)
 │   ├── (dashboard)/               # Protected dashboard group
-│   │   ├── admin/                 # Orders, catalog, customers, booking, reports
-│   │   ├── finance/               # Payments, hutang, piutang, accounts, journal, laporan
-│   │   ├── gudang/                # Production, steam, stock, alerts, QC, lembur
-│   │   ├── penjahit/              # Jobs, reports, history
+│   │   ├── admin/                # Orders, catalog, customers, booking, reports
+│   │   ├── finance/              # BOM, HPP, payments, suppliers, reports
+│   │   ├── gudang/               # Production, steam, stock, alerts, QC, lembur
+│   │   │   └── stock/opname/     # Stock opname page
+│   │   ├── penjahit/             # Jobs, reports, history
 │   │   ├── installer/             # Schedule, checklist, reports
-│   │   ├── laundry/               # Laundry jobs
-│   │   └── owner/                 # Overview, HPP, suppliers, materials, laporan
+│   │   └── owner/                # Overview, HPP, suppliers, materials, reports
 │   ├── catalog/                   # Public catalog
-│   ├── booking/                   # Public booking
-│   ├── products/[slug]/           # Public product detail
+│   ├── products/[slug]/          # Public product detail
 │   └── api/
-│       ├── admin/create-staff/    # Staff creation (service role)
-│       ├── orders/                # Order CRUD + consume-materials
+│       ├── upload/                # File upload
+│       ├── orders/                # Order CRUD
 │       ├── customers/             # Customer CRUD
 │       ├── products/              # Product CRUD
 │       ├── materials/             # Material CRUD
 │       ├── suppliers/             # Supplier CRUD
-│       ├── purchase-requests/     # PR CRUD
+│       ├── purchase-requests/    # PR CRUD
 │       ├── purchase-orders/       # PO CRUD
-│       ├── install-bookings/      # Install booking CRUD + RPC advance
-│       ├── gudang/po-delivery/    # Gudang PO receipt confirmation
-│       ├── journal/               # Journal entries
-│       ├── landing-settings/      # Landing page config
-│       ├── seo/upload-*           # SEO file upload (robots.txt, sitemap.xml)
-│       ├── setup-accounts/        # Initial admin/owner setup (protected)
-│       ├── upload/                # File upload (MIME + magic bytes + extension validated)
-│       ├── xendit/                # Create payment + webhook (HMAC verified)
+│       ├── gudang/po-delivery/   # Gudang PO receipt confirmation
+│       ├── journal/              # Journal entries
+│       ├── landing-settings/       # Landing page config
 │       └── webhooks/xendit/       # Xendit payment webhook
 ├── components/
-│   ├── ui/                        # Shadcn/ui + custom components
-│   │   ├── button, card, table, input, dialog, badgebadge, select, skeleton
-│   │   ├── Lightbox, Toast, ThemeToggle, BookingCalendar, DateRangePicker
-│   │   └── ReportPDFButton, BackButton, EmptyState, ColorPicker
-│   ├── dashboard/                 # Sidebar, TopNav, layout components
-│   └── landing/                   # Landing page components (ProductCatalog, ScrollNav)
-├── config/
-│   └── navigation.tsx             # Shared NAV_BY_ROLE + ROLE_LABELS
+│   ├── ui/                       # Shadcn/ui + custom (ThemeToggle, skeletons, EmptyState)
+│   └── dashboard/                 # Sidebar, TopNav, layout components
 ├── lib/
-│   ├── auth.ts                    # Auth helpers + rate limiter
-│   ├── invoice.ts                 # Invoice & Packing List PDF
-│   ├── orders.ts                  # Pipeline V3 shared utilities
-│   ├── upload.ts                  # File upload helper
-│   └── utils.ts                   # cn(), formatRp(), generateOrderNumber()
+│   ├── invoice.ts               # generateInvoicePDF + generatePackingListPDF
+│   └── upload.ts                 # uploadToLocal helper
 ├── utils/supabase/
-│   ├── client.ts                  # Browser client
-│   ├── server.ts                  # SSR client
-│   └── middleware.ts              # Supabase middleware client (for proxy.ts)
-├── types/index.ts                 # TypeScript interfaces
-├── proxy.ts                       # Next.js 16 proxy (auth + role guard + headers)
-└── middleware.ts (deleted)        # Renamed to proxy.ts
+│   ├── client.ts                 # Browser client
+│   ├── server.ts                 # SSR client
+│   └── middleware.ts              # Auth middleware
+└── types/index.ts                # TypeScript interfaces
 ```
 
 ---
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — apply in order:
+Located in `supabase/migrations/` — apply in order. Key migrations:
 
 | File                                            | Description                                                                                                       |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -200,7 +159,7 @@ Located in `supabase/migrations/` — apply in order:
 
 ---
 
-## Changelog (Latest)
+## Design System
 
 **Brand Color:** `#cc7030` (warm brown/orange)
 

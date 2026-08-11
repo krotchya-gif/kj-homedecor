@@ -11,16 +11,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    // Validate file size (1MB max)
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 1MB' }, { status: 400 });
-    }
-
-    // Validate MIME type
-    if (file.type !== 'text/plain' && file.type !== 'text/plain; charset=utf-8') {
-      return NextResponse.json({ error: 'Only .txt files allowed' }, { status: 400 });
-    }
-
     if (!file.name.endsWith('.txt')) {
       return NextResponse.json({ error: 'Only .txt files allowed' }, { status: 400 })
     }

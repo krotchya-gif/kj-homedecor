@@ -1,19 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
-import { requireAuth, requireAuthRole, checkRateLimit } from '@/lib/auth'
-
-const ALLOWED_ORDER_UPDATE_FIELDS = [
-  'source', 'classification', 'notes',
-  'status',
-  'shipping_cost', 'tracking_number', 'courier',
-  'scheduled_installation_date',
-  'photo_urls', 'progress_photos',
-] as const
-
-const ALLOWED_ORDER_FINANCIAL_FIELDS = [
-  'total_amount', 'dp_amount', 'lunas_amount',
-  'payment_status', 'customer_id',
-] as const
 
 // Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
 // 2026-07-31: payment_ok dipindah ke depan (new → payment_ok) — finance approve pembayaran
@@ -82,18 +68,11 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     .eq('id', id)
     .single()
 
-  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-
-  const auth = await requireAuthRole(['admin', 'owner', 'finance', 'gudang', 'penjahit', 'installer'])
-  if (auth.error) return auth.error
-  const { supabase, user, userData } = auth
-
   const { id } = await params
   const supabase = await createClient()
 
@@ -214,7 +193,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
         if (jobErr) {
           return NextResponse.json(
-            { data: null, error: { message: 'Gagal membuat production_job' } },
+            { data: null, error: { message: 'Gagal membuat production_job: ' + jobErr.message } },
             { status: 500 }
           )
         }
@@ -268,7 +247,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       if (newJobErr) {
         return NextResponse.json(
-          { data: null, error: { message: 'Gagal membuat job revisi' } },
+          { data: null, error: { message: 'Gagal membuat job revisi: ' + newJobErr.message } },
           { status: 500 }
         )
       }
@@ -396,13 +375,6 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
-  if (rateLimit.blocked) return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
-
-  const auth = await requireAuthRole(['admin', 'owner'])
-  if (auth.error) return auth.error
-  const { supabase, user, userData } = auth
-
   const { id } = await params
   const supabase = await createClient()
   const {
@@ -435,6 +407,6 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   })
 
   const { error } = await supabase.from('orders').delete().eq('id', id)
-  if (error) return NextResponse.json({ data: null, error: { message: 'Internal server error' } }, { status: 500 })
+  if (error) return NextResponse.json({ data: null, error: { message: error.message } }, { status: 500 })
   return NextResponse.json({ data: { deleted: true }, error: null })
 }

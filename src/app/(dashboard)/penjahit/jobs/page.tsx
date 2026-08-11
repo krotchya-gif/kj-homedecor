@@ -48,10 +48,13 @@ export default function PenjahitJobsPage() {
       data: { user }
     } = await supabase.auth.getUser()
     if (!user) {
+      console.warn('[Penjahit Jobs] No user session. Please login.')
       setJobs([])
       setLoading(false)
       return
     }
+    // Debug: log user.id untuk matching dengan production_jobs.penjahit_id
+    console.log('[Penjahit Jobs] Loading jobs for user.id:', user.id)
     // Note: Tidak ada FK production_jobs→order_items, jadi jangan pakai relasi 'order_item:order_items(...)'
     // Relasi yang valid: production_jobs.order_id → orders.id → order_items (via orders)
     // Untuk saat ini, tampilkan order info saja. Detail order_items bisa di-fetch terpisah kalau perlu.
@@ -67,6 +70,7 @@ export default function PenjahitJobsPage() {
       console.error('[Penjahit Jobs] Query error:', error)
       toast('error', '⚠️ Gagal load job: ' + error.message)
     } else {
+      console.log(`[Penjahit Jobs] Found ${data?.length ?? 0} jobs for user.id=${user.id}`)
     }
     setJobs(data ?? [])
     setLoading(false)

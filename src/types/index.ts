@@ -425,62 +425,6 @@ export interface LaundryPayroll {
   created_at: string
 }
 
-export interface LandingSettings {
-  id: string
-  hero_title: string
-  hero_subtitle: string
-  hero_cta_text: string
-  hero_cta_link: string
-  hero_image_url: string
-  hero_video_url?: string
-  whatsapp_number: string
-  whatsapp_message: string
-  trust_badges?: { icon: string; label: string }[]
-  instagram?: string
-  facebook?: string
-  tiktok?: string
-  shopee?: string
-  tokopedia?: string
-  address?: string
-  phone?: string
-  // Categories section
-  categories_label?: string
-  categories_title?: string
-  categories_subtitle?: string
-  // Why Us section
-  whyus_label?: string
-  whyus_title?: string
-  whyus_subtitle?: string
-  whyus_card1_title?: string
-  whyus_card1_desc?: string
-  whyus_card2_title?: string
-  whyus_card2_desc?: string
-  whyus_card3_title?: string
-  whyus_card3_desc?: string
-  whyus_card4_title?: string
-  whyus_card4_desc?: string
-  // Portfolio section
-  portfolio_label?: string
-  portfolio_title?: string
-  portfolio_subtitle?: string
-  // CTA Banner
-  cta_badge?: string
-  cta_title?: string
-  cta_subtitle?: string
-  // Theme customization
-  theme_primary_color?: string
-  theme_secondary_color?: string
-  theme_accent_color?: string
-  theme_background_color?: string
-  theme_text_color?: string
-  theme_preset?: string
-  hero_background_image?: string
-  hero_background_overlay_opacity?: number
-  theme_border_radius?: string
-  theme_font_heading?: string
-  theme_font_body?: string
-}
-
 export const RATE_PER_METER = {
   gorden: 5000,
   vitras: 3000,

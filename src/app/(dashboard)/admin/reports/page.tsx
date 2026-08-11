@@ -20,7 +20,6 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { formatRp } from '@/lib/utils'
 
 interface Order {
   id: string

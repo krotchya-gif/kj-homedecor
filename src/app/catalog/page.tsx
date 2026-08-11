@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Search, MessageCircle, X } from 'lucide-react'
 import Link from 'next/link'
@@ -22,7 +22,7 @@ export default function CatalogPage() {
   const [whatsappNumber, setWhatsappNumber] = useState('6281234567890')
   const [whatsappMessage, setWhatsappMessage] = useState('Halo KJ Homedecor')
 
-  const supabase = useMemo(() => createClient(), [])
+  const supabase = createClient()
 
   useEffect(() => {
     async function load() {

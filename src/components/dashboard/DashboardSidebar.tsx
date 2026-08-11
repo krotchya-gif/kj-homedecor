@@ -35,7 +35,6 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
-import { NAV_BY_ROLE, ROLE_LABELS } from '@/config/navigation'
 import {
   Dialog,
   DialogContent,

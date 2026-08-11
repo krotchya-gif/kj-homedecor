@@ -1,5 +1,5 @@
+import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
-import { requireAuthRole, checkRateLimit } from '@/lib/auth'
 
 /**
  * POST /api/orders/[id]/consume-materials
@@ -18,6 +18,7 @@ import { requireAuthRole, checkRateLimit } from '@/lib/auth'
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const supabase = await createClient()
 
   // 1. Auth check
   const {
@@ -26,10 +27,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!user) {
     return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
-
-  const auth = await requireAuthRole(['gudang', 'admin', 'owner'])
-  if (auth.error) return auth.error
-  const { supabase, user } = auth
 
   // 2. Parse body
   const body = await request.json()
@@ -88,7 +85,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (rpcErr) {
     console.error('consume_materials_for_production RPC failed:', rpcErr)
     return NextResponse.json(
-      { data: null, error: { message: 'Gagal consume materials' } },
+      { data: null, error: { message: 'Gagal consume materials: ' + rpcErr.message } },
       { status: 500 }
     )
   }

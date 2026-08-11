@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
-import { requireAuth, checkRateLimit } from '@/lib/auth'
 
 const FolderSchema = z.enum([
   'products',
@@ -95,23 +94,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file extension against allowed types
-    const ext = file.name.split('.').pop()?.toLowerCase() || ''
-    const ALLOWED_EXTENSIONS: Record<string, string[]> = {
-      'image/jpeg': ['jpg', 'jpeg'],
-      'image/png': ['png'],
-      'image/webp': ['webp'],
-      'application/pdf': ['pdf'],
-      'video/mp4': ['mp4'],
-      'video/webm': ['webm'],
-    }
-    const allowedExts = ALLOWED_EXTENSIONS[file.type]
-    if (!allowedExts || !allowedExts.includes(ext)) {
-      return NextResponse.json(
-        { data: null, error: { message: `Invalid file extension "${ext}" for type "${file.type}"` } },
-        { status: 400 }
-      )
-    }
+    // Generate unique filename
+    const ext = file.name.split('.').pop() || 'jpg'
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
     const filename = `${timestamp}-${random}.${ext}`

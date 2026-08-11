@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Lightbox } from '@/components/ui/Lightbox'
+import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Props {
   images: string[]
@@ -89,6 +89,7 @@ export default function ProductImageGallery({ images, productName }: Props) {
         )}
       </div>
 
+      {/* Lightbox Overlay */}
       {lightboxOpen && (
         <div
           onClick={closeLightbox}

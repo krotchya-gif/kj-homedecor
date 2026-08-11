@@ -61,9 +61,7 @@ export default function RootLayout({
           <Providers>
             <SeoScripts />
             <FontLoader />
-            <ErrorBoundary>
-              {children}
-            </ErrorBoundary>
+            {children}
           </Providers>
         </ThemeProvider>
       </body>

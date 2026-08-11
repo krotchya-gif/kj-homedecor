@@ -5,7 +5,7 @@ const DASHBOARD_ROUTES = ['/admin', '/gudang', '/penjahit', '/finance', '/instal
 
 const PUBLIC_ROUTES = ['/', '/login']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { supabase, supabaseResponse } = createClient(request)
 
   // Refresh session

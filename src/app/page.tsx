@@ -12,7 +12,7 @@ import {
   Calendar,
   ShoppingBag
 } from 'lucide-react'
-import type { Category, PortfolioPost, LandingSettings } from '@/types'
+import type { Category, PortfolioPost } from '@/types'
 import ProductCatalog from '@/components/landing/ProductCatalog'
 import ScrollNav from '@/components/landing/ScrollNav'
 import ScrollHero from '@/components/ScrollHero'

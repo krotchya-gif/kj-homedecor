@@ -90,7 +90,6 @@ export function Lightbox({ photos, currentIndex, onClose, onNext, onPrev }: Ligh
         alt={`Photo ${currentIndex + 1}`}
         className="max-w-full max-h-full object-contain"
         onClick={(e) => e.stopPropagation()}
-        loading="lazy"
       />
 
       {/* Counter */}
