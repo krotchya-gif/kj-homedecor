@@ -1,0 +1,31 @@
+-- Migration 065: Cleanup test functions dari proses deploy 064
+-- Date: 2026-08-12
+-- Menghapus fungsi2 percobaan yang sempat ter-deploy saat debug splitter CLI.
+-- Aman di-run ulang (DROP IF EXISTS).
+
+BEGIN;
+
+DROP FUNCTION IF EXISTS public.test_fn();
+DROP FUNCTION IF EXISTS public.test_fn2(JSONB);
+DROP FUNCTION IF EXISTS public.test_fn3(JSONB);
+DROP FUNCTION IF EXISTS public.test_fn4();
+DROP FUNCTION IF EXISTS public.test_fn5();
+DROP FUNCTION IF EXISTS public.test_fn6(NUMERIC, NUMERIC);
+DROP FUNCTION IF EXISTS public.test_fn7(UUID);
+DROP FUNCTION IF EXISTS public.test_bisect(JSONB);
+DROP FUNCTION IF EXISTS public.test_bisect2(JSONB);
+DROP FUNCTION IF EXISTS public.test_bisect3(JSONB);
+DROP FUNCTION IF EXISTS public.test_bisect4(JSONB);
+DROP FUNCTION IF EXISTS public.test_bisect5(JSONB);
+DROP FUNCTION IF EXISTS public.test_bisect6(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.test_combo(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.test_combo2(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.test_combo3(JSONB, TEXT, DATE, UUID);
+DROP FUNCTION IF EXISTS public.test_combo4(TEXT);
+DROP FUNCTION IF EXISTS public.test_combo5(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.cjournal_a(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.create_journal_x(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.create_journal_ato(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+DROP FUNCTION IF EXISTS public.create_journal_abmic(TEXT, TEXT, UUID, TEXT, DATE, BOOLEAN, JSONB, UUID);
+
+COMMIT;

@@ -76,7 +76,9 @@ export async function POST(request: Request) {
     }
 
     // F-57/F-19 fix: satu RPC atomik (entry + lines + saldo kas) — bukan 2 query
-    const { data: rpcData, error: rpcError } = await supabase.rpc('create_journal_atomic', {
+    // NOTE: nama fungsi create_journal_tx (bukan ..._atomic) karena bug splitter
+    // CLI v2.75: nama berisi "atomic" membuat statement $$ tidak ter-split.
+    const { data: rpcData, error: rpcError } = await supabase.rpc('create_journal_tx', {
       p_idempotency_key: idempotency_key ?? null,
       p_reference_type: reference_type ?? null,
       p_reference_id: reference_id ?? null,
