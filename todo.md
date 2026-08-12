@@ -3,6 +3,30 @@
 > **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 7 — simulasi E2E penuh)
 
 ---
+## ◐ Sedang (2026-08-13 — Sesi 8: Audit Menyeluruh Codebase + Verifikasi Live)
+
+Audit 4 agent paralel + verifikasi live (login penjahit via supabase-js, service_role cek kolom). Temuan lengkap di `bug.md` (BUG-058 s/d 067). **Fix belum dieksekusi.**
+
+### Prioritas (uang/akuntansi)
+1. ◐ **BUG-058** jurnal server-path 401 (Xendit/PO/order-API/TikTok-sync tak pernah berjurnal) — `createJournalEntry` panggil RPC langsung via server client
+2. ◐ **BUG-060** DP auto-catat tanpa jurnal `payment_received` + reversal cancel hantu
+3. ◐ **BUG-061** kolom `orders.scheduled_installation_time` hilang di live — migration + sync schema
+4. ◐ **BUG-062** PO PUT received/paid dobel tanpa guard status
+5. ◐ **BUG-063** Xendit retry 200 tanpa repair order/jurnal
+
+### Keputusan scope
+6. ◐ **BUG-059** RLS permissive orders/customers/materials/suppliers/install_bookings (live: penjahit bisa baca+tulis) — kerjakan penuh / sebagian / biarkan
+
+### UI cepat (aman)
+7. ◐ **BUG-064** QC mobile tab render retur; **BUG-065** shipping Input Resi utk ready; **BUG-066** teks korup installer; **BUG-067** stock-opname formatRp utk qty
+
+### Schema file sync (bukan kode)
+8. ◐ `000_full_schema.sql` basi: production_reports, lembur_records, suppliers, surveys.signature_name, inventory_movements.notes, customers.email, purchase_orders RLS
+
+### Housekeeping (sesi 7, belum ter-commit)
+9. ◐ Commit `.gitignore` (hapus aturan `tests/` + tambah `.agents/`); README masih basi (test 24+27, riwayat sesi 7-8)
+
+---
 
 ## ✅ Selesai (2026-08-13 — Sesi 7: Simulasi E2E Pipeline + Fitur)
 

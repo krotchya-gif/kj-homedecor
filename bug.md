@@ -65,6 +65,16 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-055 | **Accounts `type='income'`** (4101/4102) di luar CHECK — constraint 067 NOT VALID | ✅ Fixed (migration 074) | `income → revenue` + VALIDATE constraint |
 | BUG-056 | **Pipeline macet di produksi (gudang)** — `updateJobStatus` memanggil consume-materials SEBELUM update status job → route `/api/orders/[id]/consume-materials` menolak (job masih `in_progress`) → job tak pernah selesai, order stuck | ✅ Fixed (2026-08-12, ditemukan simulasi E2E) | Pindah panggilan consume-materials SETELAH update status `done` |
 | BUG-057 | **Installer tidak bisa upload foto checklist** — `/api/upload` folder `evidence` (dipakai installer checklist) dibatasi admin/owner/finance (fix sesi 5) → installer 403 | ✅ Fixed (2026-08-12, ditemukan simulasi E2E) | Tambah `installer` ke `FOLDER_ROLES.evidence` |
+| BUG-058 | **Jurnal server-path 100% gagal 401** — `createSimpleJournal` dari route handler = `fetch(baseUrl/api/journal)` tanpa cookie; route journal wajib session → jurnal Xendit/PO/order-API/TikTok-sync tak pernah tersimpan | Open (2026-08-13, audit sesi 8) | `createJournalEntry` terima `supabase` server client → panggil RPC `create_journal_atomic` langsung |
+| BUG-059 | **RLS permissive `orders/customers/materials/suppliers/install_bookings`** = `FOR ALL (auth.role()='authenticated')` — penjahit (role terendah) LIVE bisa baca+tulis semua (diverifikasi login live) | Open (perlu keputusan scope) | Hardening RLS role-based + rutekan write client ke API role-gated |
+| BUG-060 | **DP auto-catat tanpa jurnal `payment_received`** saat buat order → Kas kurang DP, Piutang overstated; reversal cancel bikin jurnal hantu | Open | Tambah jurnal payment_received; cancel hanya reverse jurnal yang ada |
+| BUG-061 | **`orders.scheduled_installation_time` TIDAK ada di live** — update jadwal pasang gagal diam-diam (42703), tanggal tak tersimpan | Open | Migration tambah kolom + sync 000_full_schema.sql |
+| BUG-062 | **PO PUT `received`/`paid` bisa dobel** — tanpa guard status → stok & jurnal purchase ganda; `paid` tanpa `received` → hutang negatif | Open | Guard transisi status + idempotensi |
+| BUG-063 | **Xendit webhook retry balas 200 tanpa repair** — setelah jurnal gagal, `alreadyProcessed` → skip selamanya, order tak pernah lunas | Open | Cabang `alreadyProcessed` cek & repair jurnal+order |
+| BUG-064 | **QC mobile tab "QC Per-Item" render daftar RETUR** (copy-paste) — QC mobile tak bisa dipakai | Open | Perbaiki render mobile → item QC pending |
+| BUG-065 | **`/admin/shipping` tombol "Input Resi" tampil utk order `ready`** padahal API menolak `ready→shipped` | Open | Gate tombol hanya utk `packed` |
+| BUG-066 | **Teks korup Mandarin** di modal installer "Laporkan Masalah" | Open | Perbaiki string |
+| BUG-067 | **Stock Opname selisih qty diformat `formatRp`** → "Rp-3" | Open | Format angka qty (bukan uang) |
 
 ---
 
@@ -560,6 +570,35 @@ Detail ringkas — implementasi lengkap di ringkasan tabel di atas, `todo.md`, d
 | BUG-046 | TikTok OAuth callback mati; rate limit IP spoofable | commit `4277557` |
 
 ---
+
+## BUG-058 s/d BUG-067 — Sesi 8 (2026-08-13): Audit Menyeluruh + Verifikasi Live
+
+Audit 4 agent paralel (API security, server lib, UI/pipeline, schema/RLS) + **verifikasi live** (login `penjahit` via supabase-js persis aplikasi + service_role cek kolom, read-only). Semua temuan di bawah sudah diverifikasi ke kode & live — BUKAN false positive.
+
+### KRITIS — Uang / boundary
+- **BUG-058** — Jurnal dari server-context mati: `src/utils/journal/create.ts:31-42` (`createJournalEntry`) selalu `fetch(baseUrl/api/journal)` TANPA cookie; `src/app/api/journal/route.ts:36-40` wajib session → 401. Pemanggil server (xendit/webhook:142-176, purchase-orders PUT:109-147, orders POST:85-95, tiktok sync-*) semua kena → jurnal tidak pernah dibuat. Fix: beri `createJournalEntry` opsional `supabase` server client → panggil RPC `create_journal_atomic` langsung.
+- **BUG-059** — RLS inti masih permissive: schema `000_full_schema.sql:1095-1181` `FOR ALL (auth.role()='authenticated')` utk orders/customers/materials/suppliers/install_bookings (tidak disentuh hardening 10.7). Diverifikasi LIVE: login `penjahit` → SELECT semua tabel tsb ada rows. Fix butuh rutekan write client ke API role-gated dulu (refactor besar) — keputusan scope.
+- **BUG-060** — `admin/orders/page.tsx:311-343`: auto-record DP insert row `payments` tapi HANYA jurnal `order_created` (komentar bilang "order_created + payment_received harus dibuat dari SEMUA jalur", kode tidak). `handleCancel` (`admin/orders/[id]`) reverse `payment_received` walau tak pernah ada → kas fiktif.
+- **BUG-061** — Verifikasi service_role: kolom `orders.scheduled_installation_time` TIDAK ADA di live. `admin/orders/[id]/page.tsx:428-436` update kolom tsb → 42703, `console.error` saja (diam-diam), `scheduled_installation_date` pun tak tersimpan.
+- **BUG-062** — `purchase-orders/[id]/route.ts:52-153`: PUT `status='received'` tanpa guard status sebelumnya → `increment_stock_gudang` + jurnal `purchase` bisa dobel; `paid` tanpa `received` → jurnal hutang_paid tanpa hutang.
+- **BUG-063** — `xendit/webhook/route.ts:95-97`: `alreadyProcessed` langsung 200 idempotent tanpa cek jurnal/order; bila attempt-1 jurnal gagal (liat BUG-058), retry skip selamanya → order tak pernah lunas.
+
+### SEDANG/RENDAH — UI (terverifikasi kode)
+- **BUG-064** — `gudang/qc/page.tsx:490-514`: blok `mobile-only` di dalam tab `qc` merender `pendingReturns` (retur), bukan item QC (`items.filter(i => !i.ready)` di blok desktop 515+).
+- **BUG-065** — `admin/shipping/page.tsx:346`: tombol "Input Resi" utk `status==='ready' || 'packed'`, tapi `VALID_STATUS_TRANSITIONS` (`api/orders/[id]/route.ts:14`) menolak `ready→shipped` → 400.
+- **BUG-066** — `installer/schedule/page.tsx:571`: teks korup "Setelah提交, status booking改为...".
+- **BUG-067** — `gudang/stock-opname:290`, `finance/stock-opname:122`: `formatRp(totalDiff)` padahal totalDiff = jumlah qty (unit), bukan uang.
+
+### SCHEMA FILE BASI (bukan bug kode — live sudah punya kolom, tinggal sync `000_full_schema.sql`)
+`production_reports` (meter_gorden/poni_lurus/poni_gel/notes), `lembur_records` (staff_id/jam/keterangan), `suppliers` (contact_person/phone/email/notes — dibuktikan E2E finance.spec buat supplier & pass), `surveys.signature_name`, `inventory_movements.notes`, `customers.email`, RLS `purchase_orders` (live LEBIH ketat dari file). Semua diverifikasi service_role OK.
+
+### FALSE POSITIVE (diverifikasi — JANGAN difix)
+- Public read `install_bookings`: anon (tanpa login) → 42501 → policy "Public can read" TIDAK live.
+- Bocor `payments`/`journal_entries` ke staff: sesuai "All staff read" di 10.7 (by design).
+- Drift production_reports/lembur/suppliers/surveys/inventory_movements/customers = "fitur rusak": live SUDAH punya kolomnya.
+
+### KANDIDAT (belum 100% diverifikasi — perlu keputusan produk)
+TikTok double-booking revenue (`sync-to-main-orders` vs `sync-finance` idempotency key beda); mapping `payment_status` TikTok salah field (order AWAITING_SHIPMENT tak masuk main orders); steam rework via jalur gudang macet (steam_job lama status `revision` tak diganti); piutang retur cap beda (dengan/tanpa fee); hutang delete tanpa guard paid; race finance pay (rollback jurnal refund tidak ikut rollback).
 
 ## Audit Finance — Referensi Lengkap
 

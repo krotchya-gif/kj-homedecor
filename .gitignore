@@ -15,7 +15,6 @@
 /playwright-report
 /test-results
 /playwright/.cache
-tests/
 
 # next.js
 /.next/
@@ -53,6 +52,10 @@ doc/
 
 # Claude AI context and memory (local only)
 .claude/
+
+# Agent skills (external tooling, local only — installed via `npx skills`)
+.agents/
+skills-lock.json
 
 # Graphify knowledge graph output (generated artifacts)
 /graphify-out/
