@@ -174,7 +174,7 @@ Commit: `feat(stock-opname)` (075 + finance approve) + sync hardening
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000`; test login 8 role + fitur baru: reset data, faktur/SJ, laundry, rekonsiliasi, **TikTok sync** (cek piutang gross + 3 jurnal tidak dobel), security fix (role lain → 403), **stock opname** (gudang buat/kirim → finance approve) |
+| 1 | **Smoke test E2E di browser** | 🟠 **High** | ✅ `tests/e2e/smoke.spec.ts` — **15/15 pass**: login 8 role (redirect dashboard), security (penjahit → proxy redirect + API 403), halaman kunci (admin/orders, stock-opname gudang+finance, owner/settings, rekonsiliasi). Jalankan: `npx playwright test --project=chromium` |
 | 2 | **Monolitik `admin/orders/[id]` pecah** | 🟡 Medium | Tahap 1 (logika murni → `lib/order-detail.ts` + test) ✅ + Tahap 2a (`OrderActivityLog`) ✅ selesai. **Sisa:** pipeline stepper, info blocks, items table, checklist, survey, 5 modal aksi, AddItem form (±2.400 baris) — ekstrak bertahap |
 | 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` ✅ (42 file → import `lib/utils`). `STATUS_COLORS`/`LooseRow` sengaja dipertahankan (bukan duplikasi identik — 3 skema beda / method-call) |
 | 4 | **Unique `invoice_number` piutang non-tiktok** | 🟢 Low | ✅ migration 076 + cek duplikat di faktur page |
