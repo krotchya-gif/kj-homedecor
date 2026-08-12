@@ -149,8 +149,9 @@ export default function GudangAlertsPage() {
                         fontWeight: '600',
                         cursor: creating === m.id ? 'not-allowed' : 'pointer'
                       }}
+                      title="Buat permintaan pembelian material ke supplier"
                     >
-                      <ShoppingBag size={12} /> {creating === m.id ? 'Membuat...' : 'Buat PR'}
+                      <ShoppingBag size={12} /> {creating === m.id ? 'Membuat...' : 'Buat Permintaan Pembelian'}
                     </button>
                   </td>
                 </tr>

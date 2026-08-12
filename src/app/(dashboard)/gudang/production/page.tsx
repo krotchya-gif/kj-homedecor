@@ -477,6 +477,7 @@ export default function GudangProductionPage() {
                                     updateJobStatus(job.id, 'in_progress')
                                   }
                                 }}
+                                title="Mulai produksi (bahan material dikurangi dari stok gudang)"
                                 style={{
                                   padding: '0.2rem 0.625rem',
                                   background: '#fef3c7',
@@ -494,6 +495,7 @@ export default function GudangProductionPage() {
                             {job.status === 'in_progress' && (
                               <button
                                 onClick={() => updateJobStatus(job.id, 'done')}
+                                title="Selesai produksi → lanjut ke tahap Steam / QC"
                                 style={{
                                   padding: '0.2rem 0.625rem',
                                   background: '#d1fae5',

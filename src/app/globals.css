@@ -1070,7 +1070,7 @@ p {
 /* ========== STAT CARDS ========== */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: 1rem;
   margin-bottom: 1.5rem;
 }
@@ -1081,6 +1081,8 @@ p {
   border-radius: 0.75rem;
   padding: 1.25rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Section card — pengganti pola inline background:'#fff' (2026-07-31) */
@@ -1144,6 +1146,8 @@ p {
   font-weight: 700;
   color: var(--neutral-800);
   line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .stat-card-sub {

@@ -33,3 +33,19 @@
 | **laundry** | Tugas laundry miliknya: terima task, lapor selesai + berat aktual (dasar gaji) |
 
 > Ubah password setelah login pertama.
+
+---
+
+## Checklist Pertama Kali Pakai (setelah Reset Data)
+
+1. **Reset Data** — login sebagai Owner → `/owner/settings` → klik **Reset Data** → ketik `RESET`.
+   Data transaksional dihapus; staff, COA, produk, material, supplier, tarif & konten landing dipertahankan.
+2. **Login akun** — gunakan akun di tabel di atas sesuai peran.
+3. **Saldo awal kas/bank** — otomatis diarahkan ke `Finance → Pengaturan` (tab *Saldo Awal Kas/Bank*).
+   Isi saldo awal Kas, Bank BCA, Mandiri, E-Wallet Tiktok, dsb → Simpan (jurnal pembuka dibuat otomatis).
+4. **Stok awal** — Gudang → Stock Opname: buat sesi, input hitung fisik, kirim → Finance **Approve** (stok masuk).
+   Alternatif: mutasi stok masuk di `Gudang → Stock`.
+5. **(Opsional) TikTok** — `/owner/tiktok` → cek koneksi; jika token kedaluwarsa klik **Re-authorize**.
+6. **Mulai transaksi** — buat pesanan di `/admin/orders`, lanjut pipeline produksi → pengiriman.
+
+> Urutan ini juga dicatat di `pendoman.md`.

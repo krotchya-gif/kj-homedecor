@@ -393,6 +393,15 @@ Halaman `/owner` → **Pengaturan → Reset Data Transaksional**.
 
 > 💡 Cocok dipakai saat mulai dari nol (misal mau demo ulang atau ganti periode pembukuan).
 
+### Checklist setelah Reset (mulai pakai dari nol)
+
+1. **Login** — pakai akun sesuai peran (password ada di `USER.md`).
+2. **Isi saldo awal kas/bank** — aplikasi otomatis mengarahkan ke `Finance → Pengaturan` (tab *Saldo Awal Kas/Bank*). Isi saldo Kas, Bank, E-Wallet Tiktok → **Simpan**.
+3. **Isi stok awal** — `Gudang → Stock Opname`: buat sesi, input hitung fisik, **Kirim** → Finance **Approve**.
+   (Alternatif: mutasi barang masuk di `Gudang → Stock`.)
+4. **(Opsional) TikTok** — buka `/owner/tiktok`, cek koneksi; kalau token kedaluwarsa klik **Re-authorize**.
+5. **Mulai transaksi** — buat pesanan di `/admin/orders`, lalu ikuti alur pesanan (bagian 3).
+
 ---
 
 ## 10. Tanya-Jawab (FAQ)

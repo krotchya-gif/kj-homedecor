@@ -939,6 +939,7 @@ export default function FinancePaymentsPage() {
                             {canApprove ? (
                               <button
                                 onClick={() => handleApprove(o)}
+                                title="Verifikasi pembayaran diterima → pesanan lanjut ke gudang"
                                 style={{
                                   padding: '0.3rem 0.75rem',
                                   background: '#16a34a',

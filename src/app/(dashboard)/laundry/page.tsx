@@ -186,6 +186,7 @@ export default function LaundryDashboardPage() {
                     <button
                       onClick={() => handleAccept(t)}
                       disabled={acceptingId === t.id}
+                      title="Ambil task laundry ini untuk dikerjakan"
                       style={{ background: '#6366f1', color: '#fff', border: 'none', cursor: 'pointer' }}
                     >
                       <PlayCircle size={14} /> Terima Task
@@ -197,6 +198,7 @@ export default function LaundryDashboardPage() {
                         setReportTask(t)
                         setKgActual(String(t.kg ?? ''))
                       }}
+                      title="Laporkan selesai + input berat aktual (dasar perhitungan payroll)"
                       style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
                     >
                       <CheckCircle2 size={14} /> Lapor Selesai

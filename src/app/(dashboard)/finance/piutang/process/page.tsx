@@ -197,6 +197,7 @@ export default function ProcessReturPage() {
                           fontWeight: '600',
                           cursor: 'pointer'
                         }}
+                        title="Kurangi sisa tagihan pelanggan (retur barang)"
                       >
                         <Undo2 size={13} /> Proses Retur
                       </button>

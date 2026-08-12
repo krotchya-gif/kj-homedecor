@@ -3,12 +3,14 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { AlertTriangle, ShieldAlert, Loader2, CheckCircle2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 
 export default function OwnerSettingsPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [step1Open, setStep1Open] = useState(false)
   const [step2Open, setStep2Open] = useState(false)
   const [typeInput, setTypeInput] = useState('')
@@ -38,6 +40,8 @@ export default function OwnerSettingsPage() {
           .join(', ')
       : ''
     toast('success', summary ? `Data transaksional berhasil di-reset! (${summary})` : 'Data transaksional berhasil di-reset!')
+    // A-1 fix (sesi 13): arahkan ke Finance → Pengaturan untuk isi saldo awal kas/bank.
+    setTimeout(() => router.push('/finance/settings'), 1200)
   }
 
   return (
@@ -107,10 +111,29 @@ export default function OwnerSettingsPage() {
           }}
         >
           <CheckCircle2 size={18} style={{ color: '#16a34a' }} />
-          Data berhasil di-reset. Silakan input saldo awal kas/bank di Finance &rarr; Pengaturan, lalu mulai transaksi baru.
+          <span>
+            Data berhasil di-reset. Silakan input saldo awal kas/bank di Finance &rarr; Pengaturan, lalu mulai
+            transaksi baru.
+          </span>
+          <button
+            onClick={() => router.push('/finance/settings')}
+            style={{
+              marginLeft: 'auto',
+              padding: '0.5rem 1rem',
+              background: '#16a34a',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            Isi Saldo Awal →
+          </button>
         </div>
       )}
-
       {/* Dialog 1: peringatan */}
       <Modal open={step1Open} onClose={() => !resetting && setStep1Open(false)} maxWidth={480} padding="1.5rem" zIndex={300}>
         <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#991b1b', marginBottom: '0.75rem' }}>
@@ -150,6 +173,7 @@ export default function OwnerSettingsPage() {
               setStep2Open(true)
             }}
             disabled={resetting}
+            title="Lanjut ke konfirmasi penghapusan permanen"
             style={{
               flex: 1,
               padding: '0.75rem',

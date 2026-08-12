@@ -565,6 +565,7 @@ export default function SuppliersPage() {
                             {po.status === 'pending' && (
                               <button
                                 onClick={() => updatePOStatus(po.id, 'delivered')}
+                                title="Tandai barang sudah dikirim oleh supplier"
                                 style={{
                                   padding: '0.25rem 0.625rem',
                                   background: '#7c3aed',
@@ -582,6 +583,7 @@ export default function SuppliersPage() {
                             {(po.status === 'pending' || po.status === 'delivered') && (
                               <button
                                 onClick={() => updatePOStatus(po.id, 'received')}
+                                title="Terima barang dari supplier (stok gudang bertambah)"
                                 style={{
                                   padding: '0.25rem 0.625rem',
                                   background: '#3b82f6',
@@ -599,6 +601,7 @@ export default function SuppliersPage() {
                             {po.status === 'received' && (
                               <button
                                 onClick={() => updatePOStatus(po.id, 'paid')}
+                                title="Tandai tagihan supplier sudah dibayar (jurnal hutang dibuat otomatis)"
                                 style={{
                                   padding: '0.25rem 0.625rem',
                                   background: '#22c55e',

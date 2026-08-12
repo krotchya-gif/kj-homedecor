@@ -292,7 +292,12 @@ export default function StockOpnamePage() {
                   </div>
                   {s.status === 'open' && (
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button className="btn-primary" style={{ fontSize: '0.8rem' }} onClick={() => submitSession(s.id)}>
+                      <button
+                        className="btn-primary"
+                        style={{ fontSize: '0.8rem' }}
+                        onClick={() => submitSession(s.id)}
+                        title="Kirim hasil hitung stok ke Finance untuk diverifikasi"
+                      >
                         <CheckCircle2 size={14} /> Kirim
                       </button>
                       <button
@@ -330,7 +335,7 @@ export default function StockOpnamePage() {
               </div>
               {s.status === 'open' && (
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                  <button className="btn-primary" style={{ fontSize: '0.8rem' }} onClick={() => submitSession(s.id)}>
+                  <button className="btn-primary" style={{ fontSize: '0.8rem' }} onClick={() => submitSession(s.id)} title="Kirim hasil hitung stok ke Finance untuk diverifikasi">
                     Kirim
                   </button>
                   <button style={{ fontSize: '0.8rem', background: 'none', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.4rem 0.75rem' }} onClick={() => cancelSession(s.id)}>

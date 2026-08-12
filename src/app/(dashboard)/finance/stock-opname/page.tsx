@@ -122,9 +122,9 @@ export default function FinanceStockOpnamePage() {
                     </td>
                     <td>
                       {s.status === 'submitted' ? (
-                        <button className="btn-primary" style={{ fontSize: '0.8rem' }} disabled={approving === s.id} onClick={() => approve(s.id)}>
-                          {approving === s.id ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Approve
-                        </button>
+                <button className="btn-primary" style={{ fontSize: '0.8rem' }} disabled={approving === s.id} onClick={() => approve(s.id)} title="Terapkan selisih stok ke gudang (permanen)">
+                  {approving === s.id ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Approve
+                </button>
                       ) : (
                         <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>-</span>
                       )}
@@ -156,7 +156,7 @@ export default function FinanceStockOpnamePage() {
                 <span className="mobile-card-value">{(s.items ?? []).reduce((a, i) => a + Number(i.difference || 0), 0).toLocaleString('id-ID')} unit</span>
               </div>
               {s.status === 'submitted' && (
-                <button className="btn-primary" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }} disabled={approving === s.id} onClick={() => approve(s.id)}>
+                <button className="btn-primary" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }} disabled={approving === s.id} onClick={() => approve(s.id)} title="Terapkan selisih stok ke gudang (permanen)">
                   Approve
                 </button>
               )}

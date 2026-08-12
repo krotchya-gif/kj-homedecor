@@ -375,6 +375,7 @@ export default function InstallerSchedulePage() {
                         <>
                           <button
                             onClick={() => updateStatus(b.id, 'done')}
+                            title="Selesaikan pemasangan di lokasi"
                             style={{
                               padding: '0.5rem 1rem',
                               background: '#cc7030',

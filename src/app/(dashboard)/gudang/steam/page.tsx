@@ -507,6 +507,7 @@ export default function GudangSteamPage() {
                           <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <button
                               onClick={() => setShowPassDialog(job)}
+                              title="Lulus QC jahitan → pesanan lanjut ke tahap berikutnya"
                               style={{
                                 padding: '0.5rem 1rem',
                                 background: '#16a34a',
@@ -528,6 +529,7 @@ export default function GudangSteamPage() {
                                 setShowFailModal(job)
                                 setFailReason('')
                               }}
+                              title="Gagal QC → kembalikan ke penjahit untuk diperbaiki"
                               style={{
                                 padding: '0.5rem 1rem',
                                 background: '#fef2f2',
@@ -924,6 +926,7 @@ export default function GudangSteamPage() {
             <Button
               onClick={() => showPassDialog && handleSteamPass(showPassDialog)}
               disabled={passSaving || !steamPassPhoto}
+              title="Lulus QC → pesanan menjadi Siap"
             >
               {passSaving ? 'Menyimpan...' : '✓ Ya, QC Pass'}
             </Button>
@@ -1068,6 +1071,7 @@ export default function GudangSteamPage() {
               onClick={handleSteamFail}
               disabled={failSaving || !failReason.trim() || !steamFailPhoto}
               style={{ background: '#dc2626' }}
+              title="Kembalikan ke penjahit untuk diperbaiki"
             >
               {failSaving ? 'Menyimpan...' : '↩️ Ya, Kembalikan'}
             </Button>

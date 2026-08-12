@@ -314,7 +314,7 @@ export default function HutangPage() {
                   <span className="mobile-card-value">{h.status === 'paid' ? 'Lunas' : h.status === 'partial' ? 'Sebagian' : 'Belum'}</span>
                 </div>
                 <div className="mobile-card-actions">
-                  <button onClick={() => openPayment(h)} style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}>Bayar</button>
+                        <button onClick={() => openPayment(h)} style={{ background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }} title="Catat pembayaran tagihan supplier (jurnal dibuat otomatis)">Bayar</button>
                   <button onClick={() => openEdit(h)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
                   <button onClick={() => handleDelete(h.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
                 </div>

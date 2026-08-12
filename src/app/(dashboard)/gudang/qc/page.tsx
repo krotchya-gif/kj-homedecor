@@ -463,6 +463,7 @@ export default function GudangQCPage() {
                     <button
                       onClick={() => handlePack(o.order_id)}
                       disabled={!!packingId}
+                      title="Tandai pesanan dikemas → lanjut ke tahap pengiriman"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -662,6 +663,7 @@ export default function GudangQCPage() {
                         setSelectedReturn(r)
                         setReturForm({ condition: r.condition || 'good', notes: '', photos: [] })
                       }}
+                      title="Verifikasi retur → stok/refund diproses"
                       style={{
                         padding: '0.5rem 1.25rem',
                         background: '#9333ea',
@@ -1136,6 +1138,7 @@ export default function GudangQCPage() {
                 <button
                   type="submit"
                   disabled={saving || returForm.photos.length < 2}
+                  title="Simpan & proses verifikasi retur (stok/refund diproses)"
                   style={{
                     flex: 1,
                     padding: '0.75rem',

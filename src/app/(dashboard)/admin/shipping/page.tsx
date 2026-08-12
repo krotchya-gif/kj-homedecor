@@ -326,6 +326,7 @@ export default function AdminShippingPage() {
                 {order.status === 'ready' && (
                   <button
                     onClick={() => handleMarkPacked(order.id)}
+                    title="Tandai pesanan dikemas → lanjut ke tahap Input Resi"
                     style={{
                       padding: '0.5rem 0.875rem',
                       background: 'var(--surface)',
@@ -346,6 +347,7 @@ export default function AdminShippingPage() {
                 {order.status === 'packed' && (
                   <button
                     onClick={() => openResiModal(order)}
+                    title="Isi kurir & nomor resi, lalu tandai pesanan terkirim"
                     style={{
                       padding: '0.5rem 0.875rem',
                       background: '#cc7030',
@@ -577,6 +579,7 @@ export default function AdminShippingPage() {
                 <button
                   onClick={handleSaveResi}
                   disabled={saving || !resiForm.courier || !resiForm.tracking_number || !shippedPhoto}
+                  title="Simpan resi, unggah foto bukti, dan tandai pesanan TERKIRIM"
                   style={{
                     flex: 1,
                     padding: '0.75rem',

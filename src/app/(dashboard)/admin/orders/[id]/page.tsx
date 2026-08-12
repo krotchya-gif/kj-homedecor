@@ -1085,6 +1085,7 @@ export default function OrderDetailPage() {
                 }
               }}
               disabled={updating}
+              title="Lanjut ke tahap berikutnya (status terkunci, tidak bisa dibatalkan)"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -1144,6 +1145,7 @@ export default function OrderDetailPage() {
               fontWeight: '600',
               cursor: 'pointer'
             }}
+            title="Batalkan pesanan (pembayaran di-void, jurnal dibalik)"
           >
             ❌ Batalkan
           </button>
@@ -1163,6 +1165,7 @@ export default function OrderDetailPage() {
               fontWeight: '600',
               cursor: 'pointer'
             }}
+            title="Catat barang kembali / retur dari pesanan ini"
           >
             📦 Return
           </button>
@@ -1189,6 +1192,7 @@ export default function OrderDetailPage() {
                 cursor: 'pointer',
                 fontSize: '0.8rem'
               }}
+              title="Unduh dokumen PDF"
             >
               <FileText size={14} /> Invoice
             </button>
@@ -1212,6 +1216,7 @@ export default function OrderDetailPage() {
                 cursor: 'pointer',
                 fontSize: '0.8rem'
               }}
+              title="Unduh dokumen PDF"
             >
               <Package size={14} /> Packing List
             </button>
@@ -1235,6 +1240,7 @@ export default function OrderDetailPage() {
                 cursor: 'pointer',
                 fontSize: '0.8rem'
               }}
+              title="Unduh dokumen PDF"
             >
               <FileText size={14} /> Faktur
             </button>
@@ -1260,6 +1266,7 @@ export default function OrderDetailPage() {
                 cursor: 'pointer',
                 fontSize: '0.8rem'
               }}
+              title="Unduh dokumen PDF"
             >
               <Truck size={14} /> Surat Jalan
             </button>
@@ -1544,6 +1551,7 @@ export default function OrderDetailPage() {
                 fontWeight: '600',
                 cursor: 'pointer'
               }}
+              title="Catat DP / pelunasan untuk pesanan ini"
             >
               + Tambah Pembayaran
             </button>
@@ -1558,6 +1566,7 @@ export default function OrderDetailPage() {
           {order.survey ? (
             <button
               onClick={unlinkSurvey}
+              title="Lepas tautan survey dari pesanan ini"
               style={{ padding: '0.3rem 0.625rem', border: '1px solid #fecaca', borderRadius: '0.375rem', background: '#fef2f2', color: '#dc2626', fontSize: '0.7rem', fontWeight: '600', cursor: 'pointer' }}
             >
               Lepas Survey
@@ -2930,6 +2939,7 @@ export default function OrderDetailPage() {
                 justifyContent: 'center',
                 gap: '0.4rem'
               }}
+              title="Simpan jadwal & pilih installer untuk pemasangan"
             >
               {scheduling ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CalendarIcon size={14} />}
               {scheduling ? 'Menyimpan...' : 'Jadwalkan & Assign'}
