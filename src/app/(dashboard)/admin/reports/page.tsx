@@ -20,6 +20,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import Pagination from '@/components/ui/Pagination'
 import { formatRp } from '@/lib/utils'
 
 interface Order {
@@ -75,11 +76,15 @@ interface AutoTableDoc {
 }
 
 export default function AdminReportsPage() {
-  const [orders, setOrders] = useState<Order[]>([])
-  const [prevOrders, setPrevOrders] = useState<Order[]>([])
-  const [loading, setLoading] = useState(true)
-  const [year, setYear] = useState(new Date().getFullYear())
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
+const [orders, setOrders] = useState<Order[]>([])
+const [prevOrders, setPrevOrders] = useState<Order[]>([])
+const [loading, setLoading] = useState(true)
+const [year, setYear] = useState(new Date().getFullYear())
+const [month, setMonth] = useState(new Date().getMonth() + 1)
+const [srcPage, setSrcPage] = useState(0)
+const [srcPageSize, setSrcPageSize] = useState(10)
+const [prodPage, setProdPage] = useState(0)
+const [prodPageSize, setProdPageSize] = useState(10)
   const supabase = createClient()
 
   useEffect(() => {
@@ -176,9 +181,9 @@ export default function AdminReportsPage() {
       productRevenue[name].revenue += (item.price ?? 0) * (item.qty ?? 1)
     })
   })
-  const topProducts = Object.values(productRevenue)
-    .sort((a, b) => b.revenue - a.revenue)
-    .slice(0, 10)
+  const topProducts = Object.values(productRevenue).sort((a, b) => b.revenue - a.revenue)
+
+  const pageProducts = topProducts.slice(prodPage * prodPageSize, (prodPage + 1) * prodPageSize)
 
   
 
@@ -607,26 +612,44 @@ export default function AdminReportsPage() {
             ) : Object.keys(sourceRevenue).length === 0 ? (
               <EmptyState icon="📊" title="Tidak ada data" description="Tidak ada data untuk periode yang dipilih." />
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Marketplace</th>
-                    <th>Order</th>
-                    <th>Omzet</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(sourceRevenue)
-                    .sort(([, a], [, b]) => b - a)
-                    .map(([src, rev]) => (
-                      <tr key={src}>
-                        <td style={{ fontWeight: '600' }}>{SOURCE_LABELS[src as keyof typeof SOURCE_LABELS] ?? src}</td>
-                        <td style={{ color: 'var(--neutral-600)' }}>{sourceOrders[src] ?? 0}</td>
-                        <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(rev)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Marketplace</th>
+                      <th>Order</th>
+                      <th>Omzet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(sourceRevenue)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(srcPage * srcPageSize, (srcPage + 1) * srcPageSize)
+                      .map(([src, rev]) => (
+                        <tr key={src}>
+                          <td style={{ fontWeight: '600' }}>{SOURCE_LABELS[src as keyof typeof SOURCE_LABELS] ?? src}</td>
+                          <td style={{ color: 'var(--neutral-600)' }}>{sourceOrders[src] ?? 0}</td>
+                          <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(rev)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                <div style={{ padding: '0 1.25rem 1rem' }}>
+                  <Pagination
+                    currentPage={srcPage + 1}
+                    totalPages={Math.max(1, Math.ceil(Object.keys(sourceRevenue).length / srcPageSize))}
+                    onPageChange={(p) => setSrcPage(p - 1)}
+                    pageSize={srcPageSize}
+                    onPageSizeChange={(s) => {
+                      setSrcPageSize(s)
+                      setSrcPage(0)
+                    }}
+                    totalItems={Object.keys(sourceRevenue).length}
+                    startIndex={Object.keys(sourceRevenue).length === 0 ? 0 : srcPage * srcPageSize + 1}
+                    endIndex={Math.min((srcPage + 1) * srcPageSize, Object.keys(sourceRevenue).length)}
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -663,7 +686,7 @@ export default function AdminReportsPage() {
         {topProducts.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={topProducts} keyOf={(p) => p.name} renderCard={(p) => (
+          <MobileCards items={pageProducts} keyOf={(p) => p.name} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Produk</span>
@@ -675,7 +698,7 @@ export default function AdminReportsPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Revenue</span>
-                  <span className="mobile-card-value">{p.revenue}</span>
+                  <span className="mobile-card-value">{formatRp(p.revenue)}</span>
                 </div>
             </div>
           )} />
@@ -695,43 +718,60 @@ export default function AdminReportsPage() {
             ) : topProducts.length === 0 ? (
               <EmptyState icon="📊" title="Tidak ada data" description="Tidak ada data untuk periode yang dipilih." />
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Produk</th>
-                    <th>Qty</th>
-                    <th>Revenue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topProducts.map((p, i) => (
-                    <tr key={p.name}>
-                      <td style={{ fontWeight: '500' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            width: 20,
-                            height: 20,
-                            background: i < 3 ? '#cc7030' : 'var(--neutral-200)',
-                            color: i < 3 ? '#fff' : 'var(--neutral-600)',
-                            borderRadius: '50%',
-                            fontSize: '0.75rem',
-                            fontWeight: '700',
-                            marginRight: '0.5rem'
-                          }}
-                        >
-                          {i + 1}
-                        </span>
-                        {p.name}
-                      </td>
-                      <td style={{ color: 'var(--neutral-600)' }}>{p.count}</td>
-                      <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.revenue)}</td>
+              <>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produk</th>
+                      <th>Qty</th>
+                      <th>Revenue</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {pageProducts.map((p, i) => (
+                      <tr key={p.name}>
+                        <td style={{ fontWeight: '500' }}>
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: 20,
+                              height: 20,
+                              background: i < 3 ? '#cc7030' : 'var(--neutral-200)',
+                              color: i < 3 ? '#fff' : 'var(--neutral-600)',
+                              borderRadius: '50%',
+                              fontSize: '0.75rem',
+                              fontWeight: '700',
+                              marginRight: '0.5rem'
+                            }}
+                          >
+                            {prodPage * prodPageSize + i + 1}
+                          </span>
+                          {p.name}
+                        </td>
+                        <td style={{ color: 'var(--neutral-600)' }}>{p.count}</td>
+                        <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ padding: '0 1.25rem 1rem' }}>
+                  <Pagination
+                    currentPage={prodPage + 1}
+                    totalPages={Math.max(1, Math.ceil(topProducts.length / prodPageSize))}
+                    onPageChange={(p) => setProdPage(p - 1)}
+                    pageSize={prodPageSize}
+                    onPageSizeChange={(s) => {
+                      setProdPageSize(s)
+                      setProdPage(0)
+                    }}
+                    totalItems={topProducts.length}
+                    startIndex={topProducts.length === 0 ? 0 : prodPage * prodPageSize + 1}
+                    endIndex={Math.min((prodPage + 1) * prodPageSize, topProducts.length)}
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>

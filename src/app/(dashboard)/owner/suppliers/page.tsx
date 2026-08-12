@@ -11,6 +11,8 @@ import ImportModal from '@/components/ui/ImportModal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import Pagination from '@/components/ui/Pagination'
+import PriceHistoryTab from '@/components/suppliers/PriceHistoryTab'
 import { formatRp } from '@/lib/utils'
 
 interface POListRow {
@@ -41,9 +43,13 @@ export default function SuppliersPage() {
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<Supplier | null>(null)
   const [saving, setSaving] = useState(false)
-  const [tab, setTab] = useState<'suppliers' | 'po'>('suppliers')
-  const [poList, setPoList] = useState<POListRow[]>([])
-  const [poLoading, setPoLoading] = useState(false)
+const [tab, setTab] = useState<'suppliers' | 'po' | 'price-history'>('suppliers')
+const [poList, setPoList] = useState<POListRow[]>([])
+const [poLoading, setPoLoading] = useState(false)
+const [supPage, setSupPage] = useState(0)
+const [supPageSize, setSupPageSize] = useState(10)
+const [poPage, setPoPage] = useState(0)
+const [poPageSize, setPoPageSize] = useState(10)
   const [showPOForm, setShowPOForm] = useState(false)
   const [selectedPR, setSelectedPR] = useState<PRRow | null>(null)
   const [poSaving, setPoSaving] = useState(false)
@@ -265,8 +271,8 @@ export default function SuppliersPage() {
       <PageHeader title="Supplier" subtitle="Database supplier + Purchase Orders" />
 
       {/* Tab Switcher */}
-      <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem' }}>
-        {(['suppliers', 'po'] as const).map((t) => (
+      <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e5e7eb', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        {(['suppliers', 'po', 'price-history'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -282,7 +288,7 @@ export default function SuppliersPage() {
               marginBottom: '-2px'
             }}
           >
-            {t === 'suppliers' ? '🏭 Suppliers' : '📋 Purchase Orders'}
+            {t === 'suppliers' ? '🏭 Suppliers' : t === 'po' ? '📋 Purchase Orders' : '📈 Riwayat Harga'}
           </button>
         ))}
       </div>
@@ -424,61 +430,78 @@ export default function SuppliersPage() {
                 <p>Belum ada supplier</p>
               </div>
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Nama Supplier</th>
-                    <th>Contact Person</th>
-                    <th>No. HP / WA</th>
-                    <th>Email</th>
-                    <th>Alamat</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((s) => (
-                    <tr key={s.id}>
-                      <td style={{ fontWeight: '600' }}>{s.name}</td>
-                      <td>{s.contact_person ?? '—'}</td>
-                      <td>
-                        {s.phone ? (
-                          <a
-                            href={`https://wa.me/${s.phone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#16a34a', textDecoration: 'none', fontWeight: '500' }}
-                          >
-                            {s.phone}
-                          </a>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{s.email ?? '—'}</td>
-                      <td
-                        style={{
-                          color: 'var(--neutral-600)',
-                          fontSize: '0.85rem',
-                          maxWidth: 200,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        {s.address ?? '—'}
-                      </td>
-                      <td>
-                    <ActionMenu
-                      items={[
-                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(s) },
-                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(s.id), danger: true }
-                      ]}
-                    />
-                  </td>
+              <>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Nama Supplier</th>
+                      <th>Contact Person</th>
+                      <th>No. HP / WA</th>
+                      <th>Email</th>
+                      <th>Alamat</th>
+                      <th>Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filtered.slice(supPage * supPageSize, (supPage + 1) * supPageSize).map((s) => (
+                      <tr key={s.id}>
+                        <td style={{ fontWeight: '600' }}>{s.name}</td>
+                        <td>{s.contact_person ?? '—'}</td>
+                        <td>
+                          {s.phone ? (
+                            <a
+                              href={`https://wa.me/${s.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{ color: '#16a34a', textDecoration: 'none', fontWeight: '500' }}
+                            >
+                              {s.phone}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                        <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{s.email ?? '—'}</td>
+                        <td
+                          style={{
+                            color: 'var(--neutral-600)',
+                            fontSize: '0.85rem',
+                            maxWidth: 200,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {s.address ?? '—'}
+                        </td>
+                        <td>
+                      <ActionMenu
+                        items={[
+                          { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(s) },
+                          { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(s.id), danger: true }
+                        ]}
+                      />
+                    </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{ padding: '0 1.25rem 1rem' }}>
+                  <Pagination
+                    currentPage={supPage + 1}
+                    totalPages={Math.max(1, Math.ceil(filtered.length / supPageSize))}
+                    onPageChange={(p) => setSupPage(p - 1)}
+                    pageSize={supPageSize}
+                    onPageSizeChange={(s) => {
+                      setSupPageSize(s)
+                      setSupPage(0)
+                    }}
+                    totalItems={filtered.length}
+                    startIndex={filtered.length === 0 ? 0 : supPage * supPageSize + 1}
+                    endIndex={Math.min((supPage + 1) * supPageSize, filtered.length)}
+                  />
+                </div>
+              </>
             )}
           </div>
         </>
@@ -522,59 +545,60 @@ export default function SuppliersPage() {
                 <p>Belum ada Purchase Order</p>
               </div>
             ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Supplier</th>
-                    <th>Material</th>
-                    <th>Cost</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {poList.map((po) => {
-                    const statusColors: Record<string, { bg: string; text: string }> = {
-                      pending: { bg: '#fef3c7', text: '#92400e' },
-                      delivered: { bg: '#dbeafe', text: '#1e40af' },
-                      received: { bg: '#d1fae5', text: '#065f46' },
-                      paid: { bg: '#22c55e', text: '#fff' }
-                    }
-                    const sc = statusColors[po.status ?? 'pending'] ?? statusColors.pending
-                    return (
-                      <tr key={po.id}>
-                        <td style={{ fontWeight: '600' }}>{po.supplier?.name ?? '—'}</td>
-                        <td style={{ color: 'var(--neutral-600)' }}>{po.pr?.material?.name ?? '—'}</td>
-                        <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(po.actual_cost ?? 0)}</td>
-                        <td>
-                          <span
-                            style={{
-                              padding: '0.2rem 0.6rem',
-                              borderRadius: '999px',
-                              fontSize: '0.75rem',
-                              fontWeight: '600',
-                              background: sc.bg,
-                              color: sc.text
-                            }}
-                          >
-                            {po.status}
-                          </span>
-                        </td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '0.375rem' }}>
-                            {po.status === 'pending' && (
-                              <button
-                                onClick={() => updatePOStatus(po.id, 'delivered')}
-                                title="Tandai barang sudah dikirim oleh supplier"
-                                style={{
-                                  padding: '0.25rem 0.625rem',
-                                  background: '#7c3aed',
-                                  color: '#fff',
-                                  border: 'none',
-                                  borderRadius: '0.375rem',
-                                  fontSize: '0.75rem',
-                                  fontWeight: '600',
-                                  cursor: 'pointer'
+              <>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Supplier</th>
+                      <th>Material</th>
+                      <th>Cost</th>
+                      <th>Status</th>
+                      <th>Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {poList.slice(poPage * poPageSize, (poPage + 1) * poPageSize).map((po) => {
+                      const statusColors: Record<string, { bg: string; text: string }> = {
+                        pending: { bg: '#fef3c7', text: '#92400e' },
+                        delivered: { bg: '#dbeafe', text: '#1e40af' },
+                        received: { bg: '#d1fae5', text: '#065f46' },
+                        paid: { bg: '#22c55e', text: '#fff' }
+                      }
+                      const sc = statusColors[po.status ?? 'pending'] ?? statusColors.pending
+                      return (
+                        <tr key={po.id}>
+                          <td style={{ fontWeight: '600' }}>{po.supplier?.name ?? '—'}</td>
+                          <td style={{ color: 'var(--neutral-600)' }}>{po.pr?.material?.name ?? '—'}</td>
+                          <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(po.actual_cost ?? 0)}</td>
+                          <td>
+                            <span
+                              style={{
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '999px',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                background: sc.bg,
+                                color: sc.text
+                              }}
+                            >
+                              {po.status}
+                            </span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '0.375rem' }}>
+                              {po.status === 'pending' && (
+                                <button
+                                  onClick={() => updatePOStatus(po.id, 'delivered')}
+                                  title="Tandai barang sudah dikirim oleh supplier"
+                                  style={{
+                                    padding: '0.25rem 0.625rem',
+                                    background: '#7c3aed',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '0.375rem',
+                                    fontSize: '0.75rem',
+                                    fontWeight: '600',
+                                    cursor: 'pointer'
                                 }}
                               >
                                 Dikirim
@@ -626,9 +650,29 @@ export default function SuppliersPage() {
                   })}
                 </tbody>
               </table>
+              <div style={{ padding: '0 1.25rem 1rem' }}>
+                <Pagination
+                  currentPage={poPage + 1}
+                  totalPages={Math.max(1, Math.ceil(poList.length / poPageSize))}
+                  onPageChange={(p) => setPoPage(p - 1)}
+                  pageSize={poPageSize}
+                  onPageSizeChange={(s) => {
+                    setPoPageSize(s)
+                    setPoPage(0)
+                  }}
+                  totalItems={poList.length}
+                  startIndex={poList.length === 0 ? 0 : poPage * poPageSize + 1}
+                  endIndex={Math.min((poPage + 1) * poPageSize, poList.length)}
+                />
+              </div>
+              </>
             )}
           </div>
         </>
+      )}
+
+      {tab === 'price-history' && (
+        <PriceHistoryTab />
       )}
 
       {/* Supplier Form Modal */}

@@ -218,7 +218,6 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         { label: 'Material', href: '/owner/materials', icon: Package },
         { label: 'HPP', href: '/owner/hpp', icon: DollarSign },
         { label: 'Supplier', href: '/owner/suppliers', icon: Users },
-        { label: 'Riwayat Harga', href: '/owner/suppliers/price-history', icon: TrendingUp },
         { label: 'Stok Gudang', href: '/gudang/stock', icon: Warehouse },
         { label: 'Top Produk', href: '/owner/products', icon: Package }
       ]
