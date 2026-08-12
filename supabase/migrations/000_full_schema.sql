@@ -1122,16 +1122,28 @@ ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 -- Core tables: authenticated staff full access
 CREATE POLICY "Authenticated staff full access" ON public.users
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.customers
-  FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.materials
-  FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.suppliers
-  FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.bom
-  FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.orders
-  FOR ALL USING (auth.role() = 'authenticated');
+-- 078 fix (BUG-059): customers/materials/suppliers/orders tidak lagi permissive.
+-- SELECT semua staff aktif; tulis admin/owner (orders: INSERT finance/admin/owner).
+CREATE POLICY "All staff read customers" ON public.customers
+  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Admin manage customers" ON public.customers
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "All staff read materials" ON public.materials
+  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Admin manage materials" ON public.materials
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "All staff read suppliers" ON public.suppliers
+  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Admin manage suppliers" ON public.suppliers
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "All staff read orders" ON public.orders
+  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Finance admin owner insert orders" ON public.orders
+  FOR INSERT WITH CHECK (public.is_finance_role());
+CREATE POLICY "All staff update orders" ON public.orders
+  FOR UPDATE USING (public.is_staff_active_sd()) WITH CHECK (public.is_staff_active_sd());
+CREATE POLICY "Admin owner delete orders" ON public.orders
+  FOR DELETE USING (public.is_admin_or_owner_sd());
 CREATE POLICY "Authenticated staff access" ON public.order_items
   FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated staff access" ON public.production_jobs
@@ -1208,8 +1220,13 @@ CREATE POLICY "Public can insert install_bookings" ON public.install_bookings
   FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public can read install_bookings" ON public.install_bookings
   FOR SELECT USING (true);
-CREATE POLICY "Authenticated staff access" ON public.install_bookings
-  FOR ALL USING (auth.role() = 'authenticated');
+-- 078 fix (BUG-059): ganti FOR ALL authenticated → SELECT staff, UPDATE installer, manage admin/owner
+CREATE POLICY "All staff read install_bookings" ON public.install_bookings
+  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Admin manage install_bookings" ON public.install_bookings
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "Installer update install_bookings" ON public.install_bookings
+  FOR UPDATE USING (public.is_installer_sd()) WITH CHECK (public.is_installer_sd());
 
 -- Order preparation checklists: authenticated full access (kondisi live)
 CREATE POLICY "Authenticated users can manage own checklist" ON public.order_preparation_checklists
@@ -1659,6 +1676,40 @@ $$;
 REVOKE ALL ON FUNCTION public.is_admin_or_owner_sd() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.is_admin_or_owner_sd() FROM anon;
 GRANT EXECUTE ON FUNCTION public.is_admin_or_owner_sd() TO authenticated;
+
+-- 078 (BUG-059): helper staff aktif & installer (dipakai policy orders/customers/
+-- materials/suppliers/install_bookings)
+CREATE OR REPLACE FUNCTION public.is_staff_active_sd()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND status = 'active'
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_staff_active_sd() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_staff_active_sd() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_staff_active_sd() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.is_installer_sd()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND status = 'active' AND role = 'installer'
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_installer_sd() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_installer_sd() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_installer_sd() TO authenticated;
 
 -- ---------- 10.6 Fungsi lain final ----------
 CREATE OR REPLACE FUNCTION public.generate_survey_number()
@@ -2156,6 +2207,9 @@ DROP POLICY IF EXISTS "TikTok staff read statements" ON public.tiktok_shop_state
 REVOKE ALL ON public.tiktok_shop_settings FROM anon;
 REVOKE ALL ON public.tiktok_shop_orders FROM anon;
 REVOKE ALL ON public.tiktok_shop_statements FROM anon;
+-- 078 (BUG-059): cabut grant anon dari materials/suppliers (bocor — tidak dipakai publik)
+REVOKE ALL ON public.materials FROM anon;
+REVOKE ALL ON public.suppliers FROM anon;
 ALTER TABLE public.tiktok_shop_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tiktok_shop_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tiktok_shop_statements ENABLE ROW LEVEL SECURITY;
