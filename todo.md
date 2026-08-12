@@ -21,6 +21,15 @@
 
 Commit: `7b15790` (batch 1) · `c80336f` (deps+nav) · dedup laporan · `feat(stock-opname)` (batch 4)
 
+### Lanjutan sesi 6 (stock opname approval + sync hardening)
+13. ✅ **Stock Opname approval** — RPC `approve_stock_opname` (075, live): terapkan selisih ke stok + `inventory_movements` adjustment + status approved; halaman `/finance/stock-opname` + nav
+14. ✅ **`sync-orders` pagination** — loop cursor (max 20 halaman); order >100 tidak terlewat
+15. ✅ **GET `/api/orders`** → admin/owner/finance/gudang; **GET `/api/customers`** → admin/owner (PII)
+16. ✅ **`sync-finance`** — log raw settlement diganti ringkasan (hapus data sensitif di log)
+17. ✅ **`npm install`** — package-lock disinkron (deps yang dihapus tidak ada lagi)
+
+Commit: `feat(stock-opname)` (075 + finance approve) + sync hardening
+
 ---
 
 ## ⏳ Ditunda (refactor risiko tinggi / nilai rendah — keputusan 2026-08-12)
@@ -165,9 +174,10 @@ Commit: `7b15790` (batch 1) · `c80336f` (deps+nav) · dedup laporan · `feat(st
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000`; test login 8 role + fitur baru: reset data, faktur/SJ, laundry, rekonsiliasi, **TikTok sync** (cek piutang gross + 3 jurnal tidak dobel), security fix (role lain → 403), stock opname |
+| 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000`; test login 8 role + fitur baru: reset data, faktur/SJ, laundry, rekonsiliasi, **TikTok sync** (cek piutang gross + 3 jurnal tidak dobel), security fix (role lain → 403), **stock opname** (gudang buat/kirim → finance approve) |
 | 2 | **Monolitik `admin/orders/[id]` pecah** | 🟡 Medium | 3.601 baris — ekstrak komponen bertahap (lihat "Ditunda") |
 | 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` (50×) → import `lib/utils`; `STATUS_COLORS` (17×) & `LooseRow` (26×) → sentralisasi `types`/config |
+| 4 | **Unique `invoice_number` piutang non-tiktok** | 🟢 Low | Constraint saat ini hanya untuk channel `tiktok` |
 
 ---
 

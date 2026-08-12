@@ -50,7 +50,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - QC per-item + **blok "📦 Siap Dikemas" → tombol Kemas**
 - Stock: posisi gudang/toko, mutasi, edit stok (+/−/✎ dengan alasan), barang masuk
 - Low stock alerts → 1-klik Purchase Request, Lembur, Retur verifikasi
-- **Stock Opname** (`/gudang/stock-opname`): buat sesi, pilih material, input hitung fisik, selisih otomatis, kirim untuk verifikasi
+- **Stock Opname** (`/gudang/stock-opname`): buat sesi, pilih material, input hitung fisik, selisih otomatis, kirim untuk verifikasi — **Finance approve** di `/finance/stock-opname` (selisih diterapkan ke stok + mutasi adjustment)
 
 ### Penjahit (`/penjahit`)
 - Job queue realtime (postgres_changes), meter tracking
@@ -187,7 +187,7 @@ src/
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — **4 file** (referensi tunggal + sinkronisasi terbaru):
+Located in `supabase/migrations/` — **5 file** (referensi tunggal + sinkronisasi terbaru):
 
 | File | Isi |
 |---|---|
@@ -195,6 +195,7 @@ Located in `supabase/migrations/` — **4 file** (referensi tunggal + sinkronisa
 | `072_schema_sync_codebase.sql` | RLS hardening efektif (nama policy benar, ENABLE RLS tiktok/survey_logs, hardening accounts), `order_logs_action_check` + `payment_verified`, kolom drift codebase↔live |
 | `073_tiktok_fee_breakdown.sql` | Kolom breakdown fee `tiktok_shop_statements` + `piutang.fee_amount` + unique index piutang tiktok |
 | `074_cleanup_accounts_income.sql` | Cleanup `accounts.type='income'` → `'revenue'` + VALIDATE `accounts_type_check` |
+| `075_approve_stock_opname.sql` | RPC `approve_stock_opname` — setujui sesi, terapkan selisih ke stok + mutasi adjustment |
 
 > ⚠️ **Catatan:** migration lama `001–071` dihapus/dikonsolidasi ke `000_full_schema.sql`. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema.
 
