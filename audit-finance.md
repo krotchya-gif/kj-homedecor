@@ -81,7 +81,6 @@ Modul finance punya pondasi akuntansi yang bagus (double-entry `journal_entries`
 | F-33 | `mutasi-kas/page.tsx:61` | Mutasi Kas baca `cash_accounts.balance` — hanya di-update income/expense manual; alur payment tidak pernah menyentuhnya | Saldo kas di laporan hampir selalu 0/statis, TIDAK sama dengan neraca | Hitung live dari journal_lines (seperti ledger.ts) |
 | F-34 | `neraca/page.tsx:78-83` | Neraca tidak memasukkan **laba berjalan** ke ekuitas; tidak ada closing entry | Aset ≠ Liabilitas + Ekuitas saat profit ≠ 0; neraca hampir pasti tidak balance | Tambah baris Laba Berjalan di ekuitas (Σrevenue − Σexpense) |
 | F-35 | `mutasi-kas, umur-hutang, umur-piutang, performa-tag, reports` | PostgREST NUMERIC = STRING; halaman menjumlahkan tanpa `Number()` → **string concatenation** ('0'+'250000' = '0250000') | Total hutang/piutang/revenue per tag/omzet SALAH (contoh: 550.000 tampil 250.000.300.000) | Bungkus semua nilai dengan `Number()` atau agregasi SQL |
-
 ---
 
 ## 🟠 MEDIUM (26)
@@ -134,6 +133,10 @@ Modul finance punya pondasi akuntansi yang bagus (double-entry `journal_entries`
 | F-72 | `finance/reports/page.tsx:101-106` | Akumulasi meter penjahit string concat (lihat F-35) |
 | F-73 | `laporan/kronologi-hpp` (seluruh) | Misnamed: 'Kronologi HPP' isinya daftar order (harga jual) — bukan HPP. Rename ATAU implementasi HPP sungguhan |
 
+> 📝 **F-35 & F-72 = FALSE POSITIVE (verifikasi runtime 2026-08-11, lihat `bug.md` BUG-020):**
+> PostgREST/supabase-js mengembalikan kolom NUMERIC sebagai `number` (bukan string) — tidak ada
+> string concatenation. Anotasi ini untuk mencegah audit ulang yang sia-sia.
+
 ---
 
 ## 🆕 Temuan Tambahan (sesi 2026-08-11): Selisih Settlement Marketplace
@@ -159,6 +162,10 @@ Modul finance punya pondasi akuntansi yang bagus (double-entry `journal_entries`
 > bisa akses /owner/staff, /owner/hpp, /owner/materials, /owner/laporan — mungkin terlalu luas;
 > whitelist `/owner/marketplace` + `/owner/tiktok` lebih aman). **EKSEKUSI MENYUSUL** — Near minta
 > dicatat dulu, dikerjakan bareng batch fix berikutnya.
+>
+> ✅ **SUDAH DIEKSEKUSI (2026-08-12):** `src/proxy.ts:81-87` whitelist path khusus — finance boleh
+> akses `/owner/marketplace` & `/owner/tiktok` (data settlement untuk piutang channel), tanpa
+> membuka seluruh `/owner`.
 
 ## 📝 Keputusan & Klarifikasi Near (2026-08-11, sesi bahasa sederhana)
 

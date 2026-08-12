@@ -47,13 +47,21 @@ const MAX_SIZES = {
 
 const BUCKET = 'kj-uploads'
 
-// Service-role client — upload langsung ke Supabase Storage (bucket kj-uploads, public).
-// SEBELUMNYA: file ditulis ke public/uploads/ (disk) → HILANG saat deploy Hostinger
-// (immutable) → semua preview & URL /uploads/... 404 di production. (fix 2026-08-10)
-const serviceClient = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+// Role check per folder (Security fix 2026-08-12):
+// folder yang bisa disalahgunakan untuk abuse storage dibatasi ke admin/owner/finance.
+const FOLDER_ROLES: Record<string, string[]> = {
+  products: ['admin', 'owner'],
+  banners: ['admin', 'owner'],
+  portfolio: ['admin', 'owner'],
+  evidence: ['admin', 'owner', 'finance'],
+  documents: ['admin', 'owner', 'finance'],
+  videos: ['admin', 'owner'],
+  order_progress: ['admin', 'owner', 'gudang', 'finance'],
+  returns: ['admin', 'owner', 'finance'],
+  qc: ['admin', 'owner', 'gudang'],
+  install: ['admin', 'owner', 'installer'],
+  survey: ['surveyor', 'admin', 'owner']
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,6 +85,22 @@ export async function POST(request: NextRequest) {
     }
 
     const folder = parsed.data
+
+    // Role check per folder — cegah role operasional upload video 100MB / dokumen
+    const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+    if (!requester || requester.status !== 'active' || !FOLDER_ROLES[folder].includes(requester.role)) {
+      return NextResponse.json(
+        { data: null, error: { message: `Forbidden: role Anda tidak bisa upload ke folder "${folder}"` } },
+        { status: 403 }
+      )
+    }
+
+    // Service-role client dibuat DI SINI (per-request, setelah auth) — bukan di module scope.
+    const serviceClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     const allowedTypes = ALLOWED_TYPES[folder]
     const maxSize = MAX_SIZES[folder]
 

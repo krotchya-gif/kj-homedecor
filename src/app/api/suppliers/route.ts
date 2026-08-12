@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+﻿import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { z } from 'zod'
@@ -28,6 +28,12 @@ export async function POST(request: Request) {
     data: { user }
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
+
+  // Role check (defense-in-depth): hanya admin/owner yang boleh buat data via API
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
 
   const body = await request.json()
   const parsed = CreateSupplierSchema.safeParse(body)

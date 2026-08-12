@@ -186,20 +186,15 @@ src/
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — **71 file** (000 → 062, 900). Ringkasan per domain:
+Located in `supabase/migrations/` — **3 file** (referensi tunggal + sinkronisasi terbaru):
 
-| Domain | Migration | Isi |
-|---|---|---|
-| Core | `001` | users, orders, order_items, customers, products, categories, materials, suppliers, BOM, production_jobs, payments, order_logs, low_stock_alerts, inventory_movements, install_bookings, install_checklists, lembur_records, banners, portfolio_posts, returns, qc_records, style_rates, laundry_records |
-| Stock | `028, 044` | RPC increment/decrement stock (NUMERIC + GREATEST(0) guard) |
-| Pipeline | `032, 034, 035, 041, 042, 051, 061` | progress photos, revisi booking, estimated_completion, reset pipeline, steam revision loop, order_material_consumption, advance_install_booking_status |
-| Finance | `018-026, 033, 043` | accounts, mapping, journal, hutang, piutang, cash, assets, material_price_history, xendit idempotency |
-| Survey | `060, 061, 062` | surveys, survey_rooms, survey_room_photos, survey_logs + role surveyor |
-| TikTok | `053` | tiktok_shop_settings/orders/statements |
-| Laundry | `011, 047, 054` | laundry_orders/rates/payroll, role laundry |
-| Security/RLS | `053-058, 059` | RLS fixes, FK indexes, anon revoke |
+| File | Isi |
+|---|---|
+| `000_full_schema.sql` | **SATU-SATUNYA referensi schema** = kondisi live (58 tabel, 58 RLS, fungsi RPC, seed) — konsolidasi migration 001–071. Jangan baca migration lama per-file (lihat AGENTS.md) |
+| `072_schema_sync_codebase.sql` | RLS hardening efektif (nama policy benar, ENABLE RLS tiktok/survey_logs, hardening accounts), `order_logs_action_check` + `payment_verified`, kolom drift codebase↔live |
+| `073_tiktok_fee_breakdown.sql` | Kolom breakdown fee `tiktok_shop_statements` + `piutang.fee_amount` + unique index piutang tiktok |
 
-> ⚠️ **Catatan penting:** beberapa migration `054_fix`, `055`, `057`, `058`, `900` ditulis terhadap skema production dan **tidak bisa dijalankan dari nol** (referensikan kolom yang tidak ada di chain). Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`).
+> ⚠️ **Catatan:** migration lama `001–071` dihapus/dikonsolidasi ke `000_full_schema.sql`. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema.
 
 ---
 
@@ -249,8 +244,8 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 - **2026-07-18 — Audit & proxy migration:** `middleware.ts` → `proxy.ts`, auth helpers, rate limiting, RLS migrations 053-058
 - **2026-06-02 — Pipeline V2:** payment_ok di depan, steam revision loop, 3 QC distinct
 
-> 🔒 **Keamanan tersisa (dari audit 2026-08-11):** beberapa API route masih hanya cek login (tanpa role check): `purchase-orders`, `gudang/po-delivery`, `seo/upload-*`, `surveys/[id]`, `create-staff` (fail-open). Lihat `bug.md` + rencana Fase 1.
+> 🔒 **Keamanan (audit 2026-08-12):** fail-open & mass-assignment di API routes sudah ditutup (commit `4277557`); RLS hardening efektif (migration `072`); TikTok settlement terjurnal penuh (migration `073`). Lihat `bug.md` (BUG-035–046) & backlog `todo.md` untuk sisa item.
 
 ---
 
-_Last updated: 2026-08-11 · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-12 · Dev server: `npm run dev` → http://localhost:3000_

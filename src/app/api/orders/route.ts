@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/server'
+﻿import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createSimpleJournal } from '@/utils/journal/create'
@@ -47,6 +47,12 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Role check (defense-in-depth): hanya admin/owner yang boleh buat data via API
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const body = await request.json()
   const parsed = CreateOrderSchema.safeParse(body)
 
@@ -66,7 +72,7 @@ export async function POST(request: Request) {
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
   // BUG-009: wajib baseUrl di server context (fetch relatif throw di Node/Next route handler)
-  // F-62 fix: kegagalan jurnal TIDAK boleh diam-diam — return warning agar terlihat di client
+  // F-62 fix: kegagalan jurnal TIDAK boleh diam-diam â€” return warning agar terlihat di client
   let journalWarning: string | null = null
   if (order && data.total_amount && data.total_amount > 0) {
     try {
@@ -74,10 +80,10 @@ export async function POST(request: Request) {
         transaction_type: 'order_created',
         reference_type: 'order',
         reference_id: order.id,
-        description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} — ${data.customer_id ?? ''}`,
+        description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} â€” ${data.customer_id ?? ''}`,
         amount: data.total_amount,
         baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-        // F-54 fix: idempotent per order — retry tidak bikin jurnal ganda
+        // F-54 fix: idempotent per order â€” retry tidak bikin jurnal ganda
         idempotency_key: `order_created:${order.id}`,
         supabase
       })

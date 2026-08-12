@@ -1,6 +1,18 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-12 (sesi 4 — security API fix)
+> **Branch:** `main` · Update terakhir: 2026-08-12 (sesi 5 — tests, role check POST, upload, docs)
+
+---
+
+## ✅ Selesai (2026-08-12 — Sesi 5: Tests, Role Check POST, Upload, Docs)
+
+1. ✅ **Tests suite (Vitest)** — `tests/unit/orders.test.ts` (state machine `orders.ts`: pipeline kirim/pasang, getNextStage, foto wajib, label) + `tests/unit/lib-helpers.test.ts` (`getClientIp` anti-spoof, `signTikTokRequest` HMAC) → **16 test pass** (`npm run test:run`)
+2. ✅ **Route POST role check** (login-only → role-gated, defense-in-depth; semua API ini tidak dipanggil UI — CRUD via direct supabase yang sudah role-gated page):
+   - `customers`, `materials`, `products`, `suppliers`, `install-bookings`, `orders` POST → `admin/owner`
+   - `purchase-requests` POST → `gudang/admin/owner`
+3. ✅ **`/api/upload`** — service client pindah ke dalam handler (setelah auth) + **scope folder per role** (`videos`/`documents` → admin/owner/finance; survey → surveyor; qc/order_progress → gudang; dst.) — cegah abuse upload video 100MB
+4. ✅ **Docs sync**: README (migration 71 → 3 file, security note, tanggal); `docs/flows/10-staff-akses.md` (admin kelola staff, laundry punya dashboard, catatan keamanan); `audit-finance.md` (F-35/F-72 = false positive → rujuk BUG-020; catatan akses finance marketplace = SUDAH dieksekusi proxy.ts:81-87)
+5. ✅ **Server-side price validation — DIINVESTIGASI, tidak applicable**: pembuatan order via halaman admin (role-gated `/admin`), API `/api/orders` POST tidak dipanggil UI & kini di-gate admin/owner. Recompute dari `order_items` tidak feasible karena API POST tidak menerima items. Risiko manipulasi harga ditutup oleh role gating.
 
 ---
 
@@ -119,29 +131,24 @@
 
 ---
 
-## ⏳ Belum Selesai (prioritas berikutnya — Sesi 5)
+## ⏳ Belum Selesai (prioritas berikutnya — Sesi 6)
 
-> Item yang SUDAH dikerjakan di sesi 3/4 (TikTok auth GET, RLS, fail-open, mass-assignment, dsb.) sudah dihapus dari daftar — tidak perlu di-fix ulang.
+> Item yang SUDAH dikerjakan (sesi 3/4/5) sudah dihapus dari daftar — tidak perlu di-fix ulang.
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
 | 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000`; test login 8 role + fitur baru: reset data, faktur/SJ, laundry, rekonsiliasi, **TikTok sync** (cek piutang gross + 3 jurnal tidak dobel), security fix (role lain → 403) |
-| 2 | **Server-side price validation** | 🟡 Medium | `orders/route.ts` masih terima `total_amount` dari client (`.optional()`) — hitung ulang dari items di server |
-| 3 | **Tests suite** | 🟡 Medium | vitest/playwright mengarah ke `tests/` yang tidak ada — perlu buat ulang suite (minimal state machine `orders.ts` + smoke E2E) |
-| 4 | **Route POST login-only tanpa role check** | 🟡 Medium | `customers`, `materials`, `products`, `suppliers`, `purchase-requests`, `install-bookings`, `orders` POST — perlu keputusan: semua role boleh? atau batasi (terutama `materials`/`products`/`suppliers` yang ubah harga/cost) |
-| 5 | **`/api/upload`** | 🟡 Medium | Service client di module-scope + semua role bisa upload video 100MB; scope folder per role (`videos`/`documents` → admin/owner) |
-| 6 | **Docs sync** | 🟢 Low | README L189/L202 (migration 71 → 3 file) & L252 (route list); `docs/flows/10-staff-akses.md`; `audit-finance.md` F-35/F-72 false positive |
-| 7 | **setup-accounts race** | 🟢 Low | 2 request paralel saat DB kosong → 2 admin; response bocorkan kredensial |
-| 8 | **TikTok webhook multi-secret** | 🟢 Low | `TIKTOK_APP_SECRET` env vs `app_secret` per-shop di DB |
-| 9 | **Xendit webhook amount** | 🟢 Low | Amount tidak divalidasi ≤ remaining order |
-| 10 | **sync-to-main-orders** | 🟢 Low | Tanpa pagination (max 100 order); insert tanpa error-block (`continue` → order hilang diam-diam); `console.log` data mentah |
-| 11 | **Jurnal `is_auto`** | 🟢 Low | createSimpleJournal kirim `true`, `api/journal` hardcode `false` |
-| 12 | **Jurnal webhook silent-fail** | 🟢 Low | Kegagalan jurnal di webhook Xendit/TikTok hanya `console.error` → hilang diam-diam (webhook tetap 200) |
-| 13 | **`piutang.remaining` dua sumber** | 🟢 Low | Rekonsiliasi pakai derived (`amount−paid−return−fee`), kolom `remaining` tidak dipakai |
-| 14 | **Duplikasi kode** | 🟢 Low | `NAV_BY_ROLE` 2×; owner/laporan = salinan finance/laporan (~2.2k baris); `formatRp` 50×; `STATUS_COLORS` 17×; `LooseRow` 26× |
-| 15 | **Dead deps** | 🟢 Low | `pg` (0 usage), `request` (deprecated), `shadcn`, `@tanstack/react-query` (0 import), `react-hook-form` |
-| 16 | **Data cleanup accounts** | 🟢 Low | Baris `accounts` type non-standar (constraint 067 NOT VALID) |
-| 17 | **Fitur stock opname UI** | 🟢 Low | Tabel `stock_opname_sessions/items` ada tapi belum ada halaman/kode; RPC `approve_stock_opname` belum dibuat — fitur baru, bukan bug |
+| 2 | **setup-accounts race** | 🟢 Low | 2 request paralel saat DB kosong → 2 admin; response bocorkan kredensial |
+| 3 | **TikTok webhook multi-secret** | 🟢 Low | `TIKTOK_APP_SECRET` env vs `app_secret` per-shop di DB |
+| 4 | **Xendit webhook amount** | 🟢 Low | Amount tidak divalidasi ≤ remaining order |
+| 5 | **sync-to-main-orders** | 🟢 Low | Tanpa pagination (max 100 order); insert tanpa error-block (`continue` → order hilang diam-diam); `console.log` data mentah |
+| 6 | **Jurnal `is_auto`** | 🟢 Low | createSimpleJournal kirim `true`, `api/journal` hardcode `false` |
+| 7 | **Jurnal webhook silent-fail** | 🟢 Low | Kegagalan jurnal di webhook Xendit/TikTok hanya `console.error` → hilang diam-diam (webhook tetap 200) |
+| 8 | **`piutang.remaining` dua sumber** | 🟢 Low | Rekonsiliasi pakai derived (`amount−paid−return−fee`), kolom `remaining` tidak dipakai |
+| 9 | **Duplikasi kode** | 🟢 Low | `NAV_BY_ROLE` 2×; owner/laporan = salinan finance/laporan (~2.2k baris); `formatRp` 50×; `STATUS_COLORS` 17×; `LooseRow` 26× |
+| 10 | **Dead deps** | 🟢 Low | `pg` (0 usage), `request` (deprecated), `shadcn`, `@tanstack/react-query` (0 import), `react-hook-form` |
+| 11 | **Data cleanup accounts** | 🟢 Low | Baris `accounts` type non-standar (constraint 067 NOT VALID) |
+| 12 | **Fitur stock opname UI** | 🟢 Low | Tabel `stock_opname_sessions/items` ada tapi belum ada halaman/kode; RPC `approve_stock_opname` belum dibuat — fitur baru, bukan bug |
 
 ---
 
