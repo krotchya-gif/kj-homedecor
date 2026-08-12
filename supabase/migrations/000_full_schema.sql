@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
   phone       TEXT NOT NULL,
   address     TEXT,
   notes       TEXT,
+  email       TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -47,11 +48,15 @@ CREATE TABLE IF NOT EXISTS public.categories (
 
 -- SUPPLIERS
 CREATE TABLE IF NOT EXISTS public.suppliers (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name        TEXT NOT NULL,
-  contact     TEXT,
-  address     TEXT,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name           TEXT NOT NULL,
+  contact        TEXT,
+  address        TEXT,
+  contact_person TEXT,
+  phone          TEXT,
+  email          TEXT,
+  notes          TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- MATERIALS (raw materials / BOM)
@@ -135,6 +140,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   returned_at         TIMESTAMPTZ,
   estimated_completion         TIMESTAMPTZ,
   scheduled_installation_date  DATE,
+  scheduled_installation_time TIME,
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -222,6 +228,17 @@ CREATE TABLE IF NOT EXISTS public.production_reports (
   rate_per_meter          JSONB NOT NULL DEFAULT '{"gorden":5000,"vitras":3000,"roman":7000,"kupu_kupu":6000}',
   total_upah              NUMERIC NOT NULL DEFAULT 0,
   production_job_id       UUID REFERENCES public.production_jobs(id) ON DELETE SET NULL,
+  gorden_rate             NUMERIC DEFAULT 0,
+  vitras_rate             NUMERIC DEFAULT 0,
+  roman_rate              NUMERIC DEFAULT 0,
+  kupu_kupu_rate          NUMERIC DEFAULT 0,
+  meter_gorden            NUMERIC DEFAULT 0,
+  meter_vitras            NUMERIC DEFAULT 0,
+  meter_roman             NUMERIC DEFAULT 0,
+  meter_kupu_kupu         NUMERIC DEFAULT 0,
+  poni_lurus              NUMERIC DEFAULT 0,
+  poni_gel                NUMERIC DEFAULT 0,
+  notes                   TEXT,
   created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -235,6 +252,8 @@ CREATE TABLE IF NOT EXISTS public.inventory_movements (
   from_location       TEXT CHECK (from_location IN ('gudang','toko')),
   to_location         TEXT CHECK (to_location IN ('gudang','toko')),
   reason              TEXT,
+  notes               TEXT,
+  new_stock           NUMERIC,
   order_id            UUID REFERENCES public.orders(id) ON DELETE SET NULL,
   production_job_id   UUID REFERENCES public.production_jobs(id) ON DELETE SET NULL,
   created_by          UUID REFERENCES public.users(id),
@@ -374,7 +393,10 @@ CREATE TABLE IF NOT EXISTS public.lembur_records (
   total_hours NUMERIC NOT NULL,
   notes       TEXT,
   created_by  UUID REFERENCES public.users(id),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  staff_id    UUID REFERENCES public.users(id),
+  jam         NUMERIC,
+  keterangan  TEXT
 );
 
 -- QC RECORDS
@@ -685,6 +707,14 @@ CREATE TABLE IF NOT EXISTS public.cash_accounts (
   is_active       BOOLEAN DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 077 fix: seed E Wallet Tiktok (1104) — saldo settlement marketplace TikTok di-track
+-- oleh create_journal_atomic (cocokkan account_id dengan baris jurnal).
+INSERT INTO public.cash_accounts (account_id, bank_name, account_number, is_active)
+SELECT '22222222-2222-4222-8222-222222222204', 'E Wallet Tiktok', '', TRUE
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.cash_accounts WHERE account_id = '22222222-2222-4222-8222-222222222204'
 );
 
 -- ASSETS (Fixed Asset Management)
@@ -1319,7 +1349,7 @@ INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account,
   ('22222222-2222-4222-8222-222222222201', '1101', 'Kas', 'asset', '11111111-1111-4111-8111-111111111101', true, 'Kas tunai'),
   ('22222222-2222-4222-8222-222222222202', '1102', 'Bank BCA', 'asset', '11111111-1111-4111-8111-111111111101', true, 'Rekening bank BCA'),
   ('22222222-2222-4222-8222-222222222203', '1103', 'Bank Mandiri', 'asset', '11111111-1111-4111-8111-111111111101', true, 'Rekening bank Mandiri'),
-  ('22222222-2222-4222-8222-222222222204', '1104', 'Xendit Cash', 'asset', '11111111-1111-4111-8111-111111111101', true, 'Saldo Xendit payment gateway'),
+  ('22222222-2222-4222-8222-222222222204', '1104', 'E Wallet Tiktok', 'asset', '11111111-1111-4111-8111-111111111101', true, 'Saldo E Wallet Tiktok (settlement marketplace)'),
   ('22222222-2222-4222-8222-222222222205', '1201', 'Piutang Customer', 'asset', '11111111-1111-4111-8111-111111111102', false, 'Piutang dari customer'),
   ('22222222-2222-4222-8222-222222222206', '1301', 'Persediaan Bahan', 'asset', '11111111-1111-4111-8111-111111111103', false, 'Stok material/bahan di gudang'),
   ('22222222-2222-4222-8222-222222222207', '1302', 'Persediaan Barang Jadi', 'asset', '11111111-1111-4111-8111-111111111103', false, 'Stok produk jadi di toko'),
@@ -1349,9 +1379,9 @@ UPDATE public.account_mappings SET
 WHERE transaction_type = 'order_created';
 
 UPDATE public.account_mappings SET
-  debit_account_id  = '22222222-2222-4222-8222-222222222204'::uuid,
+  debit_account_id  = '22222222-2222-4222-8222-222222222201'::uuid,
   credit_account_id = '22222222-2222-4222-8222-222222222205'::uuid,
-  description       = 'Pembayaran diterima - Xendit (Debit) / Piutang (Kredit)'
+  description       = 'Pembayaran diterima - Kas (Debit) / Piutang (Kredit)'
 WHERE transaction_type = 'payment_received';
 
 UPDATE public.account_mappings SET
@@ -1372,9 +1402,9 @@ INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_
    '55555555-5555-4555-8555-555555555501'::uuid,
    'Order baru - Piutang (Debit) / Penjualan (Kredit)'),
   ('payment_received',
-   '22222222-2222-4222-8222-222222222204'::uuid,
+   '22222222-2222-4222-8222-222222222201'::uuid,
    '22222222-2222-4222-8222-222222222205'::uuid,
-   'Pembayaran diterima - Xendit (Debit) / Piutang (Kredit)'),
+   'Pembayaran diterima - Kas (Debit) / Piutang (Kredit)'),
   ('expense_paid',
    '66666666-6666-4666-8666-666666666603'::uuid,
    '22222222-2222-4222-8222-222222222201'::uuid,
@@ -1530,6 +1560,7 @@ CREATE TABLE IF NOT EXISTS public.surveys (
   gps_lng        NUMERIC,
   notes          TEXT,
   signature      TEXT,
+  signature_name TEXT,
   created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -2198,7 +2229,7 @@ INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_
 VALUES (
   'sales_return',
   '55555555-5555-4555-8555-555555555503',
-  '22222222-2222-4222-8222-222222222204',
+  '22222222-2222-4222-8222-222222222201',
   'Refund/retur - Penjualan Retur (Debit) / Kas (Kredit)', true
 )
 ON CONFLICT (transaction_type) DO UPDATE SET
