@@ -80,6 +80,7 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       title: 'Operasional',
       items: [
         { label: 'Pengiriman', href: '/admin/shipping', icon: Truck },
+        { label: 'TikTok Shop', href: '/admin/tiktok', icon: ShoppingBag },
         { label: 'Laundry', href: '/admin/laundry', icon: WashingMachine },
         { label: 'Staff', href: '/admin/staff', icon: Users }
       ]

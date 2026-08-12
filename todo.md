@@ -1,6 +1,14 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 12 — fix 5 bug kandidat + label tombol TikTok + pagination settlement + datepicker timezone)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 14 — halaman TikTok Shop untuk Admin)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 14: TikTok Shop untuk Admin)
+
+1. ✅ **Halaman `/admin/tiktok`** — khusus Admin: tabel order TikTok (tersync) + **2 tombol** (`Sync Orders` + `Link to Main Orders`) + date range + filter status/payment + pagination. Settlement/piutang/connect tetap di `/owner/tiktok` (Owner/Finance).
+2. ✅ **Nav admin** — tambah menu "TikTok Shop" di grup Operasional.
+3. ✅ Tidak perlu ubah proxy/layout (`/admin/*` sudah diizinkan admin); RLS `tiktok_shop_orders` SELECT sudah mencakup admin.
+4. ✅ **Migrasi `admin/orders/[id]` ke PUT API** — DITUNDA (item besar, 6 titik `orders.update` masih bypass API) — dibahas di sesi terpisah.
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 12: Fix Bug Kandidat + UI TikTok + Datepicker)

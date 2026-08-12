@@ -13,7 +13,9 @@
 4. **Webhook** — `/api/tiktok/webhook` menerima event TikTok (HMAC signature; **note:** verifikasi di-skip jika `TIKTOK_APP_SECRET` tidak di-set — wajib diisi di production)
 5. **OAuth** — `/api/tiktok/auth` + `reauthorize` untuk koneksi toko (kelola di `/owner/tiktok`)
 
-### Urutan sync yang benar (di halaman `/owner/tiktok`)
+### Urutan sync yang benar
+- **Admin** (halaman `/admin/tiktok`): **Sync Orders** → **Link to Main Orders** (tugas admin mengubah order TikTok jadi pesanan utama).
+- **Owner** (halaman `/owner/tiktok`): sync lengkap termasuk **Sync Settlement** & **Buat Piutang** (finance juga bisa akses untuk data piutang channel).
 1. **Sync Orders** — tarik order terbaru dari TikTok (belum jadi pesanan, hanya staging)
 2. **Link to Main Orders** — ubah order yang sudah dibayar jadi pesanan utama (masuk pipeline)
 3. **Sync Settlement** — tarik penarikan dana TikTok + catat piutang otomatis
