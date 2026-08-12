@@ -54,6 +54,15 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-044 | **po-delivery GET tanpa auth** & **journal GET login-only** (data keuangan bocor) | ✅ Fixed | GET + auth/role; journal GET finance/admin/owner |
 | BUG-045 | **TikTok webhook non-timing-safe** (`!==` string compare) | ✅ Fixed | `crypto.timingSafeEqual` (tiru xendit) |
 | BUG-046 | **TikTok OAuth callback mati** — `getUser()` service client selalu null → selalu 401; **rate limit IP spoofable** (`x-forwarded-for`) | ✅ Fixed | Hapus gate callback (aman via code+state); `getClientIp()` anti-spoof |
+| BUG-047 | **Route POST login-only tanpa role check** — customers/materials/products/suppliers/install-bookings/orders (ubah harga/cost), purchase-requests | ✅ Fixed (commit `2f72c53`) | POST → admin/owner; purchase-requests → gudang/admin/owner (defense-in-depth; API ini tak dipanggil UI) |
+| BUG-048 | **`/api/upload`** — service client module-scope + semua role bisa upload video 100MB; folder tanpa scope | ✅ Fixed | Service client pindah ke handler (setelah auth) + scope folder per role |
+| BUG-049 | **Jurnal `is_auto` selalu false** — flag `createSimpleJournal` dibuang server | ✅ Fixed (commit `7b15790`) | `is_auto` diterima body + divalidasi schema |
+| BUG-050 | **`piutang.remaining` dua sumber** — di-write 4 tempat tapi tak pernah dibaca | ✅ Fixed | Hapus write → satu sumber = derived (`amount−paid−return−fee`) |
+| BUG-051 | **setup-accounts**: race bootstrap (2 request → 2 admin) + bocor kredensial di response; rate limit hanya saat DB terisi | ✅ Fixed | Rate limit semua path + double-check count + kredensial tidak di-echo |
+| BUG-052 | **Xendit webhook**: amount tidak divalidasi; jurnal gagal hanya log (200 → tak ada retry); retry path tak update order | ✅ Fixed | Validasi amount ≤ sisa + idempotency dulu; jurnal gagal → 500 (retry); retry repair jurnal+order |
+| BUG-053 | **sync-to-main-orders**: insert order error `continue` (order hilang diam-diam); order existing tanpa pembukuan tak pernah diperbaiki | ✅ Fixed | Error → BLOCK; helper `ensurePaymentAndJournal` + repair saat re-run |
+| BUG-054 | **TikTok webhook single-secret** (`TIKTOK_APP_SECRET` env vs `app_secret` per-shop) | ✅ Fixed | Per-shop via `shop_cipher` di DB, fallback env |
+| BUG-055 | **Accounts `type='income'`** (4101/4102) di luar CHECK — constraint 067 NOT VALID | ✅ Fixed (migration 074) | `income → revenue` + VALIDATE constraint |
 
 ---
 
@@ -529,9 +538,9 @@ REVOKE ALL ON FUNCTION public.exec_sql FROM PUBLIC, anon, authenticated;
 
 ---
 
-## BUG-035 s/d BUG-046 — Sesi 3 & 4 (2026-08-12)
+## BUG-035 s/d BUG-055 — Sesi 3–6 (2026-08-12)
 
-Detail ringkas — implementasi lengkap di ringkasan tabel di atas, `todo.md`, dan commit `5cd8d45` (migration 072/073) / `4277557` (security API).
+Detail ringkas — implementasi lengkap di ringkasan tabel di atas, `todo.md`, dan commit `5cd8d45` (072/073) / `4277557` (security) / `2f72c53` (sesi 5) / `7b15790`–`598d43b` (sesi 6).
 
 | ID | Fix | Bukti |
 |---|---|---|

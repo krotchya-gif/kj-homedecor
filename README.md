@@ -42,14 +42,15 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Hutang (AP), Piutang (AR) per channel, refund
 - Chart of Accounts + account mapping, Journal (manual + auto)
 - Assets, Laundry Payroll
-- **Laporan Keuangan (10 reports)** + PDF export
+- **Laporan Keuangan (10 reports)** + PDF export — komponen shared `src/components/reports/*` (finance & owner pakai satu implementasi, beda label)
 
 ### Gudang (`/gudang`)
 - Production job queue + BOM preview + material consumption otomatis
 - Steam/QC jahitan: **Pass → order otomatis Siap** | Gagal → revisi ke penjahit
 - QC per-item + **blok "📦 Siap Dikemas" → tombol Kemas**
 - Stock: posisi gudang/toko, mutasi, edit stok (+/−/✎ dengan alasan), barang masuk
-- Low stock alerts → 1-klik Purchase Request, Lembur, Stock Opname, Retur verifikasi
+- Low stock alerts → 1-klik Purchase Request, Lembur, Retur verifikasi
+- **Stock Opname** (`/gudang/stock-opname`): buat sesi, pilih material, input hitung fisik, selisih otomatis, kirim untuk verifikasi
 
 ### Penjahit (`/penjahit`)
 - Job queue realtime (postgres_changes), meter tracking
@@ -139,7 +140,7 @@ src/
 │   ├── (dashboard)/              # Protected dashboard group
 │   │   ├── admin/                # Orders, catalog, booking, customers, staff, landing-settings, seo, shipping, laundry, portfolio, reports, surveys
 │   │   ├── finance/              # Payments, cash, hutang, piutang, accounts, journal, assets, laundry-payroll, laporan(10)
-│   │   ├── gudang/               # Production, steam, qc, stock, alerts, lembur, reports
+│   │   ├── gudang/               # Production, steam, qc, stock, stock-opname, alerts, lembur, reports
 │   │   ├── penjahit/             # Jobs, reports, history
 │   │   ├── installer/            # Schedule, checklist, reports
 │   │   ├── surveyor/             # Survey new/[id]/edit, history
@@ -186,13 +187,14 @@ src/
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — **3 file** (referensi tunggal + sinkronisasi terbaru):
+Located in `supabase/migrations/` — **4 file** (referensi tunggal + sinkronisasi terbaru):
 
 | File | Isi |
 |---|---|
 | `000_full_schema.sql` | **SATU-SATUNYA referensi schema** = kondisi live (58 tabel, 58 RLS, fungsi RPC, seed) — konsolidasi migration 001–071. Jangan baca migration lama per-file (lihat AGENTS.md) |
 | `072_schema_sync_codebase.sql` | RLS hardening efektif (nama policy benar, ENABLE RLS tiktok/survey_logs, hardening accounts), `order_logs_action_check` + `payment_verified`, kolom drift codebase↔live |
 | `073_tiktok_fee_breakdown.sql` | Kolom breakdown fee `tiktok_shop_statements` + `piutang.fee_amount` + unique index piutang tiktok |
+| `074_cleanup_accounts_income.sql` | Cleanup `accounts.type='income'` → `'revenue'` + VALIDATE `accounts_type_check` |
 
 > ⚠️ **Catatan:** migration lama `001–071` dihapus/dikonsolidasi ke `000_full_schema.sql`. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema.
 
@@ -237,6 +239,7 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 
 ## Implementasi & Riwayat Perbaikan
 
+- **2026-08-12 — Sesi 3–6:** schema = live (072-074), RLS hardening efektif, TikTok fee terjurnal penuh, security API (fail-open/mass-assignment/webhook), route POST role-gate, upload scope, tests unit (16), nav & laporan dedup, stock opname UI
 - **2026-08-11 — Pipeline fix (BUG-001/002/003/007):** Steam Pass auto-advance ke Siap; tombol Kemas di gudang; admin escape hatch; prefill foto; modal Jadwalkan Pasang + auto-create booking installer
 - **2026-08-11 — BUG-004:** DP admin auto-catat ke tabel payments; approve finance = verifikasi final (cek bayar terakhir di Finance)
 - **2026-08-11 — BUG-008:** harga jual bukan tanggung jawab admin — di-set Owner via HPP; produk tanpa harga tersembunyi dari katalog
@@ -244,7 +247,7 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 - **2026-07-18 — Audit & proxy migration:** `middleware.ts` → `proxy.ts`, auth helpers, rate limiting, RLS migrations 053-058
 - **2026-06-02 — Pipeline V2:** payment_ok di depan, steam revision loop, 3 QC distinct
 
-> 🔒 **Keamanan (audit 2026-08-12):** fail-open & mass-assignment di API routes sudah ditutup (commit `4277557`); RLS hardening efektif (migration `072`); TikTok settlement terjurnal penuh (migration `073`). Lihat `bug.md` (BUG-035–046) & backlog `todo.md` untuk sisa item.
+> 🔒 **Keamanan (audit 2026-08-12):** fail-open & mass-assignment di API routes sudah ditutup; RLS hardening efektif (migration `072`); TikTok settlement terjurnal penuh (migration `073`); route POST di-role-gate, upload di-scope per folder, webhook hardened (migration `074`). Lihat `bug.md` (BUG-035–055) & backlog `todo.md` untuk sisa item. Test unit: `npm run test:run` (Vitest, `tests/unit`).
 
 ---
 

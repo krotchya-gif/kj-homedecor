@@ -17,6 +17,7 @@ Dokumentasi alur (flow) per modul — **1 file = 1 flow**. Bahasa sederhana, sia
 | 8 | **QC & Retur** — gagal → retur → stok/refund | [08-retur-qc.md](08-retur-qc.md) |
 | 9 | **Marketplace** — TikTok Shop & Shopee sync | [09-marketplace.md](09-marketplace.md) |
 | 10 | **Staff & Hak Akses** — kelola akun & role | [10-staff-akses.md](10-staff-akses.md) |
+| 11 | **Stock Opname** — cocok stok sistem vs fisik | [11-stock-opname.md](11-stock-opname.md) |
 
 ## Peta alur besar (gambaran)
 
