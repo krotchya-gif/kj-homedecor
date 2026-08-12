@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
+import { E_WALLET_TIKTOK_ACCOUNT_ID } from '@/config/accounts'
 
 interface TikTokLineItem {
   sale_price?: number | string
@@ -89,6 +90,7 @@ export async function POST(_req: NextRequest) {
           reference_id: orderId,
           description: `Pembayaran TikTok (platform settlement) — ${to.tiktok_order_id}`,
           amount: amountNum,
+          debit_account_id: E_WALLET_TIKTOK_ACCOUNT_ID,
           baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
           supabase,
           idempotency_key: `tiktok_sync_payment:${orderId}`

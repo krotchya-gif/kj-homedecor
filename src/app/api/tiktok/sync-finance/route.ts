@@ -3,6 +3,7 @@ import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken, signTikTokRequest } from '@/lib/tiktok'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { E_WALLET_TIKTOK_ACCOUNT_ID } from '@/config/accounts'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -176,8 +177,9 @@ export async function POST(req: NextRequest) {
           transaction_type: 'piutang_received',
           reference_type: 'piutang',
           reference_id: piutang.id,
-          description: `TikTok Shop settlement ${stmtId.slice(0, 8)} — kas masuk Rp${net.toLocaleString('id-ID')}`,
+          description: `TikTok Shop settlement ${stmtId.slice(0, 8)} — kas masuk E Wallet Tiktok Rp${net.toLocaleString('id-ID')}`,
           amount: net,
+          debit_account_id: E_WALLET_TIKTOK_ACCOUNT_ID,
           baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
           supabase,
           idempotency_key: `tiktok_paid:${stmtId}`
@@ -199,11 +201,16 @@ export async function POST(req: NextRequest) {
       //   settlement_amount = GROSS (total pembayaran customer)
       //   revenue_amount     = NET (yang dibayar TikTok ke bank, setelah fee)
       //   fee_amount         = biaya/komisi platform
+      // 077 fix — settlement FULL: semua potongan (komisi + ongkir + adjustment)
+      // di-jurnal sebagai beban e-commerce agar sisa piutang = gross − net − potongan = 0.
       const settlement = Number(stmt.settlement_amount ?? stmt.settlementAmount ?? 0) || 0
       const revenue = Number(stmt.revenue_amount ?? stmt.revenueAmount ?? stmt.net_sales_amount ?? stmt.netSalesAmount ?? 0) || 0
       const fee = Number(stmt.fee_amount ?? stmt.feeAmount ?? 0) || 0
-      const gross = settlement || revenue + fee
-      const net = revenue || Math.max(0, gross - fee)
+      const shipping = Number(stmt.shipping_cost_amount ?? stmt.shippingCostAmount ?? 0) || 0
+      const adjustment = Number(stmt.adjustment_amount ?? stmt.adjustmentAmount ?? 0) || 0
+      const totalDeductions = fee + shipping + adjustment
+      const gross = settlement || revenue + totalDeductions
+      const net = revenue || Math.max(0, gross - totalDeductions)
       const invoiceDate = stmtTime
         ? new Date(stmtTime * 1000).toISOString().split('T')[0]
         : new Date().toISOString().split('T')[0]
@@ -219,7 +226,7 @@ export async function POST(req: NextRequest) {
       let piutangId: string | null = null
 
       if (auto_create_piutang && settleStatuses.includes(payStatus)) {
-        piutangId = await ensurePiutangForStatement({ stmtId, gross, fee, net, invoiceDate })
+        piutangId = await ensurePiutangForStatement({ stmtId, gross, fee: totalDeductions, net, invoiceDate })
         if (piutangId && !existing) created_piutang++
       }
 
@@ -230,10 +237,10 @@ export async function POST(req: NextRequest) {
           statement_type: 'SETTLEMENT',
           total_amount: gross,
           revenue_amount: net,
-          fee_amount: fee,
-          shipping_cost_amount: Number(stmt.shipping_cost_amount ?? stmt.shippingCostAmount ?? 0) || 0,
+          fee_amount: totalDeductions,
+          shipping_cost_amount: shipping,
           net_sales_amount: Number(stmt.net_sales_amount ?? stmt.netSalesAmount ?? 0) || 0,
-          adjustment_amount: Number(stmt.adjustment_amount ?? stmt.adjustmentAmount ?? 0) || 0,
+          adjustment_amount: adjustment,
           status: payStatus,
           currency: stmt.currency || 'IDR',
           start_date: stmtTime ? new Date(stmtTime * 1000).toISOString().split('T')[0] : null,

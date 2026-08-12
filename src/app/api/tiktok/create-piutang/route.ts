@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken } from '@/lib/tiktok'
+import { E_WALLET_TIKTOK_ACCOUNT_ID } from '@/config/accounts'
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -48,9 +49,14 @@ export async function POST(req: NextRequest) {
     for (const stmt of statements || []) {
       // 073 fix: piutang dicatat GROSS (total_amount = settlement_amount = pembayaran
       // customer) + fee terpisah; net yang masuk bank = revenue_amount. 3 jurnal lengkap.
+      // 077 fix: fee = SEMUA potongan (komisi + ongkir + adjustment) agar sisa piutang
+      // = gross − net − potongan = 0; piutang_received debit ke E Wallet Tiktok.
       const gross = Number(stmt.total_amount ?? 0) || 0
       const net = Number(stmt.revenue_amount ?? stmt.total_amount ?? 0) || 0
       const fee = Number(stmt.fee_amount ?? 0) || 0
+      const shipping = Number(stmt.shipping_cost_amount ?? 0) || 0
+      const adjustment = Number(stmt.adjustment_amount ?? 0) || 0
+      const totalDeductions = fee + shipping + adjustment
       const invoiceNum = `TTK-${stmt.statement_id.slice(0, 8)}`
 
       // Cek duplikat invoice_number (anti-double — mis. sudah dibuat jalur lain)
@@ -74,7 +80,7 @@ export async function POST(req: NextRequest) {
           invoice_number: invoiceNum,
           invoice_date: stmt.start_date || new Date().toISOString().split('T')[0],
           amount: gross,
-          fee_amount: fee,
+          fee_amount: totalDeductions,
           paid_amount: net,
           
           channel: 'tiktok',
@@ -102,13 +108,13 @@ export async function POST(req: NextRequest) {
           supabase,
           idempotency_key: `tiktok_settlement:${stmt.statement_id}`
         })
-        if (fee > 0) {
+        if (totalDeductions > 0) {
           await createSimpleJournal({
             transaction_type: 'ecommerce_fee',
             reference_type: 'piutang',
             reference_id: piutang.id,
             description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — komisi & biaya platform`,
-            amount: fee,
+            amount: totalDeductions,
             baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
             supabase,
             idempotency_key: `tiktok_fee:${stmt.statement_id}`
@@ -118,8 +124,9 @@ export async function POST(req: NextRequest) {
           transaction_type: 'piutang_received',
           reference_type: 'piutang',
           reference_id: piutang.id,
-          description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — kas masuk Rp${net.toLocaleString('id-ID')}`,
+          description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — kas masuk E Wallet Tiktok Rp${net.toLocaleString('id-ID')}`,
           amount: net,
+          debit_account_id: E_WALLET_TIKTOK_ACCOUNT_ID,
           baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
           supabase,
           idempotency_key: `tiktok_paid:${stmt.statement_id}`
