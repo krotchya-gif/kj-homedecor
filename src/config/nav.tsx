@@ -111,7 +111,8 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       items: [
         { label: 'Posisi Stok', href: '/gudang/stock', icon: Package },
         { label: 'Alerts', href: '/gudang/alerts', icon: Calendar },
-        { label: 'Lembur', href: '/gudang/lembur', icon: Calendar }
+        { label: 'Lembur', href: '/gudang/lembur', icon: Calendar },
+        { label: 'Stock Opname', href: '/gudang/stock-opname', icon: ClipboardList }
       ]
     }
   ],

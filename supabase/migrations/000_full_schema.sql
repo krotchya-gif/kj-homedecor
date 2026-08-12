@@ -1449,10 +1449,11 @@ ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE public.users ADD CONSTRAINT users_role_check
   CHECK (role IN ('admin','gudang','penjahit','finance','installer','owner','surveyor','laundry'));
 
--- Constraint accounts_type_check FINAL (067): NOT VALID (baris lama di luar daftar)
+-- Constraint accounts_type_check FINAL (067 + 074): VALID setelah cleanup type='income'
 ALTER TABLE public.accounts DROP CONSTRAINT IF EXISTS accounts_type_check;
 ALTER TABLE public.accounts ADD CONSTRAINT accounts_type_check
-  CHECK (type IN ('asset','liability','equity','revenue','expense')) NOT VALID;
+  CHECK (type IN ('asset','liability','equity','revenue','expense'));
+ALTER TABLE public.accounts VALIDATE CONSTRAINT accounts_type_check;
 
 -- ---------- 10.2 Tabel baru: TikTok Shop (053) ----------
 CREATE TABLE IF NOT EXISTS public.tiktok_shop_settings (
