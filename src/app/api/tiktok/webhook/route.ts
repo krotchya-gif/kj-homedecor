@@ -15,12 +15,23 @@ export async function POST(req: NextRequest) {
     const data = body.data || body
 
     // Verify signature: hex(HMAC-SHA256(app_secret, raw_body)) in authorization header
-    const appSecret = process.env.TIKTOK_APP_SECRET
+    // 2026-08-12 (multi-shop): prefer app_secret per-shop dari DB (match shop_cipher di
+    // payload), fallback ke env TIKTOK_APP_SECRET untuk setup single-shop lama.
+    let appSecret = process.env.TIKTOK_APP_SECRET
+    const payloadShopCipher = body.shop_cipher || data.shop_cipher
+    if (payloadShopCipher) {
+      const { data: shop } = await supabase
+        .from('tiktok_shop_settings')
+        .select('app_secret')
+        .eq('shop_cipher', payloadShopCipher)
+        .maybeSingle()
+      if (shop?.app_secret) appSecret = shop.app_secret
+    }
     const signature = req.headers.get('authorization') || req.headers.get('x-tt-signature')
     // Security fix (2026-08-11): FAIL-CLOSED — kalau app secret tidak di-set,
     // webhook DITOLAK (bukan di-skip seperti sebelumnya → webhook tidak aman).
     if (!appSecret) {
-      console.error('TikTok webhook: TIKTOK_APP_SECRET not set — rejecting webhook')
+      console.error('TikTok webhook: app secret tidak ditemukan (env/DB) — rejecting webhook')
       return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 })
     }
     if (!signature) {

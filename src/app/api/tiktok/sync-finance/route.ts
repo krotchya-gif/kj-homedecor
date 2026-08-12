@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
           amount: gross,
           fee_amount: fee,
           paid_amount: net,
-          remaining: 0,
+          
           channel: 'tiktok',
           description: `TikTok Shop settlement ${stmtId.slice(0, 8)}`,
           status: 'paid'

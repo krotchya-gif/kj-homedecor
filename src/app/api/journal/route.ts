@@ -16,6 +16,7 @@ const CreateJournalSchema = z
     description: z.string().min(1, 'Deskripsi wajib').max(500),
     entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'entry_date format YYYY-MM-DD').optional(),
     idempotency_key: z.string().max(200).optional().nullable(),
+    is_auto: z.boolean().optional().default(false),
     lines: z.array(JournalLineSchema).min(1, 'Minimal 1 baris').max(50, 'Maksimal 50 baris')
   })
   .refine((d) => d.lines.every((l) => (l.debit > 0) !== (l.credit > 0)), {
@@ -57,10 +58,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ data: null, error: { message: parsed.error.issues[0].message } }, { status: 400 })
   }
 
-  const { lines, description, reference_type, reference_id, entry_date, idempotency_key } = parsed.data
+  const { lines, description, reference_type, reference_id, entry_date, idempotency_key, is_auto } = parsed.data
 
-  // BUG-019: is_auto SELALU server-side (false untuk POST manual)
-  const isAuto = false
+  // is_auto: dikirim oleh createSimpleJournal (jurnal otomatis = true); manual = false.
+  // Hanya finance/admin/owner yang bisa POST, jadi label aman dipertahankan dari client.
 
   try {
     const totalDebit = lines.reduce((s, l) => s + l.debit, 0)
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       p_reference_id: reference_id ?? null,
       p_description: description,
       p_entry_date: entry_date ?? new Date().toISOString().split('T')[0],
-      p_is_auto: isAuto,
+      p_is_auto: is_auto,
       p_lines: lines.map((l) => ({
         account_id: l.account_id,
         debit: l.debit,

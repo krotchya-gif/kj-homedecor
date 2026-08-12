@@ -44,6 +44,60 @@ export async function POST(_req: NextRequest) {
     let created = 0
     let skipped = 0
 
+    // 2026-08-12: pastikan order TikTok tercatat payment + jurnal (F-13).
+    // Dipanggil saat order BARU dibuat DAN saat repair order existing tanpa pembukuan
+    // (crash di tengah proses sebelumnya). Idempoten via idempotency key jurnal.
+    async function ensurePaymentAndJournal(orderId: string, to: { tiktok_order_id: string; total_amount?: number | string; buyer_name?: string | null }) {
+      const amountNum = Number(to.total_amount || 0)
+      if (amountNum <= 0) return
+      const { data: journaled } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('idempotency_key', `tiktok_sync_payment:${orderId}`)
+        .maybeSingle()
+      if (journaled) return
+
+      const { error: payErr } = await supabase.from('payments').insert({
+        order_id: orderId,
+        type: 'lunas',
+        amount: amountNum,
+        date: new Date().toISOString(),
+        verified_by: null,
+        verified_at: new Date().toISOString(),
+        notes: `Auto-catat TikTok Shop (settlement platform) — ${to.tiktok_order_id}`
+      })
+      if (payErr) {
+        console.error('Gagal catat payment TikTok:', payErr)
+        return
+      }
+
+      try {
+        const { createSimpleJournal } = await import('@/utils/journal/create')
+        await createSimpleJournal({
+          transaction_type: 'order_created',
+          reference_type: 'order',
+          reference_id: orderId,
+          description: `Order TikTok ${to.tiktok_order_id} — ${to.buyer_name || 'Unknown'}`,
+          amount: amountNum,
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+          supabase,
+          idempotency_key: `tiktok_sync_order_created:${orderId}`
+        })
+        await createSimpleJournal({
+          transaction_type: 'payment_received',
+          reference_type: 'order',
+          reference_id: orderId,
+          description: `Pembayaran TikTok (platform settlement) — ${to.tiktok_order_id}`,
+          amount: amountNum,
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+          supabase,
+          idempotency_key: `tiktok_sync_payment:${orderId}`
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal TikTok order:', jErr)
+      }
+    }
+
     for (const to of tiktokOrders || []) {
       // Cek apakah order_id_external udah ada di main orders
       const { data: existing } = await supabase
@@ -54,6 +108,9 @@ export async function POST(_req: NextRequest) {
 
       if (existing) {
         skipped++
+        // Repair (2026-08-12): order sudah ada tapi belum dibukukan (crash sebelumnya) →
+        // buat payment + jurnal supaya tidak ada order 'paid' tanpa pembukuan.
+        await ensurePaymentAndJournal(existing.id, to)
         continue
       }
 
@@ -79,9 +136,17 @@ export async function POST(_req: NextRequest) {
         shipping_address: to.shipping_address || null
       })
 
+      // 2026-08-12: BLOCK (bukan `continue`) kalau insert order gagal — order tidak
+      // hilang diam-diam dari sync; caller bisa lihat error & retry.
       if (insertErr) {
-        console.error('Failed to insert order:', insertErr, 'tiktok_order:', to.tiktok_order_id)
-        continue
+        return NextResponse.json(
+          {
+            error: `Gagal simpan order TikTok ${to.tiktok_order_id}: ${toClientError(insertErr)}`,
+            created,
+            skipped
+          },
+          { status: 500 }
+        )
       }
 
       // Ambil id order yg baru dibuat untuk link order_items
@@ -96,49 +161,7 @@ export async function POST(_req: NextRequest) {
         continue
       }
 
-      // F-13 fix: order TikTok harus tercatat di pembukuan —
-      // row payments (lunas) + jurnal order_created + payment_received
-      // (sebelumnya: order 'paid' tanpa payment & tanpa jurnal → revenue
-      // tidak masuk laba-rugi, piutang ter-kredit tanpa pernah di-debit).
-      const amountNum = Number(to.total_amount || 0)
-      if (amountNum > 0) {
-        const { error: payErr } = await supabase.from('payments').insert({
-          order_id: newOrder.id,
-          type: 'lunas',
-          amount: amountNum,
-          date: new Date().toISOString(),
-          verified_by: null,
-          verified_at: new Date().toISOString(),
-          notes: `Auto-catat TikTok Shop (settlement platform) — ${to.tiktok_order_id}`
-        })
-        if (payErr) console.error('Gagal catat payment TikTok:', payErr)
-
-        try {
-          const { createSimpleJournal } = await import('@/utils/journal/create')
-          await createSimpleJournal({
-            transaction_type: 'order_created',
-            reference_type: 'order',
-            reference_id: newOrder.id,
-            description: `Order TikTok ${to.tiktok_order_id} — ${to.buyer_name || 'Unknown'}`,
-            amount: amountNum,
-            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-            supabase,
-            idempotency_key: `tiktok_sync_order_created:${newOrder.id}`
-          })
-          await createSimpleJournal({
-            transaction_type: 'payment_received',
-            reference_type: 'order',
-            reference_id: newOrder.id,
-            description: `Pembayaran TikTok (platform settlement) — ${to.tiktok_order_id}`,
-            amount: amountNum,
-            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-            supabase,
-            idempotency_key: `tiktok_sync_payment:${newOrder.id}`
-          })
-        } catch (jErr) {
-          console.error('Gagal buat jurnal TikTok order:', jErr)
-        }
-      }
+      await ensurePaymentAndJournal(newOrder.id, to)
 
       // Sync line items dari TikTok ke order_items — root cause "item pesanan ga keluar":
       // sebelumnya order dibuat TANPA order_items sama sekali.
@@ -163,7 +186,6 @@ export async function POST(_req: NextRequest) {
         }
         itemCount++
       }
-      console.log(`TikTok order ${to.tiktok_order_id}: ${itemCount} item(s) synced`)
 
       created++
     }

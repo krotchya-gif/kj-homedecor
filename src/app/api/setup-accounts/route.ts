@@ -9,14 +9,15 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient()
 
+    // Rate limit di SEMUA path (bootstrap & guarded) — cegah spam/race
+    const rateLimit = checkRateLimit(getClientIp(request))
+    if (rateLimit.blocked) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     // If any user already exists, require auth + admin/owner role
     const { count } = await supabase.from('users').select('*', { count: 'exact', head: true })
     if (count && count > 0) {
-      const rateLimit = checkRateLimit(getClientIp(request))
-      if (rateLimit.blocked) {
-        return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-      }
-
       const auth = await requireAuth()
       if (auth.error) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
@@ -46,6 +47,13 @@ export async function POST(request: Request) {
 
     if (existing) {
       return NextResponse.json({ error: `${role} account already exists` }, { status: 409 })
+    }
+
+    // Anti-race (2026-08-12): double-check count sesaat sebelum signUp —
+    // jika sudah ada user (bootstrap kedua jalan bersamaan), tolak.
+    const { count: reCount } = await supabase.from('users').select('*', { count: 'exact', head: true })
+    if (reCount && reCount > 0) {
+      return NextResponse.json({ error: 'Akun sudah ada — bootstrap hanya untuk database kosong' }, { status: 409 })
     }
 
     // Create auth user via signUp (not admin API)
@@ -79,8 +87,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: `${role} account created`,
-      credentials: { email, password }
+      message: `${role} account created`
+      // 2026-08-12: kredensial TIDAK dikembalikan lagi — password sudah diinput
+      // pengguna di form setup; echo di response tidak berguna & membocorkannya ke log.
     })
   } catch (err) {
     console.error('Setup error:', err)

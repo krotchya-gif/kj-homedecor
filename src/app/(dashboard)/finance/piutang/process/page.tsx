@@ -78,7 +78,7 @@ export default function ProcessReturPage() {
 
     const { error: updErr } = await supabase
       .from('piutang')
-      .update({ return_amount: newReturn, status: newStatus, remaining: newSisa })
+      .update({ return_amount: newReturn, status: newStatus })
       .eq('id', returItem.id)
       .eq('return_amount', returItem.return_amount ?? 0)
     if (updErr) {

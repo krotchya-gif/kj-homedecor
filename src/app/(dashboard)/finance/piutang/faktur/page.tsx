@@ -246,7 +246,7 @@ export default function FakturPage() {
 
     const { error: updErr } = await supabase
       .from('piutang')
-      .update({ paid_amount: newPaid, status: newStatus, remaining: newSisa })
+      .update({ paid_amount: newPaid, status: newStatus })
       .eq('id', payItem.id)
       .eq('paid_amount', fresh.paid_amount)
       .eq('return_amount', fresh.return_amount)
