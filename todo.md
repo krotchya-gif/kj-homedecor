@@ -1,6 +1,19 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-12 (sesi 6 — backlog tersisa)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 7 — simulasi E2E penuh)
+
+---
+
+## ✅ Selesai (2026-08-13 — Sesi 7: Simulasi E2E Pipeline + Fitur)
+
+1. ✅ **Auth setup** — `tests/e2e/auth.setup.ts` login 8 role (USER.md) → storageState per role
+2. ✅ **`catalog-bom.spec.ts`** — material → kategori → produk → HPP/BOM → tampil katalog publik
+3. ✅ **`pipeline-kirim.spec.ts`** — 9 tahap UI: admin buat produk+order+item, finance approve, gudang produksi/steam/kemas, admin advance → Selesai
+4. ✅ **`pipeline-pasang.spec.ts`** — 10 tahap: + jadwal pasang + installer checklist (foto) → Selesai
+5. ✅ **`finance.spec.ts`** — kas/bank, pemasukan, pengeluaran, hutang (tambah+bayar), piutang (faktur+bayar+duplikat invoice), jurnal, laporan, rekonsiliasi, channel
+6. ✅ **Smoke test** diperluas → **27/27 pass** (`npx playwright test --project=chromium`)
+7. ✅ **BUG-056** — pipeline macet produksi (consume-materials sebelum update status) → diperbaiki
+8. ✅ **BUG-057** — installer upload foto checklist 403 (folder evidence) → diperbaiki
 
 ---
 

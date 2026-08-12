@@ -137,36 +137,11 @@ export default function GudangProductionPage() {
       supabase.removeChannel(channel)
     }
   }, [])
-
   async function updateJobStatus(jobId: string, status: string) {
     const {
       data: { user }
     } = await supabase.auth.getUser()
     const job = jobs.find((j) => j.id === jobId)
-
-    // Panggil API server-side untuk material consumption (atomic)
-    // Saat job.status transitions ke 'done', panggil /api/orders/[id]/consume-materials
-    // yang internally call RPC consume_materials_for_production.
-    // - Decrement stock_gudang (with GREATEST(0) guard)
-    // - Insert order_material_consumption (per-order traceability)
-    // - Insert inventory_movements (audit trail with FK order_id, production_job_id)
-    if (status === 'done' && job?.order_id && job.status !== 'done') {
-      try {
-        const consumeRes = await fetch(`/api/orders/${job.order_id}/consume-materials`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ production_job_id: jobId })
-        })
-        const consumeJson = await consumeRes.json()
-        if (!consumeRes.ok) {
-          toast('error', '⚠️ Gagal consume materials: ' + (consumeJson.error?.message ?? 'unknown error'))
-          return // Jangan continue kalau material gagal
-        }
-      } catch (e) {
-        toast('error', '⚠️ Gagal consume materials: ' + (e as Error).message)
-        return
-      }
-    }
 
     // CRITICAL: error handling + ALERT kalau update gagal
     // Optimistic update + rollback
@@ -183,6 +158,7 @@ export default function GudangProductionPage() {
           : j
       )
     )
+
     const { error: statusErr } = await supabase
       .from('production_jobs')
       .update({
@@ -195,6 +171,27 @@ export default function GudangProductionPage() {
       setJobs(prev)
       toast('error', '⚠️ Gagal update status job: ' + statusErr.message + '\n\nCek koneksi database atau hubungi admin.')
       return
+    }
+
+    // 2026-08-12 fix: consume materials DIPANGGIL SETELAH job status 'done' tersimpan
+    // (sebelumnya dipanggil SEBELUM update → route /api/orders/[id]/consume-materials
+    // menolak karena job masih 'in_progress' → pipeline macet di produksi).
+    if (status === 'done' && job?.order_id) {
+      try {
+        const consumeRes = await fetch(`/api/orders/${job.order_id}/consume-materials`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ production_job_id: jobId })
+        })
+        const consumeJson = await consumeRes.json()
+        if (!consumeRes.ok) {
+          toast('error', '⚠️ Gagal consume materials: ' + (consumeJson.error?.message ?? 'unknown error'))
+          return // Jangan continue kalau material gagal
+        }
+      } catch (e) {
+        toast('error', '⚠️ Gagal consume materials: ' + (e as Error).message)
+        return
+      }
     }
 
     const { error: logErr } = await supabase.from('order_logs').insert({

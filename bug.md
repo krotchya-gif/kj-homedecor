@@ -63,6 +63,8 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-053 | **sync-to-main-orders**: insert order error `continue` (order hilang diam-diam); order existing tanpa pembukuan tak pernah diperbaiki | ✅ Fixed | Error → BLOCK; helper `ensurePaymentAndJournal` + repair saat re-run |
 | BUG-054 | **TikTok webhook single-secret** (`TIKTOK_APP_SECRET` env vs `app_secret` per-shop) | ✅ Fixed | Per-shop via `shop_cipher` di DB, fallback env |
 | BUG-055 | **Accounts `type='income'`** (4101/4102) di luar CHECK — constraint 067 NOT VALID | ✅ Fixed (migration 074) | `income → revenue` + VALIDATE constraint |
+| BUG-056 | **Pipeline macet di produksi (gudang)** — `updateJobStatus` memanggil consume-materials SEBELUM update status job → route `/api/orders/[id]/consume-materials` menolak (job masih `in_progress`) → job tak pernah selesai, order stuck | ✅ Fixed (2026-08-12, ditemukan simulasi E2E) | Pindah panggilan consume-materials SETELAH update status `done` |
+| BUG-057 | **Installer tidak bisa upload foto checklist** — `/api/upload` folder `evidence` (dipakai installer checklist) dibatasi admin/owner/finance (fix sesi 5) → installer 403 | ✅ Fixed (2026-08-12, ditemukan simulasi E2E) | Tambah `installer` ke `FOLDER_ROLES.evidence` |
 
 ---
 

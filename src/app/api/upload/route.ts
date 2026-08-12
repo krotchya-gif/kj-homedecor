@@ -53,7 +53,7 @@ const FOLDER_ROLES: Record<string, string[]> = {
   products: ['admin', 'owner'],
   banners: ['admin', 'owner'],
   portfolio: ['admin', 'owner'],
-  evidence: ['admin', 'owner', 'finance'],
+  evidence: ['admin', 'owner', 'finance', 'installer'],
   documents: ['admin', 'owner', 'finance'],
   videos: ['admin', 'owner'],
   order_progress: ['admin', 'owner', 'gudang', 'finance'],

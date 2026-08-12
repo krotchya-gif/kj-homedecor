@@ -85,3 +85,4 @@ __pycache__/
 # Supabase CLI local state
 supabase/.temp/
 
+tests/e2e/.auth/
