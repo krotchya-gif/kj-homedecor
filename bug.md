@@ -75,6 +75,14 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-065 | **`/admin/shipping` tombol "Input Resi" tampil utk order `ready`** padahal API menolak `ready→shipped` | ✅ Fixed (2026-08-13) | Gate tombol hanya utk `packed` |
 | BUG-066 | **Teks korup Mandarin** di modal installer "Laporkan Masalah" | ✅ Fixed (2026-08-13) | Perbaiki string |
 | BUG-067 | **Stock Opname selisih qty diformat `formatRp`** → "Rp-3" | ✅ Fixed (2026-08-13) | Format angka qty (`toLocaleString('id-ID')` + unit), bukan uang |
+| BUG-068 | **Form `/admin/seo` menulis `seo_title/seo_description/seo_keywords/seo_og_image` tapi meta tag `layout.tsx` HARDCODED** — perubahan SEO admin tak pernah dirender sebagai `<meta>` | ✅ Fixed (2026-08-13) | `layout.tsx` pindah ke `generateMetadata()` async yang baca `landing_settings` (key='hero'), fallback hardcoded; `SeoScripts` tetap baca pixel/GA4 |
+
+### Dead code terdokumentasi (tidak dihapus — keputusan owner, sesi 9)
+- **Route API tanpa caller produksi:** `api/customers`, `api/landing-settings`, `api/materials`, `api/products`, `api/suppliers`, `api/purchase-orders` (+`[id]`), `api/purchase-requests` (+`[id]`), `api/install-bookings` (base), `api/orders` (base — hanya dipakai E2E smoke GET 403)
+- **Tabel dead:** `low_stock_alerts` (ditulis RPC saja), `order_material_consumption` (ditulis RPC, tak pernah dibaca), `order_preparation_checklist` (singular — kode pakai plural), `packing_checklists`, `return_requests`. **`seo_settings` DI-DROP** (migration 079 — dead sejak migration 008, 3 baris tak pernah dibaca).
+- **RPC dead:** `decrement_stock_gudang`, `get_material_stock`, `get_product_stock`, `update_cash_account_balance`, `rls_auto_enable`
+- **Export dead:** `clientError` (`src/lib/api-errors.ts:14`)
+- **Schema drift fix:** `users.email` dihapus dari `000_full_schema.sql` (tidak ada di live)
 
 ---
 

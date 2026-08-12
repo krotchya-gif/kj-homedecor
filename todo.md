@@ -1,6 +1,17 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 9 — E Wallet Tiktok + Xendit removal + fix semua BUG-058..067)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 10 — Reset Data Hardening + SEO wiring + dead code)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 10: Reset Data Hardening + SEO + Dead Code Audit)
+
+1. ✅ **Migration 079** — `reset_transactional_data` di-rewrite: TRUNCATE eksplisit **41 tabel** (tidak andal CASCADE saja) + **verifikasi post-reset** (count=0 wajib, sisa → RAISE) + **guard seed** (users/accounts/account_mappings ≥ 1, reset GAGAL daripada hapus seed) + `counts_before` detail (12 kategori)
+2. ✅ **`seo_settings` di-DROP** (dead sejak migration 008; SEO aktif via `landing_settings.seo_*`)
+3. ✅ **BUG-068** — `layout.tsx` → `generateMetadata()` async baca `landing_settings` (key='hero') fallback hardcoded → form `/admin/seo` kini berdampak
+4. ✅ **UI `/owner/settings`** — tampilkan `counts_before` dari RPC (bukti reset) + copy reset selaras (notifications/lembur/material_price_history/low_stock_alerts/production_reports/tiktok_statements) + pertegas yang dipertahankan
+5. ✅ **Schema sync** — RPC reset versi baru + hapus blok seo_settings + **hapus `users.email`** (drift: tidak ada di live)
+6. ✅ **Audit reset aman** — tidak ada FK dari tabel non-truncate → truncate (query `[]`); seed utuh (users 9, accounts 20, mappings 10, cash_accounts 14)
+7. ✅ **Dead code terdokumentasi** (TIDAK dihapus, kecuali seo_settings): 9 route API, 5 tabel, 5 RPC, export `clientError`
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 9: E Wallet Tiktok + Xendit Removal + Fix BUG-058..067)
