@@ -19,7 +19,7 @@ export default function OwnerSettingsPage() {
   async function handleReset() {
     if (typeInput !== 'RESET') return
     setResetting(true)
-    const { error } = await supabase.rpc('reset_transactional_data')
+    const { data, error } = await supabase.rpc('reset_transactional_data')
     if (error) {
       setResetting(false)
       toast('error', 'Gagal reset data: ' + error.message)
@@ -29,7 +29,15 @@ export default function OwnerSettingsPage() {
     setStep2Open(false)
     setTypeInput('')
     setDone(true)
-    toast('success', 'Data transaksional berhasil di-reset!')
+    // Tampilkan bukti counts_before dari RPC (jangan discard data)
+    const counts = (data as { counts_before?: Record<string, number> } | null)?.counts_before
+    const summary = counts
+      ? Object.entries(counts)
+          .filter(([, v]) => Number(v) > 0)
+          .map(([k, v]) => `${k}: ${Number(v).toLocaleString('id-ID')}`)
+          .join(', ')
+      : ''
+    toast('success', summary ? `Data transaksional berhasil di-reset! (${summary})` : 'Data transaksional berhasil di-reset!')
   }
 
   return (
@@ -42,9 +50,10 @@ export default function OwnerSettingsPage() {
           <div style={{ flex: 1 }}>
             <h2 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#991b1b' }}>Reset Data Transaksional</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--neutral-700)', marginTop: '0.5rem', lineHeight: 1.6 }}>
-              Menghapus <strong>semua data transaksional</strong>: pesanan, pembayaran, jurnal keuangan,
-              hutang & piutang, pelanggan, laundry, produksi/QC, survey, stok opname, purchase order,
-              data TikTok/Shopee, aset — serta <strong>reset saldo kas & stok ke 0</strong>.
+              Menghapus <strong>semua data transaksional</strong>: pesanan & item, pembayaran, jurnal keuangan,
+              hutang & piutang, pelanggan, laundry (order, payroll, lembur), produksi/QC, survey, stok opname,
+              purchase order & request, mutasi stok, data TikTok/Shopee & settlement, aset, riwayat harga
+              material, notifikasi, laporan produksi — serta <strong>reset saldo kas & stok ke 0</strong>.
             </p>
             <p style={{ fontSize: '0.85rem', color: 'var(--neutral-700)', marginTop: '0.35rem', lineHeight: 1.6 }}>
               <strong style={{ color: '#166534' }}>Yang DI-PERTAHANKAN:</strong> akun login staff, chart of
@@ -108,9 +117,9 @@ export default function OwnerSettingsPage() {
           ⚠️ Yakin ingin reset SEMUA data?
         </h2>
         <p style={{ fontSize: '0.85rem', color: 'var(--neutral-700)', lineHeight: 1.6, marginBottom: '0.5rem' }}>
-          Semua pesanan, pembayaran, jurnal keuangan, hutang/piutang, pelanggan, laundry, produksi/QC,
-          survey, PO, data TikTok/Shopee, dan aset akan <strong>dihapus permanen</strong>. Saldo kas & stok
-          di-reset ke 0.
+          Semua pesanan & item, pembayaran, jurnal keuangan, hutang/piutang, pelanggan, laundry, produksi/QC,
+          survey, PO, mutasi stok, data TikTok/Shopee, aset, notifikasi & lembur akan <strong>dihapus permanen</strong>.
+          Saldo kas & stok di-reset ke 0.
         </p>
         <p style={{ fontSize: '0.85rem', color: 'var(--neutral-700)', lineHeight: 1.6 }}>
           Data master (produk, material, supplier, BOM, akun, staff) <strong>tetap dipertahankan</strong>.
