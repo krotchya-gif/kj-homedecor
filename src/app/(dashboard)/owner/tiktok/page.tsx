@@ -72,7 +72,11 @@ export default function TikTokDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [orderPage, setOrderPage] = useState(0)
   const [orderTotal, setOrderTotal] = useState(0)
-  const [orderPageSize, setOrderPageSize] = useState(25)
+  const [orderPageSize, setOrderPageSize] = useState(10)
+  const [stmtPage, setStmtPage] = useState(0)
+  const [stmtTotal, setStmtTotal] = useState(0)
+  const [stmtPageSize, setStmtPageSize] = useState(10)
+  const [filterStmtStatus, setFilterStmtStatus] = useState('')
   const [salesByStatus, setSalesByStatus] = useState<Record<string, number>>({})
   const [filterStatus, setFilterStatus] = useState('')
   const [filterPayment, setFilterPayment] = useState('')
@@ -104,11 +108,22 @@ export default function TikTokDashboardPage() {
 
   const orderPageCount = Math.ceil(orderTotal / orderPageSize)
 
-  async function fetchData(page = 0, statusFilter?: string, paymentFilter?: string, limit?: number) {
+  async function fetchData(
+    page = 0,
+    statusFilter?: string,
+    paymentFilter?: string,
+    limit?: number,
+    stmtPageArg?: number,
+    stmtStatusFilter?: string,
+    stmtLimit?: number
+  ) {
     setLoading(true)
     const sf = statusFilter ?? filterStatus
     const pf = paymentFilter ?? filterPayment
     const ps = limit ?? orderPageSize
+    const sPage = stmtPageArg ?? stmtPage
+    const sStatus = stmtStatusFilter ?? filterStmtStatus
+    const sPs = stmtLimit ?? stmtPageSize
 
     let orderQuery = supabase.from('tiktok_shop_orders').select('*')
     if (sf) orderQuery = orderQuery.eq('order_status', sf)
@@ -121,24 +136,37 @@ export default function TikTokDashboardPage() {
     if (sf) countQuery = countQuery.eq('order_status', sf)
     if (pf) countQuery = countQuery.eq('payment_status', pf)
 
-    const [settingsRes, ordersRes, totalRes, salesGroupRes, monthlyStatsRes, statementsRes] = await Promise.all([
-      // F-19 fix: app_secret & access_token TIDAK boleh ke browser — batasi kolom
-      supabase
-        .from('tiktok_shop_settings')
-        .select('id, shop_name, is_active, seller_name, open_id, token_expires_at, shop_cipher'),
-      orderQuery,
-      countQuery,
-      // Fetch total_amount grouped by order_status
-      supabase.from('tiktok_shop_orders').select('order_status, total_amount'),
-      // Monthly settlement stats
-      supabase.from('tiktok_shop_statements').select('start_date, total_amount'),
-      supabase.from('tiktok_shop_statements').select('*').order('created_at', { ascending: false }).limit(50)
-    ])
+    let stmtQuery = supabase.from('tiktok_shop_statements').select('*')
+    if (sStatus) stmtQuery = stmtQuery.eq('status', sStatus)
+    stmtQuery = stmtQuery
+      .order('created_at', { ascending: false })
+      .range(sPage * sPs, (sPage + 1) * sPs - 1)
+
+    let stmtCountQuery = supabase.from('tiktok_shop_statements').select('*', { count: 'exact', head: true })
+    if (sStatus) stmtCountQuery = stmtCountQuery.eq('status', sStatus)
+
+    const [settingsRes, ordersRes, totalRes, salesGroupRes, monthlyStatsRes, statementsRes, stmtTotalRes] =
+      await Promise.all([
+        // F-19 fix: app_secret & access_token TIDAK boleh ke browser — batasi kolom
+        supabase
+          .from('tiktok_shop_settings')
+          .select('id, shop_name, is_active, seller_name, open_id, token_expires_at, shop_cipher'),
+        orderQuery,
+        countQuery,
+        // Fetch total_amount grouped by order_status
+        supabase.from('tiktok_shop_orders').select('order_status, total_amount'),
+        // Monthly settlement stats
+        supabase.from('tiktok_shop_statements').select('start_date, total_amount'),
+        stmtQuery,
+        stmtCountQuery
+      ])
     setSettings(settingsRes.data ?? [])
     setOrders(ordersRes.data ?? [])
     setOrderTotal(totalRes.count ?? 0)
     setOrderPage(page)
     setStatements(statementsRes.data ?? [])
+    setStmtTotal(stmtTotalRes.count ?? 0)
+    setStmtPage(sPage)
 
     // Group by order_status
     const grouped: Record<string, number> = {}
@@ -652,17 +680,23 @@ export default function TikTokDashboardPage() {
               fontWeight: '600',
               cursor: syncing !== null || !activeShop ? 'not-allowed' : 'pointer',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.15rem'
             }}
-            title={!activeShop ? 'Tidak ada shop aktif' : undefined}
+            title={!activeShop ? 'Tidak ada shop aktif' : 'Ambil order terbaru dari TikTok (belum jadi pesanan)'}
           >
-            {syncing === 'orders' ? (
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <RefreshCw size={14} />
-            )}
-            Sync Orders
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {syncing === 'orders' ? (
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <RefreshCw size={14} />
+              )}
+              Sync Orders
+            </span>
+            <span style={{ fontSize: '0.68rem', fontWeight: '400', color: 'var(--neutral-500)', lineHeight: 1.3 }}>
+              Ambil order terbaru dari TikTok (belum jadi pesanan)
+            </span>
           </button>
           <button
             onClick={() => handleSync('finance')}
@@ -677,17 +711,23 @@ export default function TikTokDashboardPage() {
               fontWeight: '600',
               cursor: syncing !== null || !activeShop ? 'not-allowed' : 'pointer',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.15rem'
             }}
-            title={!activeShop ? 'Tidak ada shop aktif' : undefined}
+            title={!activeShop ? 'Tidak ada shop aktif' : 'Ambil penarikan dana TikTok + catat piutang otomatis'}
           >
-            {syncing === 'finance' ? (
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <DollarSign size={14} />
-            )}
-            Sync Finance (Settlement)
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {syncing === 'finance' ? (
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <DollarSign size={14} />
+              )}
+              Sync Settlement
+            </span>
+            <span style={{ fontSize: '0.68rem', fontWeight: '400', color: 'var(--neutral-500)', lineHeight: 1.3 }}>
+              Ambil penarikan dana TikTok + catat piutang otomatis
+            </span>
           </button>
           <button
             onClick={() => handleBackfill('piutang')}
@@ -702,17 +742,23 @@ export default function TikTokDashboardPage() {
               fontWeight: '600',
               cursor: syncing !== null || !activeShop ? 'not-allowed' : 'pointer',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.15rem'
             }}
-            title={!activeShop ? 'Tidak ada shop aktif' : undefined}
+            title={!activeShop ? 'Tidak ada shop aktif' : 'Buat piutang untuk settlement yang terlewat (backfill)'}
           >
-            {syncing === 'piutang' ? (
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <DollarSign size={14} />
-            )}
-            Create Piutang
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {syncing === 'piutang' ? (
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <DollarSign size={14} />
+              )}
+              Buat Piutang
+            </span>
+            <span style={{ fontSize: '0.68rem', fontWeight: '400', color: 'var(--neutral-500)', lineHeight: 1.3 }}>
+              Buat piutang untuk settlement yang terlewat (backfill)
+            </span>
           </button>
           <button
             onClick={() => handleBackfill('orders')}
@@ -727,17 +773,23 @@ export default function TikTokDashboardPage() {
               fontWeight: '600',
               cursor: syncing !== null || !activeShop ? 'not-allowed' : 'pointer',
               display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
+              flexDirection: 'column',
+              alignItems: 'flex-start',
+              gap: '0.15rem'
             }}
-            title={!activeShop ? 'Tidak ada shop aktif' : undefined}
+            title={!activeShop ? 'Tidak ada shop aktif' : 'Ubah order yang sudah dibayar jadi pesanan utama'}
           >
-            {syncing === 'orders_backfill' ? (
-              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <Link2 size={14} />
-            )}
-            Link to Main Orders
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {syncing === 'orders_backfill' ? (
+                <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <Link2 size={14} />
+              )}
+              Link to Main Orders
+            </span>
+            <span style={{ fontSize: '0.68rem', fontWeight: '400', color: 'var(--neutral-500)', lineHeight: 1.3 }}>
+              Ubah order yang sudah dibayar jadi pesanan utama
+            </span>
           </button>
         </div>
 
@@ -998,11 +1050,36 @@ export default function TikTokDashboardPage() {
           >
             Settlements
           </h2>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--neutral-500)' }}>Status:</label>
+            <select
+              value={filterStmtStatus}
+              onChange={async (e) => {
+                const v = e.target.value
+                setFilterStmtStatus(v)
+                await fetchData(0, filterStatus, filterPayment, orderPageSize, 0, v)
+              }}
+              style={{
+                padding: '0.3rem 0.5rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #d1d5db',
+                fontSize: '0.78rem',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="">Semua</option>
+              <option value="SUCCESS">SUCCESS</option>
+              <option value="PAID">PAID</option>
+              <option value="COMPLETED">COMPLETED</option>
+            </select>
+          </div>
         </div>
         {statements.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
             <DollarSign size={24} style={{ opacity: 0.3, margin: '0 auto 0.5rem' }} />
-            <p style={{ fontSize: '0.85rem' }}>Belum ada settlement tersync. Klik "Sync Finance" untuk import.</p>
+            <p style={{ fontSize: '0.85rem' }}>Belum ada settlement tersync. Klik "Sync Settlement" untuk import.</p>
           </div>
         ) : (
           <>
@@ -1098,6 +1175,21 @@ export default function TikTokDashboardPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div style={{ padding: '0 1.25rem 1rem' }}>
+            <Pagination
+              currentPage={stmtPage + 1}
+              totalPages={Math.max(1, Math.ceil(stmtTotal / stmtPageSize))}
+              onPageChange={(p) => fetchData(0, filterStatus, filterPayment, orderPageSize, p - 1, filterStmtStatus)}
+              pageSize={stmtPageSize}
+              onPageSizeChange={(s) => {
+                setStmtPageSize(s)
+                fetchData(0, filterStatus, filterPayment, orderPageSize, 0, filterStmtStatus, s)
+              }}
+              totalItems={stmtTotal}
+              startIndex={stmtTotal === 0 ? 0 : stmtPage * stmtPageSize + 1}
+              endIndex={Math.min((stmtPage + 1) * stmtPageSize, stmtTotal)}
+            />
           </div>
           </>
         )}

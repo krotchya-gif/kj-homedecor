@@ -4,14 +4,22 @@
 
 ## TikTok Shop (custom app) — TERIMPLEMENTASI ✅
 1. **Pesanan masuk** — order TikTok disinkronkan otomatis ke sistem:
-   - `/api/tiktok/sync-orders` → tarik order dari TikTok
-   - `/api/tiktok/sync-to-main-orders` → konversi jadi order utama (order_number otomatis)
+   - `/api/tiktok/sync-orders` → tarik order dari TikTok (staging di `tiktok_shop_orders`)
+   - `/api/tiktok/sync-to-main-orders` → konversi order yang sudah **PAID** jadi order utama (order_number otomatis)
 2. **Pembayaran** — status pembayaran TikTok dicerminkan:
-   - `/api/tiktok/sync-finance` → sync statement → auto-create **piutang**
-   - `/api/tiktok/create-piutang` → buat piutang manual dari faktur
+   - `/api/tiktok/sync-finance` → tarik statement settlement → auto-create **piutang**
+   - `/api/tiktok/create-piutang` → buat piutang manual dari settlement yang terlewat (backfill)
 3. **Produksi & kirim** — order TikTok mengikuti pipeline normal (Flow 01)
 4. **Webhook** — `/api/tiktok/webhook` menerima event TikTok (HMAC signature; **note:** verifikasi di-skip jika `TIKTOK_APP_SECRET` tidak di-set — wajib diisi di production)
 5. **OAuth** — `/api/tiktok/auth` + `reauthorize` untuk koneksi toko (kelola di `/owner/tiktok`)
+
+### Urutan sync yang benar (di halaman `/owner/tiktok`)
+1. **Sync Orders** — tarik order terbaru dari TikTok (belum jadi pesanan, hanya staging)
+2. **Link to Main Orders** — ubah order yang sudah dibayar jadi pesanan utama (masuk pipeline)
+3. **Sync Settlement** — tarik penarikan dana TikTok + catat piutang otomatis
+4. **Buat Piutang** — backfill piutang untuk settlement yang terlewat (jika ada)
+
+> Catatan pembukuan (sesi 11): revenue TikTok dicatat **saat order** (`order_created`), kas masuk E-Wallet Tiktok dicatat **saat settlement** (`piutang_received`) — tidak dobel.
 
 ## Shopee / Tokopedia — BELUM TERINTEGRASI ⚠️
 - Order Shopee/Tokopedia **tidak** disinkronkan otomatis

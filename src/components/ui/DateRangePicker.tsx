@@ -39,6 +39,16 @@ function formatShort(dateStr: string) {
   return `${d.getDate()} ${MONTHS[d.getMonth()].substring(0, 3)}`
 }
 
+// BUG-075 fix (2026-08-13): format dari komponen tanggal LOKAL — jangan pakai
+// toISOString().split('T')[0] yang mengubah ke UTC (di WIB UTC+7, pilih tgl 1 jadi 31,
+// pilih tgl 10 jadi 9). Helper ini membaca getFullYear/getMonth/getDate langsung.
+function toLocalDateStr(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export default function DateRangePicker({
   startDate,
   endDate,
@@ -80,7 +90,7 @@ export default function DateRangePicker({
   }
 
   function selectDate(date: Date) {
-    const dateStr = date.toISOString().split('T')[0]
+    const dateStr = toLocalDateStr(date)
     if (selectingStart) {
       setTempStart(dateStr)
       setTempEnd(dateStr)
@@ -101,12 +111,12 @@ export default function DateRangePicker({
   }
 
   function isInRange(date: Date) {
-    const d = date.toISOString().split('T')[0]
+    const d = toLocalDateStr(date)
     return d >= tempStart && d <= tempEnd
   }
 
   function isSelected(date: Date) {
-    const d = date.toISOString().split('T')[0]
+    const d = toLocalDateStr(date)
     return d === tempStart || d === tempEnd
   }
 
@@ -137,10 +147,10 @@ export default function DateRangePicker({
 
   // Quick presets
   function applyPreset(days: number) {
-    const end = today.toISOString().split('T')[0]
+    const end = toLocalDateStr(today)
     const start = new Date(today)
     start.setDate(today.getDate() - days)
-    onStartChange(start.toISOString().split('T')[0])
+    onStartChange(toLocalDateStr(start))
     onEndChange(end)
   }
 
