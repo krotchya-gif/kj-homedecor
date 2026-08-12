@@ -38,7 +38,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   // Get current PO data (before update)
   const { data: currentPO } = await supabase
     .from('purchase_orders')
-    .select('status, pr_id, actual_cost')
+    .select('status, pr_id, actual_cost, id')
     .eq('id', id)
     .single()
 
@@ -47,6 +47,40 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const updates: Record<string, unknown> = {}
   for (const k of ALLOWED_FIELDS) {
     if (k in body) updates[k] = body[k]
+  }
+
+  // BUG-062 fix (2026-08-13): guard transisi status — cegah received/paid dobel
+  // (stok & jurnal purchase ganda) dan paid tanpa received (hutang negatif).
+  // Transisi sah: pending → delivered → received → paid.
+  const VALID_TRANSITIONS: Record<string, string[]> = {
+    pending: ['delivered', 'received', 'pending'],
+    delivered: ['received', 'delivered'],
+    received: ['paid', 'received'],
+    paid: ['paid']
+  }
+
+  if (body.status && currentPO) {
+    const allowedNext = VALID_TRANSITIONS[currentPO.status] ?? []
+    if (!allowedNext.includes(body.status)) {
+      return NextResponse.json(
+        {
+          data: null,
+          error: {
+            message: `Transisi status tidak sah: ${currentPO.status} → ${body.status} (urutan: pending → delivered → received → paid)`
+          }
+        },
+        { status: 400 }
+      )
+    }
+    // Idempotent: status yang sama di-submit ulang → 200 tanpa aksi ganda
+    if (body.status === currentPO.status) {
+      const { data: existingPO } = await supabase
+        .from('purchase_orders')
+        .select('*, supplier:suppliers(*), pr:purchase_requests(*)')
+        .eq('id', id)
+        .single()
+      return NextResponse.json({ data: existingPO, error: null })
+    }
   }
 
   if (body.status === 'received') {
@@ -113,7 +147,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
               description: `PO received — material stock in`,
               amount: poCost,
               baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-              supabase
+              supabase,
+              idempotency_key: `po_received:${id}`
             })
           }
         } catch (e) {
@@ -143,7 +178,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             description: `PO payment — pelunasan tagihan supplier`,
             amount: actualCostNum,
             baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-            supabase
+            supabase,
+            idempotency_key: `po_paid:${id}`
           })
         } catch (e) {
           console.warn('Failed to create journal entry for PO payment:', e)

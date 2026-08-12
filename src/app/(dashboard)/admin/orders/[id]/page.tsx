@@ -476,29 +476,55 @@ export default function OrderDetailPage() {
 
     // F-med fix: reversal jurnal saat cancel — order_created & payment_received
     // yang sudah tercatat harus dibalik agar laba-rugi & neraca tidak overstated.
+    // BUG-060 fix (2026-08-13): cek dulu jurnal yang BENAR-BENAR ada — jangan
+    // bikin reversal "hantu" untuk jurnal yang tak pernah dibuat (mis. DP yang
+    // jurnalnya gagal BUG-058, atau order tanpa pembayaran).
     const totalPaid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
     if ((order.total_amount ?? 0) > 0 || totalPaid > 0) {
       try {
         const { getAccountMapping } = await import('@/utils/journal/create')
         const { createSimpleJournal } = await import('@/utils/journal/create')
 
+        // Cek jurnal order_created nyata (reference order — reversal pakai 'order_cancelled')
+        const { data: orderJournals } = await supabase
+          .from('journal_entries')
+          .select('id')
+          .eq('reference_type', 'order')
+          .eq('reference_id', id)
+        const hasOrderJournal = (orderJournals?.length ?? 0) > 0
+
+        // Cek jurnal payment_received nyata lewat idempotency key yang dipakai semua jalur
+        const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', id)
+        const paymentKeys = [
+          ...(existingPayments ?? []).map((p) => `payment:${p.id}`),
+          `admin_dp_auto:${id}`,
+          `tiktok_sync_payment:${id}`
+        ]
+        const { data: payJournals } = await supabase
+          .from('journal_entries')
+          .select('id')
+          .in('idempotency_key', paymentKeys)
+        const hasPaymentJournal = (payJournals?.length ?? 0) > 0
+
         // Reversal order_created: Dr (akun kredit mapping) / Cr (akun debit mapping)
-        const revOrder = await getAccountMapping('order_created')
-        if (revOrder?.debit_account_id && revOrder?.credit_account_id) {
-          await createSimpleJournal({
-            transaction_type: 'order_created',
-            reference_type: 'order_cancelled',
-            reference_id: id,
-            description: `Reversal order_created — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan`,
-            amount: order.total_amount ?? 0,
-            debit_account_id: revOrder.credit_account_id,
-            credit_account_id: revOrder.debit_account_id,
-            idempotency_key: `cancel_order_created:${id}`
-          })
+        if (hasOrderJournal) {
+          const revOrder = await getAccountMapping('order_created')
+          if (revOrder?.debit_account_id && revOrder?.credit_account_id) {
+            await createSimpleJournal({
+              transaction_type: 'order_created',
+              reference_type: 'order_cancelled',
+              reference_id: id,
+              description: `Reversal order_created — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan`,
+              amount: order.total_amount ?? 0,
+              debit_account_id: revOrder.credit_account_id,
+              credit_account_id: revOrder.debit_account_id,
+              idempotency_key: `cancel_order_created:${id}`
+            })
+          }
         }
 
         // Reversal payment_received: Dr (akun kredit mapping) / Cr (akun debit mapping)
-        if (totalPaid > 0) {
+        if (totalPaid > 0 && hasPaymentJournal) {
           const revPay = await getAccountMapping('payment_received')
           if (revPay?.debit_account_id && revPay?.credit_account_id) {
             await createSimpleJournal({

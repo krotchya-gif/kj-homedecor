@@ -328,6 +328,10 @@ export default function OrdersPage() {
 
       // F-24 fix (2026-08-11): jurnal order_created + payment_received harus dibuat
       // dari SEMUA jalur (sebelumnya cuma POST /api/orders yang berjurnal).
+      // BUG-060 fix (2026-08-13): auto-DP sebelumnya HANYA jurnal order_created →
+      // Kas tidak pernah masuk DP (overstated piutang). Sekarang payment_received
+      // ikut di-jurnal sesuai nominal yang dicatat (idempotent per order).
+      const dpRecorded = dpAmt >= totalAmt ? totalAmt : dpAmt
       try {
         await createSimpleJournal({
           transaction_type: 'order_created',
@@ -339,6 +343,18 @@ export default function OrdersPage() {
       } catch (jErr) {
         console.error('Gagal buat jurnal order:', jErr)
         toast('warning', 'Order dibuat, TAPI jurnal GAGAL. Periksa mapping akun.')
+      }
+      try {
+        await createSimpleJournal({
+          transaction_type: 'payment_received',
+          reference_type: 'order',
+          reference_id: newOrder.id,
+          description: `DP/Lunas ${dpAmt >= totalAmt ? 'lunas' : 'DP'} auto-catat Admin (source: ${form.source}) — ${orderNumber ?? ''}`,
+          amount: dpRecorded,
+          idempotency_key: `admin_dp_auto:${newOrder.id}`
+        })
+      } catch (jErr) {
+        console.error('Gagal buat jurnal payment_received (auto-DP):', jErr)
       }
     }
     // Order TANPA DP — tetap harus jurnal order_created (piutang penuh)
