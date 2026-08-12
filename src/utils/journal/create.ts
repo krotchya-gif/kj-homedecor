@@ -18,17 +18,49 @@ export interface CreateJournalOptions {
   lines: JournalLineInput[]
   is_auto?: boolean
   baseUrl?: string
+  /** Server client (ber-session / service role). Kalau ada, jurnal dibuat via RPC
+   *  langsung — menghindari 401 karena route /api/journal wajib cookie session. */
+  supabase?: SupabaseClient
 }
 
 /**
- * Create a journal entry via /api/journal.
+ * Create a journal entry.
  * BUG-009 fix (2026-08-11): di server context (Next.js route handler / Node 18+),
  * `fetch` TIDAK mendukung URL relatif — `fetch('/api/journal')` throw
  * "Failed to parse URL" sehingga semua jurnal server (order_created, purchase,
  * expense_paid) diam-diam gagal. Solusi: pemanggil server wajib kirim `baseUrl`
  * (biasanya process.env.NEXT_PUBLIC_BASE_URL); di browser cukup relative.
+ *
+ * BUG-058 fix (2026-08-13): kalau pemanggil mengirim `supabase` (server client),
+ * jurnal dipanggil LANGSUNG via RPC `create_journal_atomic` — karena route
+ * /api/journal tetap fetch HTTP TANPA cookie (fetch tidak membawa cookie dari
+ * route handler) → selalu 401 → jurnal server tak pernah tersimpan. RPC jalan
+ * di sesi yang sama (token user / service role) sehingga aman & idempotent.
  */
 export async function createJournalEntry(options: CreateJournalOptions) {
+  const { supabase } = options
+
+  if (supabase) {
+    const { data } = await supabase.auth.getUser()
+    const { data: rpcData, error: rpcError } = await supabase.rpc('create_journal_atomic', {
+      p_idempotency_key: options.idempotency_key ?? null,
+      p_reference_type: options.reference_type ?? null,
+      p_reference_id: options.reference_id ?? null,
+      p_description: options.description,
+      p_entry_date: options.entry_date ?? new Date().toISOString().split('T')[0],
+      p_is_auto: options.is_auto ?? false,
+      p_lines: options.lines.map((l) => ({
+        account_id: l.account_id,
+        debit: l.debit ?? 0,
+        credit: l.credit ?? 0,
+        description: l.description ?? null
+      })),
+      p_created_by: data?.user?.id ?? null
+    })
+    if (rpcError) throw new Error(rpcError.message)
+    return rpcData
+  }
+
   const baseUrl = options.baseUrl?.replace(/\/$/, '')
   const url = baseUrl ? `${baseUrl}/api/journal` : '/api/journal'
   const res = await fetch(url, {
@@ -101,6 +133,7 @@ export async function createSimpleJournal(options: {
     idempotency_key: options.idempotency_key,
     is_auto: true,
     baseUrl: options.baseUrl,
+    supabase,
     lines: [
       { account_id: debitAccountId, debit: amount, credit: 0 },
       { account_id: creditAccountId, debit: 0, credit: amount }
