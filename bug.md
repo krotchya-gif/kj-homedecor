@@ -42,6 +42,18 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-032 | **RLS & RPC hardening**: policy permisif (laundry_payroll/rates, style_rates, assets, account_categories, users, tiktok owner_all USING(true)), RPC stock tanpa role check | ✅ Fixed (migration 067) | RLS role-based + REVOKE PUBLIC/anon + role check di 5 RPC |
 | BUG-033 | **`users_role_check` hilang role laundry** (migration 060) → insert role laundry gagal 23514 | ✅ Fixed (migration 070) | Drop + recreate constraint lengkap |
 | BUG-034 | **F-61 sumber piutang ganda**: laporan campur orders vs tabel piutang | ✅ Fixed | Sumber utama = tabel `piutang` (umur-piutang, dashboard, payments) + halaman rekonsiliasi read-only |
+| BUG-035 | **RLS hardening 067/071 no-op** — DROP policy pakai nama salah ("Authenticated staff (full) access" vs asli tanpa kurung) → users full access & permissive tiktok/accounting masih aktif | ✅ Fixed (migration 072) | Drop nama benar + ENABLE RLS tiktok/survey_logs + hardening accounts/hutang/piutang/cash_accounts |
+| BUG-036 | **`order_logs_action_check` menolak `payment_verified`** → insert log approve cek bayar gagal 23514 | ✅ Fixed (migration 072) | Constraint = union codebase + data live (payment_verified, production_completed, status_changed) |
+| BUG-037 | **Kolom live dipakai codebase hilang dari schema reference** (order_date, shipping_address, actual_date, piutang.description, accounts.normal_side, hutang.remaining, landing_settings.key, survey_logs.user_id) | ✅ Fixed (migration 072) | Sinkron `000_full_schema.sql` = kondisi live |
+| BUG-038 | **Settlement TikTok "main net"** — fee (komisi/platform) tidak pernah masuk jurnal; piutang dicatat net saja | ✅ Fixed (migration 073) | Piutang gross + 3 jurnal (order_created → ecommerce_fee → piutang_received) idempotent + breakdown fee |
+| BUG-039 | **Mapping settlement TikTok terbalik** — `settlement_amount` (gross) dipakai sebagai kas masuk; net yang benar = `revenue_amount` | ✅ Fixed (migration 073) | Diverifikasi dari payload live: settlement = revenue + fee |
+| BUG-040 | **Fail-open DELETE order** `requester?.role ?? 'admin'` — user tanpa profil dianggap admin | ✅ Fixed (commit `4277557`) | Deny kalau profil tak ada / non-admin-owner aktif |
+| BUG-041 | **`consume-materials` tanpa role check** — role mana pun kurangi stok via RPC SECURITY DEFINER | ✅ Fixed | +role check gudang/admin/owner |
+| BUG-042 | **Surveys fail-open** `data?.role ?? 'admin'` + POST tanpa role gate | ✅ Fixed | role `?? null` → deny; POST/GET surveyor/admin/owner |
+| BUG-043 | **install-bookings PUT mass-assignment** `update({...body})` + `actual_date` tidak pernah tersimpan | ✅ Fixed | Whitelist field; installer tetap hanya status |
+| BUG-044 | **po-delivery GET tanpa auth** & **journal GET login-only** (data keuangan bocor) | ✅ Fixed | GET + auth/role; journal GET finance/admin/owner |
+| BUG-045 | **TikTok webhook non-timing-safe** (`!==` string compare) | ✅ Fixed | `crypto.timingSafeEqual` (tiru xendit) |
+| BUG-046 | **TikTok OAuth callback mati** — `getUser()` service client selalu null → selalu 401; **rate limit IP spoofable** (`x-forwarded-for`) | ✅ Fixed | Hapus gate callback (aman via code+state); `getClientIp()` anti-spoof |
 
 ---
 
@@ -377,7 +389,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-012 — Refund rusak 3 lapis
 
-**Severity:** 🟠 Tinggi (terbuka)
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11 — lihat ringkasan tabel)
 **File:** `finance/payments/page.tsx:369-406` + migration 003:53-54 / 055:242-243
 
 1. Refund insert `payments type='refund'` **tanpa jurnal reversal** & tanpa kurangi `dp_amount/lunas_amount`
@@ -393,7 +405,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-013 — Hutang & piutang off-ledger
 
-**Severity:** 🟠 Tinggi (terbuka)
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11 — lihat ringkasan tabel)
 **File:** `finance/hutang/page.tsx:151-183`, `finance/piutang/*`
 
 - **Bayar hutang**: cuma update `paid_amount` + status — tidak ada jurnal Dr Hutang / Cr Kas, tidak ada update saldo kas → uang keluar "hilang" dari pembukuan
@@ -407,7 +419,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-014 — Piutang tidak pernah bisa lunas
 
-**Severity:** 🟠 Tinggi (terbuka)
+**Severity:** 🟠 Tinggi (✅ FIXED 2026-08-11 — lihat ringkasan tabel)
 **File:** `finance/piutang/*` (faktur, payment, process)
 
 - `piutang.paid_amount` / `return_amount` **tidak pernah di-write** di seluruh `src/` (grep = 0) → faktur piutang pending selamanya
@@ -424,7 +436,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-015 — Filter periode DEAD di laporan
 
-**Severity:** 🟡 Sedang (terbuka)
+**Severity:** 🟡 Sedang (✅ FIXED 2026-08-11 — lihat ringkasan tabel)
 **File:** 8/10 laporan di `finance/laporan/*` & `owner/laporan/*` + `mutasi-kas`/`umur-hutang`/`umur-piutang`
 
 - `useEffect(() => { fetchData() }, [])` — array kosong → ganti tanggal tidak memicu reload
@@ -439,7 +451,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-016 — Neraca tidak balance
 
-**Severity:** 🟡 Sedang (terbuka)
+**Severity:** 🟡 Sedang (✅ FIXED 2026-08-11 — lihat ringkasan tabel)
 **File:** `finance/laporan/neraca/page.tsx`
 
 - Tanpa **laba berjalan** (Σ revenue − Σ expense) di ekuitas → A = L + E tidak pernah bisa balance saat ada profit
@@ -453,7 +465,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-017 — Komisi marketplace TikTok hilang
 
-**Severity:** 🟡 Sedang (terbuka)
+**Severity:** 🟡 Sedang (✅ FIXED 2026-08-11/12 — komisi & breakdown fee TikTok, lihat BUG-017/BUG-038/BUG-039)
 **File:** `api/tiktok/sync-orders/route.ts:102-104`, `api/tiktok/sync-finance/route.ts:113-143`
 
 - `commission_fee: 0` hardcode; `platform_fee` diambil dari `platform_discount` (diskon, bukan biaya); `net_amount = total − shippingFee` (komisi menguap)
@@ -469,7 +481,7 @@ Jurnal `purchase` (Dr Persediaan / Cr Hutang) mencatat "5" bukan Rp — korup bu
 
 ## BUG-018 — `exec_sql` backdoor di DB
 
-**Severity:** 🔴 Kritis (terbuka — butuh aksi di Supabase, bukan kode)
+**Severity:** 🔴 Kritis (✅ FIXED — terverifikasi mati 404 di live, tidak ada di `src/`)
 **File:** migration `055_fix_remaining_schema_drift.sql:396-404`
 
 ```sql
@@ -488,7 +500,7 @@ REVOKE ALL ON FUNCTION public.exec_sql FROM PUBLIC, anon, authenticated;
 
 ## BUG-019 — RLS & role check keuangan longgar
 
-**Severity:** 🔴 Kritis (terbuka)
+**Severity:** 🔴 Kritis (✅ FIXED 2026-08-11/12 — migration 067 + 072, lihat BUG-035)
 **File:** migration 001/018-026 (policy `FOR ALL authenticated`), `api/journal/route.ts:28-33`, migration 055:381-392 (RPC kas)
 
 - `payments`, `journal_entries`, `journal_lines`, `accounts`, `hutang`, `piutang`, `cash_accounts` → **semua yang login** bisa baca/tulis
@@ -514,6 +526,27 @@ REVOKE ALL ON FUNCTION public.exec_sql FROM PUBLIC, anon, authenticated;
 - `Number()` di `ledger.ts` aman dipertahankan (defensif)
 
 **Kesimpulan:** F-35 & F-72 di `audit-finance.md` adalah **false positive**. PostgREST/supabase-js pada konfigurasi ini selalu mengembalikan NUMERIC sebagai number.
+
+---
+
+## BUG-035 s/d BUG-046 — Sesi 3 & 4 (2026-08-12)
+
+Detail ringkas — implementasi lengkap di ringkasan tabel di atas, `todo.md`, dan commit `5cd8d45` (migration 072/073) / `4277557` (security API).
+
+| ID | Fix | Bukti |
+|---|---|---|
+| BUG-035 | RLS hardening 067/071 no-op (nama policy salah) → permissive lama di-drop + ENABLE RLS tiktok/survey_logs + hardening accounts/hutang/piutang/cash_accounts | migration `072`, `000_full_schema.sql` = live (58 tabel, 58 RLS) |
+| BUG-036 | `order_logs_action_check` + `payment_verified` (+ data live: production_completed, status_changed) | migration `072` |
+| BUG-037 | Kolom drift codebase↔schema disinkronkan (order_date, shipping_address, actual_date, piutang.description, accounts.normal_side, hutang.remaining, landing_settings.key, survey_logs.user_id) | migration `072` |
+| BUG-038 | Settlement TikTok "main net" → piutang gross + 3 jurnal idempotent + breakdown fee | migration `073` |
+| BUG-039 | Mapping settlement: `settlement_amount`=gross, `revenue_amount`=net (dulu settlement dipakai sebagai kas masuk) | migration `073` (verifikasi payload live) |
+| BUG-040 | Fail-open DELETE order `?? 'admin'` → deny | commit `4277557` |
+| BUG-041 | `consume-materials` tanpa role check | commit `4277557` |
+| BUG-042 | Surveys fail-open + POST tanpa role gate | commit `4277557` |
+| BUG-043 | install-bookings PUT mass-assignment + `actual_date` tidak tersimpan | commit `4277557` |
+| BUG-044 | po-delivery GET tanpa auth; journal GET bocor | commit `4277557` |
+| BUG-045 | TikTok webhook non-timing-safe | commit `4277557` |
+| BUG-046 | TikTok OAuth callback mati; rate limit IP spoofable | commit `4277557` |
 
 ---
 
