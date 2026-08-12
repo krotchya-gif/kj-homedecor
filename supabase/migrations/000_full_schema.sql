@@ -15,13 +15,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================
 
 -- USERS (staff accounts)
+-- Catatan 079: kolom `email` TIDAK ada di live (drift schema file) — dihapus agar file = live.
 CREATE TABLE IF NOT EXISTS public.users (
   id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name        TEXT NOT NULL,
   role        TEXT NOT NULL CHECK (role IN ('admin','gudang','penjahit','finance','installer','owner','surveyor','laundry')),
   status      TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive')),
   avatar_url  TEXT,
-  email       TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
