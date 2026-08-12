@@ -143,12 +143,12 @@ CREATE TABLE IF NOT EXISTS public.order_logs (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id    UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
   action      TEXT NOT NULL CHECK (action IN (
-    'created','sorted','payment_approved','production_started','production_done',
+    'created','sorted','payment_approved','payment_verified','payment_input','payment_added','refund_issued',
+    'production_started','production_completed','production_done',
     'qc_pass','qc_fail','ready','packed','shipped','installed','done',
     'return_initiated','return_stock_in','return_disposed','cancelled',
     'penjahit_assigned','install_started','install_done','install_revision',
-    'steam_qc_pass','steam_revision_requeue','order_deleted',
-    'payment_input','payment_added','refund_issued'
+    'steam_qc_pass','steam_revision_requeue','order_deleted','status_changed'
   )),
   notes       TEXT,
   staff_id    UUID REFERENCES public.users(id),
@@ -447,6 +447,7 @@ CREATE TABLE IF NOT EXISTS public.laundry_payroll (
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.landing_settings (
   id TEXT PRIMARY KEY DEFAULT 'hero',
+  key TEXT,
   hero_title TEXT DEFAULT 'Percantik Ruanganmu dengan Gorden Premium',
   hero_subtitle TEXT DEFAULT 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi. Pemasangan profesional ke seluruh Jabodetabek.',
   hero_cta_text TEXT DEFAULT 'Lihat Katalog',
@@ -665,6 +666,7 @@ CREATE TABLE IF NOT EXISTS public.piutang (
   amount          NUMERIC NOT NULL DEFAULT 0,
   paid_amount     NUMERIC DEFAULT 0,
   return_amount   NUMERIC DEFAULT 0,
+  fee_amount      NUMERIC DEFAULT 0,
   status          VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
   order_id        UUID REFERENCES public.orders(id),
   notes           TEXT,
@@ -1092,43 +1094,43 @@ CREATE POLICY "Authenticated staff full access" ON public.users
   FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated staff full access" ON public.customers
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.materials
+CREATE POLICY "Authenticated staff access" ON public.materials
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.suppliers
+CREATE POLICY "Authenticated staff access" ON public.suppliers
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.bom
+CREATE POLICY "Authenticated staff access" ON public.bom
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.orders
+CREATE POLICY "Authenticated staff access" ON public.orders
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.order_items
+CREATE POLICY "Authenticated staff access" ON public.order_items
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.production_jobs
+CREATE POLICY "Authenticated staff access" ON public.production_jobs
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.production_reports
+CREATE POLICY "Authenticated staff access" ON public.production_reports
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.inventory_movements
+CREATE POLICY "Authenticated staff access" ON public.inventory_movements
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.low_stock_alerts
+CREATE POLICY "Authenticated staff access" ON public.low_stock_alerts
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.purchase_requests
+CREATE POLICY "Authenticated staff access" ON public.purchase_requests
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.purchase_orders
+CREATE POLICY "Authenticated staff access" ON public.purchase_orders
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.install_checklists
+CREATE POLICY "Authenticated staff access" ON public.install_checklists
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.payments
+CREATE POLICY "Authenticated staff access" ON public.payments
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.lembur_records
+CREATE POLICY "Authenticated staff access" ON public.lembur_records
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.qc_records
+CREATE POLICY "Authenticated staff access" ON public.qc_records
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.laundry_records
+CREATE POLICY "Authenticated staff access" ON public.laundry_records
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.material_price_history
+CREATE POLICY "Authenticated staff access" ON public.material_price_history
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.steam_jobs
+CREATE POLICY "Authenticated staff access" ON public.steam_jobs
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff full access" ON public.order_progress_photos
+CREATE POLICY "Authenticated staff access" ON public.order_progress_photos
   FOR ALL USING (auth.role() = 'authenticated');
 
 -- Categories: public read, auth write
@@ -1155,43 +1157,31 @@ CREATE POLICY "Public can read portfolio" ON public.portfolio_posts
 CREATE POLICY "Auth can write portfolio" ON public.portfolio_posts
   FOR ALL USING (auth.role() = 'authenticated');
 
--- Landing settings: public read, admin/owner write
-CREATE POLICY "Anyone can read landing settings" ON public.landing_settings
+-- Landing settings: public read, auth write (nama policy = kondisi live 053)
+CREATE POLICY "Public can read landing_settings" ON public.landing_settings
   FOR SELECT USING (true);
-CREATE POLICY "Only admin can update landing_settings" ON public.landing_settings
-  FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'owner'))
-  );
-CREATE POLICY "Only admin can insert landing_settings" ON public.landing_settings
-  FOR INSERT WITH CHECK (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'owner'))
-  );
-CREATE POLICY "Only admin can delete landing_settings" ON public.landing_settings
-  FOR DELETE USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin', 'owner'))
-  );
+CREATE POLICY "Auth can write landing_settings" ON public.landing_settings
+  FOR ALL USING (auth.role() = 'authenticated');
 
--- Order logs: authenticated select + insert
-CREATE POLICY "Authenticated users can view order logs" ON public.order_logs
-  FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "All authenticated roles can insert order logs" ON public.order_logs
-  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+-- Order logs: authenticated full access (kondisi live)
+CREATE POLICY "Authenticated staff access" ON public.order_logs
+  FOR ALL USING (auth.role() = 'authenticated');
 
--- Returns: authenticated select/insert, admin/finance/owner update
+-- Returns: authenticated select/insert, finance update
 CREATE POLICY "Authenticated users can view returns" ON public.returns
   FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Admins and finance can insert returns" ON public.returns
+CREATE POLICY "Authenticated users can insert returns" ON public.returns
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
-CREATE POLICY "Admins and finance can update returns" ON public.returns
-  FOR UPDATE USING (auth.role() IN ('admin','finance','owner'));
 
--- Install bookings: public insert + select (for website booking form)
+-- Install bookings: public insert + select (website booking) + staff access
 CREATE POLICY "Public can insert install_bookings" ON public.install_bookings
   FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public can read install_bookings" ON public.install_bookings
   FOR SELECT USING (true);
+CREATE POLICY "Authenticated staff access" ON public.install_bookings
+  FOR ALL USING (auth.role() = 'authenticated');
 
--- Order preparation checklists: authenticated full access
+-- Order preparation checklists: authenticated full access (kondisi live)
 CREATE POLICY "Authenticated users can manage own checklist" ON public.order_preparation_checklists
   FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
@@ -1219,6 +1209,9 @@ CREATE POLICY "Authenticated users can manage assets" ON public.assets
 CREATE POLICY "stock_opname_all" ON public.stock_opname_sessions
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','gudang','owner','finance')));
+CREATE POLICY "stock_opname_sessions_select" ON public.stock_opname_sessions
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','gudang','owner','finance')));
 CREATE POLICY "stock_opname_items_all" ON public.stock_opname_items
   FOR ALL TO authenticated
   USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','gudang','owner','finance')));
@@ -1236,19 +1229,9 @@ CREATE POLICY "style_rates_delete" ON public.style_rates
   FOR DELETE TO authenticated USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','owner')));
 
--- laundry_orders: all authenticated read, admin/owner insert+delete, assigned staff update
-CREATE POLICY "laundry_orders_select" ON public.laundry_orders
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "laundry_orders_insert" ON public.laundry_orders
-  FOR INSERT TO authenticated WITH CHECK (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','owner')));
-CREATE POLICY "laundry_orders_update" ON public.laundry_orders
-  FOR UPDATE TO authenticated USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','owner'))
-    OR assigned_to = auth.uid());
-CREATE POLICY "laundry_orders_delete" ON public.laundry_orders
-  FOR DELETE TO authenticated USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','owner')));
+-- laundry_orders: authenticated full access (kondisi live)
+CREATE POLICY "Authenticated staff access" ON public.laundry_orders
+  FOR ALL USING (auth.role() = 'authenticated');
 
 -- laundry_rates: all authenticated read, admin/owner write
 CREATE POLICY "laundry_rates_select" ON public.laundry_rates
@@ -1277,18 +1260,9 @@ CREATE POLICY "laundry_payroll_delete" ON public.laundry_payroll
   FOR DELETE TO authenticated USING (
     EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','owner','finance')));
 
--- order_material_consumption: all authenticated read, admin/gudang/owner write
-CREATE POLICY "omc_select" ON public.order_material_consumption
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY "omc_insert" ON public.order_material_consumption
-  FOR INSERT TO authenticated WITH CHECK (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','gudang','owner')));
-CREATE POLICY "omc_update" ON public.order_material_consumption
-  FOR UPDATE TO authenticated USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','gudang','owner')));
-CREATE POLICY "omc_delete" ON public.order_material_consumption
-  FOR DELETE TO authenticated USING (
-    EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND role IN ('admin','gudang','owner')));
+-- order_material_consumption: authenticated full access (kondisi live)
+CREATE POLICY "Authenticated staff access" ON public.order_material_consumption
+  FOR ALL USING (auth.role() = 'authenticated');
 
 -- ============================================================
 -- 8. SEED DATA
@@ -1305,7 +1279,7 @@ INSERT INTO public.categories (name, slug) VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- Landing settings default row
-INSERT INTO public.landing_settings (id) VALUES ('hero')
+INSERT INTO public.landing_settings (id, key) VALUES ('hero', 'hero')
 ON CONFLICT (id) DO NOTHING;
 
 -- Style rates
@@ -1420,6 +1394,29 @@ ON CONFLICT (transaction_type) DO UPDATE SET
 -- ---------- 10.1 Kolom & index baru ----------
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS source_tag TEXT;
 
+-- Kolom live yang dipakai codebase (audit schema <-> code 2026-08-12)
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS order_date TIMESTAMPTZ;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;
+ALTER TABLE public.tiktok_shop_orders ADD COLUMN IF NOT EXISTS order_date TIMESTAMPTZ;
+ALTER TABLE public.tiktok_shop_orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;
+ALTER TABLE public.install_bookings ADD COLUMN IF NOT EXISTS actual_date TIMESTAMPTZ;
+ALTER TABLE public.piutang ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.accounts ADD COLUMN IF NOT EXISTS normal_side TEXT;
+ALTER TABLE public.hutang ADD COLUMN IF NOT EXISTS remaining NUMERIC DEFAULT 0;
+ALTER TABLE public.landing_settings ADD COLUMN IF NOT EXISTS key TEXT;
+UPDATE public.landing_settings SET key = 'hero' WHERE key IS NULL;
+
+-- order_logs.action: tambah 'payment_verified' + union data live (production_completed, status_changed)
+ALTER TABLE public.order_logs DROP CONSTRAINT IF EXISTS order_logs_action_check;
+ALTER TABLE public.order_logs ADD CONSTRAINT order_logs_action_check CHECK (action IN (
+  'created','sorted','payment_approved','payment_verified','payment_input','payment_added','refund_issued',
+  'production_started','production_completed','production_done',
+  'qc_pass','qc_fail','ready','packed','shipped','installed','done',
+  'return_initiated','return_stock_in','return_disposed','cancelled',
+  'penjahit_assigned','install_started','install_done','install_revision',
+  'steam_qc_pass','steam_revision_requeue','order_deleted','status_changed'
+));
+
 ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS idempotency_key TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS journal_entries_idempotency_unique
   ON public.journal_entries (idempotency_key) WHERE idempotency_key IS NOT NULL;
@@ -1500,6 +1497,11 @@ CREATE TABLE IF NOT EXISTS public.tiktok_shop_statements (
   statement_id    VARCHAR(100) UNIQUE NOT NULL,
   statement_type  VARCHAR(50),
   total_amount    NUMERIC(15,2) DEFAULT 0,
+  revenue_amount  NUMERIC(15,2) DEFAULT 0,
+  fee_amount      NUMERIC(15,2) DEFAULT 0,
+  shipping_cost_amount NUMERIC(15,2) DEFAULT 0,
+  net_sales_amount     NUMERIC(15,2) DEFAULT 0,
+  adjustment_amount    NUMERIC(15,2) DEFAULT 0,
   status          VARCHAR(50),
   currency        VARCHAR(10) DEFAULT 'IDR',
   start_date      DATE,
@@ -1563,7 +1565,7 @@ CREATE TABLE IF NOT EXISTS public.survey_logs (
   survey_id   UUID NOT NULL REFERENCES public.surveys(id) ON DELETE CASCADE,
   action      TEXT NOT NULL,
   detail      TEXT,
-  created_by  UUID REFERENCES public.users(id),
+  user_id     UUID REFERENCES public.users(id),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -1589,7 +1591,8 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id, is_read);
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users read own notifications" ON public.notifications
+DROP POLICY IF EXISTS "Users read own notifications" ON public.notifications;
+CREATE POLICY "notifications_own" ON public.notifications
   FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
 -- ---------- 10.5 Fungsi role helper (SECURITY DEFINER — BUKAN subquery di policy) ----------
@@ -1950,91 +1953,192 @@ GRANT EXECUTE ON FUNCTION public.consume_materials_for_production TO authenticat
 
 -- ---------- 10.7 Policy FINAL (hardened — 063/067/071) ----------
 -- users: SELECT semua staff; WRITE admin/owner via SECURITY DEFINER (BUKAN subquery!)
+DROP POLICY IF EXISTS "Authenticated staff full access" ON public.users;
 DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.users;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.users;
 DROP POLICY IF EXISTS "Admin manage users" ON public.users;
+DROP POLICY IF EXISTS "All staff read users" ON public.users;
 CREATE POLICY "All staff read users" ON public.users
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Admin manage users" ON public.users
   FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
 -- payments / journal_entries / journal_lines: SELECT staff, WRITE finance
+DROP POLICY IF EXISTS "Authenticated staff full access" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.payments;
+DROP POLICY IF EXISTS "All staff read payments" ON public.payments;
+DROP POLICY IF EXISTS "Finance can manage payments" ON public.payments;
 CREATE POLICY "All staff read payments" ON public.payments
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage payments" ON public.payments
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
+DROP POLICY IF EXISTS "Authenticated users can manage journals" ON public.journal_entries;
+DROP POLICY IF EXISTS "Authenticated staff full access" ON public.journal_entries;
 DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.journal_entries;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.journal_entries;
+DROP POLICY IF EXISTS "All staff read journal_entries" ON public.journal_entries;
+DROP POLICY IF EXISTS "Finance can manage journal_entries" ON public.journal_entries;
 CREATE POLICY "All staff read journal_entries" ON public.journal_entries
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage journal_entries" ON public.journal_entries
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
-DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.journal_lines;
 DROP POLICY IF EXISTS "Authenticated users can manage journal lines" ON public.journal_lines;
+DROP POLICY IF EXISTS "Authenticated staff full access" ON public.journal_lines;
+DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.journal_lines;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.journal_lines;
+DROP POLICY IF EXISTS "All staff read journal_lines" ON public.journal_lines;
+DROP POLICY IF EXISTS "Finance can manage journal_lines" ON public.journal_lines;
 CREATE POLICY "All staff read journal_lines" ON public.journal_lines
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage journal_lines" ON public.journal_lines
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
--- launder/payroll/rates/style/assets/account_categories (055 buka lagi -> 067 tutup)
+-- laundry/payroll/rates/style/assets/account_categories (055 buka lagi -> 067 tutup)
+DROP POLICY IF EXISTS "laundry_payroll_select" ON public.laundry_payroll;
+DROP POLICY IF EXISTS "laundry_payroll_insert" ON public.laundry_payroll;
+DROP POLICY IF EXISTS "laundry_payroll_update" ON public.laundry_payroll;
+DROP POLICY IF EXISTS "laundry_payroll_delete" ON public.laundry_payroll;
 DROP POLICY IF EXISTS "Authenticated users can manage laundry payroll" ON public.laundry_payroll;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.laundry_payroll;
+DROP POLICY IF EXISTS "All staff read laundry_payroll" ON public.laundry_payroll;
+DROP POLICY IF EXISTS "Finance can manage laundry_payroll" ON public.laundry_payroll;
 CREATE POLICY "All staff read laundry_payroll" ON public.laundry_payroll
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage laundry_payroll" ON public.laundry_payroll
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
+DROP POLICY IF EXISTS "laundry_rates_select" ON public.laundry_rates;
+DROP POLICY IF EXISTS "laundry_rates_insert" ON public.laundry_rates;
+DROP POLICY IF EXISTS "laundry_rates_update" ON public.laundry_rates;
+DROP POLICY IF EXISTS "laundry_rates_delete" ON public.laundry_rates;
 DROP POLICY IF EXISTS "Authenticated users can manage laundry rates" ON public.laundry_rates;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.laundry_rates;
+DROP POLICY IF EXISTS "All staff read laundry_rates" ON public.laundry_rates;
+DROP POLICY IF EXISTS "Finance can manage laundry_rates" ON public.laundry_rates;
 CREATE POLICY "All staff read laundry_rates" ON public.laundry_rates
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage laundry_rates" ON public.laundry_rates
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
+DROP POLICY IF EXISTS "style_rates_select" ON public.style_rates;
+DROP POLICY IF EXISTS "style_rates_insert" ON public.style_rates;
+DROP POLICY IF EXISTS "style_rates_update" ON public.style_rates;
+DROP POLICY IF EXISTS "style_rates_delete" ON public.style_rates;
 DROP POLICY IF EXISTS "Authenticated users can manage style rates" ON public.style_rates;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.style_rates;
+DROP POLICY IF EXISTS "All staff read style_rates" ON public.style_rates;
+DROP POLICY IF EXISTS "Finance can manage style_rates" ON public.style_rates;
 CREATE POLICY "All staff read style_rates" ON public.style_rates
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage style_rates" ON public.style_rates
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
 DROP POLICY IF EXISTS "Authenticated users can manage assets" ON public.assets;
+DROP POLICY IF EXISTS "Authenticated staff full access" ON public.assets;
 DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.assets;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.assets;
+DROP POLICY IF EXISTS "All staff read assets" ON public.assets;
+DROP POLICY IF EXISTS "Finance can manage assets" ON public.assets;
 CREATE POLICY "All staff read assets" ON public.assets
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage assets" ON public.assets
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
+DROP POLICY IF EXISTS "Authenticated users can manage categories" ON public.account_categories;
 DROP POLICY IF EXISTS "Authenticated users can manage account categories" ON public.account_categories;
+DROP POLICY IF EXISTS "Authenticated staff full access" ON public.account_categories;
 DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.account_categories;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.account_categories;
+DROP POLICY IF EXISTS "All staff read account_categories" ON public.account_categories;
+DROP POLICY IF EXISTS "Finance can manage account_categories" ON public.account_categories;
 CREATE POLICY "All staff read account_categories" ON public.account_categories
   FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "Finance can manage account_categories" ON public.account_categories
   FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
--- TikTok (067): revoke anon + role-based
+-- accounts / account_mappings / hutang / piutang / cash_accounts: FINAL (pola 067)
+DROP POLICY IF EXISTS "Authenticated users can manage accounts" ON public.accounts;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.accounts;
+DROP POLICY IF EXISTS "All staff read accounts" ON public.accounts;
+DROP POLICY IF EXISTS "Finance can manage accounts" ON public.accounts;
+CREATE POLICY "All staff read accounts" ON public.accounts
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage accounts" ON public.accounts
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage mappings" ON public.account_mappings;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.account_mappings;
+DROP POLICY IF EXISTS "All staff read account_mappings" ON public.account_mappings;
+DROP POLICY IF EXISTS "Finance can manage account_mappings" ON public.account_mappings;
+CREATE POLICY "All staff read account_mappings" ON public.account_mappings
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage account_mappings" ON public.account_mappings
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage hutang" ON public.hutang;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.hutang;
+DROP POLICY IF EXISTS "All staff read hutang" ON public.hutang;
+DROP POLICY IF EXISTS "Finance can manage hutang" ON public.hutang;
+CREATE POLICY "All staff read hutang" ON public.hutang
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage hutang" ON public.hutang
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage piutang" ON public.piutang;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.piutang;
+DROP POLICY IF EXISTS "All staff read piutang" ON public.piutang;
+DROP POLICY IF EXISTS "Finance can manage piutang" ON public.piutang;
+CREATE POLICY "All staff read piutang" ON public.piutang
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage piutang" ON public.piutang
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+DROP POLICY IF EXISTS "Authenticated users can manage cash accounts" ON public.cash_accounts;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.cash_accounts;
+DROP POLICY IF EXISTS "All staff read cash_accounts" ON public.cash_accounts;
+DROP POLICY IF EXISTS "Finance can manage cash_accounts" ON public.cash_accounts;
+CREATE POLICY "All staff read cash_accounts" ON public.cash_accounts
+  FOR SELECT USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance can manage cash_accounts" ON public.cash_accounts
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+
+-- TikTok (067): revoke anon + role-based + ENABLE RLS (policy lama dibuat tanpa ENABLE)
 DROP POLICY IF EXISTS "owner_all_tiktok_settings" ON public.tiktok_shop_settings;
 DROP POLICY IF EXISTS "owner_all_tiktok_orders" ON public.tiktok_shop_orders;
 DROP POLICY IF EXISTS "owner_all_tiktok_statements" ON public.tiktok_shop_statements;
+DROP POLICY IF EXISTS "TikTok owner manage settings" ON public.tiktok_shop_settings;
+DROP POLICY IF EXISTS "TikTok owner manage orders" ON public.tiktok_shop_orders;
+DROP POLICY IF EXISTS "TikTok owner manage statements" ON public.tiktok_shop_statements;
+DROP POLICY IF EXISTS "TikTok manage settings" ON public.tiktok_shop_settings;
+DROP POLICY IF EXISTS "TikTok manage orders" ON public.tiktok_shop_orders;
+DROP POLICY IF EXISTS "TikTok manage statements" ON public.tiktok_shop_statements;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.tiktok_shop_settings;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.tiktok_shop_orders;
+DROP POLICY IF EXISTS "Authenticated staff access" ON public.tiktok_shop_statements;
+DROP POLICY IF EXISTS "TikTok staff read settings" ON public.tiktok_shop_settings;
+DROP POLICY IF EXISTS "TikTok staff read orders" ON public.tiktok_shop_orders;
+DROP POLICY IF EXISTS "TikTok staff read statements" ON public.tiktok_shop_statements;
 REVOKE ALL ON public.tiktok_shop_settings FROM anon;
 REVOKE ALL ON public.tiktok_shop_orders FROM anon;
 REVOKE ALL ON public.tiktok_shop_statements FROM anon;
+ALTER TABLE public.tiktok_shop_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tiktok_shop_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tiktok_shop_statements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "TikTok staff read settings" ON public.tiktok_shop_settings
   FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
-CREATE POLICY "TikTok owner manage settings" ON public.tiktok_shop_settings
-  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "TikTok manage settings" ON public.tiktok_shop_settings
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 CREATE POLICY "TikTok staff read orders" ON public.tiktok_shop_orders
   FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
-CREATE POLICY "TikTok owner manage orders" ON public.tiktok_shop_orders
-  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "TikTok manage orders" ON public.tiktok_shop_orders
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 CREATE POLICY "TikTok staff read statements" ON public.tiktok_shop_statements
   FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
-CREATE POLICY "TikTok owner manage statements" ON public.tiktok_shop_statements
-  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
+CREATE POLICY "TikTok manage statements" ON public.tiktok_shop_statements
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
 -- Survey (060): surveyor milik sendiri; admin/owner semua
 ALTER TABLE public.surveys ENABLE ROW LEVEL SECURITY;
@@ -2058,6 +2162,23 @@ CREATE POLICY survey_photos_surveyor_own ON public.survey_room_photos
   FOR ALL USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'surveyor'
     AND EXISTS (SELECT 1 FROM public.survey_rooms r JOIN public.surveys s ON s.id = r.survey_id
       WHERE r.id = room_id AND s.surveyor_id = auth.uid()));
+
+-- survey_logs: RLS + policy (072 — kondisi live; helper standar, bukan is_admin_or_owner legacy)
+ALTER TABLE public.survey_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "survey_logs_admin_all" ON public.survey_logs;
+CREATE POLICY "survey_logs_admin_all" ON public.survey_logs
+  FOR ALL USING (public.is_admin_or_owner_sd());
+DROP POLICY IF EXISTS "survey_logs_surveyor_insert" ON public.survey_logs;
+CREATE POLICY "survey_logs_surveyor_insert" ON public.survey_logs
+  FOR INSERT WITH CHECK (
+    EXISTS (SELECT 1 FROM public.surveys s WHERE s.id = survey_id AND s.surveyor_id = auth.uid())
+  );
+DROP POLICY IF EXISTS "survey_logs_surveyor_read" ON public.survey_logs;
+CREATE POLICY "survey_logs_surveyor_read" ON public.survey_logs
+  FOR SELECT USING (
+    (EXISTS (SELECT 1 FROM public.surveys s WHERE s.id = survey_id AND s.surveyor_id = auth.uid()))
+    OR public.is_admin_or_owner_sd()
+  );
 
 -- returns: finance update (063)
 DROP POLICY IF EXISTS "Admins and finance can update returns" ON public.returns;
@@ -2098,6 +2219,87 @@ UPDATE public.accounts
 SET name = 'Beban Biaya Lain E-commerce', description = 'Komisi, iklan, fee marketplace (selisih gross vs net settlement)'
 WHERE id = '66666666-6666-4666-8666-666666666606'::uuid;
 
+-- ---------- 10.9 Tabel legacy live (tidak dipakai codebase — untuk paritas schema) ----------
+CREATE TABLE IF NOT EXISTS public.packing_checklists (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id     UUID NOT NULL,
+  items        JSONB NOT NULL DEFAULT '[]',
+  photo_packed JSONB DEFAULT '[]',
+  checked_by   UUID REFERENCES public.users(id),
+  checked_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.return_requests (
+  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id      UUID NOT NULL,
+  reason        TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'pending',
+  refund_amount NUMERIC DEFAULT 0,
+  notes         TEXT,
+  photo_evidence JSONB DEFAULT '[]',
+  created_by    UUID REFERENCES public.users(id),
+  processed_by  UUID REFERENCES public.users(id),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  processed_at  TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS public.seo_settings (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  page        TEXT NOT NULL,
+  title       TEXT,
+  description TEXT,
+  keywords    TEXT,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.order_preparation_checklist (
+  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id    UUID NOT NULL,
+  item_name   TEXT,
+  qty         INTEGER NOT NULL DEFAULT 1,
+  checked     BOOLEAN NOT NULL DEFAULT false,
+  checked_by  UUID REFERENCES public.users(id),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.packing_checklists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.return_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seo_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_preparation_checklist ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated staff access" ON public.packing_checklists
+  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated staff access" ON public.return_requests
+  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Public can read seo_settings" ON public.seo_settings
+  FOR SELECT USING (true);
+CREATE POLICY "Auth can write seo_settings" ON public.seo_settings
+  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated staff access" ON public.order_preparation_checklist
+  FOR ALL USING (auth.role() = 'authenticated');
+
+-- ---------- 10.10 TikTok settlement fee breakdown + piutang fee (073) ----------
+ALTER TABLE public.tiktok_shop_statements
+  ADD COLUMN IF NOT EXISTS revenue_amount NUMERIC(15,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS fee_amount NUMERIC(15,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS shipping_cost_amount NUMERIC(15,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS net_sales_amount NUMERIC(15,2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS adjustment_amount NUMERIC(15,2) DEFAULT 0;
+
+ALTER TABLE public.piutang ADD COLUMN IF NOT EXISTS fee_amount NUMERIC DEFAULT 0;
+
+UPDATE public.tiktok_shop_statements
+SET revenue_amount       = COALESCE(NULLIF((statement_data ->> 'revenue_amount')::numeric, 0), NULLIF((statement_data ->> 'revenueAmount')::numeric, 0), total_amount),
+    fee_amount           = COALESCE(NULLIF((statement_data ->> 'fee_amount')::numeric, 0), NULLIF((statement_data ->> 'feeAmount')::numeric, 0), 0),
+    shipping_cost_amount = COALESCE(NULLIF((statement_data ->> 'shipping_cost_amount')::numeric, 0), NULLIF((statement_data ->> 'shippingCostAmount')::numeric, 0), 0),
+    net_sales_amount     = COALESCE(NULLIF((statement_data ->> 'net_sales_amount')::numeric, 0), NULLIF((statement_data ->> 'netSalesAmount')::numeric, 0), 0),
+    adjustment_amount    = COALESCE(NULLIF((statement_data ->> 'adjustment_amount')::numeric, 0), NULLIF((statement_data ->> 'adjustmentAmount')::numeric, 0), 0)
+WHERE statement_data IS NOT NULL AND statement_data::text <> '{}';
+
+CREATE UNIQUE INDEX IF NOT EXISTS piutang_tiktok_invoice_unique
+  ON public.piutang (invoice_number)
+  WHERE channel = 'tiktok' AND invoice_number IS NOT NULL;
+
 -- ============================================================
 -- 11. NOTIFY: Refresh PostgREST schema cache
 -- ============================================================
@@ -2108,7 +2310,8 @@ NOTIFY pgrst, 'reload schema';
 -- ============================================================
 -- Catatan:
 -- - File ini = SATU-SATUNYA referensi schema (lihat AGENTS.md).
--- - Section 10 = sinkronisasi final migration 053-071 (kondisi live 2026-08-12).
+-- - Section 10 = sinkronisasi final migration 053-072 (kondisi live 2026-08-12,
+--   diverifikasi via pg_policies + information_schema live).
 -- - Migration 041 (reset_pipeline_to_sorted) di-skip — hanya data migration
 -- - Migration 057 dynamic FK fix di-skip — ON DELETE SET NULL sudah di-handle di CREATE TABLE
 -- - Migration 058 (SECURITY DEFINER audit) di-skip — dokumentasi saja

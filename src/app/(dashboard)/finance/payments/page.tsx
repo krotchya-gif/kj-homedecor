@@ -72,7 +72,7 @@ export default function FinancePaymentsPage() {
   const [allOrders, setAllOrders] = useState<Order[]>([])
   // F-61 fix: total piutang dari tabel piutang (sumber utama)
   const [piutangData, setPiutangData] = useState<
-    { amount: number; paid_amount: number; return_amount: number }[]
+    { amount: number; fee_amount?: number; paid_amount: number; return_amount: number }[]
   >([])
   // F-12 fix: daftar akun kas untuk pilihan di form pembayaran
   const [cashAccounts, setCashAccounts] = useState<{ id: string; name: string }[]>([])
@@ -113,7 +113,7 @@ export default function FinancePaymentsPage() {
       // F-61 fix: Total Piutang dari TABEL piutang (sumber utama)
       supabase
         .from('piutang')
-        .select('amount, paid_amount, return_amount')
+        .select('amount, fee_amount, paid_amount, return_amount')
         .in('status', ['pending', 'partial'])
     ])
 
@@ -122,7 +122,7 @@ export default function FinancePaymentsPage() {
     setRefundList((returnsData.data ?? []) as ReturnRow[])
     setAllOrders((statsData.data ?? []) as unknown as Order[])
     setPiutangData(
-      (piutangData.data ?? []) as unknown as { amount: number; paid_amount: number; return_amount: number }[]
+      (piutangData.data ?? []) as unknown as { amount: number; fee_amount?: number; paid_amount: number; return_amount: number }[]
     )
     // F-12 fix: muat daftar akun kas untuk pilihan di form pembayaran
     const { data: cashAcc } = await supabase
@@ -545,7 +545,7 @@ export default function FinancePaymentsPage() {
             val: fmt(
               Math.max(
                 0,
-                piutangData.reduce((s, p) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0), 0)
+                piutangData.reduce((s, p) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0), 0)
               )
             ),
             color: '#cc7030'

@@ -42,7 +42,7 @@ export default function FinanceSettingsPage() {
     const [cashRes, hutangRes, piutangRes] = await Promise.all([
       supabase.from('cash_accounts').select('*').eq('is_active', true).order('bank_name'),
       supabase.from('hutang').select('amount, paid_amount, return_amount'),
-      supabase.from('piutang').select('amount, paid_amount, return_amount')
+      supabase.from('piutang').select('amount, fee_amount, paid_amount, return_amount')
     ])
     setCashAccounts(cashRes.data ?? [])
     const initForm: Record<string, string> = {}
@@ -58,7 +58,7 @@ export default function FinanceSettingsPage() {
     setHutangData({ total: hutTotal, count: (hutangRes.data ?? []).length })
 
     const piuTotal = (piutangRes.data ?? []).reduce(
-      (s: number, p: { amount?: number; paid_amount?: number; return_amount?: number }) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0),
+      (s: number, p: { amount?: number; fee_amount?: number; paid_amount?: number; return_amount?: number }) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0),
       0
     )
     setPiutangData({ total: piuTotal, count: (piutangRes.data ?? []).length })

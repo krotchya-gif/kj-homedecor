@@ -29,7 +29,7 @@ export default function RekonsiliasiPage() {
       try {
         // 1. Piutang: tabel piutang vs orders (sisa tagihan)
         const [{ data: piutang }, { data: orders }] = await Promise.all([
-          supabase.from('piutang').select('amount, paid_amount, return_amount').in('status', ['pending', 'partial']),
+          supabase.from('piutang').select('amount, paid_amount, return_amount, fee_amount').in('status', ['pending', 'partial']),
           supabase
             .from('orders')
             .select('total_amount, dp_amount, lunas_amount, payment_status, status')
@@ -37,7 +37,12 @@ export default function RekonsiliasiPage() {
             .neq('status', 'cancelled')
         ])
         const piutangTabel = (piutang ?? []).reduce(
-          (s, p) => s + Math.max(0, Number(p.amount ?? 0) - Number(p.paid_amount ?? 0) - Number(p.return_amount ?? 0)),
+          (s, p) =>
+            s +
+            Math.max(
+              0,
+              Number(p.amount ?? 0) - Number(p.paid_amount ?? 0) - Number(p.return_amount ?? 0) - Number(p.fee_amount ?? 0)
+            ),
           0
         )
         const piutangOrders = (orders ?? []).reduce(

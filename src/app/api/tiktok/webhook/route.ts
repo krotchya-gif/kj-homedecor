@@ -61,41 +61,11 @@ export async function POST(req: NextRequest) {
           .maybeSingle()
         if (selectErr) console.error('TikTok webhook: select tiktok_shop_statements failed:', toClientError(selectErr))
 
+        // 073 fix: webhook hanya MENCATAT statement — piutang dibuat lewat Sync Finance
+        // atau Buat Piutang (payload webhook tidak punya breakdown revenue/fee sehingga
+        // piutang gross yang benar tidak bisa dibuat di sini; semua statement tetap
+        // terjurnal karena sync-finance menyapu statement tanpa piutang_id).
         if (!existing && data.total_amount > 0) {
-          // Auto-create piutang — F-14 fix: wajib jurnal Dr Piutang / Cr Penjualan
-          // (sebelumnya piutang masuk tanpa jurnal → neraca tidak balance).
-          const { data: piutang, error: piutangErr } = await supabase
-            .from('piutang')
-            .insert({
-              customer_id: null,
-              invoice_number: `TTK-WEB-${statementId.slice(0, 8)}`,
-              invoice_date: new Date().toISOString().split('T')[0],
-              amount: data.total_amount,
-              channel: 'tiktok',
-              description: `TikTok Shop auto settlement ${statementId.slice(0, 8)}`
-            })
-            .select('id')
-            .single()
-          if (piutangErr) console.error('TikTok webhook: insert piutang failed:', toClientError(piutangErr))
-
-          if (piutang?.id) {
-            try {
-              const { createSimpleJournal } = await import('@/utils/journal/create')
-              await createSimpleJournal({
-                transaction_type: 'order_created',
-                reference_type: 'piutang',
-                reference_id: piutang.id,
-                description: `Settlement TikTok ${statementId.slice(0, 8)} — piutang terutang`,
-                amount: data.total_amount,
-                baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-                supabase,
-                idempotency_key: `tiktok_settlement:${statementId}`
-              })
-            } catch (jErr) {
-              console.error('Gagal buat jurnal settlement TikTok:', jErr)
-            }
-          }
-
           const { error: stmtErr } = await supabase.from('tiktok_shop_statements').insert({
             statement_id: statementId,
             statement_type: data.type || 'AUTO_SETTLEMENT',
@@ -103,8 +73,7 @@ export async function POST(req: NextRequest) {
             status: 'SUCCESS',
             currency: data.currency || 'IDR',
             statement_data: data,
-            is_synced: true,
-            piutang_id: piutang?.id || null
+            is_synced: true
           })
           if (stmtErr) console.error('TikTok webhook: insert tiktok_shop_statements failed:', toClientError(stmtErr))
         }

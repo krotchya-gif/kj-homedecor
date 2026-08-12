@@ -61,6 +61,11 @@ interface TikTokStatement {
   status?: string
   start_date?: string
   total_amount?: number
+  revenue_amount?: number
+  fee_amount?: number
+  shipping_cost_amount?: number
+  net_sales_amount?: number
+  adjustment_amount?: number
 }
 
 export default function TikTokDashboardPage() {
@@ -248,7 +253,11 @@ export default function TikTokDashboardPage() {
     const res = await fetch(`/api/tiktok/${mode === 'piutang' ? 'create-piutang' : 'sync-to-main-orders'}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shop_id: activeShop?.id })
+      body: JSON.stringify({
+        shop_id: activeShop?.id,
+        ...(dateRange.start ? { start_date: dateRange.start } : {}),
+        ...(dateRange.end ? { end_date: dateRange.end } : {})
+      })
     })
     const json = await res.json()
     if (json.error) {
@@ -273,7 +282,10 @@ export default function TikTokDashboardPage() {
     return new Date(shop.token_expires_at) < new Date()
   }
 
-  const totalSettlements = statements.reduce((s, st) => s + Number(st.total_amount || 0), 0)
+  // 073 fix: total_amount = GROSS (pembayaran customer), revenue_amount = NET (masuk bank)
+  const totalSettlements = statements.reduce((s, st) => s + Number(st.revenue_amount ?? (st.total_amount || 0)), 0)
+  const totalFees = statements.reduce((s, st) => s + Number(st.fee_amount || 0), 0)
+  const totalRevenues = statements.reduce((s, st) => s + Number(st.total_amount || 0), 0)
   if (loading) {
     return (
       <div className="flex-center" style={{ minHeight: 400 }}>
@@ -313,7 +325,14 @@ export default function TikTokDashboardPage() {
           <div className="stat-card-value" style={{ color: '#2563eb' }}>
             {statements.length}
           </div>
-          <div className="stat-card-sub">{formatRp(totalSettlements)} settled</div>
+          <div className="stat-card-sub" style={{ fontSize: '0.75rem', lineHeight: 1.6 }}>
+            <div>{formatRp(totalSettlements)} masuk bank</div>
+            <div style={{ color: 'var(--neutral-500)' }}>Revenue (gross): {formatRp(totalRevenues)}</div>
+            <div style={{ color: '#dc2626' }}>
+              Fee: {formatRp(totalFees)}
+              {totalRevenues > 0 ? ` (${Math.round((totalFees / totalRevenues) * 100)}%)` : ''}
+            </div>
+          </div>
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Settlement per Bulan</div>
@@ -1003,8 +1022,18 @@ export default function TikTokDashboardPage() {
                   <span className="mobile-card-value">{st.start_date ?? st.period}</span>
                 </div>
                 <div className="mobile-card-row">
-                  <span className="mobile-card-label">Amount</span>
-                  <span className="mobile-card-value">{st.total_amount}</span>
+                  <span className="mobile-card-label">Revenue (gross)</span>
+                  <span className="mobile-card-value">{formatRp(Number(st.total_amount ?? 0))}</span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Fee</span>
+                  <span className="mobile-card-value" style={{ color: '#dc2626' }}>
+                    -{formatRp(Number(st.fee_amount ?? 0))}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Settlement (bank)</span>
+                  <span className="mobile-card-value">{formatRp(Number(st.revenue_amount ?? st.total_amount ?? 0))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -1020,7 +1049,9 @@ export default function TikTokDashboardPage() {
                 <tr>
                   <th>Statement ID</th>
                   <th>Type</th>
-                  <th>Amount</th>
+                  <th>Revenue (gross)</th>
+                  <th>Fee</th>
+                  <th>Settlement (bank)</th>
                   <th>Status</th>
                   <th>Period</th>
                   <th>Piutang</th>
@@ -1031,7 +1062,9 @@ export default function TikTokDashboardPage() {
                   <tr key={st.id}>
                     <td style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{st.statement_id?.slice(0, 16)}...</td>
                     <td>{st.statement_type || '-'}</td>
-                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{formatRp(Number(st.total_amount || 0))}</td>
+                    <td style={{ fontWeight: '500' }}>{formatRp(Number(st.total_amount ?? 0))}</td>
+                    <td style={{ color: '#dc2626' }}>-{formatRp(Number(st.fee_amount ?? 0))}</td>
+                    <td style={{ fontWeight: '700', color: '#16a34a' }}>{formatRp(Number(st.revenue_amount ?? st.total_amount ?? 0))}</td>
                     <td>
                       <span
                         style={{

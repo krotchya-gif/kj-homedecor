@@ -55,7 +55,7 @@ export default function FinanceDashboard() {
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [piutang, setPiutang] = useState<
-    { id: string; amount: number; paid_amount: number; return_amount: number; created_at: string; invoice_date?: string }[]
+    { id: string; amount: number; fee_amount?: number; paid_amount: number; return_amount: number; created_at: string; invoice_date?: string }[]
   >([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -74,7 +74,7 @@ export default function FinanceDashboard() {
       // F-61 fix: piutang dari TABEL piutang (sumber utama) — bukan orders
       supabase
         .from('piutang')
-        .select('id, amount, paid_amount, return_amount, created_at, invoice_date')
+        .select('id, amount, fee_amount, paid_amount, return_amount, created_at, invoice_date')
         .in('status', ['pending', 'partial'])
     ])
     setOrders((ordersRes.data as Order[]) ?? [])
@@ -115,7 +115,7 @@ export default function FinanceDashboard() {
 
   // F-61 fix: piutang aging & total dari TABEL piutang (sumber utama)
   const piutangTotal = piutang.reduce(
-    (s, p) => s + Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)),
+    (s, p) => s + Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)),
     0
   )
 
@@ -130,7 +130,7 @@ export default function FinanceDashboard() {
   piutang.forEach((p) => {
     const anchor = p.invoice_date ?? p.created_at ?? ''
     const days = Math.floor((now.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
-    const sisa = Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0))
+    const sisa = Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0))
     if (days < 30) aging['<30'] += sisa
     else if (days < 60) aging['30-60'] += sisa
     else if (days < 90) aging['60-90'] += sisa

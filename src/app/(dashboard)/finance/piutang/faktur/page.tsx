@@ -22,6 +22,7 @@ interface Piutang {
   amount: number
   paid_amount: number
   return_amount: number
+  fee_amount?: number
   status: string
   order_id: string
   notes?: string
@@ -220,7 +221,7 @@ export default function FakturPage() {
     // F-11 fix: refetch FRESH (anti race 2 finance bayar bersamaan)
     const { data: fresh } = await supabase
       .from('piutang')
-      .select('id, amount, paid_amount, return_amount, status, invoice_number, customer:customers(name)')
+      .select('id, amount, fee_amount, paid_amount, return_amount, status, invoice_number, customer:customers(name)')
       .eq('id', payItem.id)
       .single()
     if (!fresh) {
@@ -228,7 +229,7 @@ export default function FakturPage() {
       toast('error', 'Faktur tidak ditemukan.')
       return
     }
-    const sisa = (fresh.amount ?? 0) - (fresh.paid_amount ?? 0) - (fresh.return_amount ?? 0)
+    const sisa = (fresh.amount ?? 0) - (fresh.paid_amount ?? 0) - (fresh.return_amount ?? 0) - (fresh.fee_amount ?? 0)
     if (!payForm.amount || isNaN(amount) || amount <= 0) {
       setPaying(false)
       toast('error', 'Nominal wajib diisi dan lebih dari 0.')
@@ -240,7 +241,7 @@ export default function FakturPage() {
       return
     }
     const newPaid = (fresh.paid_amount ?? 0) + amount
-    const newSisa = (fresh.amount ?? 0) - newPaid - (fresh.return_amount ?? 0)
+    const newSisa = (fresh.amount ?? 0) - newPaid - (fresh.return_amount ?? 0) - (fresh.fee_amount ?? 0)
     const newStatus = newSisa <= 0 ? 'paid' : 'partial'
 
     const { error: updErr } = await supabase
@@ -279,7 +280,7 @@ export default function FakturPage() {
   }
 
   function openPay(p: Piutang) {
-    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)
+    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
     setPayItem(p)
     setPayForm({ amount: String(sisa > 0 ? sisa : '') })
     setShowPayModal(true)
@@ -355,7 +356,7 @@ export default function FakturPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0))}</span>
+                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -396,7 +397,7 @@ export default function FakturPage() {
             <tbody>
               {filtered.map((p) => {
                 const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending
-                const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)
+                const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
                 return (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
@@ -708,7 +709,7 @@ export default function FakturPage() {
           <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
             {payItem?.customer?.name ?? '—'} — {payItem?.invoice_number ?? 'Faktur'} · Sisa{' '}
             <strong style={{ color: '#cc7030' }}>
-              {formatRp((payItem?.amount ?? 0) - (payItem?.paid_amount ?? 0) - (payItem?.return_amount ?? 0))}
+              {formatRp((payItem?.amount ?? 0) - (payItem?.paid_amount ?? 0) - (payItem?.return_amount ?? 0) - (payItem?.fee_amount ?? 0))}
             </strong>
           </p>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>

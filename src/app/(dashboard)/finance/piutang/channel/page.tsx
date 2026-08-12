@@ -15,9 +15,11 @@ interface ChannelRow {
   amount?: number
   paid_amount?: number
   return_amount?: number
+  fee_amount?: number
   total_amount?: number
   total_paid?: number
   total_return?: number
+  total_fee?: number
 }
 
 export default function ChannelPage() {
@@ -30,20 +32,21 @@ export default function ChannelPage() {
     setLoading(true)
     const { data } = await supabase
       .from('piutang')
-      .select('channel, amount, paid_amount, return_amount')
+      .select('channel, amount, fee_amount, paid_amount, return_amount')
       .order('channel')
     // Aggregate by channel
     const aggregated: Record<string, ChannelRow> = {}
     ;(data ?? []).forEach((p: ChannelRow) => {
       const ch = p.channel ?? 'offline'
       if (!aggregated[ch]) {
-        aggregated[ch] = { channel: ch, total_amount: 0, total_paid: 0, total_return: 0 }
+        aggregated[ch] = { channel: ch, total_amount: 0, total_paid: 0, total_return: 0, total_fee: 0 }
       }
       const row = aggregated[ch]!
       // F-71 fix: Number() eksplisit — mencegah string concat / float drift
       row.total_amount = (row.total_amount ?? 0) + Number(p.amount ?? 0)
       row.total_paid = (row.total_paid ?? 0) + Number(p.paid_amount ?? 0)
       row.total_return = (row.total_return ?? 0) + Number(p.return_amount ?? 0)
+      row.total_fee = (row.total_fee ?? 0) + Number(p.fee_amount ?? 0)
     })
     setChannels(Object.values(aggregated))
     setLoading(false)
@@ -77,7 +80,13 @@ export default function ChannelPage() {
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
                   <span className="mobile-card-value">
-                    {formatRp((c.total_amount ?? 0) - (c.total_paid ?? 0) - (c.total_return ?? 0))}
+                    {formatRp((c.total_amount ?? 0) - (c.total_paid ?? 0) - (c.total_return ?? 0) - (c.total_fee ?? 0))}
+                  </span>
+                </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Fee</span>
+                  <span className="mobile-card-value" style={{ color: '#dc2626' }}>
+                    -{formatRp(c.total_fee ?? 0)}
                   </span>
                 </div>
             </div>
@@ -98,6 +107,7 @@ export default function ChannelPage() {
               <tr>
                 <th>Channel</th>
                 <th style={{ textAlign: 'right' }}>Total Piutang</th>
+                <th style={{ textAlign: 'right' }}>Fee</th>
                 <th style={{ textAlign: 'right' }}>Paid</th>
                 <th style={{ textAlign: 'right' }}>Retur</th>
                 <th style={{ textAlign: 'right' }}>Sisa</th>
@@ -105,11 +115,12 @@ export default function ChannelPage() {
             </thead>
             <tbody>
               {channels.map((c) => {
-                const sisa = (c.total_amount ?? 0) - (c.total_paid ?? 0) - (c.total_return ?? 0)
+                const sisa = (c.total_amount ?? 0) - (c.total_paid ?? 0) - (c.total_return ?? 0) - (c.total_fee ?? 0)
                 return (
                   <tr key={c.channel}>
                     <td style={{ fontWeight: '600', textTransform: 'capitalize' }}>{c.channel}</td>
                     <td style={{ fontWeight: '600', textAlign: 'right' }}>{formatRp(c.total_amount ?? 0)}</td>
+                    <td style={{ color: '#dc2626', textAlign: 'right' }}>-{formatRp(c.total_fee ?? 0)}</td>
                     <td style={{ color: '#16a34a', textAlign: 'right' }}>{formatRp(c.total_paid ?? 0)}</td>
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{formatRp(c.total_return ?? 0)}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030', textAlign: 'right' }}>{formatRp(sisa)}</td>

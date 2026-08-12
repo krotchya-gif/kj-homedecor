@@ -17,6 +17,7 @@ interface LooseRow {
   amount?: number
   paid_amount?: number
   return_amount?: number
+  fee_amount?: number
   status?: string
   customer?: { name?: string } | null
 }
@@ -49,7 +50,7 @@ export default function ProcessReturPage() {
   }, [])
 
   function openRetur(p: LooseRow) {
-    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)
+    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
     setReturItem(p)
     setReturForm({ amount: String(sisa > 0 ? sisa : ''), reason: '' })
   }
@@ -72,7 +73,7 @@ export default function ProcessReturPage() {
       return
     }
     const newReturn = (returItem.return_amount ?? 0) + amount
-    const newSisa = (returItem.amount ?? 0) - (returItem.paid_amount ?? 0) - newReturn
+    const newSisa = (returItem.amount ?? 0) - (returItem.paid_amount ?? 0) - newReturn - (returItem.fee_amount ?? 0)
     const newStatus = newSisa <= 0 ? 'paid' : returItem.status === 'paid' ? 'partial' : (returItem.status ?? 'pending')
 
     const { error: updErr } = await supabase
@@ -134,7 +135,7 @@ export default function ProcessReturPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0))}</span>
+                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -172,7 +173,7 @@ export default function ProcessReturPage() {
             </thead>
             <tbody>
               {piutang.map((p) => {
-                const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0)
+                const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
                 return (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>

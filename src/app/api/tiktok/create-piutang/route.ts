@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { shop_id } = body
+  const { shop_id, start_date, end_date } = body
 
   const settings = await getTikTokSettings(shop_id)
   if (!settings) {
@@ -27,12 +27,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Ambil semua statement yang belum punya piutang_id, status SETTLED
-    const { data: statements, error: fetchErr } = await supabase
+    // Statement yang belum punya piutang, status SETTLED, dalam rentang tanggal (opsional)
+    let query = supabase
       .from('tiktok_shop_statements')
       .select('*')
       .is('piutang_id', null)
       .eq('status', 'SETTLED')
+    if (start_date) query = query.gte('start_date', start_date)
+    if (end_date) query = query.lte('start_date', end_date)
+
+    const { data: statements, error: fetchErr } = await query
 
     if (fetchErr) {
       return NextResponse.json({ error: toClientError(fetchErr) }, { status: 500 })
@@ -42,8 +46,14 @@ export async function POST(req: NextRequest) {
     let skipped = 0
 
     for (const stmt of statements || []) {
-      // Cek duplikat invoice_number
+      // 073 fix: piutang dicatat GROSS (total_amount = settlement_amount = pembayaran
+      // customer) + fee terpisah; net yang masuk bank = revenue_amount. 3 jurnal lengkap.
+      const gross = Number(stmt.total_amount ?? 0) || 0
+      const net = Number(stmt.revenue_amount ?? stmt.total_amount ?? 0) || 0
+      const fee = Number(stmt.fee_amount ?? 0) || 0
       const invoiceNum = `TTK-${stmt.statement_id.slice(0, 8)}`
+
+      // Cek duplikat invoice_number (anti-double — mis. sudah dibuat jalur lain)
       const { data: existing } = await supabase
         .from('piutang')
         .select('id')
@@ -63,33 +73,56 @@ export async function POST(req: NextRequest) {
           customer_id: null,
           invoice_number: invoiceNum,
           invoice_date: stmt.start_date || new Date().toISOString().split('T')[0],
-          amount: Number(stmt.total_amount),
-          remaining: Number(stmt.total_amount),
+          amount: gross,
+          fee_amount: fee,
+          paid_amount: net,
+          remaining: 0,
           channel: 'tiktok',
           description: `TikTok Shop settlement ${stmt.statement_id.slice(0, 8)}`,
-          status: 'pending'
+          status: 'paid'
         })
         .select('id')
         .single()
 
-      if (insertErr) {
-        console.error('Failed to insert piutang:', insertErr)
+      if (insertErr || !piutang) {
+        console.error('Failed to insert piutang:', insertErr ? toClientError(insertErr) : 'no id')
         continue
       }
 
-      // F-14 fix: piutang settlement wajib jurnal Dr Piutang / Cr Penjualan
-      // (sebelumnya tanpa jurnal → buku besar tidak balance).
+      // 3 jurnal lengkap (semua ber-idempotency key — retry tidak dobel)
       try {
         const { createSimpleJournal } = await import('@/utils/journal/create')
         await createSimpleJournal({
           transaction_type: 'order_created',
           reference_type: 'piutang',
           reference_id: piutang.id,
-          description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — piutang terutang`,
-          amount: Number(stmt.total_amount),
+          description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — omzet kotor`,
+          amount: gross,
           baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
           supabase,
           idempotency_key: `tiktok_settlement:${stmt.statement_id}`
+        })
+        if (fee > 0) {
+          await createSimpleJournal({
+            transaction_type: 'ecommerce_fee',
+            reference_type: 'piutang',
+            reference_id: piutang.id,
+            description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — komisi & biaya platform`,
+            amount: fee,
+            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+            supabase,
+            idempotency_key: `tiktok_fee:${stmt.statement_id}`
+          })
+        }
+        await createSimpleJournal({
+          transaction_type: 'piutang_received',
+          reference_type: 'piutang',
+          reference_id: piutang.id,
+          description: `Settlement TikTok ${stmt.statement_id.slice(0, 8)} — kas masuk Rp${net.toLocaleString('id-ID')}`,
+          amount: net,
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+          supabase,
+          idempotency_key: `tiktok_paid:${stmt.statement_id}`
         })
       } catch (jErr) {
         console.error('Gagal buat jurnal settlement TikTok:', jErr)

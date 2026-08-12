@@ -69,7 +69,7 @@ export default function UmurPiutangPage() {
     // orders tanpa faktur ikut dihitung (2 angka beda antar laporan).
     const { data } = await supabase
       .from('piutang')
-      .select('id, created_at, invoice_date, amount, paid_amount, return_amount, status, customer:customers(name)')
+      .select('id, created_at, invoice_date, amount, fee_amount, paid_amount, return_amount, status, customer:customers(name)')
       .in('status', ['pending', 'partial'])
       .gte('created_at', startDate)
       .lte('created_at', endDate + 'T23:59:59')
@@ -100,7 +100,7 @@ export default function UmurPiutangPage() {
     // F-69 fix: tanggal masa depan → days negatif, clamp ke 0
     const bucket = getBucket(Math.max(0, days))
     // BUG-015 fix: jumlahkan SISA tagihan (amount − paid − return), bukan amount penuh
-    const sisa = (o.amount ?? 0) - (o.paid_amount ?? 0) - (o.return_amount ?? 0)
+    const sisa = (o.amount ?? 0) - (o.paid_amount ?? 0) - (o.return_amount ?? 0) - Number(o.fee_amount ?? 0)
     buckets[bucket] += sisa > 0 ? sisa : 0
   })
 
