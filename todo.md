@@ -1,30 +1,22 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 7 — simulasi E2E penuh)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 9 — E Wallet Tiktok + Xendit removal + fix semua BUG-058..067)
 
 ---
-## ◐ Sedang (2026-08-13 — Sesi 8: Audit Menyeluruh Codebase + Verifikasi Live)
+## ✅ Selesai (2026-08-13 — Sesi 9: E Wallet Tiktok + Xendit Removal + Fix BUG-058..067)
 
-Audit 4 agent paralel + verifikasi live (login penjahit via supabase-js, service_role cek kolom). Temuan lengkap di `bug.md` (BUG-058 s/d 067). **Fix belum dieksekusi.**
+Semua temuan sesi 8 (BUG-058 s/d BUG-067) **fixed & terverifikasi**. Detail lengkap di `bug.md`.
 
-### Prioritas (uang/akuntansi)
-1. ◐ **BUG-058** jurnal server-path 401 (Xendit/PO/order-API/TikTok-sync tak pernah berjurnal) — `createJournalEntry` panggil RPC langsung via server client
-2. ◐ **BUG-060** DP auto-catat tanpa jurnal `payment_received` + reversal cancel hantu
-3. ◐ **BUG-061** kolom `orders.scheduled_installation_time` hilang di live — migration + sync schema
-4. ◐ **BUG-062** PO PUT received/paid dobel tanpa guard status
-5. ◐ **BUG-063** Xendit retry 200 tanpa repair order/jurnal
-
-### Keputusan scope
-6. ◐ **BUG-059** RLS permissive orders/customers/materials/suppliers/install_bookings (live: penjahit bisa baca+tulis) — kerjakan penuh / sebagian / biarkan
-
-### UI cepat (aman)
-7. ◐ **BUG-064** QC mobile tab render retur; **BUG-065** shipping Input Resi utk ready; **BUG-066** teks korup installer; **BUG-067** stock-opname formatRp utk qty
-
-### Schema file sync (bukan kode)
-8. ◐ `000_full_schema.sql` basi: production_reports, lembur_records, suppliers, surveys.signature_name, inventory_movements.notes, customers.email, purchase_orders RLS
-
-### Housekeeping (sesi 7, belum ter-commit)
-9. ◐ Commit `.gitignore` (hapus aturan `tests/` + tambah `.agents/`); README masih basi (test 24+27, riwayat sesi 7-8)
+1. ✅ **Migration 077** — akun 1104 `Xendit Cash` → **E Wallet Tiktok** + row `cash_accounts` (saldo di-track `create_journal_atomic`) + mapping `payment_received`/`sales_return` → Kas (default offline) + BUG-061 `orders.scheduled_installation_time`
+2. ✅ **Xendit dihapus** — route `create-payment` + `webhook` + env keys (tidak dipakai, keputusan owner); `payments.xendit_payment_id` tetap (legacy); BUG-063 mati bersama route
+3. ✅ **BUG-058** — `createJournalEntry` panggil RPC `create_journal_atomic` langsung saat ada `supabase` server client → jurnal server-path tersimpan (verifikasi live: `admin_dp_auto`/`po_received` ada)
+4. ✅ **Settlement TikTok full** — jurnal `ecommerce_fee` = fee + ongkir + adjustment (piutang selalu 0) + `piutang_received`/`payment_received` debit eksplisit **E Wallet Tiktok** (`src/config/accounts.ts`)
+5. ✅ **BUG-060** — auto-DP jurnal `payment_received`; cancel hanya reverse jurnal yang benar-benar ada
+6. ✅ **BUG-062** — guard transisi PO `pending→delivered→received→paid` + idempotency jurnal
+7. ✅ **Schema sync** — `000_full_schema.sql` = live (suppliers.contact_person/phone/email/notes, customers.email, production_reports detail, lembur_records staff_id/jam/keterangan, inventory_movements notes/new_stock, surveys.signature_name, orders.scheduled_installation_time, akun 1104 + mapping + seed cash_accounts)
+8. ✅ **BUG-059** — migration 078 RLS role-based 5 tabel inti + helper `is_staff_active_sd`/`is_installer_sd` + revoke grant anon materials/suppliers; diverifikasi user-level (penjahit insert ditolak, auto-transition tetap jalan)
+9. ✅ **BUG-064/065/066/067** — QC mobile render item pending, Input Resi hanya packed, teks installer, format qty stock-opname
+10. ✅ **Verifikasi** — `tsc` bersih, `npm run build` sukses, E2E: smoke 23/23 + finance 9/9 + pipeline-kirim 9/9 pass
 
 ---
 

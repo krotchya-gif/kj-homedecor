@@ -15,8 +15,8 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - **UI Components:** Shadcn-style custom (@base-ui/react) + komponen custom
 - **Auth:** Supabase Auth + auth helpers (`src/lib/auth.ts`)
 - **Proxy:** Next.js 16 `proxy.ts` — auth guard + role-based access + matcher
-- **Payments:** Xendit API (VA/QRIS) dengan HMAC webhook verification
-- **Marketplace:** TikTok Shop API (OAuth, sync order, sync finance, webhook)
+- **Payments:** Offline/manual + auto-catat DP (Xendit payment gateway sudah dihapus — tidak dipakai)
+- **Marketplace:** TikTok Shop API (OAuth, sync order, sync finance, webhook) — settlement masuk akun **E Wallet Tiktok** (1104)
 - **PDF:** jsPDF + autoTable (Invoice, Packing List, Survey, Laporan Keuangan)
 - **Charts:** Recharts (Owner, Admin, Finance dashboards)
 - **Image:** browser-image-compression + Supabase Storage

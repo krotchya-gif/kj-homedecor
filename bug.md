@@ -65,16 +65,16 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-055 | **Accounts `type='income'`** (4101/4102) di luar CHECK — constraint 067 NOT VALID | ✅ Fixed (migration 074) | `income → revenue` + VALIDATE constraint |
 | BUG-056 | **Pipeline macet di produksi (gudang)** — `updateJobStatus` memanggil consume-materials SEBELUM update status job → route `/api/orders/[id]/consume-materials` menolak (job masih `in_progress`) → job tak pernah selesai, order stuck | ✅ Fixed (2026-08-12, ditemukan simulasi E2E) | Pindah panggilan consume-materials SETELAH update status `done` |
 | BUG-057 | **Installer tidak bisa upload foto checklist** — `/api/upload` folder `evidence` (dipakai installer checklist) dibatasi admin/owner/finance (fix sesi 5) → installer 403 | ✅ Fixed (2026-08-12, ditemukan simulasi E2E) | Tambah `installer` ke `FOLDER_ROLES.evidence` |
-| BUG-058 | **Jurnal server-path 100% gagal 401** — `createSimpleJournal` dari route handler = `fetch(baseUrl/api/journal)` tanpa cookie; route journal wajib session → jurnal Xendit/PO/order-API/TikTok-sync tak pernah tersimpan | Open (2026-08-13, audit sesi 8) | `createJournalEntry` terima `supabase` server client → panggil RPC `create_journal_atomic` langsung |
-| BUG-059 | **RLS permissive `orders/customers/materials/suppliers/install_bookings`** = `FOR ALL (auth.role()='authenticated')` — penjahit (role terendah) LIVE bisa baca+tulis semua (diverifikasi login live) | Open (perlu keputusan scope) | Hardening RLS role-based + rutekan write client ke API role-gated |
-| BUG-060 | **DP auto-catat tanpa jurnal `payment_received`** saat buat order → Kas kurang DP, Piutang overstated; reversal cancel bikin jurnal hantu | Open | Tambah jurnal payment_received; cancel hanya reverse jurnal yang ada |
-| BUG-061 | **`orders.scheduled_installation_time` TIDAK ada di live** — update jadwal pasang gagal diam-diam (42703), tanggal tak tersimpan | Open | Migration tambah kolom + sync 000_full_schema.sql |
-| BUG-062 | **PO PUT `received`/`paid` bisa dobel** — tanpa guard status → stok & jurnal purchase ganda; `paid` tanpa `received` → hutang negatif | Open | Guard transisi status + idempotensi |
-| BUG-063 | **Xendit webhook retry balas 200 tanpa repair** — setelah jurnal gagal, `alreadyProcessed` → skip selamanya, order tak pernah lunas | Open | Cabang `alreadyProcessed` cek & repair jurnal+order |
-| BUG-064 | **QC mobile tab "QC Per-Item" render daftar RETUR** (copy-paste) — QC mobile tak bisa dipakai | Open | Perbaiki render mobile → item QC pending |
-| BUG-065 | **`/admin/shipping` tombol "Input Resi" tampil utk order `ready`** padahal API menolak `ready→shipped` | Open | Gate tombol hanya utk `packed` |
-| BUG-066 | **Teks korup Mandarin** di modal installer "Laporkan Masalah" | Open | Perbaiki string |
-| BUG-067 | **Stock Opname selisih qty diformat `formatRp`** → "Rp-3" | Open | Format angka qty (bukan uang) |
+| BUG-058 | **Jurnal server-path 100% gagal 401** — `createSimpleJournal` dari route handler = `fetch(baseUrl/api/journal)` tanpa cookie; route journal wajib session → jurnal Xendit/PO/order-API/TikTok-sync tak pernah tersimpan | ✅ Fixed (2026-08-13) | `createJournalEntry` terima `supabase` server client → panggil RPC `create_journal_atomic` langsung (bypass HTTP/cookie). Verifikasi: jurnal `admin_dp_auto`/`po_received` tersimpan di live |
+| BUG-059 | **RLS permissive `orders/customers/materials/suppliers/install_bookings`** = `FOR ALL (auth.role()='authenticated')` — penjahit (role terendah) LIVE bisa baca+tulis semua (diverifikasi login live) | ✅ Fixed (migration 078) | Role-based: SELECT semua staff aktif; orders INSERT finance/admin/owner + UPDATE semua staff; customers/materials/suppliers tulis admin/owner; install_bookings UPDATE installer + manage admin/owner + public insert tetap; REVOKE grant anon materials/suppliers. Diverifikasi user-level (penjahit insert ditolak 42501, auto-transition tetap jalan) |
+| BUG-060 | **DP auto-catat tanpa jurnal `payment_received`** saat buat order → Kas kurang DP, Piutang overstated; reversal cancel bikin jurnal hantu | ✅ Fixed (2026-08-13) | Auto-DP tambah jurnal `payment_received` (idempotency `admin_dp_auto:<order>`); cancel hanya reverse jurnal yang benar-benar ada (query journal_entries by idempotency/reference) |
+| BUG-061 | **`orders.scheduled_installation_time` TIDAK ada di live** — update jadwal pasang gagal diam-diam (42703), tanggal tak tersimpan | ✅ Fixed (migration 077) | `ADD COLUMN IF NOT EXISTS scheduled_installation_time TIME` + sync `000_full_schema.sql` |
+| BUG-062 | **PO PUT `received`/`paid` bisa dobel** — tanpa guard status → stok & jurnal purchase ganda; `paid` tanpa `received` → hutang negatif | ✅ Fixed (2026-08-13) | Guard transisi `pending→delivered→received→paid` + idempotent submit status sama (200 tanpa aksi) + idempotency key jurnal `po_received:<id>`/`po_paid:<id>` |
+| BUG-063 | **Xendit webhook retry balas 200 tanpa repair** — setelah jurnal gagal, `alreadyProcessed` → skip selamanya, order tak pernah lunas | ✅ Fixed (2026-08-13) | Webhook Xendit DIHAPUS (Xendit tidak dipakai lagi, keputusan owner) — bug mati bersama route |
+| BUG-064 | **QC mobile tab "QC Per-Item" render daftar RETUR** (copy-paste) — QC mobile tak bisa dipakai | ✅ Fixed (2026-08-13) | Perbaiki render mobile → item QC pending (`items.filter(i => !i.ready)`) |
+| BUG-065 | **`/admin/shipping` tombol "Input Resi" tampil utk order `ready`** padahal API menolak `ready→shipped` | ✅ Fixed (2026-08-13) | Gate tombol hanya utk `packed` |
+| BUG-066 | **Teks korup Mandarin** di modal installer "Laporkan Masalah" | ✅ Fixed (2026-08-13) | Perbaiki string |
+| BUG-067 | **Stock Opname selisih qty diformat `formatRp`** → "Rp-3" | ✅ Fixed (2026-08-13) | Format angka qty (`toLocaleString('id-ID')` + unit), bukan uang |
 
 ---
 
@@ -574,6 +574,16 @@ Detail ringkas — implementasi lengkap di ringkasan tabel di atas, `todo.md`, d
 ## BUG-058 s/d BUG-067 — Sesi 8 (2026-08-13): Audit Menyeluruh + Verifikasi Live
 
 Audit 4 agent paralel (API security, server lib, UI/pipeline, schema/RLS) + **verifikasi live** (login `penjahit` via supabase-js persis aplikasi + service_role cek kolom, read-only). Semua temuan di bawah sudah diverifikasi ke kode & live — BUKAN false positive.
+
+### ✅ SEMUA FIXED (sesi 9, 2026-08-13 — setelah sesi 8 audit)
+- **BUG-058** → `createJournalEntry` terima `supabase` server client → RPC `create_journal_atomic` langsung.
+- **BUG-059** → migration 078 role-based RLS (5 tabel inti) + revoke grant anon.
+- **BUG-060** → auto-DP jurnal `payment_received`; cancel reverse jurnal nyata.
+- **BUG-061** → migration 077 `orders.scheduled_installation_time TIME`.
+- **BUG-062** → guard transisi PO + idempotency jurnal.
+- **BUG-063** → webhook Xendit dihapus (Xendit tidak dipakai).
+- **BUG-064/065/066/067** → fix UI.
+- **Fitur** → settlement TikTok full (fee+ongkir+adjustment di-jurnal) → E Wallet Tiktok (1104, rename dari Xendit Cash).
 
 ### KRITIS — Uang / boundary
 - **BUG-058** — Jurnal dari server-context mati: `src/utils/journal/create.ts:31-42` (`createJournalEntry`) selalu `fetch(baseUrl/api/journal)` TANPA cookie; `src/app/api/journal/route.ts:36-40` wajib session → 401. Pemanggil server (xendit/webhook:142-176, purchase-orders PUT:109-147, orders POST:85-95, tiktok sync-*) semua kena → jurnal tidak pernah dibuat. Fix: beri `createJournalEntry` opsional `supabase` server client → panggil RPC `create_journal_atomic` langsung.
