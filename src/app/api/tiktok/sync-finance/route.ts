@@ -139,22 +139,10 @@ export async function POST(req: NextRequest) {
         return null
       }
 
-      // Jurnal lengkap (semua ber-idempotency key — retry tidak dobel)
-      try {
-        await createSimpleJournal({
-          transaction_type: 'order_created',
-          reference_type: 'piutang',
-          reference_id: piutang.id,
-          description: `Settlement TikTok ${stmtId.slice(0, 8)} — omzet kotor`,
-          amount: gross,
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-          supabase,
-          idempotency_key: `tiktok_settlement:${stmtId}`
-        })
-      } catch (jErr) {
-        console.error(`Gagal jurnal order_created TikTok ${stmtId}:`, jErr)
-      }
-
+      // Jurnal settlement — BUG-069 fix (model akrual):
+      // revenue (order_created) SUDAH dicatat saat order di sync-to-main-orders.
+      // Jalur settlement hanya mencatat KAS (piutang_received) + BEBAN (ecommerce_fee).
+      // Semua ber-idempotency key — retry tidak dobel.
       if (fee > 0) {
         try {
           await createSimpleJournal({

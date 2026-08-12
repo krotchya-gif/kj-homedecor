@@ -76,6 +76,11 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-066 | **Teks korup Mandarin** di modal installer "Laporkan Masalah" | ✅ Fixed (2026-08-13) | Perbaiki string |
 | BUG-067 | **Stock Opname selisih qty diformat `formatRp`** → "Rp-3" | ✅ Fixed (2026-08-13) | Format angka qty (`toLocaleString('id-ID')` + unit), bukan uang |
 | BUG-068 | **Form `/admin/seo` menulis `seo_title/seo_description/seo_keywords/seo_og_image` tapi meta tag `layout.tsx` HARDCODED** — perubahan SEO admin tak pernah dirender sebagai `<meta>` | ✅ Fixed (2026-08-13) | `layout.tsx` pindah ke `generateMetadata()` async yang baca `landing_settings` (key='hero'), fallback hardcoded; `SeoScripts` tetap baca pixel/GA4 |
+| BUG-069 | **TikTok double-booking revenue** — sale dicatat 2× (order_created+payment_received di jalur order & order_created+piutang_received di jalur settlement) → Penjualan & E-Wallet debit ganda | ✅ Fixed (2026-08-13, model akrual) | Order path = revenue (order_created, hapus payment_received); Settlement path = kas+beban (piutang_received+ecommerce_fee, hapus order_created). Revenue ×1, kas ×1, fee ×1 |
+| BUG-070 | **Order TikTok AWAITING_SHIPMENT tak masuk main orders** — `sync-orders` map payment_status dari `order.status` (lifecycle) bukan field payment → filter `.eq('payment_status','PAID')` menolak | ✅ Fixed (2026-08-13) | `payment_status` dari `order.payment_status`/`order.payment?.payment_status`, fallback COMPLETED/DELIVERED→PAID |
+| BUG-071 | **Steam rework macet** — setelah fail (status revision), `gudang/production` `.eq('order_id').maybeSingle()` lihat steam_job stale → tak buat baru, order stuck | ✅ Fixed (2026-08-13) | Guard cari `.eq('status','pending')` (abaikan revision/done stale) |
+| BUG-072 | **Hutang delete tanpa guard paid** — tagihan lunas/partial bisa dihapus (liabilitas+riwayat hilang) | ✅ Fixed (2026-08-13) | Tolak hapus paid/cancelled/paid_amount>0/return_amount>0 (mirror handleSave) |
+| BUG-073 | **Finance pay race / tanpa rollback** — jurnal gagal → payment row menggantung; update order kalah race → row orphan | ✅ Fixed (2026-08-13) | `handlePay`: jurnal gagal → hapus payment row (rollback penuh); `ordErr` → hapus payment row (mirror refund) |
 
 ### Dead code terdokumentasi (tidak dihapus — keputusan owner, sesi 9)
 - **Route API tanpa caller produksi:** `api/customers`, `api/landing-settings`, `api/materials`, `api/products`, `api/suppliers`, `api/purchase-orders` (+`[id]`), `api/purchase-requests` (+`[id]`), `api/install-bookings` (base), `api/orders` (base — hanya dipakai E2E smoke GET 403)
@@ -617,6 +622,13 @@ Audit 4 agent paralel (API security, server lib, UI/pipeline, schema/RLS) + **ve
 
 ### KANDIDAT (belum 100% diverifikasi — perlu keputusan produk)
 TikTok double-booking revenue (`sync-to-main-orders` vs `sync-finance` idempotency key beda); mapping `payment_status` TikTok salah field (order AWAITING_SHIPMENT tak masuk main orders); steam rework via jalur gudang macet (steam_job lama status `revision` tak diganti); piutang retur cap beda (dengan/tanpa fee); hutang delete tanpa guard paid; race finance pay (rollback jurnal refund tidak ikut rollback).
+
+### ✅ BUG-069 s/d BUG-073 — FIXED (sesi 12, 2026-08-13)
+- **BUG-069** — TikTok double-booking → model **akrual**: `sync-to-main-orders` hapus jurnal `payment_received` (hanya `order_created` = revenue + row payments utk gate pipeline); `sync-finance`/`create-piutang` hapus jurnal `order_created` (hanya `ecommerce_fee` + `piutang_received` = kas NET). Revenue ×1, kas ×1, fee ×1. Guard idempotency pindah ke `tiktok_sync_order_created`.
+- **BUG-070** — `sync-orders`: `payment_status` diambil dari field payment TikTok (`order.payment_status`/`order.payment?.payment_status`), bukan lifecycle `order.status` → order dibayar (mis. AWAITING_SHIPMENT) langsung masuk pipeline. Fallback COMPLETED/DELIVERED→PAID.
+- **BUG-071** — steam rework macet: `gudang/production` guard cari steam_job `.eq('status','pending')` (abaikan row `revision` stale) → rework tidak stuck.
+- **BUG-072** — hutang delete: tolak hapus jika `paid`/`cancelled`/`paid_amount>0`/`return_amount>0` (mirror handleSave).
+- **BUG-073** — finance `handlePay`: jurnal gagal → rollback penuh (hapus payment row) + `ordErr` (race) → hapus payment row (mirror handleRefund).
 
 ## Audit Finance — Referensi Lengkap
 

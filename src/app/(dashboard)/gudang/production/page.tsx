@@ -206,10 +206,15 @@ export default function GudangProductionPage() {
     // auto-create steam_job + advance order production → steam (guard status).
     // Sebelumnya order stuck di production tanpa steam_job → QC tidak melihatnya.
     if (status === 'done' && job?.order_id) {
+      // BUG-071 fix (2026-08-13): guard cari steam_job PENDING saja. Sebelumnya
+      // `.eq('order_id',...).maybeSingle()` melihat steam_job lama status 'revision'
+      // (sisa rework) → dianggap sudah ada → steam_job BARU tidak dibuat, padahal
+      // order tetap di-set ke 'steam' → order macet tanpa tombol Pass/Revisi.
       const { data: existingSteam } = await supabase
         .from('steam_jobs')
         .select('id')
         .eq('order_id', job.order_id)
+        .eq('status', 'pending')
         .maybeSingle()
       if (!existingSteam) {
         const { error: steamErr } = await supabase.from('steam_jobs').insert({

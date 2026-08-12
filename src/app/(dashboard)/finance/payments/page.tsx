@@ -214,23 +214,28 @@ export default function FinancePaymentsPage() {
         description: `${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} dari order ${selected.order_number ?? selected.id.slice(0, 8)} — ${selected.customer?.name ?? ''}`,
         amount,
         entry_date: payForm.date,
-        // F-12 fix: debit ke akun kas yang DIPILIH (default mapping Xendit Cash)
+        // F-12 fix: debit ke akun kas yang DIPILIH (default mapping Kas)
         debit_account_id: payForm.cash_account_id || undefined,
         // F-54 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
         idempotency_key: paymentRow?.id ? `payment:${paymentRow.id}` : undefined
       })
     } catch (e) {
-      // CRITICAL: journal entry gagal = double-entry accounting rusak.
-      // Alert user, bukan cuma console.warn.
+      // BUG-073 fix (2026-08-13): jurnal gagal = rollback PENUH — hapus payment row
+      // yang baru di-insert agar tidak ada "payment tanpa jurnal" (double-entry rusak).
+      // Sebelumnya hanya toast warning & payment row menggantung → buku besar bocor.
       const errMsg = e instanceof Error ? e.message : String(e)
       console.error('Failed to create journal entry:', errMsg)
-      toast('warning', 
-        '⚠️ Pembayaran TERCATAT di payments, TAPI journal entry GAGAL.\n\n' +
+      if (paymentRow?.id) {
+        await supabase.from('payments').delete().eq('id', paymentRow.id)
+      }
+      setSaving(false)
+      toast('error',
+        'Gagal mencatat pembayaran (journal entry gagal). Transaksi dibatalkan.\n\n' +
           'Error: ' +
           errMsg +
           '\n\n' +
-          'Ini masalah akuntansi serius. Hubungi Owner untuk fix double-entry.\n' +
-          'Bisa karena: account_mappings belum di-setup. Lihat /finance/accounts/mapping')
+          'Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      return
     }
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: selected.id,
@@ -255,7 +260,16 @@ export default function FinancePaymentsPage() {
       .eq('id', selected.id)
       .eq('dp_amount', fresh.dp_amount)
       .eq('lunas_amount', fresh.lunas_amount)
-    if (ordErr) { setSaving(false); toast('error', 'Pembayaran tercatat, tapi gagal update order: ' + ordErr.message); return }
+    if (ordErr) {
+      // BUG-073 fix (2026-08-13): update order gagal (biasanya race — finance lain
+      // bayar duluan) → rollback payment row yang baru di-insert (mirror handleRefund).
+      if (paymentRow?.id) {
+        await supabase.from('payments').delete().eq('id', paymentRow.id)
+      }
+      setSaving(false)
+      toast('error', 'Gagal update order (mungkin sudah dibayar finance lain). Pembayaran dibatalkan: ' + ordErr.message)
+      return
+    }
     setSaving(false)
     setSelected(null)
     setPayForm({

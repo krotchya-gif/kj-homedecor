@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
-import { E_WALLET_TIKTOK_ACCOUNT_ID } from '@/config/accounts'
 
 interface TikTokLineItem {
   sale_price?: number | string
@@ -48,13 +47,18 @@ export async function POST(_req: NextRequest) {
     // 2026-08-12: pastikan order TikTok tercatat payment + jurnal (F-13).
     // Dipanggil saat order BARU dibuat DAN saat repair order existing tanpa pembukuan
     // (crash di tengah proses sebelumnya). Idempoten via idempotency key jurnal.
+    // BUG-069 fix (2026-08-13, model akrual): jurnal `payment_received` DIHAPUS —
+    // kas masuk E-Wallet Tiktok dicatat SAAT SETTLEMENT (sync-finance/create-piutang),
+    // bukan saat order dibuat (TikTok masih menahan uang). Jalur order hanya mencatat
+    // REVENUE (order_created) + row `payments` untuk payment-gate pipeline.
+    // Guard idempotency pindah ke `tiktok_sync_order_created` (jurnal yang memang dibuat).
     async function ensurePaymentAndJournal(orderId: string, to: { tiktok_order_id: string; total_amount?: number | string; buyer_name?: string | null }) {
       const amountNum = Number(to.total_amount || 0)
       if (amountNum <= 0) return
       const { data: journaled } = await supabase
         .from('journal_entries')
         .select('id')
-        .eq('idempotency_key', `tiktok_sync_payment:${orderId}`)
+        .eq('idempotency_key', `tiktok_sync_order_created:${orderId}`)
         .maybeSingle()
       if (journaled) return
 
@@ -83,17 +87,6 @@ export async function POST(_req: NextRequest) {
           baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
           supabase,
           idempotency_key: `tiktok_sync_order_created:${orderId}`
-        })
-        await createSimpleJournal({
-          transaction_type: 'payment_received',
-          reference_type: 'order',
-          reference_id: orderId,
-          description: `Pembayaran TikTok (platform settlement) — ${to.tiktok_order_id}`,
-          amount: amountNum,
-          debit_account_id: E_WALLET_TIKTOK_ACCOUNT_ID,
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-          supabase,
-          idempotency_key: `tiktok_sync_payment:${orderId}`
         })
       } catch (jErr) {
         console.error('Gagal buat jurnal TikTok order:', jErr)

@@ -139,6 +139,17 @@ export default function HutangPage() {
   }
 
   async function handleDelete(id: string) {
+    // BUG-072 fix (2026-08-13): tolak hapus tagihan yang sudah dibayar / lunas /
+    // dibatalkan — mirror guard handleSave. Hapus tagihan ber-payment = menghapus
+    // liabilitas + riwayat pembayaran dari pembukuan.
+    const target = hutang.find((x) => x.id === id)
+    if (target) {
+      const hasPayment = (target.paid_amount ?? 0) > 0 || (target.return_amount ?? 0) > 0
+      if (hasPayment || target.status === 'paid' || target.status === 'cancelled') {
+        toast('error', 'Tidak bisa menghapus tagihan yang sudah dibayar / lunas / dibatalkan.')
+        return
+      }
+    }
     if (!confirm('Yakin hapus?')) return
       // Optimistic delete
       const prev = hutang

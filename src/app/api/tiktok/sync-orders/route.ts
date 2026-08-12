@@ -117,12 +117,23 @@ export async function POST(req: NextRequest) {
             : commissionFee + (payment.seller_discount ? Math.abs(Number(payment.seller_discount)) : 0)
         const netAmount = Math.max(0, totalAmount - shippingFee - commissionFee)
 
+        // BUG-070 fix (2026-08-13): payment_status harus diambil dari FIELD PEMBAYARAN
+        // TikTok (order.payment_status / order.payment.payment_status), BUKAN dari
+        // lifecycle order.status. Sebelumnya: payment_status = 'AWAITING_SHIPMENT' utk
+        // order dibayar yg belum DELIVERED → filter sync-to-main-orders (.eq('PAID'))
+        // menolak → order tak pernah masuk pipeline sampai barang terkirim.
+        // Fallback logika lama (COMPLETED/DELIVERED → PAID) utk payload tanpa field payment.
+        const paymentStatus =
+          order.payment_status ||
+          order.payment?.payment_status ||
+          (order.status === 'COMPLETED' || order.status === 'DELIVERED' ? 'PAID' : order.status)
+
         // CRITICAL: cek error insert — kalau gagal (constraint/RLS/schema drift),
         // order hilang dari sync diam-diam + counter `synced` salah. Blokir alur.
         const { error: insErr } = await supabase.from('tiktok_shop_orders').insert({
           tiktok_order_id: order.id,
           order_status: order.status || order.order_status,
-          payment_status: order.status === 'COMPLETED' || order.status === 'DELIVERED' ? 'PAID' : order.status,
+          payment_status: paymentStatus,
           total_amount: totalAmount,
           shipping_amount: shippingFee,
           platform_fee: platformFee,

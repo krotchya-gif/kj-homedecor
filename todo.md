@@ -1,6 +1,18 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 10 — Reset Data Hardening + SEO wiring + dead code)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 12 — fix 5 bug kandidat + label tombol TikTok + pagination settlement + datepicker timezone)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 12: Fix Bug Kandidat + UI TikTok + Datepicker)
+
+1. ✅ **BUG-069** — TikTok double-booking → **model akrual**: order path = revenue (`order_created` saja, hapus `payment_received`); settlement path = kas+beban (`piutang_received`+`ecommerce_fee`, hapus `order_created`). Revenue/kas/fee ×1
+2. ✅ **BUG-070** — `sync-orders` `payment_status` dari field payment TikTok (bukan `order.status`) → order AWAITING_SHIPMENT masuk pipeline
+3. ✅ **BUG-071** — steam rework macet: `gudang/production` guard steam_job `.eq('status','pending')`
+4. ✅ **BUG-072** — hutang delete: tolak hapus paid/cancelled/partial
+5. ✅ **BUG-073** — finance `handlePay`: rollback payment row saat jurnal gagal / update order kalah race
+6. ✅ **Label tombol TikTok** — 4 tombol sync diberi sublabel + tooltip jelas (Sync Orders / Link to Main Orders / Sync Settlement / Buat Piutang)
+7. ✅ **Pagination Settlement** — paginated (default 10, pilihan 10/20/50/100) + filter status (SUCCESS/PAID/COMPLETED); Orders pageSize default → 10
+8. ✅ **BUG-075** — datepicker timezone: `DateRangePicker` ganti `.toISOString()` → helper local date (pilih tgl 1 jadi 31 di WIB ter-fix)
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 10: Reset Data Hardening + SEO + Dead Code Audit)
