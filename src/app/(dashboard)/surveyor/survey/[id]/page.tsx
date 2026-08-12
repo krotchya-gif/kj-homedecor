@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import BackButton from '@/components/ui/BackButton'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 import { LightboxGallery } from '@/components/ui/Lightbox'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
 import { generateSurveyPDF } from '@/lib/survey-pdf'
@@ -227,7 +228,7 @@ export default function SurveyDetailPage() {
             </tr>
             <tr>
               <td style={{ fontWeight: '600' }}>Tanggal Survey</td>
-              <td>{survey.survey_date}</td>
+                <td>{formatDateDDMMYYYY(survey.survey_date)}</td>
             </tr>
             <tr>
               <td style={{ fontWeight: '600' }}>Surveyor</td>

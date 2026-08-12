@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 
 export default function DaftarJurnalPage({ variant = 'finance' }: { variant?: 'finance' | 'owner' } = {}) {
@@ -125,7 +125,7 @@ export default function DaftarJurnalPage({ variant = 'finance' }: { variant?: 'f
                   <tr key={`${e.id}-${idx}`}>
                     {idx === 0 && (
                       <td rowSpan={e.lines?.length ?? 1} style={{ color: 'var(--neutral-600)' }}>
-                        {e.entry_date}
+                        {formatDateDDMMYYYY(e.entry_date)}
                       </td>
                     )}
                     <td style={{ fontWeight: '500' }}>

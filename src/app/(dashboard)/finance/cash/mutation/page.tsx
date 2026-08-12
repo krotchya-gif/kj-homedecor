@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Search, ArrowLeftRight } from 'lucide-react'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 
 
@@ -195,7 +195,7 @@ export default function CashMutationPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{j.entry?.entry_date ?? j.entry?.date ?? '—'}</span>
+                  <span className="mobile-card-value">{formatDateDDMMYYYY(j.entry?.entry_date ?? j.entry?.date)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Mutasi</span>

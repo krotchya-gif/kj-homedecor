@@ -9,7 +9,7 @@ import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import { createSimpleJournal } from '@/utils/journal/create'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 
 interface Piutang {
@@ -416,7 +416,7 @@ export default function FakturPage() {
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
                     <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{p.channel ?? '—'}</td>
                     <td style={{ fontFamily: 'monospace' }}>{p.invoice_number ?? '—'}</td>
-                    <td style={{ color: 'var(--neutral-600)' }}>{p.invoice_date ?? '—'}</td>
+                    <td style={{ color: 'var(--neutral-600)' }}>{formatDateDDMMYYYY(p.invoice_date)}</td>
                     <td style={{ fontWeight: '600', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{formatRp(p.return_amount ?? 0)}</td>
                     <td style={{ fontWeight: '700', color: '#cc7030', textAlign: 'right' }}>{formatRp(sisa)}</td>

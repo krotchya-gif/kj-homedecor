@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Calendar, MapPin, Package, TrendingUp } from 'lucide-react'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 type BookingItem = {
   product?: { name?: string } | null
@@ -189,7 +189,7 @@ export default function InstallerReportsPage() {
                             })
                           : '—'}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{b.scheduled_date}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-400)' }}>{formatDateDDMMYYYY(b.scheduled_date)}</div>
                     </td>
                     <td>
                       <div style={{ fontWeight: '500' }}>{b.order?.customer?.name ?? '—'}</div>

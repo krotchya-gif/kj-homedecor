@@ -11,7 +11,7 @@ import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 
 interface LooseRow {
@@ -362,7 +362,7 @@ export default function BukuBesarPage({ variant = 'finance' }: { variant?: 'fina
                 {detailLines.map((l, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.45rem 0.6rem', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
-                      {l.entry_date}
+                      {formatDateDDMMYYYY(l.entry_date)}
                     </td>
                     <td style={{ padding: '0.45rem 0.6rem', color: 'var(--neutral-700)' }}>
                       {l.description}

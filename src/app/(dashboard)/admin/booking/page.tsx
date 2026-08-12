@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 import {
   Plus,
   Calendar as CalendarIcon,
@@ -597,7 +598,7 @@ export default function AdminBookingPage() {
                       }}
                     >
                       <CalendarIcon size={14} />
-                      {booking.scheduled_date} {booking.scheduled_time && `• ${booking.scheduled_time}`}
+                      {formatDateDDMMYYYY(booking.scheduled_date)} {booking.scheduled_time && `• ${booking.scheduled_time}`}
                       {booking.installer && `• Installer: ${booking.installer.name}`}
                     </div>
                   )}
@@ -725,7 +726,7 @@ export default function AdminBookingPage() {
                     <td style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>
                       {booking.scheduled_date ? (
                         <>
-                          {booking.scheduled_date}
+                          {formatDateDDMMYYYY(booking.scheduled_date)}
                           {booking.scheduled_time ? ` • ${booking.scheduled_time}` : ''}
                           {booking.installer ? <div style={{ fontSize: '0.75rem' }}>Installer: {booking.installer.name}</div> : null}
                         </>

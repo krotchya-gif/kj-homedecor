@@ -7,6 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Clock } from 'lucide-react'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 
 interface LemburRow {
   id: string
@@ -144,7 +145,7 @@ export default function GudangLemburPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{r.date}</span>
+                  <span className="mobile-card-value">{formatDateDDMMYYYY(r.date)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jam</span>

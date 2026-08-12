@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, TrendingUp, Search, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 
 
@@ -188,7 +188,7 @@ export default function IncomePage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{j.entry_date ?? j.date}</span>
+                  <span className="mobile-card-value">{formatDateDDMMYYYY(j.entry_date ?? j.date)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Keterangan</span>

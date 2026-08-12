@@ -35,6 +35,7 @@ import { useToast } from '@/components/ui/Toast'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, STATUS_COLORS, PAYMENT_COLORS } from '@/lib/order-detail'
 import type { ItemType, OrderLog, OrderPhoto, BomRow, MeterRow, SurveyCand } from '@/lib/order-detail'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 import OrderActivityLog from '@/components/orders/OrderActivityLog'
 
 // Pipeline: ORDER_STAGES_BY_CLASSIFICATION (src/lib/orders.ts) = single source of truth.
@@ -439,7 +440,7 @@ export default function OrderDetailPage() {
       setScheduling(false)
       setShowScheduleModal(false)
       setScheduleForm({ date: '', time: '', installer_id: '' })
-      toast('success', `✅ Order terjadwal pasang: ${scheduleForm.date} — Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
+      toast('success', `✅ Order terjadwal pasang: ${formatDateDDMMYYYY(scheduleForm.date)} — Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
       load()
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
@@ -1596,7 +1597,7 @@ export default function OrderDetailPage() {
             </div>
             <div>
               <span style={{ color: 'var(--neutral-400)' }}>Ruangan: </span>
-              {order.survey.rooms?.length ?? 0} ruangan · Tanggal {order.survey.survey_date}
+              {order.survey.rooms?.length ?? 0} ruangan · Tanggal {formatDateDDMMYYYY(order.survey.survey_date)}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '600' }}>
               Blok HASIL SURVEY akan otomatis masuk ke Invoice PDF.
@@ -1637,7 +1638,7 @@ export default function OrderDetailPage() {
                 >
                   <strong>{s.survey_number ?? '—'}</strong> · {s.client_name}
                   <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>
-                    ({s.rooms?.[0]?.count ?? 0} ruangan · {s.survey_date})
+                    ({s.rooms?.[0]?.count ?? 0} ruangan · {formatDateDDMMYYYY(s.survey_date)})
                   </span>
                 </button>
               ))}

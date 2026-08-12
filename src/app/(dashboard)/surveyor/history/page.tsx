@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import { PageHeader } from '@/components/ui/PageHeader'
 import BackButton from '@/components/ui/BackButton'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 import { useToast } from '@/components/ui/Toast'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -127,7 +128,7 @@ export default function SurveyHistoryPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{r.survey_date}</span>
+                  <span className="mobile-card-value">{formatDateDDMMYYYY(r.survey_date)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -164,7 +165,7 @@ export default function SurveyHistoryPage() {
                   <td>{r.client_name}</td>
                   <td>{r.surveyor?.name ?? '-'}</td>
                   <td>{r.rooms?.[0]?.count ?? 0}</td>
-                  <td>{r.survey_date}</td>
+                  <td>{formatDateDDMMYYYY(r.survey_date)}</td>
                   <td>
                     <span
                       style={{

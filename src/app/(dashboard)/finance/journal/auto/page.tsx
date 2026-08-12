@@ -5,7 +5,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { FileText } from 'lucide-react'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 interface LooseRow {
   id: string
@@ -64,7 +64,7 @@ export default function AutoJournalPage() {
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{e.entry_date ?? e.created_at}</span>
+                  <span className="mobile-card-value">{formatDateDDMMYYYY(e.entry_date ?? e.created_at)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Keterangan</span>

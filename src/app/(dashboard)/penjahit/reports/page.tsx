@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { BarChart3 } from 'lucide-react'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 
@@ -219,7 +220,7 @@ export default function PenjahitReportsPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value">{r.created_at}</span>
+                  <span className="mobile-card-value">{formatDateDDMMYYYY(r.created_at)}</span>
                 </div>
             </div>
           )} />

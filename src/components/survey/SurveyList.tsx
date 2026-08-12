@@ -6,6 +6,7 @@ import Pagination from '@/components/ui/Pagination'
 import Link from 'next/link'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatSurveyText, buildWhatsAppUrl } from '@/lib/survey'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 import { useToast } from '@/components/ui/Toast'
 import type { Survey } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
@@ -186,7 +187,7 @@ export default function SurveyList({ basePath, showStats }: Props) {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
-                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>{r.survey_date}</span>
+                  <span className="mobile-card-value" style={{ fontWeight: '400' }}>{formatDateDDMMYYYY(r.survey_date)}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -253,7 +254,7 @@ export default function SurveyList({ basePath, showStats }: Props) {
                   <td>{r.client_name}</td>
                   <td>{r.surveyor?.name ?? '-'}</td>
                   <td>{r.rooms?.[0]?.count ?? 0}</td>
-                  <td>{r.survey_date}</td>
+                  <td>{formatDateDDMMYYYY(r.survey_date)}</td>
                   <td>
                     <span
                       style={{

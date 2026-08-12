@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, Circle, Camera, Loader2 } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
+import { formatDateDDMMYYYY } from '@/lib/utils'
 import { useToast } from '@/components/ui/Toast'
 
 interface ChecklistItem {
@@ -171,7 +172,7 @@ export default function InstallerChecklistPage() {
           <option value="">-- Pilih Booking --</option>
           {bookings.map((b) => (
             <option key={b.id} value={b.id}>
-              {b.order?.customer?.name ?? 'Customer'} - {b.scheduled_date} ({b.type})
+                  {b.order?.customer?.name ?? 'Customer'} - {formatDateDDMMYYYY(b.scheduled_date)} ({b.type})
             </option>
           ))}
         </select>
@@ -197,7 +198,7 @@ export default function InstallerChecklistPage() {
                 {selectedBookingData.address || selectedBookingData.order?.customer?.address}
               </div>
               <div style={{ fontSize: '0.85rem', color: 'var(--neutral-600)', marginTop: '0.25rem' }}>
-                📅 {selectedBookingData.scheduled_date} {selectedBookingData.scheduled_time}
+                📅 {formatDateDDMMYYYY(selectedBookingData.scheduled_date)} {selectedBookingData.scheduled_time}
               </div>
             </div>
           )}
