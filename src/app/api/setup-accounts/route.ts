@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
-import { requireAuth, checkRateLimit } from '@/lib/auth'
+import { requireAuth, checkRateLimit, getClientIp } from '@/lib/auth'
 
 // POST /api/setup-accounts — create initial admin & owner accounts
 // Uses signUp instead of admin API (no service role key needed)
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     // If any user already exists, require auth + admin/owner role
     const { count } = await supabase.from('users').select('*', { count: 'exact', head: true })
     if (count && count > 0) {
-      const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+      const rateLimit = checkRateLimit(getClientIp(request))
       if (rateLimit.blocked) {
         return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
       }

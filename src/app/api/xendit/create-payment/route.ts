@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { requireAuthRole, checkRateLimit } from '@/lib/auth'
+import { requireAuthRole, checkRateLimit, getClientIp } from '@/lib/auth'
 
 // Create Xendit payment (VA or QRIS)
 export async function POST(request: Request) {
   try {
-    const rateLimit = checkRateLimit(request.headers.get('x-forwarded-for') || 'unknown')
+    const rateLimit = checkRateLimit(getClientIp(request))
     if (rateLimit.blocked) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }

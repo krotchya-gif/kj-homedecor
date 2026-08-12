@@ -43,7 +43,8 @@ async function getCurrentUserRole(supabase: SupabaseClient) {
   } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
-  return { user, role: data?.role ?? 'admin' }
+  // Security fix (2026-08-12): user tanpa profil users = role null → DENY (bukan fail-open 'admin')
+  return { user, role: (data?.role as string | undefined) ?? null }
 }
 
 /**
@@ -54,6 +55,10 @@ export async function POST(request: Request) {
   const supabase = await createClient()
   const auth = await getCurrentUserRole(supabase)
   if (!auth) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+  // Security fix (2026-08-12): hanya surveyor/admin/owner aktif yang boleh buat survey
+  if (!auth.role || !['surveyor', 'admin', 'owner'].includes(auth.role)) {
+    return NextResponse.json({ error: { message: 'Forbidden: hanya surveyor/admin/owner' } }, { status: 403 })
+  }
 
   const body: SurveyPayload = await request.json()
   if (!body.client_name?.trim()) {
@@ -157,6 +162,10 @@ export async function GET(request: Request) {
   const supabase = await createClient()
   const auth = await getCurrentUserRole(supabase)
   if (!auth) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+  // Security fix (2026-08-12): deny kalau tanpa profil / role di luar surveyor/admin/owner
+  if (!auth.role || !['surveyor', 'admin', 'owner'].includes(auth.role)) {
+    return NextResponse.json({ error: { message: 'Forbidden' } }, { status: 403 })
+  }
 
   const { searchParams } = new URL(request.url)
   const clientName = searchParams.get('client_name')?.trim()

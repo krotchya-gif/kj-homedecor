@@ -29,6 +29,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
 
+  // 1b. Role check (Security fix 2026-08-12): hanya gudang/admin/owner aktif.
+  // RPC-nya SECURITY DEFINER (bypass RLS) → route level wajib guard role, bukan
+  // hanya login — kalau tidak penjahit/surveyor/installer bisa kurangi stok.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['gudang', 'admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden: hanya gudang/admin/owner' } }, { status: 403 })
+  }
+
   // 2. Parse body
   const body = await request.json()
   const productionJobId: string = body.production_job_id

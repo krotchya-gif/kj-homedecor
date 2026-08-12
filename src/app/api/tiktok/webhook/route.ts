@@ -28,7 +28,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing signature' }, { status: 401 })
     }
     const expected = crypto.createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex')
-    if (signature !== expected) {
+    // Security fix (2026-08-12): timing-safe comparison (sebelumnya `!==` string compare
+    // yang rentan timing attack — inkonsisten dengan xendit/webhook).
+    const sigBuffer = Buffer.from(signature, 'utf-8')
+    const expectedBuffer = Buffer.from(expected, 'utf-8')
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
       console.error('TikTok webhook: invalid signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }

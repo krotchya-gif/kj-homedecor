@@ -2,6 +2,23 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 
+// Security fix (2026-08-12): whitelist field yang boleh di-update lewat API.
+// Mencegah mass-assignment (mis. installer mengubah installer_id/scheduled_date/order_id).
+const ALLOWED_UPDATE_FIELDS = [
+  'installer_id',
+  'scheduled_date',
+  'scheduled_time',
+  'date',
+  'time',
+  'notes',
+  'customer_name',
+  'customer_phone',
+  'address',
+  'type',
+  'source',
+  'actual_date'
+] as const
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
@@ -85,11 +102,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       )
     }
 
-    // Kalau ada field lain di body (selain status & actual_date), update manual
-    // (mis. notes, installer_id, scheduled_date, scheduled_time)
-    const otherFields: Record<string, unknown> = { ...body }
-    delete otherFields.status
-    delete otherFields.actual_date
+    // Kalau ada field lain di body (selain status & actual_date), update manual —
+    // HANYA field yang masuk whitelist (anti mass-assignment)
+    const otherFields: Record<string, unknown> = {}
+    for (const key of Object.keys(body)) {
+      if ((ALLOWED_UPDATE_FIELDS as readonly string[]).includes(key)) {
+        otherFields[key] = body[key]
+      }
+    }
 
     if (Object.keys(otherFields).length > 0) {
       const { error: updateErr } = await supabase.from('install_bookings').update(otherFields).eq('id', id)
@@ -111,8 +131,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ data: { ...updated, _rpc: rpcResult }, error: null })
   }
 
-  // 3. Kalau TIDAK ada status change (cuma update field lain), update manual
-  const { data, error } = await supabase.from('install_bookings').update(body).eq('id', id).select().single()
+  // 3. Kalau TIDAK ada status change (cuma update field lain), update manual —
+  //    HANYA field whitelist (anti mass-assignment)
+  const safeBody: Record<string, unknown> = {}
+  for (const key of Object.keys(body)) {
+    if ((ALLOWED_UPDATE_FIELDS as readonly string[]).includes(key)) {
+      safeBody[key] = body[key]
+    }
+  }
+  if (Object.keys(safeBody).length === 0) {
+    return NextResponse.json({ data: null, error: { message: 'Tidak ada field yang valid untuk di-update' } }, { status: 400 })
+  }
+  const { data, error } = await supabase.from('install_bookings').update(safeBody).eq('id', id).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

@@ -61,8 +61,24 @@ export async function requireAuthRole(allowedRoles: Role[]) {
 }
 
 /**
+ * Extract client IP secara aman untuk rate limiting.
+ * Security fix (2026-08-12): jangan percaya `x-forwarded-for` mentah (bisa di-spoof client) —
+ * ambil entry PERTAMA (yang di-set proxy/ingress terpercaya) lalu fallback ke `x-real-ip`.
+ */
+export function getClientIp(request: Request): string {
+  const fwd = request.headers.get('x-forwarded-for')
+  if (fwd) {
+    const first = fwd.split(',')[0]?.trim()
+    if (first) return first
+  }
+  return request.headers.get('x-real-ip') ?? 'unknown'
+}
+
+/**
  * Simple in-memory rate limiter.
  * Tracks request counts per IP within a time window.
+ * Catatan: Map in-memory tidak skala di multi-instance/serverless — cukup untuk
+ * single-instance (VPS). Untuk produksi multi-instance, ganti ke store persisten.
  */
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
 

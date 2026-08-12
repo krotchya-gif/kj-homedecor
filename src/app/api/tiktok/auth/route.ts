@@ -14,14 +14,11 @@ export async function GET(req: NextRequest) {
     const shopCipherFromUrl = searchParams.get('shop_cipher') // TikTok returns shop_cipher in redirect URL
 
     // OAuth callback — exchange code for access token.
-    // Redirect from TikTok (server-to-server flow, may have no session) → service client
+    // Redirect dari TikTok (server-to-server flow, tanpa session browser yang valid di sini).
+    // Security fix (2026-08-12): HAPUS gate `getUser()` pada service client — service client
+    // tanpa cookie storage selalu null → callback selalu 401 → koneksi TikTok tidak pernah
+    // selesai. Keamanan callback dijamin oleh `code` OAuth (single-use) + `state` (shop_id).
     const supabase = createServiceClient()
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // OAuth callback — exchange code for access token
     if (code && state) {

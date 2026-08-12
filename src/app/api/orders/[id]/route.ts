@@ -403,20 +403,20 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   // RBAC: only admin/owner can hard-delete. Other roles should use 'cancelled' status instead.
-  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
-  const userRole = requester?.role ?? 'admin'
-
-  if (userRole !== 'admin' && userRole !== 'owner') {
+  // Security fix (2026-08-12): DENY kalau profil users tidak ditemukan — jangan fail-open ke 'admin'
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['admin', 'owner'].includes(requester.role)) {
     return NextResponse.json(
       {
         data: null,
         error: {
-          message: `Role "${userRole}" tidak punya permission untuk hard-delete order. Gunakan status 'cancelled' sebagai gantinya.`
+          message: 'Forbidden: hanya admin/owner aktif yang bisa hard-delete order. Gunakan status "cancelled" sebagai gantinya.'
         }
       },
       { status: 403 }
     )
   }
+  const userRole = requester.role
 
   // Log the deletion for audit trail before deleting
   await supabase.from('order_logs').insert({

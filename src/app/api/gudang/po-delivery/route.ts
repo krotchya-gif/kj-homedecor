@@ -5,6 +5,17 @@ import { toClientError } from '@/lib/api-errors'
 // GET — list POs that are delivered (status = 'delivered') and not yet confirmed received by Gudang
 export async function GET() {
   const supabase = await createClient()
+  // Security fix (2026-08-12): GET wajib login + role gudang/admin/owner
+  // (sebelumnya tanpa auth sama sekali → data PO + supplier bocor ke siapa pun)
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['gudang', 'admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { data, error } = await supabase
     .from('purchase_orders')
     .select('*, supplier:suppliers(name), pr:purchase_requests(material:materials(name, unit))')

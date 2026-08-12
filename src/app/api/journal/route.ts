@@ -115,6 +115,13 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Security fix (2026-08-12): GET jurnal hanya finance/admin/owner aktif —
+  // data debit/kredit/saldo tidak boleh bocor ke role operasional.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['finance', 'admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden: hanya finance/admin/owner' } }, { status: 403 })
+  }
+
   const { searchParams } = new URL(request.url)
   const limitRaw = Number(searchParams.get('limit') ?? 50)
   const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 200) : 50
