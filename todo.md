@@ -1,10 +1,23 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-12
+> **Branch:** `main` · Update terakhir: 2026-08-12 (sesi 2 — sinkronisasi & klarifikasi orphan)
 
 ---
 
-## ✅ Selesai (2026-08-12 — Sesi Finance Hardening, Fitur Baru & Laundry)
+## ✅ Selesai (2026-08-12 — Sesi 2: Sinkronisasi Final & Klarifikasi)
+
+1. ✅ `000_full_schema.sql` (1426 → 2115 baris) = satu-satunya referensi schema, sudah = kondisi live (migration 053-071, Section 10) — commit `4c73ab5`
+2. ✅ Verifikasi live (REST service role): semua kolom/tabel/RPC yang dipakai codebase ADA (`create_journal_atomic`, `reset_transactional_data`, `is_finance_role`, `is_admin_or_owner_sd`, `generate_survey_number`, dll); `exec_sql` mati (404)
+3. ✅ Komentar migration 058 dikoreksi — 4 fungsi klaim audit (`process_return_refund`, `create_journal_entry`, `approve_stock_opname`, `record_material_consumption`) ternyata:
+   - **Tidak ada di DB live** (404) & tidak dipakai `src/`
+   - 3/4 fungsionalitasnya ada dengan nama beda: refund → client-side `handleRefund`; jurnal → `create_journal_atomic` (via `utils/journal/create.ts`); konsumsi material → `consume_materials_for_production`
+   - 1/4 (`approve_stock_opname` / fitur stock opname UI) **belum pernah diimplementasi** — tabel `stock_opname_sessions/items` ada tapi tanpa halaman/kode pengguna
+   - Commit `9fc4f59`
+4. ✅ Login semua role 200 (owner/admin/gudang/finance/penjahit/installer/surveyor/laundry) — recursion RLS users fixed (071)
+
+---
+
+## ✅ Selesai (2026-08-12 — Sesi 1: Finance Hardening, Fitur Baru & Laundry)
 
 ### 🛡️ Security & RLS (BUG-019/021/031/032)
 1. ✅ Role check di API: create-staff, purchase-orders, po-delivery, seo-upload, surveys/[id], TikTok auth/sync/reauthorize, purchase-requests/[id] (whitelist), install-bookings/[id]
@@ -69,17 +82,18 @@
 
 ---
 
-## ⏳ Belum Selesai (prioritas berikutnya)
+## ⏳ Belum Selesai (prioritas berikutnya — Sesi 3)
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **Server-side price validation** | 🟡 Medium | `orders/route.ts` POST masih terima `total_amount` dari client |
-| 2 | **TikTok auth/route GET rusak** | 🟡 Medium | Service client + `getUser()` selalu null → OAuth callback mati |
-| 3 | **Duplikasi** | 🟢 Low | `NAV_BY_ROLE` 2× (Sidebar vs TopNav, sudah drift); owner/laporan = salinan finance/laporan (~2.2k baris) |
-| 4 | **Dead deps** | 🟢 Low | `pg` (0 usage), `request` (deprecated, cuma SDK generated), `shadcn` di dependencies |
-| 5 | **Tests** | 🟡 Medium | vitest/playwright mengarah ke `tests/` yang tidak ada — perlu buat ulang suite |
-| 6 | **Data cleanup accounts** | 🟢 Low | Baris `accounts` type non-standar (constraint 067 NOT VALID) — cek & perbaiki manual |
-| 7 | **Backfill data lama** | 🟢 Low | Hanya kalau perlu (data masih dummy — selisih rekonsiliasi tampil sebagai info) |
+| 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000` (log: `%TEMP%\opencode\devserver.log`); test login 8 role + fitur baru: reset data (`/owner/settings` ketik RESET), faktur/SJ di `admin/orders/[id]`, dashboard `/laundry` (terima task → lapor selesai kg_actual), rekonsiliasi `/finance/rekonsiliasi` |
+| 2 | **Server-side price validation** | 🟡 Medium | `orders/route.ts:13` masih terima `total_amount` dari client (`.optional()`) — peluang manipulasi harga; hitung ulang dari items di server |
+| 3 | **TikTok auth/route GET rusak** | 🟡 Medium | Service client + `getUser()` selalu null → OAuth callback mati; juga cek `reauthorize` |
+| 4 | **Tests suite** | 🟡 Medium | vitest/playwright mengarah ke `tests/` yang tidak ada — perlu buat ulang suite |
+| 5 | **Duplikasi** | 🟢 Low | `NAV_BY_ROLE` 2× (Sidebar.tsx:60 vs TopNav.tsx:56, sudah drift); owner/laporan = salinan finance/laporan (~2.2k baris) |
+| 6 | **Dead deps** | 🟢 Low | `pg` (0 usage), `request` (deprecated, cuma SDK generated), `shadcn` di dependencies |
+| 7 | **Data cleanup accounts** | 🟢 Low | Baris `accounts` type non-standar (constraint 067 NOT VALID) — cek & perbaiki manual |
+| 8 | **Fitur stock opname UI** | 🟢 Low | Tabel `stock_opname_sessions/items` ada (migration 040) tapi belum ada halaman/kode; RPC `approve_stock_opname` belum pernah dibuat — fitur baru, bukan bug |
 
 ---
 
