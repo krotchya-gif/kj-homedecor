@@ -33,111 +33,16 @@ import { Modal } from '@/components/ui/Modal'
 import { generateInvoicePDF, generatePackingListPDF, generateFakturPDF, generateSuratJalanPDF } from '@/lib/invoice'
 import { useToast } from '@/components/ui/Toast'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, STATUS_COLORS, PAYMENT_COLORS } from '@/lib/order-detail'
+import type { ItemType, OrderLog, OrderPhoto, BomRow, MeterRow, SurveyCand } from '@/lib/order-detail'
 
-// Pipeline: ORDER_STATUSES now conditional based on order.classification
-// Use shared util ORDER_STAGES_BY_CLASSIFICATION untuk single source of truth
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  new: { bg: '#dbeafe', text: '#1e40af' },
-  sorted: { bg: '#e0e7ff', text: '#3730a3' },
-  payment_ok: { bg: '#d1fae5', text: '#065f46' },
-  production: { bg: '#fef3c7', text: '#92400e' },
-  steam: { bg: '#fef3c7', text: '#92400e' },
-  ready: { bg: '#cffafe', text: '#155e75' },
-  packed: { bg: '#ede9fe', text: '#5b21b6' },
-  shipped: { bg: '#dbeafe', text: '#1e3a8a' },
-  done: { bg: '#f0fdf4', text: '#166534' }
-}
-const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
-  pending: { bg: '#fef2f2', text: '#991b1b' },
-  partial: { bg: '#fffbeb', text: '#92400e' },
-  paid: { bg: '#d1fae5', text: '#065f46' }
-}
-
-type ItemType = 'gorden' | 'perabot' | 'laundry'
+// Pipeline: ORDER_STAGES_BY_CLASSIFICATION (src/lib/orders.ts) = single source of truth.
+// STATUS_COLORS / PAYMENT_COLORS / ROLE_NEXT_ALLOWED / canRoleAdvanceNext /
+// getResponsibleRoles / parseGordenMeter / types — di-extract ke src/lib/order-detail.ts
+// (refactor 2026-08-12, Stage 1 — logika murni, bisa di-unit-test).
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
-// Role → stage yang boleh di-LANJUTKAN (mirror API di /api/orders/[id]/route.ts)
-// Setiap role hanya boleh klik "Lanjut" di stage yang menjadi tanggung jawabnya.
-// Admin/owner adalah escape hatch (bisa semua).
-// Penjual tombol Lanjut: sembunyikan kalau bukan role ini.
-// Stage transition permissions — setiap role hanya boleh klik "Lanjut" di stage yang menjadi tanggung jawabnya.
-// Owner = escape hatch (bisa semua stage). Admin TIDAK escape hatch — hanya di sortir (awal) dan shipping (akhir).
-// Source of truth: matrix di dokumentasi pipeline
-const ROLE_NEXT_ALLOWED: Record<string, string[]> = {
-  // Admin: escape hatch — semua stage (align dengan API route.ts:40). BUG-003 fix 2026-08-11.
-  admin: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'shipped'],
-  // Owner: escape hatch — semua stage
-  owner: ['new', 'payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed', 'shipped', 'done'],
-  // Gudang: sortir (setelah approve finance) + produksi + QC jahitan + packing
-  // 2026-07-31: payment_ok→sorted (sortir) & ready→packed (packing) pindah ke gudang
-  gudang: ['payment_ok', 'sorted', 'production', 'steam', 'ready', 'packed'],
-  // Finance: approve pembayaran di DEPAN (new → payment_ok, verifikasi DP/lunas sebelum produksi)
-  finance: ['new'],
-  // Installer: shipping akhir
-  installer: ['packed', 'shipped']
-  // Penjahit: TIDAK boleh klik "Lanjut" di order detail (mereka kerjakan via /penjahit/jobs)
-}
-function canRoleAdvanceNext(role: string, currentStatus: string): boolean {
-  // Owner adalah escape hatch — boleh semua
-  if (role === 'owner') return true
-  const allowed = ROLE_NEXT_ALLOWED[role] ?? []
-  return allowed.includes(currentStatus)
-}
-// Tampilkan list role yang bertanggung jawab untuk advance dari currentStatus
-function getResponsibleRoles(currentStatus: string): string {
-  const responsibles: string[] = []
-  for (const [role, stages] of Object.entries(ROLE_NEXT_ALLOWED)) {
-    if (stages.includes(currentStatus)) responsibles.push(role)
-  }
-  // Owner selalu termasuk (escape hatch)
-  if (!responsibles.includes('owner')) responsibles.push('owner')
-  return responsibles.join(', ')
-}
-
-
-interface SurveyCand {
-  id: string
-  survey_number?: string
-  client_name: string
-  survey_date: string
-  rooms?: { count?: number }[] | null
-}
-
-type MeterRow = {
-  meter_gorden?: number
-  meter_vitras?: number
-  meter_roman?: number
-  meter_kupu_kupu?: number
-  meter?: number
-}
-
-interface OrderLog {
-  id: string
-  order_id: string
-  action: string
-  notes?: string | null
-  created_at: string
-  staff?: { name: string } | null
-}
-
-interface OrderPhoto {
-  id: string
-  order_id: string
-  photo_url: string
-  stage?: string | null
-  created_at: string
-}
-
-interface BomRow {
-  id: string
-  product_id?: string
-  material_id?: string
-  qty?: number
-  qty_per_unit?: number
-  material?: { name: string; unit?: string; cost_per_unit?: number; stock_gudang?: number; min_stock_level?: number } | null
-}
 
 export default function OrderDetailPage() {
   const { toast } = useToast()
@@ -721,12 +626,7 @@ export default function OrderDetailPage() {
   }
 
   // Gorden dihitung per ukuran (cm), bukan qty: meter kain = tinggi ukuran ÷ 100
-  // Format ukuran: "lebar x tinggi" cm — cth "120 x 250" → 2.5 m
-  function parseGordenMeter(size: string): number {
-    const m = size.match(/(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)/)
-    if (!m) return 0
-    return Number(m[2]) / 100
-  }
+  // Format ukuran: "lebar x tinggi" cm — cth "120 x 250" → 2.5 m (parseGordenMeter dari lib)
 
   async function addItem(e: React.FormEvent) {
     e.preventDefault()
