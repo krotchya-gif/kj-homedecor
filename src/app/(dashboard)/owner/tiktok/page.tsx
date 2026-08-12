@@ -360,11 +360,11 @@ export default function TikTokDashboardPage() {
         </div>
         <div className="stat-card">
           <div className="stat-card-label">Settlement per Bulan</div>
-          <div style={{ fontSize: '0.75rem', lineHeight: 1.5, maxHeight: 160, overflowY: 'auto' }}>
+          <div style={{ fontSize: '0.72rem', lineHeight: 1.5, maxHeight: 160, overflowY: 'auto' }}>
             {monthlyStats.slice(0, 6).map((m) => (
               <div key={m.month} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.5rem' }}>
                 <span style={{ color: 'var(--neutral-600)', fontWeight: 500, flexShrink: 0 }}>{m.month}</span>
-                <span style={{ color: '#2563eb', textAlign: 'right', minWidth: 0, overflowWrap: 'anywhere' }}>
+                <span style={{ color: '#2563eb', textAlign: 'right', minWidth: 0, whiteSpace: 'nowrap' }}>
                   {formatRp(m.total)}
                 </span>
               </div>
