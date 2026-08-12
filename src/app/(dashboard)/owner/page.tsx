@@ -295,9 +295,11 @@ export default function OwnerDashboard() {
                       width: '100%',
                       padding: '0.5rem',
                       marginBottom: '0.5rem',
-                      border: '1px solid #d1d5db',
+                      border: '1px solid var(--input-border)',
                       borderRadius: '0.375rem',
-                      fontSize: '0.8rem'
+                      fontSize: '0.8rem',
+                      background: 'var(--surface)',
+                      color: 'var(--neutral-800)'
                     }}
                   >
                     {MONTHS_FULL.map((m, i) => (
@@ -312,9 +314,11 @@ export default function OwnerDashboard() {
                     style={{
                       width: '100%',
                       padding: '0.5rem',
-                      border: '1px solid #d1d5db',
+                      border: '1px solid var(--input-border)',
                       borderRadius: '0.375rem',
-                      fontSize: '0.8rem'
+                      fontSize: '0.8rem',
+                      background: 'var(--surface)',
+                      color: 'var(--neutral-800)'
                     }}
                   >
                     {[period.year - 1, period.year, period.year + 1].map((y) => (

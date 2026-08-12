@@ -886,9 +886,12 @@ export default function TikTokDashboardPage() {
                 }}
                 style={{
                   padding: '0.35rem 0.6rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.375rem',
-                  fontSize: '0.8rem'
+                  fontSize: '0.8rem',
+                  background: 'var(--surface)',
+                  color: 'var(--neutral-800)',
+                  cursor: 'pointer'
                 }}
               >
                 <option value="">Status: Semua</option>
@@ -906,9 +909,12 @@ export default function TikTokDashboardPage() {
                 }}
                 style={{
                   padding: '0.35rem 0.6rem',
-                  border: '1px solid #d1d5db',
+                  border: '1px solid var(--input-border)',
                   borderRadius: '0.375rem',
-                  fontSize: '0.8rem'
+                  fontSize: '0.8rem',
+                  background: 'var(--surface)',
+                  color: 'var(--neutral-800)',
+                  cursor: 'pointer'
                 }}
               >
                 <option value="">Payment: Semua</option>

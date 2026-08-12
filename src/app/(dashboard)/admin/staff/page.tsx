@@ -398,10 +398,12 @@ export default function StaffPage() {
                               onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
                               style={{
                                 padding: '0.4rem 0.625rem',
-                                border: '1px solid #d1d5db',
+                                border: '1px solid var(--input-border)',
                                 borderRadius: '0.375rem',
                                 fontSize: '0.8rem',
-                                width: '100%'
+                                width: '100%',
+                                background: 'var(--surface)',
+                                color: 'var(--neutral-800)'
                               }}
                             >
                               {ROLES.map((r) => (
@@ -415,10 +417,12 @@ export default function StaffPage() {
                               onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
                               style={{
                                 padding: '0.4rem 0.625rem',
-                                border: '1px solid #d1d5db',
+                                border: '1px solid var(--input-border)',
                                 borderRadius: '0.375rem',
                                 fontSize: '0.8rem',
-                                width: '100%'
+                                width: '100%',
+                                background: 'var(--surface)',
+                                color: 'var(--neutral-800)'
                               }}
                             >
                               <option value="active">Active</option>

@@ -1132,6 +1132,18 @@ p {
   opacity: 1;
 }
 
+/* Dropdown/select — ikut tema (light & dark). Inline style pada komponen bisa
+   menimpa; aturan ini jadi jaring pengaman untuk select yang tidak set warna. */
+select {
+  background-color: var(--surface);
+  color: var(--neutral-800);
+  border: 1px solid var(--input-border);
+}
+select option {
+  background-color: var(--surface);
+  color: var(--neutral-800);
+}
+
 .stat-card-label {
   font-size: 0.78rem;
   font-weight: 500;

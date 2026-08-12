@@ -92,7 +92,9 @@ export default function CatalogPage() {
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                background: 'var(--surface)',
+                color: 'var(--neutral-800)'
               }}
             >
               <option value="">Semua Kategori</option>

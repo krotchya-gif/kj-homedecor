@@ -321,7 +321,7 @@ export default function IncomePage() {
               style={{
                 width: '100%',
                 padding: '0.625rem',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--input-border)',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
