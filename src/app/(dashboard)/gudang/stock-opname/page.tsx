@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { ClipboardList, Plus, Loader2, CheckCircle2, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { formatRp } from '@/lib/utils'
 
 
 interface Material {
@@ -287,7 +286,9 @@ export default function StockOpnamePage() {
                   {s.notes && <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '0.5rem' }}>{s.notes}</div>}
                   <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginBottom: '0.5rem' }}>
                     {(s.items ?? []).length} material · Total selisih:{' '}
-                    <span style={{ fontWeight: 700, color: totalDiff === 0 ? '#16a34a' : '#cc7030' }}>{formatRp(totalDiff)}</span>
+                    <span style={{ fontWeight: 700, color: totalDiff === 0 ? '#16a34a' : '#cc7030' }}>
+                      {totalDiff.toLocaleString('id-ID')} unit
+                    </span>
                   </div>
                   {s.status === 'open' && (
                     <div style={{ display: 'flex', gap: '0.5rem' }}>

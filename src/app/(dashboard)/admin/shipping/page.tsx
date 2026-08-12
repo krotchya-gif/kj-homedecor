@@ -343,7 +343,7 @@ export default function AdminShippingPage() {
                     <Check size={14} /> Dikemas
                   </button>
                 )}
-                {(order.status === 'ready' || order.status === 'packed') && (
+                {order.status === 'packed' && (
                   <button
                     onClick={() => openResiModal(order)}
                     style={{

@@ -568,7 +568,7 @@ export default function InstallerSchedulePage() {
                   color: '#991b1b'
                 }}
               >
-                ⚠️ Setelah提交, status booking改为 "Revisi" dan Gudang akan diperlukan memperbaiki sebelum jadwal baru
+                ⚠️ Setelah dikirim, status booking menjadi "Revisi" dan Gudang akan memperbaiki sebelum jadwal baru
                 dibuatkan.
               </div>
 

@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, Loader2, ClipboardList } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import { formatRp } from '@/lib/utils'
 
 
 interface SessionItem {
@@ -119,7 +118,7 @@ export default function FinanceStockOpnamePage() {
                     <td style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>{s.notes || '-'}</td>
                     <td style={{ textAlign: 'right' }}>{(s.items ?? []).length}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: totalDiff === 0 ? '#16a34a' : '#cc7030' }}>
-                      {formatRp(totalDiff)}
+                      {totalDiff.toLocaleString('id-ID')} unit
                     </td>
                     <td>
                       {s.status === 'submitted' ? (
@@ -154,7 +153,7 @@ export default function FinanceStockOpnamePage() {
               </div>
               <div className="mobile-card-row">
                 <span className="mobile-card-label">Total Selisih</span>
-                <span className="mobile-card-value">{formatRp((s.items ?? []).reduce((a, i) => a + Number(i.difference || 0), 0))}</span>
+                <span className="mobile-card-value">{(s.items ?? []).reduce((a, i) => a + Number(i.difference || 0), 0).toLocaleString('id-ID')} unit</span>
               </div>
               {s.status === 'submitted' && (
                 <button className="btn-primary" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }} disabled={approving === s.id} onClick={() => approve(s.id)}>
