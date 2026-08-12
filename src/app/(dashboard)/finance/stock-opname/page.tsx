@@ -6,9 +6,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, Loader2, ClipboardList } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface SessionItem {
   material?: { name?: string; unit?: string } | null

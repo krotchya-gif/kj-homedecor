@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import ImportModal from '@/components/ui/ImportModal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
+import { formatRp } from '@/lib/utils'
 
 const IMPORT_COLUMNS = [
   { key: 'name', label: 'Nama Material', required: true },
@@ -33,8 +34,6 @@ const EXPORT_COLUMNS = [
   { key: 'min_stock_level', label: 'Min Stok' }
 ]
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function MaterialsPage() {
   const { toast } = useToast()

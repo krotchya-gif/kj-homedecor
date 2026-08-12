@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Package, Loader2, Search } from 'lucide-react'
 import Pagination from '@/components/ui/Pagination'
+import { formatRp } from '@/lib/utils'
 
 interface Product {
   id: string
@@ -99,9 +100,7 @@ export default function OwnerProductsPage() {
     setCurrentPage(1)
   }, [search])
 
-  const formatRp = (n: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
+  
   return (
     <div>
       <PageHeader title="Top Produk" subtitle="Produk terlaris berdasarkan revenue dan quantity" />

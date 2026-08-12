@@ -10,9 +10,9 @@ import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
+
 
 // F-67 fix: format dengan 2 desimal untuk mendeteksi selisih kecil (A ≠ L+E)
 const formatRpDec = (n: number) =>

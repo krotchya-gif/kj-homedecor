@@ -20,6 +20,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { formatRp } from '@/lib/utils'
 
 interface Order {
   id: string
@@ -179,12 +180,7 @@ export default function AdminReportsPage() {
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 10)
 
-  const formatRp = (n: number) =>
-    new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      maximumFractionDigits: 0
-    }).format(n)
+  
 
   function exportCSV() {
     const headers = ['Order ID', 'Tanggal', 'Source', 'Status', 'Total', 'Payment']

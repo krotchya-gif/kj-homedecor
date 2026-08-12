@@ -21,13 +21,9 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(n)
+
 
 interface TikTokSetting {
   id: string

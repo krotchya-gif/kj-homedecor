@@ -14,9 +14,8 @@ import { useToast } from '@/components/ui/Toast'
 import { createSimpleJournal } from '@/utils/journal/create'
 import Pagination from '@/components/ui/Pagination'
 import MobileCards from '@/components/ui/MobileCards'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 const COURIERS = [
   { value: 'jne', label: 'JNE' },

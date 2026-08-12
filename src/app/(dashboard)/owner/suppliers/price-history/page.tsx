@@ -8,9 +8,8 @@ import { createClient } from '@/utils/supabase/client'
 import { TrendingUp, TrendingDown, Minus, Search, Package, Calendar } from 'lucide-react'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface HistoryRow {
   id: string

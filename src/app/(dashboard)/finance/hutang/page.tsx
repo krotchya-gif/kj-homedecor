@@ -9,9 +9,8 @@ import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface Hutang {
   id: string

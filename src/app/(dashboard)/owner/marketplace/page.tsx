@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { ShoppingCart, Loader2, TrendingUp, BarChart3 } from 'lucide-react'
 import { SOURCE_LABELS } from '@/types'
+import { formatRp } from '@/lib/utils'
 
 interface Order {
   id: string
@@ -74,9 +75,7 @@ export default function OwnerMarketplacePage() {
   const totalRevenue = Object.values(sourceStats).reduce((s, v) => s + v.revenue, 0)
   const totalOrders = orders.length
 
-  const formatRp = (n: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
+  
   return (
     <div>
       <PageHeader title="Marketplace" subtitle="Performa penjualan per platform" />

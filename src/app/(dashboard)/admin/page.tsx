@@ -39,6 +39,7 @@ import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
 import { SectionCard } from '@/components/ui/SectionCard'
 import { useToast } from '@/components/ui/Toast'
+import { formatRp } from '@/lib/utils'
 
 interface Order {
   id: string
@@ -129,8 +130,6 @@ const ACTION_ICONS: Record<string, { icon: React.ReactNode; color: string }> = {
   refund_issued: { icon: <DollarSign size={14} />, color: '#f59e0b' }
 }
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 export default function AdminDashboardPage() {
   const { toast } = useToast()

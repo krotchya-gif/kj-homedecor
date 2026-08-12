@@ -8,9 +8,8 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, LandPlot } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface Asset {
   id: string

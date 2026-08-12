@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { BarChart3, Download, Package, ArrowDownLeft, ArrowUpRight, Loader2, FileDown } from 'lucide-react'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { formatRp } from '@/lib/utils'
 
 interface InventoryMovement {
   id: string
@@ -58,9 +59,7 @@ export default function GudangReportsPage() {
     setLoading(false)
   }
 
-  const formatRp = (n: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
+  
   function exportPDF() {
     const doc = new jsPDF()
     doc.setFontSize(16)

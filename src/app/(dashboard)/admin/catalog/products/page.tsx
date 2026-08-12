@@ -16,9 +16,8 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 import ImportModal from '@/components/ui/ImportModal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 const IMPORT_COLUMNS = [
   { key: 'name', label: 'Nama', aliases: ['nama_produk'], required: true },

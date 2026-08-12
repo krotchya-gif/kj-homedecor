@@ -30,11 +30,10 @@ import {
   Line
 } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
+import { formatRp } from '@/lib/utils'
 
 const COLORS = ['#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488']
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface Order {
   id: string

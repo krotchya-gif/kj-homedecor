@@ -6,13 +6,9 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Search, ArrowLeftRight } from 'lucide-react'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(n)
+
 
 interface CashAccountRow {
   id: string

@@ -9,6 +9,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, Book } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import { formatRp } from '@/lib/utils'
 
 const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'] as const
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -19,8 +20,6 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   expense: { bg: '#fef2f2', text: '#991b1b' }
 }
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface Account {
   id: string

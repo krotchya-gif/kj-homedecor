@@ -5,13 +5,9 @@ import { createClient } from '@/utils/supabase/client'
 import { Search, MessageCircle, X } from 'lucide-react'
 import Link from 'next/link'
 import type { Product, Category } from '@/types'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(n)
+
 
 export default function CatalogPage() {
   const [products, setProducts] = useState<Product[]>([])

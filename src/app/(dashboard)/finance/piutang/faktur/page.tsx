@@ -9,9 +9,8 @@ import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import { createSimpleJournal } from '@/utils/journal/create'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
 
 interface Piutang {
   id: string
@@ -157,6 +156,20 @@ export default function FakturPage() {
         }
       }
     } else {
+        // 2026-08-12: cek duplikat invoice_number sebelum insert (error friendly,
+        // bukan 23505 mentah — unique index piutang_invoice_unique)
+        if (form.invoice_number?.trim()) {
+          const { data: dup } = await supabase
+            .from('piutang')
+            .select('id')
+            .eq('invoice_number', form.invoice_number.trim())
+            .maybeSingle()
+          if (dup) {
+            setSaving(false)
+            toast('error', `Nomor faktur "${form.invoice_number}" sudah dipakai.`)
+            return
+          }
+        }
         // CREATE optimistic: id sementara dulu, diganti id asli dari server
         const tempId = crypto.randomUUID()
         const tempItem = { id: tempId, ...payload }

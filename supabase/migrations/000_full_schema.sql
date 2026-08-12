@@ -2301,6 +2301,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS piutang_tiktok_invoice_unique
   ON public.piutang (invoice_number)
   WHERE channel = 'tiktok' AND invoice_number IS NOT NULL;
 
+-- Unique invoice semua channel (076) — anti-double faktur
+CREATE UNIQUE INDEX IF NOT EXISTS piutang_invoice_unique
+  ON public.piutang (invoice_number)
+  WHERE invoice_number IS NOT NULL;
+
 -- ---------- 10.11 Stock opname approve (075) ----------
 CREATE OR REPLACE FUNCTION public.approve_stock_opname(p_session_id UUID)
 RETURNS JSONB

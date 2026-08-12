@@ -11,6 +11,7 @@ import ImportModal from '@/components/ui/ImportModal'
 import { exportToCSV, generateCSVTemplate } from '@/lib/csv'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import { formatRp } from '@/lib/utils'
 
 interface POListRow {
   id: string
@@ -249,9 +250,7 @@ export default function SuppliersPage() {
     setShowPOForm(true)
   }
 
-  const formatRp = (n: number) =>
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
+  
   const FIELDS = [
     { label: 'Nama Supplier *', id: 'name', placeholder: 'PT. Kain Nusantara', required: true },
     { label: 'Contact Person', id: 'contact_person', placeholder: 'Bapak/Ibu ...', required: false },

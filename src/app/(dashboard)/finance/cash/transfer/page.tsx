@@ -8,13 +8,9 @@ import { useToast } from '@/components/ui/Toast'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, ArrowLeftRight, Search, X, History } from 'lucide-react'
+import { formatRp } from '@/lib/utils'
 
-const formatRp = (n: number) =>
-  new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(n)
+
 
 interface CashAccount {
   id: string
