@@ -165,7 +165,7 @@ src/
 │   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, dll
 │   ├── dashboard/                # Sidebar, TopNav, NotificationBell, layout
 │   └── landing/                  # ScrollNav, ProductCatalog, AnimatedCounter, HeroParticles, ScrollHero
-├── config/                       # (kosong — navigation.tsx dihapus saat merge)
+├── config/                       # nav.tsx (navigasi per role — satu sumber)
 ├── lib/
 │   ├── auth.ts                   # requireAuth, requireRole, requireAuthRole, checkRateLimit
 │   ├── orders.ts                 # ORDER_STAGES_BY_CLASSIFICATION, PHOTO_REQUIRED_STAGES, getNextStage...

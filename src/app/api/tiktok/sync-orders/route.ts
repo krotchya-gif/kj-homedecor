@@ -32,67 +32,76 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Call TikTok Shop API to get orders with signed request
-    // page_size must be in BOTH query string and body for correct signature
-    const reqBody: Record<string, unknown> = {
-      page_size: 100
-    }
-    if (start_date) {
-      reqBody.create_time_ge = Math.floor(new Date(start_date).getTime() / 1000)
-    }
-    if (end_date) {
-      reqBody.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000)
-    }
-
-    const extraQs: Record<string, string> = {
-      page_size: '100'
-    }
-    if (settings.shop_cipher) {
-      extraQs.shop_cipher = settings.shop_cipher
-    }
-
-    const url = signTikTokRequest(
-      '/order/202309/orders/search',
-      settings.app_key,
-      settings.app_secret,
-      reqBody,
-      extraQs
-    )
-
-    const orderListRes = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-tts-access-token': token
-      },
-      body: JSON.stringify(reqBody)
-    })
-
-    const orderData = await orderListRes.json()
-
-    // Check for TikTok API errors
-    if (orderData.code && orderData.code !== 0) {
-      return NextResponse.json(
-        {
-          error: `TikTok API error (${orderData.code}): ${orderData.message || 'Unknown error'}`
-        },
-        { status: 400 }
-      )
-    }
-
-    if (!orderData.data?.orders) {
-      return NextResponse.json({ synced: 0, message: 'No orders found' })
-    }
-
+    // 2026-08-12: pagination cursor — TikTok orders/search max 100/halaman.
+    // Sebelumnya hanya 1 halaman → order >100 terlewat dari sync.
+    let cursor: string | null = null
     let synced = 0
-    for (const order of orderListRes.ok ? orderData.data.orders : []) {
-      const { data: existing } = await supabase
-        .from('tiktok_shop_orders')
-        .select('id')
-        .eq('tiktok_order_id', order.id)
-        .maybeSingle()
+    let totalSeen = 0
+    let pages = 0
+    const MAX_PAGES = 20
 
-      if (!existing) {
+    while (true) {
+      // page_size must be in BOTH query string and body for correct signature
+      const reqBody: Record<string, unknown> = { page_size: 100 }
+      const extraQs: Record<string, string> = { page_size: '100' }
+      if (cursor) {
+        reqBody.cursor = cursor
+        extraQs.cursor = cursor
+      }
+      if (start_date) {
+        reqBody.create_time_ge = Math.floor(new Date(start_date).getTime() / 1000)
+      }
+      if (end_date) {
+        reqBody.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000)
+      }
+      if (settings.shop_cipher) {
+        extraQs.shop_cipher = settings.shop_cipher
+      }
+
+      const url = signTikTokRequest(
+        '/order/202309/orders/search',
+        settings.app_key,
+        settings.app_secret,
+        reqBody,
+        extraQs
+      )
+
+      const orderListRes = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-tts-access-token': token
+        },
+        body: JSON.stringify(reqBody)
+      })
+
+      const orderData = await orderListRes.json()
+
+      // Check for TikTok API errors
+      if (orderData.code && orderData.code !== 0) {
+        return NextResponse.json(
+          {
+            error: `TikTok API error (${orderData.code}): ${orderData.message || 'Unknown error'}`,
+            synced,
+            pages
+          },
+          { status: 400 }
+        )
+      }
+
+      const orders = (orderListRes.ok ? orderData.data?.orders : []) ?? []
+      if (orders.length === 0) break
+
+      for (const order of orders) {
+        totalSeen++
+        const { data: existing } = await supabase
+          .from('tiktok_shop_orders')
+          .select('id')
+          .eq('tiktok_order_id', order.id)
+          .maybeSingle()
+
+        if (existing) continue
+
         // TikTok API field mapping — payment details are in nested payment object
         const payment = order.payment || {}
         const totalAmount = payment.total_amount ? Number(payment.total_amount) : 0
@@ -138,12 +147,18 @@ export async function POST(req: NextRequest) {
         }
         synced++
       }
+
+      pages++
+      const next = orderData.data?.next_cursor
+      if (!next || pages >= MAX_PAGES) break
+      cursor = next
     }
 
     return NextResponse.json({
       synced,
-      total: orderData.data.orders.length,
-      message: `Synced ${synced} new orders`
+      total: totalSeen,
+      pages,
+      message: `Synced ${synced} new orders (${pages} halaman)`
     })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? toClientError(err) : String(err) }, { status: 500 })

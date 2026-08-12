@@ -164,7 +164,8 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         { label: 'Aset', href: '/finance/assets', icon: LandPlot },
         { label: 'Jurnal', href: '/finance/journal', icon: FileText },
         { label: 'Laundry Gaji', href: '/finance/laundry-payroll', icon: WashingMachine },
-        { label: 'Rekonsiliasi', href: '/finance/rekonsiliasi', icon: Scale }
+        { label: 'Rekonsiliasi', href: '/finance/rekonsiliasi', icon: Scale },
+        { label: 'Stock Opname', href: '/finance/stock-opname', icon: ClipboardList }
       ]
     },
     {

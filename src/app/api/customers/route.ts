@@ -18,6 +18,12 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Security fix (2026-08-12): data customer (PII) hanya admin/owner
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['admin', 'owner'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')
 

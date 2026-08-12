@@ -69,8 +69,8 @@ export async function POST(req: NextRequest) {
 
     const statementsData = await statementsRes.json()
 
-    // Debug: log raw API response (will show in server logs)
-    console.log('TikTok statements response:', JSON.stringify(statementsData).slice(0, 2000))
+    // 2026-08-12: log hanya ringkasan (tidak lagi log payload mentah settlement — data sensitif)
+    console.log(`TikTok statements response: ${statementsData.data?.statements?.length ?? 0} statement(s)`)
 
     // Check for TikTok API errors
     if (statementsData.code && statementsData.code !== 0) {
