@@ -159,7 +159,6 @@ src/
 │       ├── landing-settings/ seo/upload-robots/ seo/upload-sitemap/
 │       ├── setup-accounts/ upload/
 │       ├── tiktok/               # auth, webhook, sync-orders, sync-finance, sync-to-main-orders, create-piutang
-│       ├── xendit/               # create-payment + webhook (HMAC)
 │       └── webhooks/tiktok/      # Alias
 ├── components/
 │   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, dll
@@ -208,10 +207,6 @@ Located in `supabase/migrations/` — **5 file** (referensi tunggal + sinkronisa
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=eyJ...
 SUPABASE_SERVICE_ROLE_KEY=eyJ...       # Server-side only, never expose
-
-# Xendit
-XENDIT_API_KEY=
-XENDIT_CALLBACK_KEY=
 
 # TikTok Shop
 TIKTOK_APP_SECRET=                      # Webhook HMAC — WAJIB di-set (kalau kosong, verifikasi di-skip)
