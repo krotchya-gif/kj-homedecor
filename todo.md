@@ -1,6 +1,34 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-12 (sesi 5 — tests, role check POST, upload, docs)
+> **Branch:** `main` · Update terakhir: 2026-08-12 (sesi 6 — backlog tersisa)
+
+---
+
+## ✅ Selesai (2026-08-12 — Sesi 6: Backlog tersisa)
+
+1. ✅ **`is_auto` jurnal** — diterima dari body (flag `createSimpleJournal` tersimpan, tidak hardcode false)
+2. ✅ **`piutang.remaining` satu sumber** — hapus write kolom (4 tempat) → semua baca derived formula
+3. ✅ **setup-accounts** — rate limit semua path, double-check race bootstrap, hapus bocor kredensial dari response
+4. ✅ **Xendit webhook** — validasi amount ≤ sisa tagihan + idempotency check duluan
+5. ✅ **sync-to-main-orders** — error insert order → BLOCK; helper `ensurePaymentAndJournal` + repair order existing tanpa pembukuan
+6. ✅ **Jurnal webhook silent-fail** (Xendit) — jurnal gagal → 500 agar retry; retry path juga update order
+7. ✅ **TikTok webhook multi-secret** — per-shop (match `shop_cipher` di DB), fallback env
+8. ✅ **Dead deps** — hapus `pg`, `react-hook-form`, `@tanstack/react-query`(+devtools), `@hookform/resolvers`, `shadcn` (0 usage); pertahankan `request` (SDK TikTok)
+9. ✅ **NAV_BY_ROLE sentralisasi** — `src/config/nav.tsx` (grouped + `flattenNav`); Sidebar & TopNav import sama (perbaiki drift)
+10. ✅ **owner/laporan dedup** — 10 laporan jadi shared component `src/components/reports/<name>.tsx` dengan prop `variant`; finance & owner = wrapper tipis (hemat ~2300 baris)
+11. ✅ **Data cleanup accounts** — migration 074: `type='income'` → `'revenue'` (4101/4102) + VALIDATE `accounts_type_check`
+12. ✅ **Fitur Stock Opname UI** — `/gudang/stock-opname`: buat sesi, input hitung fisik, selisih, kirim/batalkan; nav gudang
+
+Commit: `7b15790` (batch 1) · `c80336f` (deps+nav) · dedup laporan · `feat(stock-opname)` (batch 4)
+
+---
+
+## ⏳ Ditunda (refactor risiko tinggi / nilai rendah — keputusan 2026-08-12)
+
+| # | Item | Alasan defer |
+|---|---|---|
+| 1 | **Dual modal system** (`Modal` 36× vs `dialog` 3×) | Keduanya jalan & berfungsi. Konsolidasi = risiko regresi UI (steam QC, logout) untuk nilai 0. `dialog` (base-ui) dipakai utk konfirmasi terstruktur, `Modal` utk ringan. |
+| 2 | **File monolitik** `admin/orders/[id]` (3.601 baris) dkk | Refactor besar pada jalur kritis order pipeline — risiko regresi tinggi, tidak untuk dikerjakan di akhir sesi. Perlu pengerjaan tersendiri (ekstrak komponen bertahap). |
 
 ---
 
@@ -131,24 +159,15 @@
 
 ---
 
-## ⏳ Belum Selesai (prioritas berikutnya — Sesi 6)
+## ⏳ Belum Selesai (prioritas berikutnya)
 
-> Item yang SUDAH dikerjakan (sesi 3/4/5) sudah dihapus dari daftar — tidak perlu di-fix ulang.
+> Item yang SUDAH dikerjakan (sesi 3-6) sudah dihapus dari daftar — tidak perlu di-fix ulang.
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000`; test login 8 role + fitur baru: reset data, faktur/SJ, laundry, rekonsiliasi, **TikTok sync** (cek piutang gross + 3 jurnal tidak dobel), security fix (role lain → 403) |
-| 2 | **setup-accounts race** | 🟢 Low | 2 request paralel saat DB kosong → 2 admin; response bocorkan kredensial |
-| 3 | **TikTok webhook multi-secret** | 🟢 Low | `TIKTOK_APP_SECRET` env vs `app_secret` per-shop di DB |
-| 4 | **Xendit webhook amount** | 🟢 Low | Amount tidak divalidasi ≤ remaining order |
-| 5 | **sync-to-main-orders** | 🟢 Low | Tanpa pagination (max 100 order); insert tanpa error-block (`continue` → order hilang diam-diam); `console.log` data mentah |
-| 6 | **Jurnal `is_auto`** | 🟢 Low | createSimpleJournal kirim `true`, `api/journal` hardcode `false` |
-| 7 | **Jurnal webhook silent-fail** | 🟢 Low | Kegagalan jurnal di webhook Xendit/TikTok hanya `console.error` → hilang diam-diam (webhook tetap 200) |
-| 8 | **`piutang.remaining` dua sumber** | 🟢 Low | Rekonsiliasi pakai derived (`amount−paid−return−fee`), kolom `remaining` tidak dipakai |
-| 9 | **Duplikasi kode** | 🟢 Low | `NAV_BY_ROLE` 2×; owner/laporan = salinan finance/laporan (~2.2k baris); `formatRp` 50×; `STATUS_COLORS` 17×; `LooseRow` 26× |
-| 10 | **Dead deps** | 🟢 Low | `pg` (0 usage), `request` (deprecated), `shadcn`, `@tanstack/react-query` (0 import), `react-hook-form` |
-| 11 | **Data cleanup accounts** | 🟢 Low | Baris `accounts` type non-standar (constraint 067 NOT VALID) |
-| 12 | **Fitur stock opname UI** | 🟢 Low | Tabel `stock_opname_sessions/items` ada tapi belum ada halaman/kode; RPC `approve_stock_opname` belum dibuat — fitur baru, bukan bug |
+| 1 | **Smoke test E2E di browser** | 🟠 **High** | Dev server `localhost:3000`; test login 8 role + fitur baru: reset data, faktur/SJ, laundry, rekonsiliasi, **TikTok sync** (cek piutang gross + 3 jurnal tidak dobel), security fix (role lain → 403), stock opname |
+| 2 | **Monolitik `admin/orders/[id]` pecah** | 🟡 Medium | 3.601 baris — ekstrak komponen bertahap (lihat "Ditunda") |
+| 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` (50×) → import `lib/utils`; `STATUS_COLORS` (17×) & `LooseRow` (26×) → sentralisasi `types`/config |
 
 ---
 
