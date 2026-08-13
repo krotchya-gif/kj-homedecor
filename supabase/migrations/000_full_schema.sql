@@ -149,6 +149,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
 );
 
 -- VIEW order_totals (live — agregasi DP/lunas per order; sync schema file = live)
+-- 087: security_invoker = true (bukan SECURITY DEFINER)
 CREATE OR REPLACE VIEW public.order_totals AS
   SELECT o.id,
     o.status,
@@ -158,6 +159,7 @@ CREATE OR REPLACE VIEW public.order_totals AS
   FROM orders o
   LEFT JOIN payments p ON p.order_id = o.id
   GROUP BY o.id;
+ALTER VIEW public.order_totals SET (security_invoker = true);
 
 -- ORDER LOGS (audit trail)
 CREATE TABLE IF NOT EXISTS public.order_logs (
@@ -833,22 +835,24 @@ CREATE INDEX IF NOT EXISTS idx_order_logs_action ON public.order_logs(action);
 -- Production jobs
 CREATE INDEX IF NOT EXISTS idx_production_jobs_order_id ON public.production_jobs(order_id);
 CREATE INDEX IF NOT EXISTS idx_production_jobs_penjahit_id ON public.production_jobs(penjahit_id);
-CREATE INDEX IF NOT EXISTS idx_production_jobs_revision_of ON public.production_jobs(revision_of);
-CREATE INDEX IF NOT EXISTS idx_production_jobs_revision_round ON public.production_jobs(revision_round);
 
 -- Production reports
-CREATE INDEX IF NOT EXISTS idx_production_reports_job_id ON public.production_reports(production_job_id) WHERE production_job_id IS NOT NULL;
+-- (idx_production_reports_job_id di-drop 087 — tak terpakai)
 
 -- Inventory movements
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_id ON public.inventory_movements(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_order_id ON public.inventory_movements(order_id) WHERE order_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_inventory_movements_production_job_id ON public.inventory_movements(production_job_id) WHERE production_job_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_material_id ON public.inventory_movements(material_id);
 
--- Payments
-CREATE INDEX IF NOT EXISTS idx_payments_order_id ON public.payments(order_id);
+-- Materials / purchasing (087: index FK hot)
+CREATE INDEX IF NOT EXISTS idx_materials_supplier_id ON public.materials(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_supplier_id ON public.purchase_orders(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_pr_id ON public.purchase_orders(pr_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_requests_material_id ON public.purchase_requests(material_id);
 
 -- Returns
 CREATE INDEX IF NOT EXISTS idx_returns_order_id ON public.returns(order_id);
+CREATE INDEX IF NOT EXISTS idx_returns_order_item_id ON public.returns(order_item_id);
 CREATE INDEX IF NOT EXISTS idx_returns_status ON public.returns(refund_status);
 
 -- QC records
@@ -867,7 +871,6 @@ CREATE INDEX IF NOT EXISTS idx_install_bookings_status ON public.install_booking
 CREATE INDEX IF NOT EXISTS idx_install_bookings_scheduled_date ON public.install_bookings(scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_install_bookings_type ON public.install_bookings(type);
 CREATE INDEX IF NOT EXISTS idx_install_bookings_created_at ON public.install_bookings(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ib_revision_status ON public.install_bookings(status) WHERE status = 'revision';
 
 -- Steam jobs
 CREATE INDEX IF NOT EXISTS idx_steam_jobs_order_id ON public.steam_jobs(order_id);
@@ -889,7 +892,6 @@ CREATE INDEX IF NOT EXISTS idx_mph_material_recorded ON public.material_price_hi
 
 -- Order material consumption
 CREATE INDEX IF NOT EXISTS idx_omc_order_id ON public.order_material_consumption(order_id);
-CREATE INDEX IF NOT EXISTS idx_omc_production_job_id ON public.order_material_consumption(production_job_id);
 CREATE INDEX IF NOT EXISTS idx_omc_material_id ON public.order_material_consumption(material_id);
 
 -- Accounting
@@ -898,7 +900,6 @@ CREATE INDEX IF NOT EXISTS idx_accounts_code ON public.accounts(code);
 CREATE INDEX IF NOT EXISTS idx_hutang_supplier ON public.hutang(supplier_id);
 CREATE INDEX IF NOT EXISTS idx_hutang_status ON public.hutang(status);
 CREATE INDEX IF NOT EXISTS idx_piutang_customer ON public.piutang(customer_id);
-CREATE INDEX IF NOT EXISTS idx_piutang_channel ON public.piutang(channel);
 CREATE INDEX IF NOT EXISTS idx_piutang_order ON public.piutang(order_id);
 CREATE INDEX IF NOT EXISTS idx_piutang_status ON public.piutang(status);
 CREATE INDEX IF NOT EXISTS idx_cash_accounts_bank ON public.cash_accounts(bank_name);
@@ -915,13 +916,16 @@ CREATE INDEX IF NOT EXISTS idx_journal_lines_account ON public.journal_lines(acc
 
 -- generate_order_number: ORD-YYYY-NNNN sequential format
 CREATE OR REPLACE FUNCTION generate_order_number()
-RETURNS TEXT AS $$
+RETURNS TEXT
+LANGUAGE SQL
+SET search_path = public
+AS $$
   SELECT 'ORD-' || TO_CHAR(NOW(), 'YYYY') || '-' ||
     LPAD(CAST(COALESCE(
       (SELECT MAX(SUBSTRING(order_number FROM 'ORD-\d{4}-(\d+)$')::int)
-       FROM orders WHERE order_number LIKE 'ORD-' || TO_CHAR(NOW(), 'YYYY') || '-%'),
+       FROM public.orders WHERE order_number LIKE 'ORD-' || TO_CHAR(NOW(), 'YYYY') || '-%'),
       0) + 1 AS TEXT), 4, '0');
-$$ LANGUAGE SQL;
+$$;
 
 -- increment_stock_toko: add stock to products
 CREATE OR REPLACE FUNCTION increment_stock_toko(product_id UUID, amount NUMERIC)
@@ -1111,6 +1115,11 @@ ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bom ENABLE ROW LEVEL SECURITY;
+-- bom (087): read staff, write admin/owner
+CREATE POLICY "BOM staff read" ON public.bom
+  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Admin manage bom" ON public.bom
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.production_jobs ENABLE ROW LEVEL SECURITY;
@@ -1207,29 +1216,29 @@ CREATE POLICY "Authenticated staff access" ON public.steam_jobs
 CREATE POLICY "Authenticated staff access" ON public.order_progress_photos
   FOR ALL USING (auth.role() = 'authenticated');
 
--- Categories: public read, auth write
+-- Categories: public read, write hanya admin/owner (087)
 CREATE POLICY "Public can read categories" ON public.categories
   FOR SELECT USING (TRUE);
-CREATE POLICY "Auth can write categories" ON public.categories
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage categories" ON public.categories
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
--- Products: public read, auth write
+-- Products: public read, write hanya admin/owner (087)
 CREATE POLICY "Public can read products" ON public.products
   FOR SELECT USING (TRUE);
-CREATE POLICY "Auth can write products" ON public.products
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage products" ON public.products
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
--- Banners: public read only active, auth write
+-- Banners: public read only active, write hanya admin/owner (087)
 CREATE POLICY "Public can read banners" ON public.banners
   FOR SELECT USING (is_active = TRUE);
-CREATE POLICY "Auth can write banners" ON public.banners
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage banners" ON public.banners
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
--- Portfolio: public read, auth write
+-- Portfolio: public read, write hanya admin/owner (087)
 CREATE POLICY "Public can read portfolio" ON public.portfolio_posts
   FOR SELECT USING (TRUE);
-CREATE POLICY "Auth can write portfolio" ON public.portfolio_posts
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage portfolio_posts" ON public.portfolio_posts
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
 -- Landing settings: public read, write hanya admin/owner (083)
 CREATE POLICY "Public can read landing_settings" ON public.landing_settings
@@ -1513,12 +1522,15 @@ ALTER TABLE public.laundry_orders
 
 -- Trigger updated_at orders (056)
 CREATE OR REPLACE FUNCTION set_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
@@ -1763,13 +1775,16 @@ GRANT EXECUTE ON FUNCTION public.is_installer_sd() TO authenticated;
 
 -- ---------- 10.6 Fungsi lain final ----------
 CREATE OR REPLACE FUNCTION public.generate_survey_number()
-RETURNS TEXT AS $$
+RETURNS TEXT
+LANGUAGE SQL
+SET search_path = public
+AS $$
   SELECT 'KJ-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-' ||
     LPAD(CAST(COALESCE(
       (SELECT MAX(SUBSTRING(survey_number FROM 'KJ-\d{8}-(\d+)$')::int)
        FROM public.surveys WHERE survey_number LIKE 'KJ-' || TO_CHAR(NOW(), 'YYYYMMDD') || '-%'),
       0) + 1 AS TEXT), 3, '0');
-$$ LANGUAGE SQL;
+$$;
 
 -- RPC jurnal atomik (064/066 — nama FINAL create_journal_atomic)
 -- isi body mengikuti migration 066 (role check + idempotency + update saldo kas)
@@ -2207,7 +2222,7 @@ DROP POLICY IF EXISTS "Authenticated staff access" ON public.users;
 DROP POLICY IF EXISTS "Admin manage users" ON public.users;
 DROP POLICY IF EXISTS "All staff read users" ON public.users;
 CREATE POLICY "All staff read users" ON public.users
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT USING (public.is_staff_active_sd()); -- 087: SELECT hanya staff aktif
 CREATE POLICY "Admin manage users" ON public.users
   FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 

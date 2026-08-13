@@ -1,21 +1,16 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 36 — rapi + manual book)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 37 — audit menyeluruh + migration 087)
 
 ---
-## ✅ Selesai (2026-08-13 — Sesi 36: Rapi + Manual Book)
+## ✅ Selesai (2026-08-13 — Sesi 37: Audit Menyeluruh + Migration 087)
 
-1. ✅ **Fix warning smooth-scroll** — `data-scroll-behavior="smooth"` ditambahkan di `<html>` (`src/app/layout.tsx`), konsisten dgn `scroll-behavior: smooth` di globals.css.
-2. ✅ **`pendoman.md` ditulis ulang** sebagai **manual book lengkap** — panduan per fitur & per role dalam bahasa sederhana (cara pakai, alur, FAQ, istilah).
-3. ✅ **Docs disinkronkan status terakhir**: `README.md` (riwayat sesi 36, test note, keamanan), `todo.md`, `bug.md`, `USER.md`, `docs/flows/README.md`.
-
-## ✅ Selesai (2026-08-13 — Sesi 35: Dead Code Cleanup Final — keputusan user)
-
-1. ✅ **Hapus 8 route API tanpa caller produksi** (file dihapus): `api/customers`, `api/landing-settings`, `api/materials`, `api/products`, `api/suppliers`, `api/purchase-orders` (+[id]), `api/purchase-requests` (+[id]), `api/install-bookings` (base). UI berfungsi via Supabase client langsung (diverifikasi mapping). **Dipertahankan**: `api/orders` base (smoke test) & `api/install-bookings/[id]` dkk.
-2. ✅ **Migration 086 — drop 3 tabel dead** (`packing_checklists`, `return_requests`, `order_preparation_checklist`) **+ 4 RPC dead** (`decrement_stock_gudang`, `get_material_stock`, `get_product_stock`, `update_cash_account_balance`); **update `reset_transactional_data`**. **Dipertahankan**: `low_stock_alerts`/`order_material_consumption` (ditulis RPC produksi) & `rls_auto_enable` (event trigger ensure_rls). Sync `000_full_schema.sql`.
-3. ✅ **`clientError` export dihapus** (nol referensi).
-4. ✅ **Perbaiki dokumentasi** — hapus klaim palsu "keputusan owner sesi 9" & "Fase 1 → API hardening" (asumsi salah saya, bukan keputusan user).
-5. ✅ Verifikasi: `tsc` + `build` hijau, `vitest` 27/27, smoke E2E (`/api/orders` GET 403).
+1. ✅ **BUG-115 — RLS katalog & BOM di-hardening** (migration 087): `products/categories/banners/portfolio_posts/bom` write → `is_admin_or_owner_sd()`, SELECT publik tetap. `users` SELECT → `is_staff_active_sd()`. **Verifikasi user-level**: penjahit INSERT ditolak 42501, admin sukses.
+2. ✅ **REVOKE anon/PUBLIC** utk `is_finance_role()` & `rls_auto_enable()` (melanggar SOP; rls_auto_enable dipanggil event trigger — cukup authenticated).
+3. ✅ **Cleanup duplikat `cash_accounts`** — 19 baris Kas → 1 baris per akun (Kas 7.000 / BCA 2.1jt / E-Wallet 1.3jt). Penyebab: pengujian saldo awal berulang.
+4. ✅ **Performa**: drop 7 index tak terpakai (advisory) + tambah 15 index FK hot (`orders.customer_id`, `order_items.order_id/product_id`, `payments.order_id`, `piutang.customer_id/order_id`, `materials.supplier_id`, `purchase_orders.supplier_id/pr_id`, dll).
+5. ✅ **Kosmetik**: `order_totals` → `security_invoker`; `SET search_path` utk `generate_order_number`/`set_updated_at`/`generate_survey_number`; hapus 2 import lucide tak terpakai di `orders/[id]`.
+6. ✅ Sync `000_full_schema.sql` (RLS katalog/bom/users, index, fungsi). Verifikasi: `tsc` + `build` hijau.
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 33: Phase 6B-4 — Hook + Komposisi (Refactor Order Detail SELESAI))

@@ -6,10 +6,8 @@ import {
   ArrowLeft,
   ChevronRight,
   Loader2,
-  ImageIcon,
   FileText,
   Package,
-  AlertTriangle,
   Truck,
   Calendar as CalendarIcon
 } from 'lucide-react'
