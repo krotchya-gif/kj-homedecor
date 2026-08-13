@@ -1,6 +1,16 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 25 — planning Phase 6: refactor & dead code)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 26 — Phase 6A: hapus dead SDK)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 26: Phase 6A — Hapus Dead SDK `tiktok-shop-sdk`)
+
+1. ✅ **BUG-107 — `src/lib/tiktok-shop-sdk/` (1.971 file) dihapus permanen** — SDK auto-generated, 0 import di `src/` (diverifikasi), integrasi aktual via `lib/tiktok.ts`. 
+2. ✅ **Dependensi `request` & `@types/request` dihapus** — hanya dipakai SDK; `package-lock.json` bersih.
+3. ✅ **Proses anti-regresi (per plan Phase 6):** pindah ke `_dead/` → `tsc`+`build` hijau → hapus permanen → hapus deps + `npm install` → `tsc` + `build` + `vitest 24/24` hijau → `rg "tiktok-shop-sdk"` kosong.
+4. ✅ Docs: `bug.md` (BUG-107), `README.md`, `todo.md`.
+
+**Lanjutan Phase 6:** → **6C** (dedup nav laporan finance/owner — risiko rendah) → **6D** (notifikasi realtime — sedang) → **6B** (monolit order detail — tertinggi, 4 sub-langkah, paling akhir).
 
 ---
 ## 📋 PLAN Phase 6 — Refactor & Dead Code (BERTAHAP, anti-regresi)

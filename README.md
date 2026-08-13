@@ -177,7 +177,8 @@ src/
 │   ├── csv.ts                    # export/import CSV
 │   ├── upload.ts                 # uploadToLocal (compress → /api/upload)
 │   ├── tiktok.ts                 # signTikTokRequest, token refresh
-│   └── tiktok-shop-sdk/          # Auto-generated TikTok Shop SDK
+│   ├── upload.ts                 # uploadToLocal (compress → /api/upload)
+│   └── (tiktok-shop-sdk dihapus 2026-08-13 — dead code, 1.971 file, 0 import; integrasi via tiktok.ts)
 ├── utils/supabase/
 │   ├── client.ts                 # Browser client
 │   ├── server.ts                 # SSR client + createServiceClient
@@ -247,7 +248,8 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 
 ## Implementasi & Riwayat Perbaikan
 
-- **2026-08-13 — Plan Phase 6 (refactor & dead code):** rencana bertahap anti-regresi tertulis di `todo.md` — urutan: (6A) hapus dead SDK `tiktok-shop-sdk` 1.971 file → (6C) dedup nav laporan finance/owner → (6D) notifikasi realtime → (6B) pecah monolit `admin/orders/[id]` 3.561 baris (4 sub-langkah, paling terakhir karena jalur kritis). Setiap milestone: build + test + cek halaman + commit kecil.
+- **2026-08-13 — Sesi 26 (Phase 6A):** hapus dead SDK `src/lib/tiktok-shop-sdk/` (1.971 file, 0 import) + dependensi `request`/`@types/request`. Proses anti-regresi: pindah → build hijau → hapus → build+test hijau. `tiktok-shop-sdk/` tidak lagi ada di project structure (integrasi TikTok via `lib/tiktok.ts`).
+- **2026-08-13 — Plan Phase 6 (refactor & dead code):** rencana bertahap anti-regresi tertulis di `todo.md` — urutan: (6A) hapus dead SDK ✓ → (6C) dedup nav laporan finance/owner → (6D) notifikasi realtime → (6B) pecah monolit `admin/orders/[id]` 3.561 baris (4 sub-langkah, paling terakhir karena jalur kritis). Setiap milestone: build + test + cek halaman + commit kecil.
 - **2026-08-13 — Sesi 24 (Phase 5 UI cepat):** pagination di admin/portfolio & admin/laundry; `theme_preset` → `custom` saat warna diedit manual; `handleSave` landing deteksi 0-rows (anti toast palsu); kredensial default dihapus dari setup page; karakter Cina korup di installer checklist diperbaiki.
 - **2026-08-13 — Sesi 23 (Phase 4 akurasi laporan):** "Kronologi HPP" di-rename jadi **"Kronologi Omzet"** (nama jujur dgn isi) + pagination server-side; owner/marketplace akhir bulan dihitung dinamis (fix bulan 30 hari); helper `piutangSisa()` sebagai satu sumber kebenaran rumus piutang; admin/reports filter periode pindah ke server (tanpa `.limit(200)`). Metode mengikuti SOP `AGENTS.md`.
 - **2026-08-13 — Sesi 22 (Phase 3 integritas akuntansi):** rollback jurnal diseragamkan pola BUG-073 di semua jalur finansial (refund/hutang/piutang/payroll/aset — jurnal gagal = transaksi dibatalkan penuh); hardcoded UUID akun diganti helper `getAccountIdByCode` (lookup by code, anti-drift); `accounts/accounts` pakai `fetchAccountBalances` (hapus double-count saldo + field "Saldo Awal" COA); PO paid di owner/suppliers kini bikin jurnal `hutang_paid` idempotent; `markAsPaid` payroll + idempotency_key. Metode mengikuti SOP `AGENTS.md`.
