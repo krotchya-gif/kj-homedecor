@@ -248,7 +248,7 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 
 ## Implementasi & Riwayat Perbaikan
 
-- **2026-08-13 — Sesi 31 (Phase 6B-3):** ekstrak section render order detail — `OrderPipelineStepper` & `OrderSurveySection`; page turun 2.923 → 2.749 baris (total −812 dari 3.561).
+- **2026-08-13 — Sesi 31 (Phase 6B-3):** ekstrak section render order detail — `OrderPipelineStepper`, `OrderSurveySection`, `OrderSummarySection`; page turun 2.749 → 2.611 baris (total −950 dari 3.561).
 - **2026-08-13 — Sesi 30 (Phase 6B-2):** ekstrak 5 modal order detail ke `components/orders/` (Schedule, Photo, Cancel, Return, Payment) — page turun 3.561 → 2.923 baris (−638), behavior-preserving.
 - **2026-08-13 — Sesi 29 (Phase 6B-1):** refactor monolit order detail langkah 1 — `LOG_ACTION` map & `DEFAULT_CHECKLIST` dipindah ke `lib/order-detail.ts` (`getOrderLogAction`), unit test +3 (27 total). Behavior-preserving.
 - **2026-08-13 — Sesi 28 (Phase 6D):** notifikasi realtime — migration 085 aktifkan `notifications` di `supabase_realtime` publication; `NotificationBell` ganti polling 30s → `postgres_changes` (INSERT, filter user). Notifikasi baru muncul langsung.

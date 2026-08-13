@@ -1,6 +1,15 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 31 — Phase 6B-3: ekstrak section render order detail)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 31b — Phase 6B-3c: OrderSummarySection)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 31b: Phase 6B-3 — Ekstrak Section Render Order Detail)
+
+1. ✅ **BUG-112 — 3 section diekstrak**: `OrderPipelineStepper`, `OrderSurveySection`, `OrderSummarySection` (Estimasi Selesai + Pelanggan + Info Pesanan) — read-only, behavior-preserving.
+2. ✅ Page `admin/orders/[id]` turun **2.749 → 2.611 baris** (total −950 dari 3.561 asli).
+3. ✅ Verifikasi: `tsc` + `build` hijau. Docs: `bug.md` (BUG-112), `README.md`, `todo.md`.
+
+**Lanjutan 6B:** → **6B-3d** (OrderItems + AddItemModal + PreparationChecklist — paling besar & kompleks, hati-hati) → **6B-4** (useOrderDetail hook) → **6B-5** (verifikasi pipeline kirim/pasang + commit final).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 31: Phase 6B-3 — Ekstrak Section Render Order Detail)
