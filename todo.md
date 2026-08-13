@@ -1,6 +1,15 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 29 — Phase 6B-1: pure logic order detail)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 30 — Phase 6B-2: ekstrak 5 modal order detail)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 30: Phase 6B-2 — Ekstrak 5 Modal Order Detail)
+
+1. ✅ **BUG-111 — 5 modal diekstrak ke `components/orders/`**: `ScheduleInstallModal`, `PhotoUploadModal`, `CancelOrderModal`, `ReturnModal`, `PaymentModal` — state & handler tetap di parent (behavior-preserving).
+2. ✅ Page `admin/orders/[id]` turun **3.561 → 2.923 baris** (−638).
+3. ✅ Verifikasi: `tsc` + `build` hijau, `vitest` 27/27. Docs: `bug.md` (BUG-111), `README.md`, `todo.md`.
+
+**Lanjutan 6B:** → **6B-3** (ekstrak section render: PipelineStepper, CustomerInfo, OrderItems, PreparationChecklist, HasilSurvey) → **6B-4** (useOrderDetail hook) → **6B-5** (verifikasi pipeline kirim/pasang + commit final).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 29: Phase 6B-1 — Pure Logic Order Detail)
