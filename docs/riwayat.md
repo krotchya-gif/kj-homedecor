@@ -9,6 +9,9 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-13 — Sesi 40: Fix upload pipeline foto 400 (BUG-118)
+- **BUG-118**: upload pipeline (wajib foto) gagal 400 setelah pindah CDN — hasil kompresi `browser-image-compression` ber-nama `blob` → ekstensi `blob` ditolak CDN. Fix: ekstensi dari **deteksi magic bytes**, bukan `file.name`. Terverifikasi upload PNG name `blob` → CDN 200.
+
 ### 2026-08-13 — Sesi 39: Upload kembali ke CDN lokal hosting (BUG-117)
 - **BUG-117**: `/api/upload` dikembalikan dari Supabase Storage (`kj-uploads`, blob `.blob`, kuota free 5GB) → **`link.kjhomedecor.com/upload.php`** (subdomain Hostinger, `public_html/link/uploads/`, file asli, persistent). Route jadi proxy ke const `CDN_UPLOAD_URL`; semua validasi dipertahankan; hapus `SUPABASE_SERVICE_ROLE_KEY` dari route. Siapkan `scripts/upload.php` (tambah folder `survey` + magic video) utk dicopy ke Hostinger. 189 foto testing di storage tidak dimigrasi (keputusan user). Verifikasi: upload PNG → URL CDN + file 200.
 
@@ -230,6 +233,7 @@
 | BUG-115 | **RLS katalog publik terbuka** (products/categories/banners/portfolio_posts/bom); helper bisa dieksekusi anon; users SELECT semua authenticated | ✅ Fixed (migration 087) | Write katalog/bom → `is_admin_or_owner_sd()`; REVOKE anon/PUBLIC helper; users SELECT → `is_staff_active_sd()`. **Verifikasi**: penjahit ditolak 42501, admin sukses |
 | BUG-116 | **`laundry_orders.order_id` tidak ada di live** — schema & TS type (`LaundryOrder.order_id`) memakai kolom ini, tapi live hanya punya `item/qty/price/notes` → insert item laundry di order detail (`use-order-detail.ts:610`) **pasti gagal 42703**. Drift lawan arah: kolom legacy live (`assets.purchase_cost`, `order_progress_photos.caption`, `material_price_history.old_cost/new_cost/changed_by`, `laundry_orders.item/qty/price/notes`) tidak ada di schema file; `landing_settings.value` & `material_price_history.created_at` dipakai codebase tapi hilang dari schema | ✅ Fixed (migration 088, 2026-08-13) | (1) `ADD COLUMN order_id UUID REFERENCES orders(id) ON DELETE SET NULL` + index. (2) Sync `000_full_schema.sql` = live (5 tabel: laundry_orders, landing_settings, material_price_history, assets, order_progress_photos). **Verifikasi user-level**: INSERT laundry + order_id sebagai admin → sukses, data uji dibersihkan. tsc + build + vitest 27/27 |
 | BUG-117 | **Upload file salah tempat** — commit `f133189` memindahkan `/api/upload` dari file lokal (disk) ke **Supabase Storage bucket `kj-uploads`** (blob `.blob`, kuota free 5GB tidak cukup utk foto progres 2MB × 7 progres × banyak order). Padahal plan benar = upload ke **`link.kjhomedecor.com/upload.php`** (subdomain → `public_html/link/uploads/{folder}/`, satu akun Hostinger, file asli, persistent saat redeploy — 143 gambar produk sudah di sana sejak migrasi 0046bda) | ✅ Fixed (2026-08-13) | `/api/upload` → proxy ke const `CDN_UPLOAD_URL = 'https://link.kjhomedecor.com/upload.php'` (pertahankan semua validasi: auth/role/MIME/magic bytes/size/rate limit); hapus `SUPABASE_SERVICE_ROLE_KEY` & `BUCKET` dari route. Siapkan `scripts/upload.php` (tambah folder `survey` + magic video) utk dicopy ke Hostinger. 189 foto testing di storage TIDAK dimigrasi (keputusan user — data uji) |
+| BUG-118 | **Upload pipeline foto gagal 400 setelah pindah CDN** — `browser-image-compression` menghasilkan **Blob** (name `blob`) → route hitung `ext = file.name.split('.').pop()` = `"blob"` → filename `xxx.blob` → CDN `upload.php` tolak ekstensi tak dikenal → `400 Invalid file type`. Produk (tanpa kompresi, nama asli `xxx.jpg`) tetap jalan; pipeline wajib foto (kompresi) gagal | ✅ Fixed (2026-08-13) | Ekstensi file kini dari **deteksi magic bytes** (`detectMime` → jpg/png/webp/pdf/mp4/webm), fallback `file.type`, bukan `file.name`. Terverifikasi: file PNG name `blob` → `xxx.png` → CDN HTTP 200. tsc + build + vitest 27/27 |
 
 ---
 
@@ -324,4 +328,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-13 (sesi 39) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-13 (sesi 40) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_

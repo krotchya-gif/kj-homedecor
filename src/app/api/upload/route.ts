@@ -129,16 +129,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'jpg'
-    const timestamp = Date.now()
-    const random = Math.random().toString(36).substring(2, 8)
-    const filename = `${timestamp}-${random}.${ext}`
-
+    // Magic bytes check (2026-08-11): verifikasi isi file, bukan cuma header client.
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Magic bytes check (2026-08-11): verifikasi isi file, bukan cuma header client.
     const isAllowedMagic =
       folder === 'videos'
         ? buffer.length > 12 &&
@@ -155,6 +149,31 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Deteksi tipe dari magic bytes → ekstensi file. JANGAN pakai file.name: hasil kompresi
+    // browser-image-compression ber-nama "blob" → ekstensi "blob" → CDN tolak 400 Invalid file type.
+    const detectMime = (b: Buffer): string => {
+      if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'image/jpeg'
+      if (b.length > 7 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png'
+      if (b.length > 11 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp'
+      if (b.length > 3 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'application/pdf'
+      if (b.length > 11 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4'
+      if (b.length > 3 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return 'video/webm'
+      return ''
+    }
+    const MIME_EXT: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+      'application/pdf': 'pdf',
+      'video/mp4': 'mp4',
+      'video/webm': 'webm'
+    }
+    const detectedMime = detectMime(buffer) || file.type
+    const ext = MIME_EXT[detectedMime] || file.name.split('.').pop() || 'jpg'
+    const timestamp = Date.now()
+    const random = Math.random().toString(36).substring(2, 8)
+    const filename = `${timestamp}-${random}.${ext}`
 
     // Teruskan file ke CDN (link.kjhomedecor.com/upload.php) — file tersimpan permanen
     // sebagai file asli di public_html/link/uploads/{folder}/.
