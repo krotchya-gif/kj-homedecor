@@ -177,7 +177,7 @@ src/
 │   ├── survey.ts / survey-log.ts / survey-pdf.ts
 │   ├── ledger.ts                 # fetchAccountBalances (journal_lines) + piutangSisa
 │   ├── csv.ts                    # export/import CSV
-│   ├── upload.ts                 # uploadToLocal (compress → /api/upload)
+│   ├── upload.ts                 # uploadToLocal (compress → /api/upload → CDN link.kjhomedecor.com)
 │   └── tiktok.ts                 # signTikTokRequest, token refresh
 ├── utils/supabase/
 │   ├── client.ts                 # Browser client
@@ -258,4 +258,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-13 (sesi 38 — sync schema = live & fix laundry order_id) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-13 (sesi 39 — upload kembali ke CDN lokal hosting BUG-117) · Dev server: `npm run dev` → http://localhost:3000_

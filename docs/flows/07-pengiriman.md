@@ -26,7 +26,7 @@
 ## Tampilan halaman Pengiriman
 - **Tab filter**: Siap Kirim / Dikemas / Terkirim
 - Setiap order menampilkan kurir, resi, foto bukti
-- Foto bukti tersimpan di storage (Supabase — permanen, tidak hilang saat deploy)
+- Foto bukti tersimpan di **CDN `link.kjhomedecor.com`** (`public_html/link/uploads/order_progress/`) — file asli, permanen, tidak hilang saat redeploy; DB hanya menyimpan URL-nya
 
 ## Aturan
 - **Foto wajib** untuk tahap yang butuh bukti: sortir, steam/QC, kirim (resi), jadwal pasang

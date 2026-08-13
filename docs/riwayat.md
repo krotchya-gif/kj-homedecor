@@ -240,6 +240,7 @@
 - **RPC DI-DROP** (086): `decrement_stock_gudang`, `get_material_stock`, `get_product_stock`, `update_cash_account_balance`. **Dipertahankan**: `rls_auto_enable` (dipanggil event trigger `ensure_rls` utk RLS otomatis).
 - **Export DIHAPUS**: `clientError` (`src/lib/api-errors.ts`) — nol referensi.
 - **Schema drift fix:** `users.email` dihapus dari `000_full_schema.sql` (tidak ada di live).
+- **Upload** (BUG-117, sesi 39): `api/upload` kini **proxy ke CDN** `link.kjhomedecor.com/upload.php` (file asli di `public_html/link/uploads/`). **Supabase Storage bucket `kj-uploads` TIDAK dipakai lagi** (sisa blob `.blob` & file uji probe tetap ada di live — tidak dimigrasi, data testing). `scripts/upload.php` = versi terbaru utk dicopy ke Hostinger (tambah folder `survey`).
 
 ---
 
@@ -323,4 +324,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-13 (sesi 37) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-13 (sesi 39) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
