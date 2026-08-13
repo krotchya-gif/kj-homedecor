@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Bell } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { createClient } from '@/utils/supabase/client'
 
 interface Notif {
   id: string
@@ -15,7 +16,9 @@ interface Notif {
 
 /**
  * Bell notifikasi in-app (SRS Survey 13: notifikasi ke Admin/Owner saat survey baru).
- * Polling tiap 30s + dropdown list + tandai dibaca.
+ * Phase 6D (BUG-109): polling 30s → REALTIME (postgres_changes). Notifikasi baru
+ * muncul langsung tanpa refresh. RLS `notifications_own` (user_id = auth.uid())
+ * menjaga hanya notif milik sendiri yang diterima.
  */
 export default function NotificationBell() {
   const router = useRouter()
@@ -23,6 +26,7 @@ export default function NotificationBell() {
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
+  const supabase = createClient()
 
   const load = useCallback(async () => {
     try {
@@ -37,10 +41,35 @@ export default function NotificationBell() {
   }, [])
 
   useEffect(() => {
-    load()
-    const t = setInterval(load, 30000)
-    return () => clearInterval(t)
-  }, [load])
+    let active = true
+    let userId: string | null = null
+
+    ;(async () => {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      if (!user) return
+      userId = user.id
+      if (active) load()
+    })()
+
+    // Realtime: refresh otomatis saat ada INSERT notifikasi milik user.
+    const channel = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId ?? ''}` },
+        () => {
+          load()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      active = false
+      supabase.removeChannel(channel)
+    }
+  }, [load, supabase])
 
   // Tutup dropdown saat klik di luar
   useEffect(() => {

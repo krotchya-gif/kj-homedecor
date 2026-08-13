@@ -1694,6 +1694,19 @@ DROP POLICY IF EXISTS "Users read own notifications" ON public.notifications;
 CREATE POLICY "notifications_own" ON public.notifications
   FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+-- 085: Realtime utk NotificationBell (polling → live). Idempotent.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END $$;
+
 -- ---------- 10.5 Fungsi role helper (SECURITY DEFINER — BUKAN subquery di policy) ----------
 CREATE OR REPLACE FUNCTION public.is_finance_role()
 RETURNS boolean

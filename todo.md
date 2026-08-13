@@ -1,6 +1,15 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 27 — Phase 6C: dedup nav laporan)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 28 — Phase 6D: notifikasi realtime)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 28: Phase 6D — Notifikasi Realtime)
+
+1. ✅ **Migration 085 — `ALTER PUBLICATION supabase_realtime ADD TABLE notifications`** (idempotent, guard) — sebelumnya tabel belum di-publication → realtime tidak jalan.
+2. ✅ **`NotificationBell` polling 30s → `postgres_changes`** — channel `notifications-realtime`, event INSERT, filter `user_id=eq.<id>` (konsisten dgn RLS `notifications_own`), cleanup `removeChannel`. Notifikasi baru muncul langsung.
+3. ✅ Sync `000_full_schema.sql` (blok publication). Verifikasi: `tsc` + `build` hijau. Docs: `bug.md` (BUG-109), `README.md`, `todo.md`.
+
+**Lanjutan Phase 6:** → **6B** (monolit order detail 3.561 baris — tertinggi, 4 sub-langkah, TERAKHIR).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 27: Phase 6C — Dedup Nav Laporan Keuangan)

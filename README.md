@@ -248,6 +248,7 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 
 ## Implementasi & Riwayat Perbaikan
 
+- **2026-08-13 — Sesi 28 (Phase 6D):** notifikasi realtime — migration 085 aktifkan `notifications` di `supabase_realtime` publication; `NotificationBell` ganti polling 30s → `postgres_changes` (INSERT, filter user). Notifikasi baru muncul langsung.
 - **2026-08-13 — Sesi 27 (Phase 6C):** dedup nav laporan keuangan — shared `components/reports/ReportsNav.tsx` (prop `basePath`), `finance/laporan` & `owner/laporan` jadi wrapper tipis (hapus copy-paste 10 kartu laporan).
 - **2026-08-13 — Sesi 26 (Phase 6A):** hapus dead SDK `src/lib/tiktok-shop-sdk/` (1.971 file, 0 import) + dependensi `request`/`@types/request`. Proses anti-regresi: pindah → build hijau → hapus → build+test hijau. `tiktok-shop-sdk/` tidak lagi ada di project structure (integrasi TikTok via `lib/tiktok.ts`).
 - **2026-08-13 — Plan Phase 6 (refactor & dead code):** rencana bertahap anti-regresi tertulis di `todo.md` — urutan: (6A) hapus dead SDK ✓ → (6C) dedup nav laporan finance/owner → (6D) notifikasi realtime → (6B) pecah monolit `admin/orders/[id]` 3.561 baris (4 sub-langkah, paling terakhir karena jalur kritis). Setiap milestone: build + test + cek halaman + commit kecil.
