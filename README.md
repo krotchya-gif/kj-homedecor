@@ -248,6 +248,7 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 
 ## Implementasi & Riwayat Perbaikan
 
+- **2026-08-13 — Sesi 33 (Phase 6B-4, refactor order detail SELESAI):** semua state & handlers dipindah ke `useOrderDetail(id)` hook; page `admin/orders/[id]` jadi komposisi murni **505 baris** (dari 3.561 asli, **−85%**); 10 komponen di `components/orders/` + 1 hook. Verifikasi browser 10/10.
 - **2026-08-13 — Sesi 32 (Phase 6B-3d):** ekstrak blok terbesar order detail — `OrderItemsTable`, `PreparationChecklist`, `AddItemModal` (form 3 tipe + BOM hint); page turun 2.611 → 1.490 baris (total −2.071 dari 3.561). Verifikasi browser 10/10.
 - **2026-08-13 — Sesi 30 (Phase 6B-2):** ekstrak 5 modal order detail ke `components/orders/` (Schedule, Photo, Cancel, Return, Payment) — page turun 3.561 → 2.923 baris (−638), behavior-preserving.
 - **2026-08-13 — Sesi 29 (Phase 6B-1):** refactor monolit order detail langkah 1 — `LOG_ACTION` map & `DEFAULT_CHECKLIST` dipindah ke `lib/order-detail.ts` (`getOrderLogAction`), unit test +3 (27 total). Behavior-preserving.

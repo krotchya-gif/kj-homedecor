@@ -1,6 +1,18 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 32 — Phase 6B-3d: OrderItems/AddItemModal/Checklist)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 33 — Phase 6B-4: useOrderDetail hook, selesai refactor order detail)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 33: Phase 6B-4 — Hook + Komposisi (Refactor Order Detail SELESAI))
+
+1. ✅ **BUG-114 — `useOrderDetail(id)` hook** dibuat (`src/lib/use-order-detail.ts`): semua ~40 state + semua handlers dipindah dari page (behavior-preserving). Export `ITEM_FORM_STATE`/`ORDER_FMT` untuk reuse.
+2. ✅ Page `admin/orders/[id]` → **komposisi murni 505 baris** (dari 3.561 asli = **−85%**).
+3. ✅ Verifikasi browser Playwright **10/10** (order pasang + kirim render, AddItemModal, checklist, login 8 role); `tsc` + `build` hijau; `vitest` 27/27.
+4. ✅ Docs: `bug.md` (BUG-114), `README.md`, `todo.md`.
+
+**REFACTOR ORDER DETAIL 6B SELESAI** — rangkuman: 3.561 → 505 baris (−85%), 10 komponen + 1 hook di `components/orders/` & `lib/use-order-detail.ts`, semua verifikasi lulus.
+
+**Lanjutan Phase 6 (backlog tersisa, risiko lebih rendah):** item dead code lain di `bug.md` (route API tanpa caller, tabel dead, RPC dead, `clientError`) — opsional.
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 32: Phase 6B-3d — Ekstrak Blok Terbesar Order Detail)
