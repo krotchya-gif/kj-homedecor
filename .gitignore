@@ -89,4 +89,10 @@ __pycache__/
 # Supabase CLI local state
 supabase/.temp/
 
+# Migration file per-file TIDAK di-push — hanya 000_full_schema.sql (referensi = live,
+# sudah include init+seed). 001-071, 072-088, 900 tetap di disk lokal, di-ignore agar
+# tidak ter-add (keputusan 2026-08-13).
+supabase/migrations/*
+!supabase/migrations/000_full_schema.sql
+
 tests/e2e/.auth/
