@@ -242,4 +242,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-13 (sesi 40 — fix upload pipeline 400 BUG-118) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-13 (sesi 41 — fix realtime double-subscribe mobile BUG-119) · Dev server: `npm run dev` → http://localhost:3000_

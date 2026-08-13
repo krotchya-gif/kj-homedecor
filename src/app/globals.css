@@ -2011,6 +2011,12 @@ select option {
   .topnav {
     display: flex;
   }
+  /* Notifikasi: tetap satu instance (bell desktop). Di mobile turun di bawah topnav
+     agar tidak menimpa hamburger — drawer mobile TIDAK punya bell lagi (Opsi C, BUG-119). */
+  .desktop-notif-bell {
+    top: 64px;
+    right: 12px;
+  }
 }
 
 /* ========== TABLE ========== */

@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Menu, X, LogOut } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
-import NotificationBell from '@/components/dashboard/NotificationBell'
 import { createClient } from '@/utils/supabase/client'
 import { flattenNav, ROLE_LABELS } from '@/config/nav'
 import {
@@ -117,7 +116,6 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
               })}
             </div>
             <div className="mobile-drawer-footer">
-              <NotificationBell />
               <ThemeToggle />
               <button
                 className="mobile-logout-btn"
