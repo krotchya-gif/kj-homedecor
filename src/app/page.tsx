@@ -39,8 +39,19 @@ export default async function LandingPage() {
 
   const categories = (categoriesRes.data ?? []) as Category[]
   const portfolio = (portfolioRes.data ?? []) as PortfolioPost[]
-  // landing_settings: single row `{ key: 'hero', value: { ... } }` (aggregated per-section)
-  const heroSettings = (settingsRes.data?.value ?? {}) as Record<string, unknown>
+  // landing_settings: row `{ key:'hero', value:{...}, hero_title, theme_primary_color, ... }`.
+  // BUG-078 fix: kolom terpisah (ditulis /admin/landing-settings) adalah sumber UTAMA,
+  // `value` JSON (legacy) jadi fallback. Sebelumnya hanya baca `data?.value` → semua
+  // setting admin (tema preset, hero title, konten) terabaikan & landing selalu default.
+  // Merge hati-hati: kolom terpisah yang TERISI menang; kolom NULL/'' → fallback value JSON
+  // (mis. hero_image_url di value JSON terisi tapi kolom kosong → jangan hilang).
+  const valueObj = (settingsRes.data?.value ?? {}) as Record<string, unknown>
+  const rowObj = (settingsRes.data ?? {}) as Record<string, unknown>
+  const heroSettings: Record<string, unknown> = { ...valueObj }
+  for (const [k, v] of Object.entries(rowObj)) {
+    const isMeta = ['id', 'key', 'value', 'updated_at'].includes(k)
+    if (!isMeta && v !== null && v !== undefined && v !== '') heroSettings[k] = v
+  }
   const settingsMap: Record<string, string | number | null> = Object.fromEntries(
     Object.entries(heroSettings).map(([k, v]) => [k, typeof v === 'number' ? v : String(v ?? '')])
   )

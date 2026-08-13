@@ -83,6 +83,7 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-073 | **Finance pay race / tanpa rollback** — jurnal gagal → payment row menggantung; update order kalah race → row orphan | ✅ Fixed (2026-08-13) | `handlePay`: jurnal gagal → hapus payment row (rollback penuh); `ordErr` → hapus payment row (mirror refund) |
 | BUG-074 | **Dropdown/select tidak ikut tema dark** — border hardcoded `#d1d5db`, tanpa background/color | ✅ Fixed (2026-08-13) | CSS global `select` + inline `var(--surface)/var(--input-border)` di 8 titik (tiktok, staff, cash, owner, surveyor, catalog) |
 | BUG-075 | **Tampilan tanggal mentah YYYY-MM-DD** di mobile card/tabel/toast | ✅ Fixed (2026-08-13) | Helper `formatDateDDMMYYYY()` diterapkan di 16 file |
+| BUG-078 | **Landing theme preset & konten tidak berubah** — landing baca `landing_settings.data?.value` (JSON legacy) padahal admin menulis kolom terpisah (`theme_*`, `hero_title`) → semua setting DB terabaikan | ✅ Fixed (2026-08-13) | Merge kolom terpisah (utama) + value JSON (fallback); kolom terisi menang, kolom NULL fallback value JSON. Terverifikasi: tema green + hero title dari DB tampil |
 
 ### Dead code terdokumentasi (tidak dihapus — keputusan owner, sesi 9)
 - **Route API tanpa caller produksi:** `api/customers`, `api/landing-settings`, `api/materials`, `api/products`, `api/suppliers`, `api/purchase-orders` (+`[id]`), `api/purchase-requests` (+`[id]`), `api/install-bookings` (base), `api/orders` (base — hanya dipakai E2E smoke GET 403)

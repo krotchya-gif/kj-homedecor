@@ -1,6 +1,20 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 16 — bersihkan sisa Xendit + fix constraint refund)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 17 — search/sort pesanan, landing theme dari DB, verifikasi SEO)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 17: Search Pesanan + Landing Theme DB + SEO)
+
+1. ✅ **Search & sort pesanan** (`/admin/orders`):
+   - Search kini server-side: **no. order (`order_number`), nama pelanggan (via `customer!inner`), tracking/resi** — bukan hanya halaman aktif
+   - Filter **status** kini ke query DB (bukan client-only): `ready_to_pack` (ready+kirim), `ready_to_ship` (packed), status lain
+   - **Count/pagination benar** mengikuti search+status+kategori; reset ke halaman 1 saat search/status berubah
+   - Client `filtered` tetap sebagai jaring pengaman (kini termasuk `order_number`)
+2. ✅ **Landing theme dari DB** (`src/app/page.tsx` — BUG-078):
+   - Sebelumnya baca `data?.value` (JSON legacy basi) → semua setting admin terabaikan, landing selalu default
+   - Kini **merge kolom terpisah (utama) + value JSON (fallback)** — kolom terisi menang, kolom NULL fallback ke value JSON (hero_image_url tidak hilang)
+   - Terverifikasi live: tema green `#16a34a` + hero title dari DB ter-render di `/`
+3. ✅ **SEO verifikasi** — `generateMetadata` (layout) & `SeoScripts` baca kolom `seo_*` key='hero' (konsisten dengan form `/admin/seo`); meta `<title>/description/og` ter-render (fallback karena data masih NULL — siap aktif saat diisi)
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 16: Bersihkan Xendit + Fix Refund)

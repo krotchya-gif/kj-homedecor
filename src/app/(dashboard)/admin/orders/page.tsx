@@ -135,28 +135,43 @@ export default function OrdersPage() {
     setLoading(true)
     const from = (currentPage - 1) * PAGE_SIZE
     const to = from + PAGE_SIZE - 1
+    const term = search.trim()
 
-    const withCategory = filterCategory
-      ? '*, customer:customers(name, phone), order_items!inner(product:products!inner(category:categories!inner(name)))'
-      : '*, customer:customers(name, phone), order_items(product:products(category:categories(name)))'
-    const query = supabase.from('orders').select(withCategory, { count: 'exact' })
+    // Server-side filter (halaman penuh): kategori (via !inner join) + status + search.
+    // search: no. order, tracking, NAMA PELANGGAN (dengan !inner join customer).
+    const hasSearch = term.length > 0
+    const needCustomerJoin = hasSearch
+    const needCatJoin = Boolean(filterCategory)
+
+    const custRel = `customer:customers${needCustomerJoin ? '!inner' : ''}(name, phone)`
+    const catInner = needCatJoin ? '!inner' : ''
+    const itemsRel = `order_items${catInner}(product:products${catInner}(category:categories${catInner}(name)))`
+    const selectRel = `*, ${custRel}, ${itemsRel}`
+
+    const query = supabase.from('orders').select(selectRel, { count: 'exact' })
     if (filterCategory) query.eq('order_items.product.category_id', filterCategory)
+    if (filterStatus) {
+      if (filterStatus === 'ready_to_pack') {
+        query.eq('status', 'ready').eq('classification', 'kirim')
+      } else if (filterStatus === 'ready_to_ship') {
+        query.eq('status', 'packed')
+      } else {
+        query.eq('status', filterStatus)
+      }
+    }
+    if (hasSearch) {
+      query.or(`order_number.ilike.%${term}%,tracking_number.ilike.%${term}%,customer.name.ilike.%${term}%`)
+    }
 
-    const [ordersResult, countResult] = await Promise.all([
-      query.order('created_at', { ascending: false }).range(from, to),
-      filterCategory
-        ? Promise.resolve({ count: null })
-        : supabase.from('orders').select('id', { count: 'exact', head: true })
-    ])
-
-    setOrders((ordersResult.data as Order[]) ?? [])
-    setTotalCount(filterCategory ? (ordersResult.count ?? 0) : (countResult.count ?? 0))
+    const { data, count } = await query.order('created_at', { ascending: false }).range(from, to)
+    setOrders((data as unknown as Order[]) ?? [])
+    setTotalCount(count ?? 0)
     setLoading(false)
   }
 
   useEffect(() => {
     fetchOrders()
-  }, [currentPage, filterCategory])
+  }, [currentPage, filterCategory, filterStatus, search])
   useEffect(() => {
     // Prefetch customers di mount — dropdown pelanggan langsung siap saat modal dibuka
     fetchCustomers()
@@ -178,6 +193,7 @@ export default function OrdersPage() {
     const matchSearch =
       !search ||
       (o.customer as { name: string } | null)?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      (o.order_number || '').toLowerCase().includes(search.toLowerCase()) ||
       o.id.includes(search) ||
       (o.tracking_number || '').includes(search)
     let matchStatus = true
@@ -397,9 +413,12 @@ export default function OrdersPage() {
           />
           <input
             type="text"
-            placeholder="Cari nama pelanggan..."
+            placeholder="Cari nama pelanggan / no. order / resi..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setCurrentPage(1)
+            }}
             style={{
               width: '100%',
               padding: '0.625rem 1rem 0.625rem 2.25rem',
@@ -412,7 +431,10 @@ export default function OrdersPage() {
         </div>
         <select
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          onChange={(e) => {
+            setFilterStatus(e.target.value)
+            setCurrentPage(1)
+          }}
           style={{
             padding: '0.625rem 1rem',
             border: '1px solid #d1d5db',
