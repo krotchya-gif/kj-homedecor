@@ -300,7 +300,6 @@ export interface Payment {
   verified_by?: string
   verified_at?: string
   notes?: string
-  xendit_payment_id?: string // unique dedup key (migration 043)
 }
 
 export interface LowStockAlert {

@@ -357,9 +357,6 @@ CREATE TABLE IF NOT EXISTS public.payments (
   date              DATE NOT NULL DEFAULT CURRENT_DATE,
   verified_by       UUID REFERENCES public.users(id),
   verified_at       TIMESTAMPTZ,
-  xendit_id         TEXT,
-  external_payment_method TEXT,
-  xendit_payment_id TEXT,
   notes             TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -847,7 +844,6 @@ CREATE INDEX IF NOT EXISTS idx_inventory_movements_production_job_id ON public.i
 
 -- Payments
 CREATE INDEX IF NOT EXISTS idx_payments_order_id ON public.payments(order_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_xendit_id ON public.payments(xendit_payment_id) WHERE xendit_payment_id IS NOT NULL;
 
 -- Returns
 CREATE INDEX IF NOT EXISTS idx_returns_order_id ON public.returns(order_id);

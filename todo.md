@@ -1,6 +1,14 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 15 — format tanggal, pagination semua tabel, supplier 3 tab)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 16 — bersihkan sisa Xendit + fix constraint refund)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 16: Bersihkan Xendit + Fix Refund)
+
+1. ✅ **Migration 080** — drop kolom legacy `payments.xendit_id`, `external_payment_method`, `xendit_payment_id` + index `idx_payments_xendit_id` (sisa migration 043, 0 data, tidak dipakai — Xendit sudah dihapus sesi 9)
+2. ✅ **Fix `payments_type_check`** — live sebelumnya `('dp','lunas')` TANPA `refund` → drop + recreate `('dp','lunas','refund')`; fitur refund (insert `type:'refund'`) sebelumnya dijamin gagal 23514, kini pulih
+3. ✅ Sync `000_full_schema.sql` (hapus kolom+index) + hapus `xendit_payment_id` dari `src/types/index.ts`
+4. ✅ Verifikasi live: kolom xendit hilang, index hilang, constraint = dp/lunas/refund
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 15: Format Tanggal + Pagination + Supplier 3 Tab)
