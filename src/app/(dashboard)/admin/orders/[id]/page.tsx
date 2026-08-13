@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -7,9 +7,6 @@ import { ORDER_STAGES_BY_CLASSIFICATION, getNextStage, getNextStageButtonLabel, 
 import {
   ArrowLeft,
   ChevronRight,
-  Plus,
-  Trash2,
-  CheckCircle2,
   Loader2,
   Upload,
   X as XIcon,
@@ -22,7 +19,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderItem, Product, Customer, PreparationChecklistItem, OrderStatus } from '@/types'
-import { STATUS_LABELS, GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
+import { STATUS_LABELS } from '@/types'
 import { Material, Survey } from '@/types'
 
 import { uploadToLocal } from '@/lib/upload'
@@ -43,11 +40,14 @@ import PaymentModal from '@/components/orders/PaymentModal'
 import OrderPipelineStepper from '@/components/orders/OrderPipelineStepper'
 import OrderSurveySection from '@/components/orders/OrderSurveySection'
 import OrderSummarySection from '@/components/orders/OrderSummarySection'
+import OrderItemsTable from '@/components/orders/OrderItemsTable'
+import PreparationChecklist from '@/components/orders/PreparationChecklist'
+import AddItemModal from '@/components/orders/AddItemModal'
 
 // Pipeline: ORDER_STAGES_BY_CLASSIFICATION (src/lib/orders.ts) = single source of truth.
 // STATUS_COLORS / PAYMENT_COLORS / ROLE_NEXT_ALLOWED / canRoleAdvanceNext /
-// getResponsibleRoles / parseGordenMeter / types — di-extract ke src/lib/order-detail.ts
-// (refactor 2026-08-12, Stage 1 — logika murni, bisa di-unit-test).
+// getResponsibleRoles / parseGordenMeter / types â€” di-extract ke src/lib/order-detail.ts
+// (refactor 2026-08-12, Stage 1 â€” logika murni, bisa di-unit-test).
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -76,7 +76,7 @@ export default function OrderDetailPage() {
   // laundry rate from DB
   const [laundryRate, setLaundryRate] = useState<number>(0)
 
-  // item form — gorden
+  // item form â€” gorden
   const [itemForm, setItemForm] = useState({
     product_id: '',
     qty: '1',
@@ -118,7 +118,7 @@ export default function OrderDetailPage() {
   const [progressPhotos, setProgressPhotos] = useState<string[]>([])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
-  // BUG-007 fix (2026-08-11): Jadwalkan Pasang — assign installer langsung dari order detail
+  // BUG-007 fix (2026-08-11): Jadwalkan Pasang â€” assign installer langsung dari order detail
   const [installers, setInstallers] = useState<{ id: string; name: string }[]>([])
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduling, setScheduling] = useState(false)
@@ -226,7 +226,7 @@ export default function OrderDetailPage() {
   }
 
   async function loadRates() {
-    // maybeSingle (bukan single): kalau tidak ada laundry_rates aktif → 406 (PGRST116) di console
+    // maybeSingle (bukan single): kalau tidak ada laundry_rates aktif â†’ 406 (PGRST116) di console
     const { data: lr } = await supabase.from('laundry_rates').select('rate_per_kg').eq('is_active', true).maybeSingle()
     setLaundryRate(lr?.rate_per_kg ?? 0)
   }
@@ -252,17 +252,17 @@ export default function OrderDetailPage() {
 
   async function updateStatus(newStatus: string, photoUrls: string[] = []) {
     if (!order) return
-    // F-2 fix: order TANPA pembayaran (pending) tidak bisa lanjut proses —
-    // Finance wajib input DP lalu approve (new → payment_ok / Cek Bayar).
+    // F-2 fix: order TANPA pembayaran (pending) tidak bisa lanjut proses â€”
+    // Finance wajib input DP lalu approve (new â†’ payment_ok / Cek Bayar).
     if (order.payment_status === 'pending' && newStatus !== 'cancelled') {
-      toast('warning', 'Order belum dibayar — Finance wajib input DP lalu approve (Cek Bayar) sebelum order bisa diproses.')
+      toast('warning', 'Order belum dibayar â€” Finance wajib input DP lalu approve (Cek Bayar) sebelum order bisa diproses.')
       return
     }
     // Payment gate: packed/shipped/done tetap wajib lunas.
-    // 2026-07-31: finance approve di DEPAN (new→payment_ok = verifikasi DP/lunas sudah masuk),
+    // 2026-07-31: finance approve di DEPAN (newâ†’payment_ok = verifikasi DP/lunas sudah masuk),
     // lunas penuh tetap wajib sebelum packed/dikirim.
     if (['packed', 'shipped', 'done'].includes(newStatus) && order.payment_status !== 'paid') {
-      toast('warning', '⚠️ Payment gate: order belum lunas. Finance harus approve pembayaran dulu (status Cek Bayar).')
+      toast('warning', 'âš ï¸ Payment gate: order belum lunas. Finance harus approve pembayaran dulu (status Cek Bayar).')
       return
     }
     setUpdating(true)
@@ -279,13 +279,13 @@ export default function OrderDetailPage() {
     }
 
     // 2) Catat ke order_logs untuk audit trail
-    // PENTING: semua action harus masuk daftar chk_action — fallback pakai 'status_changed'
-    // (bukan newStatus mentah: 'steam'/'install' tidak ada di constraint → insert 400).
+    // PENTING: semua action harus masuk daftar chk_action â€” fallback pakai 'status_changed'
+    // (bukan newStatus mentah: 'steam'/'install' tidak ada di constraint â†’ insert 400).
     // Phase 6B-1: map action dipindah ke lib/order-detail (getOrderLogAction).
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: id,
       action: getOrderLogAction(newStatus),
-      notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
+      notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" â†’ "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null
     })
     if (logErr) { console.error('Gagal catat log:', logErr) }
@@ -301,8 +301,8 @@ export default function OrderDetailPage() {
       if (photoErr) { console.error('Gagal simpan foto progress:', photoErr) }
     }
 
-    // 4) PENTING: sorted→production. Auto-create production_job dengan idempotency check.
-    // Kalau insert gagal, ALERT user — jangan silent fail. Gudang Production page butuh job ini.
+    // 4) PENTING: sortedâ†’production. Auto-create production_job dengan idempotency check.
+    // Kalau insert gagal, ALERT user â€” jangan silent fail. Gudang Production page butuh job ini.
     if (newStatus === 'production' && order.status === 'sorted') {
       // Cek dulu apakah sudah ada production_job aktif untuk order ini
       const { data: existingJob } = await supabase
@@ -340,7 +340,7 @@ export default function OrderDetailPage() {
 
         if (jobErr) {
           // CRITICAL: order stuck di production tapi tidak ada job
-          toast('error', '⚠️ Order sudah di-update ke production, TAPI gagal membuat production_job: ' +
+          toast('error', 'âš ï¸ Order sudah di-update ke production, TAPI gagal membuat production_job: ' +
               jobErr.message +
               '\n\nGudang tidak akan melihat order ini di /gudang/production. Hubungi developer untuk fix data integrity.')
         }
@@ -355,7 +355,7 @@ export default function OrderDetailPage() {
     load()
   }
 
-  // BUG-007 fix (2026-08-11): Jadwalkan Pasang — 1 langkah dari order detail.
+  // BUG-007 fix (2026-08-11): Jadwalkan Pasang â€” 1 langkah dari order detail.
   // Update orders ke 'scheduled' + upsert install_bookings (assign installer + jadwal).
   async function handleSchedule(e: React.FormEvent) {
     e.preventDefault()
@@ -369,8 +369,8 @@ export default function OrderDetailPage() {
       data: { user }
     } = await supabase.auth.getUser()
 
-    // F-18 fix: SATU JALUR — semua perubahan status booking lewat API route
-    // (RPC advance_install_booking_status cascade orders.status → 'scheduled' + order_logs).
+    // F-18 fix: SATU JALUR â€” semua perubahan status booking lewat API route
+    // (RPC advance_install_booking_status cascade orders.status â†’ 'scheduled' + order_logs).
     let bookingId = orderBooking?.id ?? null
 
     try {
@@ -389,7 +389,7 @@ export default function OrderDetailPage() {
             scheduled_date: scheduleForm.date,
             scheduled_time: scheduleForm.time || null,
             address: customerAddr,
-            notes: `Dijadwalkan dari detail pesanan oleh Admin — installer & tanggal dipilih langsung.`
+            notes: `Dijadwalkan dari detail pesanan oleh Admin â€” installer & tanggal dipilih langsung.`
           })
           .select('id')
           .single()
@@ -397,7 +397,7 @@ export default function OrderDetailPage() {
         bookingId = newBooking.id
       }
 
-      // 2) PUT ke API route — RPC update status + cascade orders + log install_started,
+      // 2) PUT ke API route â€” RPC update status + cascade orders + log install_started,
       //    field lain (installer_id, jadwal) di-update via otherFields.
       const res = await fetch(`/api/install-bookings/${bookingId}`, {
         method: 'PUT',
@@ -412,7 +412,7 @@ export default function OrderDetailPage() {
       const json = await res.json().catch(() => null)
       if (!res.ok) throw new Error(json?.error?.message ?? `HTTP ${res.status}`)
 
-      // 3) Kolom jadwal di orders (tidak disentuh RPC) — set dengan guard status
+      // 3) Kolom jadwal di orders (tidak disentuh RPC) â€” set dengan guard status
       const { error: schedErr } = await supabase
         .from('orders')
         .update({
@@ -423,17 +423,17 @@ export default function OrderDetailPage() {
         .eq('status', 'scheduled')
       if (schedErr) console.error('Gagal simpan jadwal di orders:', schedErr)
 
-      const installerName = installers.find((i) => i.id === scheduleForm.installer_id)?.name ?? '—'
+      const installerName = installers.find((i) => i.id === scheduleForm.installer_id)?.name ?? 'â€”'
       setScheduling(false)
       setShowScheduleModal(false)
       setScheduleForm({ date: '', time: '', installer_id: '' })
-      toast('success', `✅ Order terjadwal pasang: ${formatDateDDMMYYYY(scheduleForm.date)} — Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
+      toast('success', `âœ… Order terjadwal pasang: ${formatDateDDMMYYYY(scheduleForm.date)} â€” Installer: ${installerName}. Installer akan melihat job di /installer/schedule.`)
       load()
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err)
       console.error('Jadwal pasang gagal:', err)
       setScheduling(false)
-      toast('error', '⚠️ Gagal jadwalkan pasang: ' + errMsg)
+      toast('error', 'âš ï¸ Gagal jadwalkan pasang: ' + errMsg)
     }
   }
 
@@ -447,7 +447,7 @@ export default function OrderDetailPage() {
     } = await supabase.auth.getUser()
     const { error: voidErr } = await supabase
       .from('payments')
-      .update({ notes: `VOIDED — Order cancelled (${cancelReason}) - ${new Date().toISOString()}` })
+      .update({ notes: `VOIDED â€” Order cancelled (${cancelReason}) - ${new Date().toISOString()}` })
       .eq('order_id', id)
     if (voidErr) { console.error('Gagal void payment:', voidErr) }
     const { error: cancelErr } = await supabase
@@ -462,9 +462,9 @@ export default function OrderDetailPage() {
       .eq('id', id)
     if (cancelErr) { toast('error', 'Gagal batalkan order: ' + cancelErr.message); return }
 
-    // F-med fix: reversal jurnal saat cancel — order_created & payment_received
+    // F-med fix: reversal jurnal saat cancel â€” order_created & payment_received
     // yang sudah tercatat harus dibalik agar laba-rugi & neraca tidak overstated.
-    // BUG-060 fix (2026-08-13): cek dulu jurnal yang BENAR-BENAR ada — jangan
+    // BUG-060 fix (2026-08-13): cek dulu jurnal yang BENAR-BENAR ada â€” jangan
     // bikin reversal "hantu" untuk jurnal yang tak pernah dibuat (mis. DP yang
     // jurnalnya gagal BUG-058, atau order tanpa pembayaran).
     const totalPaid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
@@ -473,7 +473,7 @@ export default function OrderDetailPage() {
         const { getAccountMapping } = await import('@/utils/journal/create')
         const { createSimpleJournal } = await import('@/utils/journal/create')
 
-        // Cek jurnal order_created nyata (reference order — reversal pakai 'order_cancelled')
+        // Cek jurnal order_created nyata (reference order â€” reversal pakai 'order_cancelled')
         const { data: orderJournals } = await supabase
           .from('journal_entries')
           .select('id')
@@ -502,7 +502,7 @@ export default function OrderDetailPage() {
               transaction_type: 'order_created',
               reference_type: 'order_cancelled',
               reference_id: id,
-              description: `Reversal order_created — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan`,
+              description: `Reversal order_created â€” order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan`,
               amount: order.total_amount ?? 0,
               debit_account_id: revOrder.credit_account_id,
               credit_account_id: revOrder.debit_account_id,
@@ -519,7 +519,7 @@ export default function OrderDetailPage() {
               transaction_type: 'payment_received',
               reference_type: 'order_cancelled',
               reference_id: id,
-              description: `Reversal pembayaran — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan (Rp${totalPaid.toLocaleString('id-ID')})`,
+              description: `Reversal pembayaran â€” order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan (Rp${totalPaid.toLocaleString('id-ID')})`,
               amount: totalPaid,
               debit_account_id: revPay.credit_account_id,
               credit_account_id: revPay.debit_account_id,
@@ -574,7 +574,7 @@ export default function OrderDetailPage() {
             product_id: item.product_id,
             type: 'return_in',
             qty: item.qty ?? 1,
-            reason: `Return dari order ${id.slice(0, 8)} — kondisi bagus, masuk stock toko`,
+            reason: `Return dari order ${id.slice(0, 8)} â€” kondisi bagus, masuk stock toko`,
             created_by: user?.id ?? null
           })
           if (movErr) { toast('error', 'Gagal catat pergerakan stok return: ' + movErr.message); return }
@@ -629,19 +629,19 @@ export default function OrderDetailPage() {
     const { error: retLogErr } = await supabase.from('order_logs').insert({
       order_id: id,
       action: 'return_initiated',
-      notes: `Return diproses oleh Admin. Kondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}. Alasan: ${returnForm.reason}. Refund: Rp${refundAmt.toLocaleString('id-ID')}`,
+      notes: `Return diproses oleh Admin. Kondisi: ${returnForm.condition === 'good' ? 'Bagus â†’ masuk stock' : 'Rusak â†’ dispose'}. Alasan: ${returnForm.reason}. Refund: Rp${refundAmt.toLocaleString('id-ID')}`,
       staff_id: user?.id ?? null
     })
     if (retLogErr) { console.error('Gagal catat log return:', retLogErr) }
 
-    toast('success', `Return berhasil dicatat.\nKondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}\nRefund: Rp${refundAmt.toLocaleString('id-ID')}`)
+    toast('success', `Return berhasil dicatat.\nKondisi: ${returnForm.condition === 'good' ? 'Bagus â†’ masuk stock' : 'Rusak â†’ dispose'}\nRefund: Rp${refundAmt.toLocaleString('id-ID')}`)
     setShowReturnForm(false)
     setReturnForm({ item_id: '', reason: '', condition: 'good', qty: '1', refund_amount: '' })
     load()
   }
 
-  // Gorden dihitung per ukuran (cm), bukan qty: meter kain = tinggi ukuran ÷ 100
-  // Format ukuran: "lebar x tinggi" cm — cth "120 x 250" → 2.5 m (parseGordenMeter dari lib)
+  // Gorden dihitung per ukuran (cm), bukan qty: meter kain = tinggi ukuran Ã· 100
+  // Format ukuran: "lebar x tinggi" cm â€” cth "120 x 250" â†’ 2.5 m (parseGordenMeter dari lib)
 
   async function addItem(e: React.FormEvent) {
     e.preventDefault()
@@ -650,7 +650,7 @@ export default function OrderDetailPage() {
     // Validate qty for non-laundry items
     const qty = Number(itemForm.qty)
     if (itemType === 'gorden') {
-      // Gorden: tidak pakai qty — pakai ukuran cm (meter otomatis = tinggi ÷ 100)
+      // Gorden: tidak pakai qty â€” pakai ukuran cm (meter otomatis = tinggi Ã· 100)
       const gordenMeter = parseGordenMeter(itemForm.size)
       if (!itemForm.product_id) {
         toast('info', 'Pilih produk gorden dulu.')
@@ -715,7 +715,7 @@ export default function OrderDetailPage() {
       const prod = products.find((p) => p.id === itemForm.product_id)
       let finalPrice = Number(itemForm.price) || prod?.price || 0
 
-      // Gorden: price = product.price per meter × meter needed
+      // Gorden: price = product.price per meter Ã— meter needed
       if (itemType === 'gorden') {
         const meter = Number(itemForm.meter_gorden) || 0
         finalPrice = (prod?.price || 0) * meter
@@ -818,7 +818,7 @@ export default function OrderDetailPage() {
     const { error } = await supabase.from('order_items').delete().eq('id', itemId)
     if (error) { toast('error', 'Gagal hapus item: ' + error.message); return }
     // Recalc total_amount agar sinkron dengan order_items (temuan QA 2026-08-10:
-    // sebelumnya total tidak turun → laporan keuangan & payment status tidak akurat)
+    // sebelumnya total tidak turun â†’ laporan keuangan & payment status tidak akurat)
     const { data: remaining, error: totalErr } = await supabase
       .from('order_items')
       .select('price,qty')
@@ -884,7 +884,7 @@ export default function OrderDetailPage() {
     if (payErr) { setSavingPayment(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
 
     // BUG/F-24 fix (2026-08-11): pembayaran via admin detail JUGA harus bikin jurnal
-    // (sebelumnya hanya finance/payments yang berjurnal → buku besar tidak lengkap).
+    // (sebelumnya hanya finance/payments yang berjurnal â†’ buku besar tidak lengkap).
     try {
       await createSimpleJournal({
         transaction_type: 'payment_received',
@@ -892,7 +892,7 @@ export default function OrderDetailPage() {
         reference_id: id,
         description: `Pembayaran ${paymentForm.type === 'dp' ? 'DP' : 'Lunas'} Rp${amount.toLocaleString('id-ID')} oleh Admin`,
         amount,
-        // F-54 fix: idempotent per payment — retry tidak bikin jurnal ganda
+        // F-54 fix: idempotent per payment â€” retry tidak bikin jurnal ganda
         idempotency_key: paymentRow?.id ? `payment:${paymentRow.id}` : undefined
       })
     } catch (jErr) {
@@ -900,8 +900,8 @@ export default function OrderDetailPage() {
       toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun.')
     }
 
-    // F-2 fix: hitungan JUJUR — DP TIDAK mengisi lunas_amount fiktif.
-    // DP → partial; lunas penuh → paid. Payment gate packed tetap wajib paid.
+    // F-2 fix: hitungan JUJUR â€” DP TIDAK mengisi lunas_amount fiktif.
+    // DP â†’ partial; lunas penuh â†’ paid. Payment gate packed tetap wajib paid.
     const newDp = paymentForm.type === 'dp' ? fresh.dp_amount + amount : fresh.dp_amount
     const newLunas = paymentForm.type === 'lunas' ? fresh.lunas_amount + amount : fresh.lunas_amount
     const paidSum = newDp + newLunas
@@ -918,7 +918,7 @@ export default function OrderDetailPage() {
       .eq('dp_amount', fresh.dp_amount)
       .eq('lunas_amount', fresh.lunas_amount)
     if (ordErr) {
-      // F-2 fix: guard gagal (race) → rollback row payments agar tidak yatim
+      // F-2 fix: guard gagal (race) â†’ rollback row payments agar tidak yatim
       await supabase.from('payments').delete().eq('id', paymentRow?.id ?? '')
       setSavingPayment(false)
       toast('error', 'Gagal update status pembayaran (mungkin dibayar admin lain). Row payment di-rollback: ' + ordErr.message)
@@ -985,9 +985,9 @@ export default function OrderDetailPage() {
   const nextStatus: OrderStatus | null =
     statusIdx >= 0 && statusIdx < ORDER_STATUSES.length - 1 ? (ORDER_STATUSES[statusIdx + 1] as OrderStatus) : null
   // dynamic button label (mis. 'Input Resi' vs 'Jadwalkan Pasang')
-  // PENTING: label dihitung dari status SAAT INI (bukan nextStatus) — kalau pakai
-  // nextStatus, tombol sorted→production tampil 'Submit Report' (label utk production)
-  // padahal seharusnya 'Mulai Produksi' (bug 2026-08-11 — bikin user salah paham)
+  // PENTING: label dihitung dari status SAAT INI (bukan nextStatus) â€” kalau pakai
+  // nextStatus, tombol sortedâ†’production tampil 'Submit Report' (label utk production)
+  // padahal seharusnya 'Mulai Produksi' (bug 2026-08-11 â€” bikin user salah paham)
   const nextStageButtonLabel = nextStatus ? getNextStageButtonLabel(order.status, orderClassification) : 'Lanjut'
 
   // BUG-003/fix-4 (2026-08-11): prefill bukti foto yang sudah ada saat modal advance dibuka.
@@ -1060,7 +1060,7 @@ export default function OrderDetailPage() {
           canRoleAdvanceNext(currentUserRole, order.status) && (
             <button
               onClick={() => {
-                // BUG-007 fix: packed→scheduled (pasang) buka modal jadwal + assign installer
+                // BUG-007 fix: packedâ†’scheduled (pasang) buka modal jadwal + assign installer
                 if (nextStatus === 'scheduled') {
                   setScheduleForm({
                     date: orderBooking?.scheduled_date ?? '',
@@ -1113,7 +1113,7 @@ export default function OrderDetailPage() {
                 flexWrap: 'wrap'
               }}
             >
-              🔒 Role <strong style={{ color: '#dc2626' }}>{currentUserRole}</strong> tidak boleh lanjut di stage ini.
+              ðŸ”’ Role <strong style={{ color: '#dc2626' }}>{currentUserRole}</strong> tidak boleh lanjut di stage ini.
               Stage <strong>{STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}</strong> adalah tanggung jawab:{' '}
               <strong style={{ color: '#cc7030' }}>{getResponsibleRoles(order.status)}</strong>
             </div>
@@ -1135,7 +1135,7 @@ export default function OrderDetailPage() {
             }}
             title="Batalkan pesanan (pembayaran di-void, jurnal dibalik)"
           >
-            ❌ Batalkan
+            âŒ Batalkan
           </button>
         )}
         {['ready', 'done'].includes(order.status) && (
@@ -1155,7 +1155,7 @@ export default function OrderDetailPage() {
             }}
             title="Catat barang kembali / retur dari pesanan ini"
           >
-            📦 Return
+            ðŸ“¦ Return
           </button>
         )}
         {order.status !== 'cancelled' && (
@@ -1262,7 +1262,7 @@ export default function OrderDetailPage() {
         )}
       </div>
 
-      {/* BUG-007 fix: info booking pasang — installer & jadwal terlihat langsung di order detail */}
+      {/* BUG-007 fix: info booking pasang â€” installer & jadwal terlihat langsung di order detail */}
       {orderBooking && ['scheduled', 'installing', 'done'].includes(order.status) && (
         <div
           style={{
@@ -1281,16 +1281,16 @@ export default function OrderDetailPage() {
           <span style={{ fontSize: '0.85rem', fontWeight: '600' }}>Jadwal Pasang:</span>
           <span style={{ fontSize: '0.85rem', color: 'var(--neutral-700)' }}>
             {orderBooking.scheduled_date ? new Date(orderBooking.scheduled_date + 'T00:00:00').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Belum ada tanggal'}
-            {orderBooking.scheduled_time ? ` • ${orderBooking.scheduled_time}` : ''}
+            {orderBooking.scheduled_time ? ` â€¢ ${orderBooking.scheduled_time}` : ''}
           </span>
           <span style={{ fontSize: '0.85rem', color: 'var(--neutral-600)' }}>
-            — Installer:{' '}
+            â€” Installer:{' '}
             <strong style={{ color: '#cc7030' }}>{orderBooking.installer?.name ?? 'belum di-assign'}</strong>
           </span>
         </div>
       )}
 
-      {/* Status pipeline — Phase 6B-3a: diekstrak ke komponen */}
+      {/* Status pipeline â€” Phase 6B-3a: diekstrak ke komponen */}
       <OrderPipelineStepper
         statuses={ORDER_STATUSES}
         statusIdx={statusIdx}
@@ -1299,7 +1299,7 @@ export default function OrderDetailPage() {
         onPhotoClick={(stage, urls) => setPhotoPopup({ stage, photos: urls })}
       />
 
-      {/* Estimasi Selesai + Pelanggan + Info Pesanan — Phase 6B-3c: diekstrak ke komponen */}
+      {/* Estimasi Selesai + Pelanggan + Info Pesanan â€” Phase 6B-3c: diekstrak ke komponen */}
       <OrderSummarySection
         order={order}
         statuses={ORDER_STATUSES}
@@ -1309,7 +1309,7 @@ export default function OrderDetailPage() {
         onAddPayment={() => setShowPaymentForm(true)}
       />
 
-      {/* Hasil Survey (fitur "hasil survey masuk invoice") — Phase 6B-3b: diekstrak ke komponen */}
+      {/* Hasil Survey (fitur "hasil survey masuk invoice") â€” Phase 6B-3b: diekstrak ke komponen */}
       <OrderSurveySection
         survey={order.survey}
         surveyLinkOpen={surveyLinkOpen}
@@ -1321,1167 +1321,46 @@ export default function OrderDetailPage() {
         onLinkSurvey={linkSurvey}
       />
 
-      {/* Order Items */}
-      <div style={{ marginBottom: '1rem' }}>
-        <div
-          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}
-        >
-          <h2 style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-700)' }}>Item Pesanan</h2>
-          <button
-            onClick={openItemForm}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.375rem',
-              padding: '0.5rem 1rem',
-              background: '#cc7030',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: '600',
-              fontSize: '0.8rem',
-              cursor: 'pointer'
-            }}
-          >
-            <Plus size={14} /> Tambah Item
-          </button>
-        </div>
-        <div className="data-table">
-          {items.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)', fontSize: '0.875rem' }}>
-              Belum ada item pesanan
-            </div>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Tipe</th>
-                  <th>Produk</th>
-                  <th>Ukuran</th>
-                  <th>Qty</th>
-                  <th>Specs</th>
-                  <th>Harga</th>
-                  <th>Ready</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const prod = item.product as { name: string; sku?: string } | null
-                  const itemTypeLabel =
-                    item.item_type === 'laundry'
-                      ? '🧺 Laundry'
-                      : item.item_type === 'perabot'
-                        ? '🪑 Perabot'
-                        : '🪟 Gorden'
-                  return (
-                    <tr key={item.id}>
-                      <td>
-                        <span
-                          style={{
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '999px',
-                            background: 'var(--neutral-100)',
-                            color: 'var(--neutral-700)'
-                          }}
-                        >
-                          {itemTypeLabel}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: '500' }}>{prod?.name ?? item.custom_specs ?? '—'}</td>
-                      <td style={{ color: 'var(--neutral-600)', fontSize: '0.8rem' }}>{item.size ?? '—'}</td>
-                      <td>{item.qty}</td>
-                      <td style={{ fontSize: '0.75rem', color: 'var(--neutral-600)', maxWidth: 180 }}>
-                        {item.item_type === 'gorden' && (
-                          <>
-                            {Number(item.meter_gorden ?? 0) > 0 && (
-                              <span>Gorden: {Number(item.meter_gorden).toFixed(2)}m</span>
-                            )}
-                            {item.style_type && <span> • {item.style_type}</span>}
-                            {item.meter && <span> • {Number(item.meter).toFixed(2)}m</span>}
-                            {(item.poni_lurus || item.poni_gel) && (
-                              <span>
-                                {' '}
-                                • {[item.poni_lurus && 'Lurus', item.poni_gel && 'Gel'].filter(Boolean).join('/')}
-                              </span>
-                            )}
-                          </>
-                        )}
-                        {item.item_type === 'perabot' && (
-                          <>
-                            {item.variant_color && <span>Warna: {item.variant_color}</span>}
-                            {item.dimension_p && (
-                              <span>
-                                {' '}
-                                • {item.dimension_p}×{item.dimension_l}×{item.dimension_t}cm
-                              </span>
-                            )}
-                            {item.weight && <span> • {item.weight}kg</span>}
-                          </>
-                        )}
-                        {item.item_type === 'laundry' && (
-                          <>{item.meter && <span>{Number(item.meter).toFixed(2)}m</span>}</>
-                        )}
-                      </td>
-                      <td style={{ fontWeight: '600', color: '#cc7030' }}>{fmt(item.price)}</td>
-                      <td>
-                        <button
-                          onClick={() => toggleReady(item.id, item.ready)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: item.ready ? '#16a34a' : 'var(--input-border)'
-                          }}
-                        >
-                          <CheckCircle2 size={18} />
-                        </button>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+      {/* Order Items â€” Phase 6B-3d-2: diekstrak ke komponen */}
+      <OrderItemsTable
+        items={items}
+        fmt={fmt}
+        onAddItem={openItemForm}
+        onToggleReady={toggleReady}
+        onRemoveItem={removeItem}
+      />
 
-      {/* Persiapan & Kelengkapan */}
-      <div
-        style={{
-          marginTop: '1.5rem',
-          background: 'var(--surface)',
-          borderRadius: '0.875rem',
-          border: '1px solid #e5e7eb',
-          overflow: 'hidden'
-        }}
-      >
-        <div
-          style={{
-            padding: '1rem 1.25rem',
-            borderBottom: '1px solid #f3f4f6',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem'
-          }}
-        >
-          <span style={{ fontSize: '1.1rem' }}>📦</span>
-          <h2 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--neutral-700)' }}>Persiapan & Kelengkapan</h2>
-          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
-            {checklist.filter((i) => i.done).length}/{checklist.length} siap
-          </span>
-        </div>
-        <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-          {checklist.map((item) => (
-            <div
-              key={item.key}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.5rem 0',
-                borderBottom: '1px solid #f9fafb'
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={item.done}
-                onChange={(e) => updateChecklistItem(item.key, 'done', e.target.checked)}
-                style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#cc7030' }}
-              />
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: '0.875rem',
-                  fontWeight: item.done ? '400' : '500',
-                  color: item.done ? 'var(--neutral-400)' : 'var(--neutral-700)',
-                  textDecoration: item.done ? 'line-through' : 'none'
-                }}
-              >
-                {item.label}
-              </span>
-              <input
-                type="text"
-                placeholder="Catatan..."
-                value={item.notes}
-                onChange={(e) => updateChecklistItem(item.key, 'notes', e.target.value)}
-                style={{
-                  flex: 2,
-                  padding: '0.375rem 0.625rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.8rem',
-                  outline: 'none'
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Persiapan & Kelengkapan â€” Phase 6B-3d-1: diekstrak ke komponen */}
+      <PreparationChecklist checklist={checklist} onUpdate={updateChecklistItem} />
 
-      {/* Add Item Modal */}
-      <Modal
+      {/* Add Item Modal — Phase 6B-3d-3: diekstrak ke komponen */}
+      <AddItemModal
         open={showItemForm}
         onClose={() => {
           setShowItemForm(false)
           resetForm()
         }}
-        maxWidth={580}
-        padding="2rem"
-      >
-        <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Tambah Item Pesanan</h2>
-
-        {/* Step 1: Type selector */}
-        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          {(['gorden', 'perabot', 'laundry'] as ItemType[]).map((t) => {
-            const labels: Record<ItemType, string> = {
-              gorden: '🪟 Gorden',
-              perabot: '🪑 Perabot',
-              laundry: '🧺 Laundry'
-            }
-            return (
-              <button
-                key={t}
-                onClick={() => setItemType(t)}
-                style={{
-                  flex: 1,
-                  padding: '0.625rem',
-                  border: `2px solid ${itemType === t ? '#cc7030' : 'var(--neutral-200)'}`,
-                  borderRadius: '0.5rem',
-                  background: itemType === t ? '#fff7ed' : '#fff',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '0.8rem',
-                  color: itemType === t ? '#92400e' : 'var(--neutral-600)'
-                }}
-              >
-                {labels[t]}
-              </button>
-            )
-          })}
-        </div>
-
-        <form onSubmit={addItem} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* === GORDEN FORM === */}
-          {itemType === 'gorden' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Produk
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="Cari produk..."
-                      value={searchProduct}
-                      onChange={(e) => setSearchProduct(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                        background: 'var(--surface)'
-                      }}
-                    />
-                    {searchProduct && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          zIndex: 50,
-                          background: 'var(--surface)',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          maxHeight: 200,
-                          overflowY: 'auto'
-                        }}
-                      >
-                        <div
-                          onClick={() => {
-                            setItemForm((f) => ({ ...f, product_id: '', price: '' }))
-                            setSearchProduct('')
-                          }}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem',
-                            color: 'var(--neutral-600)',
-                            borderBottom: '1px solid #f3f4f6'
-                          }}
-                        >
-                          — Pilih Produk —
-                        </div>
-                        {products
-                          .filter(
-                            (p) =>
-                              p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                              (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                          )
-                          .map((p) => (
-                            <div
-                              key={p.id}
-                              onClick={() => {
-                                setItemForm((f) => ({ ...f, product_id: p.id, price: String(p.price ?? 0) }))
-                                setSearchProduct('')
-                              }}
-                              style={{
-                                padding: '0.5rem 0.75rem',
-                                cursor: 'pointer',
-                                fontSize: '0.8rem',
-                                borderBottom: '1px solid #f3f4f6',
-                                background: itemForm.product_id === p.id ? '#fef3c7' : 'transparent'
-                              }}
-                            >
-                              <span style={{ fontWeight: 500 }}>{p.name}</span>
-                              {p.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({p.sku})</span>}
-                              <span style={{ float: 'right', color: '#cc7030' }}>
-                                {p.price != null
-                                  ? new Intl.NumberFormat('id-ID', {
-                                      style: 'currency',
-                                      currency: 'IDR',
-                                      maximumFractionDigits: 0
-                                    }).format(p.price)
-                                  : ''}
-                              </span>
-                            </div>
-                          ))}
-                        {products.filter(
-                          (p) =>
-                            p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                            (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                        ).length === 0 && (
-                          <div style={{ padding: '0.75rem', color: 'var(--neutral-400)', fontSize: '0.8rem' }}>
-                            Tidak ada produk ditemukan
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    {!searchProduct && !itemForm.product_id && (
-                      <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-400)' }}>
-                        Ketik untuk mencari produk
-                      </div>
-                    )}
-                    {!searchProduct &&
-                      itemForm.product_id &&
-                      (() => {
-                        const sel = products.find((p) => p.id === itemForm.product_id)
-                        return sel ? (
-                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-700)' }}>
-                            <span style={{ fontWeight: 500 }}>{sel.name}</span>
-                            {sel.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({sel.sku})</span>}
-                          </div>
-                        ) : null
-                      })()}
-                  </div>
-                </div>
-                {itemType !== 'gorden' && (
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.8rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-700)',
-                        marginBottom: '0.3rem'
-                      }}
-                    >
-                      Qty
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={itemForm.qty}
-                      onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Ukuran (cm)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="120 x 250"
-                    value={itemForm.size}
-                    onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                {itemForm.product_id &&
-                  (() => {
-                    const prodBom = boms.filter((b) => b.product_id === itemForm.product_id)
-                    if (prodBom.length === 0) return null
-                    return (
-                      <div>
-                        <label
-                          style={{
-                            display: 'block',
-                            fontSize: '0.8rem',
-                            fontWeight: '600',
-                            color: 'var(--neutral-700)',
-                            marginBottom: '0.3rem'
-                          }}
-                        >
-                          📋 Material Dibutuhkan
-                        </label>
-                        <div
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '0.25rem',
-                            maxHeight: 120,
-                            overflowY: 'auto',
-                            padding: '0.5rem',
-                            background: '#fef3c7',
-                            borderRadius: '0.5rem',
-                            fontSize: '0.75rem'
-                          }}
-                        >
-                          {prodBom.map((b) => {
-                            const mat = b.material
-                            const isLow = (mat?.stock_gudang ?? 0) < (b.qty_per_unit ?? 0)
-                            return (
-                              <div
-                                key={b.id}
-                                style={{
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  padding: '0.2rem 0'
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    color: isLow ? '#dc2626' : 'var(--neutral-700)',
-                                    fontWeight: isLow ? '700' : '400'
-                                  }}
-                                >
-                                  {mat?.name ?? '—'} × {(b.qty_per_unit ?? 0)} {mat?.unit}
-                                </span>
-                                <span style={{ color: isLow ? '#dc2626' : '#059669', fontWeight: '600' }}>
-                                  {isLow ? '⚠️ Stok kurang' : '✅ Cukup'}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })()}
-              </div>
-              {itemType === 'gorden' && (
-                <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
-                    Meteran Gorden (otomatis dari ukuran)
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          color: 'var(--neutral-600)',
-                          marginBottom: '0.25rem'
-                        }}
-                      >
-                        Meter Gorden (m)
-                      </label>
-                      <input
-                        type="text"
-                        value={parseGordenMeter(itemForm.size) > 0 ? parseGordenMeter(itemForm.size).toFixed(2) : '0'}
-                        readOnly
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.375rem',
-                          fontSize: '0.8rem',
-                          outline: 'none',
-                          background: 'var(--surface)'
-                        }}
-                      />
-                      <div style={{ fontSize: '0.68rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
-                        = tinggi ukuran ÷ 100 (isi ukuran "lebar x tinggi" di atas)
-                      </div>
-                    </div>
-                    <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          color: 'var(--neutral-600)',
-                          marginBottom: '0.25rem'
-                        }}
-                      >
-                        Berat Auto (kg)
-                      </label>
-                      <input
-                        type="text"
-                        value={parseGordenMeter(itemForm.size) > 0 ? (parseGordenMeter(itemForm.size) * 0.4).toFixed(2) : '0'}
-                        readOnly
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.375rem',
-                          fontSize: '0.8rem',
-                          outline: 'none',
-                          background: 'var(--neutral-100)',
-                          color: 'var(--neutral-600)'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* Style Variant Cards */}
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
-                  Model Gorden
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '0.5rem' }}>
-                  {GORDEN_STYLES.map((style) => (
-                    <div
-                      key={style}
-                      onClick={() => setItemForm((f) => ({ ...f, style_type: style, smokring_color: '' }))}
-                      style={{
-                        padding: '0.625rem 0.5rem',
-                        textAlign: 'center',
-                        borderRadius: '0.5rem',
-                        cursor: 'pointer',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        background: itemForm.style_type === style ? '#cc7030' : '#fff',
-                        color: itemForm.style_type === style ? '#fff' : 'var(--neutral-700)',
-                        border: `1px solid ${itemForm.style_type === style ? '#cc7030' : 'var(--input-border)'}`
-                      }}
-                    >
-                      {style.charAt(0).toUpperCase() + style.slice(1)}
-                    </div>
-                  ))}
-                </div>
-                {itemForm.style_type === 'smokring' && (
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--neutral-600)', marginBottom: '0.4rem' }}>
-                      Warna Smokring
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {SMOKRING_COLORS.map((c) => (
-                        <div
-                          key={c}
-                          onClick={() => setItemForm((f) => ({ ...f, smokring_color: c }))}
-                          style={{
-                            padding: '0.375rem 0.75rem',
-                            borderRadius: '9999px',
-                            cursor: 'pointer',
-                            fontSize: '0.75rem',
-                            fontWeight: '500',
-                            background: itemForm.smokring_color === c ? '#cc7030' : '#fff',
-                            color: itemForm.smokring_color === c ? '#fff' : 'var(--neutral-700)',
-                            border: `1px solid ${itemForm.smokring_color === c ? '#cc7030' : 'var(--input-border)'}`
-                          }}
-                        >
-                          {c}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--input-border)',
-                      borderRadius: '0.5rem',
-                      padding: '0.625rem 0.75rem'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={itemForm.poni_lurus}
-                      onChange={(e) => setItemForm((prev) => ({ ...prev, poni_lurus: e.target.checked }))}
-                    />
-                    Poni Lurus
-                  </label>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--input-border)',
-                      borderRadius: '0.5rem',
-                      padding: '0.625rem 0.75rem'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={itemForm.poni_gel}
-                      onChange={(e) => setItemForm((prev) => ({ ...prev, poni_gel: e.target.checked }))}
-                    />
-                    Poni Gel
-                  </label>
-                </div>
-                {itemForm.meter_gorden && Number(itemForm.meter_gorden) > 0 && (
-                  <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: '#16a34a', fontWeight: '600' }}>
-                    Estimasi:{' '}
-                    {(products.find((p) => p.id === itemForm.product_id)?.price || 0) * Number(itemForm.meter_gorden)}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* === PERABOT FORM === */}
-          {itemType === 'perabot' && (
-            <>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Produk
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="Cari produk..."
-                      value={searchProduct}
-                      onChange={(e) => setSearchProduct(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.625rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
-                        outline: 'none',
-                        background: 'var(--surface)'
-                      }}
-                    />
-                    {searchProduct && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          right: 0,
-                          zIndex: 50,
-                          background: 'var(--surface)',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.5rem',
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          maxHeight: 200,
-                          overflowY: 'auto'
-                        }}
-                      >
-                        <div
-                          onClick={() => {
-                            setItemForm((f) => ({ ...f, product_id: '', price: '' }))
-                            setSearchProduct('')
-                          }}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            cursor: 'pointer',
-                            fontSize: '0.8rem',
-                            color: 'var(--neutral-600)',
-                            borderBottom: '1px solid #f3f4f6'
-                          }}
-                        >
-                          — Pilih Produk —
-                        </div>
-                        {products
-                          .filter(
-                            (p) =>
-                              p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
-                              (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
-                          )
-                          .map((p) => (
-                            <div
-                              key={p.id}
-                              onClick={() => {
-                                setItemForm((f) => ({ ...f, product_id: p.id, price: String(p.price ?? 0) }))
-                                setSearchProduct('')
-                              }}
-                              style={{
-                                padding: '0.5rem 0.75rem',
-                                cursor: 'pointer',
-                                fontSize: '0.8rem',
-                                borderBottom: '1px solid #f3f4f6',
-                                background: itemForm.product_id === p.id ? '#fef3c7' : 'transparent'
-                              }}
-                            >
-                              <span style={{ fontWeight: 500 }}>{p.name}</span>
-                              {p.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({p.sku})</span>}
-                              <span style={{ float: 'right', color: '#cc7030' }}>
-                                {p.price != null
-                                  ? new Intl.NumberFormat('id-ID', {
-                                      style: 'currency',
-                                      currency: 'IDR',
-                                      maximumFractionDigits: 0
-                                    }).format(p.price)
-                                  : ''}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                    {!searchProduct &&
-                      itemForm.product_id &&
-                      (() => {
-                        const sel = products.find((p) => p.id === itemForm.product_id)
-                        return sel ? (
-                          <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--neutral-700)' }}>
-                            <span style={{ fontWeight: 500 }}>{sel.name}</span>
-                            {sel.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({sel.sku})</span>}
-                          </div>
-                        ) : null
-                      })()}
-                  </div>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Qty
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={itemForm.qty}
-                    onChange={(e) => setItemForm((f) => ({ ...f, qty: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Harga (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    value={itemForm.price}
-                    onChange={(e) => setItemForm((f) => ({ ...f, price: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-700)',
-                      marginBottom: '0.3rem'
-                    }}
-                  >
-                    Ukuran (cm)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="120 x 250"
-                    value={itemForm.size}
-                    onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.625rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
-                  Warna & Dimensi
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Warna
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Hitam, Silver"
-                      value={itemForm.variant_color}
-                      onChange={(e) => setItemForm((prev) => ({ ...prev, variant_color: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Berat (kg)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0"
-                      value={itemForm.weight}
-                      onChange={(e) => setItemForm((prev) => ({ ...prev, weight: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(3,1fr)',
-                    gap: '0.5rem',
-                    marginTop: '0.5rem'
-                  }}
-                >
-                  {(['dimension_p', 'P', 'dimension_l', 'L', 'dimension_t', 'T'] as const).map((field, i) => (
-                    <div key={field}>
-                      <label style={{ fontSize: '0.65rem', color: 'var(--neutral-600)' }}>{['P', 'L', 'T'][i]} (cm)</label>
-                      <input
-                        type="number"
-                        placeholder={['P', 'L', 'T'][i]}
-                        value={itemForm[field as keyof typeof itemForm] as string}
-                        onChange={(e) => setItemForm((prev) => ({ ...prev, [field]: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '0.4rem',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '0.375rem',
-                          fontSize: '0.8rem',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* === LAUNDRY FORM === */}
-          {itemType === 'laundry' && (
-            <>
-              <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
-                  🧺 Detail Laundry
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Nama Customer *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Nama customer"
-                      value={itemForm.customer_name}
-                      onChange={(e) => setItemForm((f) => ({ ...f, customer_name: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Telepon
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="08xxxxxxxxxx"
-                      value={itemForm.customer_phone}
-                      onChange={(e) => setItemForm((f) => ({ ...f, customer_phone: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.75rem' }}>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Berat (kg)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={itemForm.kg}
-                      onChange={(e) => setItemForm((f) => ({ ...f, kg: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Meter (m)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={itemForm.meter_laundry}
-                      onChange={(e) => setItemForm((f) => ({ ...f, meter_laundry: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-                </div>
-                {itemForm.kg && laundryRate > 0 && (
-                  <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#16a34a' }}>
-                    Estimasi harga: {fmt(Number(itemForm.kg) * laundryRate)} ({itemForm.kg}kg × {fmt(laundryRate)}
-                    /kg)
-                  </div>
-                )}
-                <div style={{ marginTop: '0.75rem' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: 'var(--neutral-600)',
-                      marginBottom: '0.25rem'
-                    }}
-                  >
-                    Keterangan
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Gorden 15kg, Vitras 5kg, dll..."
-                    value={itemForm.description}
-                    onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '0.375rem',
-                      fontSize: '0.8rem',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-              </div>
-            </>
-          )}
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button
-              type="button"
-              onClick={() => {
-                setShowItemForm(false)
-                resetForm()
-              }}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.5rem',
-                background: 'var(--surface)',
-                cursor: 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              disabled={savingItem}
-              style={{
-                flex: 1,
-                padding: '0.75rem',
-                background: '#cc7030',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '0.5rem',
-                cursor: savingItem ? 'not-allowed' : 'pointer',
-                fontWeight: '600'
-              }}
-            >
-              {savingItem ? 'Menyimpan...' : 'Tambah Item'}
-            </button>
-          </div>
-        </form>
-      </Modal>
+        onReset={() => {
+          setShowItemForm(false)
+          resetForm()
+        }}
+        itemType={itemType}
+        setItemType={setItemType}
+        itemForm={itemForm}
+        setItemForm={setItemForm}
+        searchProduct={searchProduct}
+        setSearchProduct={setSearchProduct}
+        products={products}
+        boms={boms}
+        laundryRate={laundryRate}
+        savingItem={savingItem}
+        fmt={fmt}
+        onSubmit={addItem}
+      />
 
       <OrderActivityLog logs={orderLogs} />
 
-      {/* BUG-007 fix: Modal Jadwalkan Pasang — assign installer + tanggal langsung dari order detail
+      {/* BUG-007 fix: Modal Jadwalkan Pasang â€” assign installer + tanggal langsung dari order detail
           Phase 6B-2a: diekstrak ke komponen ScheduleInstallModal (behavior-preserving) */}
       <ScheduleInstallModal
         open={showScheduleModal}
@@ -2496,7 +1375,7 @@ export default function OrderDetailPage() {
         onSubmit={handleSchedule}
       />
 
-      {/* Photo Upload Modal for Status Change — Phase 6B-2b: diekstrak ke komponen */}
+      {/* Photo Upload Modal for Status Change â€” Phase 6B-2b: diekstrak ke komponen */}
       <PhotoUploadModal
         open={showPhotoModal}
         onClose={() => {
@@ -2513,7 +1392,7 @@ export default function OrderDetailPage() {
         onConfirm={() => pendingStatus && updateStatus(pendingStatus, progressPhotos)}
       />
 
-      {/* Cancel Order Modal — Phase 6B-2c: diekstrak ke komponen */}
+      {/* Cancel Order Modal â€” Phase 6B-2c: diekstrak ke komponen */}
       <CancelOrderModal
         open={showCancelForm}
         onClose={() => setShowCancelForm(false)}
@@ -2522,7 +1401,7 @@ export default function OrderDetailPage() {
         onConfirm={handleCancel}
       />
 
-      {/* Return Modal — Phase 6B-2d: diekstrak ke komponen */}
+      {/* Return Modal â€” Phase 6B-2d: diekstrak ke komponen */}
       <ReturnModal
         open={showReturnForm}
         onClose={() => setShowReturnForm(false)}
@@ -2532,7 +1411,7 @@ export default function OrderDetailPage() {
         onSubmit={handleReturn}
       />
 
-      {/* Payment Modal — Phase 6B-2e: diekstrak ke komponen */}
+      {/* Payment Modal â€” Phase 6B-2e: diekstrak ke komponen */}
       <PaymentModal
         open={showPaymentForm}
         onClose={() => setShowPaymentForm(false)}
@@ -2552,9 +1431,9 @@ export default function OrderDetailPage() {
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}
             >
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>📷 Foto Progress</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: '700', margin: 0 }}>ðŸ“· Foto Progress</h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', margin: '0.25rem 0 0' }}>
-                  {STATUS_LABELS[photoPopup.stage as keyof typeof STATUS_LABELS]} — {photoPopup.photos.length} foto
+                  {STATUS_LABELS[photoPopup.stage as keyof typeof STATUS_LABELS]} â€” {photoPopup.photos.length} foto
                 </p>
               </div>
               <button

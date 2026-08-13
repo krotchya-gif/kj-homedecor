@@ -1,6 +1,16 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 31b — Phase 6B-3c: OrderSummarySection)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 32 — Phase 6B-3d: OrderItems/AddItemModal/Checklist)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 32: Phase 6B-3d — Ekstrak Blok Terbesar Order Detail)
+
+1. ✅ **BUG-113 — `OrderItemsTable`, `PreparationChecklist`, `AddItemModal` diekstrak** ke `components/orders/` (props lengkap state+handlers, behavior-preserving). AddItemModal (form 3 tipe + BOM hint + estimasi laundry) = blok terbesar (~950 baris).
+2. ✅ Page `admin/orders/[id]` turun **2.611 → 1.490 baris** (total −2.071 dari 3.561 asli).
+3. ✅ **Verifikasi browser Playwright 10/10** — AddItemModal terbuka & form render, checklist toggle berfungsi; login 8 role OK.
+4. ✅ Verifikasi: `tsc` + `build` hijau, `vitest` 27/27. Docs: `bug.md` (BUG-113), `README.md`, `todo.md`.
+
+**Lanjutan 6B:** → **6B-4** (useOrderDetail hook + komposisi) → **6B-5** (verifikasi pipeline kirim/pasang + commit final).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 31b: Phase 6B-3 — Ekstrak Section Render Order Detail)
