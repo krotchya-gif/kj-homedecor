@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Search, ArrowLeftRight } from 'lucide-react'
+import Pagination from '@/components/ui/Pagination'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
 
@@ -26,6 +27,8 @@ export default function CashMutationPage() {
   const [journals, setJournals] = useState<(JournalLine & { entry?: JournalEntry | null })[]>([])
   const [loading, setLoading] = useState(true)
   const [dateRange, setDateRange] = useState('30')
+  const [page, setPage] = useState(0)
+  const [pageSize, setPageSize] = useState(10)
   const supabase = createClient()
 
   useEffect(() => {
@@ -191,7 +194,7 @@ export default function CashMutationPage() {
         ) : runningBalance.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={runningBalance} keyOf={(j) => j.id} renderCard={(j) => (
+          <MobileCards items={runningBalance.slice(page * pageSize, (page + 1) * pageSize)} keyOf={(j) => j.id} renderCard={(j) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Tanggal</span>
@@ -230,7 +233,7 @@ export default function CashMutationPage() {
               </tr>
             </thead>
             <tbody>
-              {runningBalance.map((j: JournalLine & { entry?: JournalEntry | null; runningBalance?: number }, idx) => (
+              {runningBalance.slice(page * pageSize, (page + 1) * pageSize).map((j: JournalLine & { entry?: JournalEntry | null; runningBalance?: number }, idx) => (
                 <tr key={j.id ?? idx}>
                   <td style={{ color: 'var(--neutral-600)' }}>
                     {j.entry?.entry_date ? new Date(j.entry.entry_date).toLocaleDateString('id-ID') : '—'}
@@ -260,6 +263,23 @@ export default function CashMutationPage() {
               ))}
             </tbody>
           </table>
+        )}
+        {runningBalance.length > 0 && (
+          <div style={{ padding: '0 1.25rem 1rem' }}>
+            <Pagination
+              currentPage={page + 1}
+              totalPages={Math.max(1, Math.ceil(runningBalance.length / pageSize))}
+              onPageChange={(p) => setPage(p - 1)}
+              pageSize={pageSize}
+              onPageSizeChange={(s) => {
+                setPageSize(s)
+                setPage(0)
+              }}
+              totalItems={runningBalance.length}
+              startIndex={page * pageSize + 1}
+              endIndex={Math.min((page + 1) * pageSize, runningBalance.length)}
+            />
+          </div>
         )}
       </div>
     </div>

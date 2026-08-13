@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import Pagination from '@/components/ui/Pagination'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { formatRp } from '@/lib/utils'
 
@@ -36,8 +37,10 @@ export default function HutangPage() {
   const { toast } = useToast()
   const [hutang, setHutang] = useState<Hutang[]>([])
   const [suppliers, setSuppliers] = useState<{ id: string; name?: string }[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+const [loading, setLoading] = useState(true)
+const [search, setSearch] = useState('')
+const [page, setPage] = useState(0)
+const [pageSize, setPageSize] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
   const [editItem, setEditItem] = useState<Hutang | null>(null)
@@ -295,7 +298,7 @@ export default function HutangPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(h) => h.id} renderCard={(h) => (
+          <MobileCards items={filtered.slice(page * pageSize, (page + 1) * pageSize)} keyOf={(h) => h.id} renderCard={(h) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No. Invoice</span>
@@ -345,7 +348,7 @@ export default function HutangPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((h) => {
+              {filtered.slice(page * pageSize, (page + 1) * pageSize).map((h) => {
                 const sc = STATUS_COLORS[h.status] ?? STATUS_COLORS.pending
                 const sisa = (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)
                 return (
@@ -390,6 +393,23 @@ export default function HutangPage() {
               })}
             </tbody>
           </table>
+        )}
+        {filtered.length > 0 && (
+          <div style={{ padding: '0 1.25rem 1rem' }}>
+            <Pagination
+              currentPage={page + 1}
+              totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
+              onPageChange={(p) => setPage(p - 1)}
+              pageSize={pageSize}
+              onPageSizeChange={(s) => {
+                setPageSize(s)
+                setPage(0)
+              }}
+              totalItems={filtered.length}
+              startIndex={page * pageSize + 1}
+              endIndex={Math.min((page + 1) * pageSize, filtered.length)}
+            />
+          </div>
         )}
       </div>
 

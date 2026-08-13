@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import Pagination from '@/components/ui/Pagination'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
@@ -42,8 +43,10 @@ export default function FakturPage() {
   const [customers, setCustomers] = useState<{ id: string; name?: string }[]>([])
   // F-42 fix: dropdown order (valid FK) — bukan free-text yang bikin insert gagal
   const [orders, setOrders] = useState<{ id: string; order_number?: string; customer?: { name?: string } | null }[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+const [loading, setLoading] = useState(true)
+const [search, setSearch] = useState('')
+const [page, setPage] = useState(0)
+const [pageSize, setPageSize] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<Piutang | null>(null)
   const [saving, setSaving] = useState(false)
@@ -357,7 +360,7 @@ export default function FakturPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(p) => p.id} renderCard={(p) => (
+          <MobileCards items={filtered.slice(page * pageSize, (page + 1) * pageSize)} keyOf={(p) => p.id} renderCard={(p) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No. Invoice</span>
@@ -408,7 +411,7 @@ export default function FakturPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p) => {
+              {filtered.slice(page * pageSize, (page + 1) * pageSize).map((p) => {
                 const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending
                 const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
                 return (
@@ -449,6 +452,23 @@ export default function FakturPage() {
               })}
             </tbody>
           </table>
+        )}
+        {filtered.length > 0 && (
+          <div style={{ padding: '0 1.25rem 1rem' }}>
+            <Pagination
+              currentPage={page + 1}
+              totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
+              onPageChange={(p) => setPage(p - 1)}
+              pageSize={pageSize}
+              onPageSizeChange={(s) => {
+                setPageSize(s)
+                setPage(0)
+              }}
+              totalItems={filtered.length}
+              startIndex={page * pageSize + 1}
+              endIndex={Math.min((page + 1) * pageSize, filtered.length)}
+            />
+          </div>
         )}
       </div>
 

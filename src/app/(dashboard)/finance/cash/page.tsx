@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, LandPlot } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import Pagination from '@/components/ui/Pagination'
 import { formatRp } from '@/lib/utils'
 
 
@@ -26,8 +27,10 @@ export default function CashPage() {
   const { toast } = useToast()
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([])
   const [accounts, setAccounts] = useState<{ id: string; name?: string; code?: string }[]>([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+const [loading, setLoading] = useState(true)
+const [search, setSearch] = useState('')
+const [page, setPage] = useState(0)
+const [pageSize, setPageSize] = useState(10)
   const [showForm, setShowForm] = useState(false)
   const [editItem, setEditItem] = useState<CashAccount | null>(null)
   const [saving, setSaving] = useState(false)
@@ -190,7 +193,7 @@ export default function CashPage() {
         ) : filtered.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
         ) : (
-          <MobileCards items={filtered} keyOf={(c) => c.id} renderCard={(c) => (
+          <MobileCards items={filtered.slice(page * pageSize, (page + 1) * pageSize)} keyOf={(c) => c.id} renderCard={(c) => (
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Bank</span>
@@ -233,7 +236,7 @@ export default function CashPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((c) => (
+              {filtered.slice(page * pageSize, (page + 1) * pageSize).map((c) => (
                 <tr key={c.id}>
                   <td style={{ fontFamily: 'monospace' }}>{c.account?.code ?? '—'}</td>
                   <td style={{ fontWeight: '600' }}>{c.bank_name ?? '—'}</td>
@@ -254,6 +257,23 @@ export default function CashPage() {
               ))}
             </tbody>
           </table>
+        )}
+        {filtered.length > 0 && (
+          <div style={{ padding: '0 1.25rem 1rem' }}>
+            <Pagination
+              currentPage={page + 1}
+              totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
+              onPageChange={(p) => setPage(p - 1)}
+              pageSize={pageSize}
+              onPageSizeChange={(s) => {
+                setPageSize(s)
+                setPage(0)
+              }}
+              totalItems={filtered.length}
+              startIndex={page * pageSize + 1}
+              endIndex={Math.min((page + 1) * pageSize, filtered.length)}
+            />
+          </div>
         )}
       </div>
 
