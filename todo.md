@@ -1,6 +1,14 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 26 — Phase 6A: hapus dead SDK)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 27 — Phase 6C: dedup nav laporan)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 27: Phase 6C — Dedup Nav Laporan Keuangan)
+
+1. ✅ **BUG-108 — shared `components/reports/ReportsNav.tsx`** (prop `basePath`) — `finance/laporan/page.tsx` & `owner/laporan/page.tsx` kini wrapper tipis (~5 baris). Hapus duplikasi copy-paste (10 kartu laporan + COLOR_MAP).
+2. ✅ Verifikasi: `tsc` + `build` hijau. Docs: `bug.md` (BUG-108), `README.md`, `todo.md`.
+
+**Lanjutan Phase 6:** → **6D** (notifikasi realtime — sedang, cek realtime enabled dulu) → **6B** (monolit order detail — tertinggi, 4 sub-langkah, paling akhir).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 26: Phase 6A — Hapus Dead SDK `tiktok-shop-sdk`)
