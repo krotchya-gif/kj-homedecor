@@ -140,7 +140,7 @@ berbeda. Berikut **protokol wajib** untuk SEMUA perbaikan bug — satu pikiran, 
 
 - Identifikasi LAPISAN masalah sebelum menulis fix: DB constraint / RLS / API route /
   client logic / business rule. Tulis akar masalah sebagai komentar di kode.
-- Cek `bug.md` dulu: kalau bug mirip sudah pernah dicatat, **verifikasi ulang** alih-alih
+- Cek `docs/riwayat.md` (tabel BUG) dulu: kalau bug mirip sudah pernah dicatat, **verifikasi ulang** alih-alih
   menulis fix baru (jangan fix yang sama 2×).
 
 ## 2. Cek LIVE DB, bukan file migration
@@ -175,8 +175,8 @@ berbeda. Berikut **protokol wajib** untuk SEMUA perbaikan bug — satu pikiran, 
 ## 7. Sinkronkan SEMUA dalam 1 commit (jangan separuh)
 
 - DDL → sync `000_full_schema.sql` di commit yang sama.
-- `bug.md` → tandai bug (ID + metode + bukti verifikasi).
-- `README.md` / `todo.md` / `pendoman.md` → catat fase/riwayat.
+- `docs/riwayat.md` → tandai bug (ID + metode + bukti verifikasi).
+- `README.md` / `pendoman.md` → catat fase/riwayat.
 - Update di akhir TAHAP (fase), lalu stop & laporkan sebelum lanjut fase berikutnya.
 
 ## 8. Jelaskan METODE & ALASAN

@@ -449,16 +449,19 @@ CREATE TABLE IF NOT EXISTS public.laundry_orders (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   customer_name   TEXT NOT NULL,
   customer_phone  TEXT,
-  order_id        UUID REFERENCES public.orders(id),
-  kg              NUMERIC NOT NULL,
+  item            TEXT,
+  qty             INTEGER NOT NULL DEFAULT 1,
+  price           NUMERIC NOT NULL DEFAULT 0,
+  status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','done','cancelled')),
+  notes           TEXT,
+  created_by      UUID REFERENCES public.users(id),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  kg              NUMERIC,
   meter           NUMERIC DEFAULT 0,
   description     TEXT,
-  status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','done','cancelled')),
   assigned_to     UUID REFERENCES public.users(id),
   received_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  completed_at    TIMESTAMPTZ,
-  created_by      UUID REFERENCES public.users(id),
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  completed_at    TIMESTAMPTZ
 );
 
 -- LAUNDRY RATES
@@ -490,6 +493,7 @@ CREATE TABLE IF NOT EXISTS public.laundry_payroll (
 CREATE TABLE IF NOT EXISTS public.landing_settings (
   id TEXT PRIMARY KEY DEFAULT 'hero',
   key TEXT,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
   hero_title TEXT DEFAULT 'Percantik Ruanganmu dengan Gorden Premium',
   hero_subtitle TEXT DEFAULT 'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi. Pemasangan profesional ke seluruh Jabodetabek.',
   hero_cta_text TEXT DEFAULT 'Lihat Katalog',
@@ -594,6 +598,7 @@ CREATE TABLE IF NOT EXISTS public.order_progress_photos (
   order_id    UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
   stage       TEXT NOT NULL,
   photo_url   TEXT NOT NULL,
+  caption     TEXT,
   notes       TEXT,
   uploaded_by UUID REFERENCES public.users(id),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -603,6 +608,10 @@ CREATE TABLE IF NOT EXISTS public.order_progress_photos (
 CREATE TABLE IF NOT EXISTS public.material_price_history (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   material_id   UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
+  old_cost      NUMERIC NOT NULL,
+  new_cost      NUMERIC NOT NULL,
+  changed_by    UUID,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   supplier_id   UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
   price         NUMERIC NOT NULL CHECK (price >= 0),
   notes         TEXT,
@@ -773,6 +782,7 @@ CREATE TABLE IF NOT EXISTS public.assets (
   category            VARCHAR(100),
   location            VARCHAR(255),
   purchase_date       DATE,
+  purchase_cost       NUMERIC NOT NULL DEFAULT 0,
   purchase_value      NUMERIC,
   depreciation_rate   NUMERIC DEFAULT 0,
   depreciation_method VARCHAR(20) DEFAULT 'straight-line' CHECK (depreciation_method IN ('straight-line','declining-balance')),
@@ -1519,6 +1529,10 @@ ALTER TABLE public.laundry_orders
   ADD COLUMN IF NOT EXISTS kg_actual NUMERIC,
   ADD COLUMN IF NOT EXISTS reported_by UUID,
   ADD COLUMN IF NOT EXISTS reported_at TIMESTAMPTZ;
+
+-- BUG-116 (088): order_id dipakai codebase (insert item laundry di order detail) tapi tidak ada di live
+ALTER TABLE public.laundry_orders ADD COLUMN IF NOT EXISTS order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_laundry_orders_order_id ON public.laundry_orders(order_id);
 
 -- Trigger updated_at orders (056)
 CREATE OR REPLACE FUNCTION set_updated_at()

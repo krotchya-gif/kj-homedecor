@@ -2,7 +2,7 @@
 
 > Panduan penggunaan **lengkap** untuk semua orang yang memakai aplikasi.
 > Ditulis dengan **bahasa sederhana** — siapa mengerjakan apa, di halaman mana, dan bagaimana.
-> Terakhir diperbarui: **2026-08-13** · Riwayat bug: `bug.md` · Alur teknis: `docs/flows/`
+> Terakhir diperbarui: **2026-08-13** · Riwayat perbaikan & bug: `docs/riwayat.md` · Alur teknis: `docs/flows/`
 
 ---
 
@@ -503,4 +503,4 @@ Sitemap & robots disimpan di database. Setelah upload, tunggu sebentar (cache ~1
 
 ---
 
-*Manual book: 2026-08-13 · Sesuai kode aplikasi yang berjalan · Riwayat perbaikan bug: `bug.md` · Panduan per role singkat: `USER.md`*
+*Manual book: 2026-08-13 · Sesuai kode aplikasi yang berjalan · Riwayat perbaikan & bug: `docs/riwayat.md` · Panduan per role singkat: `USER.md`*

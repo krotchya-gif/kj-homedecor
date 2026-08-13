@@ -4,7 +4,7 @@ Dokumentasi alur (flow) per modul — **1 file = 1 flow**. Bahasa sederhana, sia
 
 > 📖 **Manual book lengkap** (panduan per role & per fitur, bahasa sederhana): [`../../pendoman.md`](../../pendoman.md)
 > 🔑 **Akun test & role**: [`../../USER.md`](../../USER.md)
-> 🐞 **Riwayat bug & fix**: [`../../bug.md`](../../bug.md)
+> 🐞 **Riwayat perbaikan, bug tracker & audit**: [`../riwayat.md`](../riwayat.md)
 
 | # | Flow | File |
 |---|---|---|

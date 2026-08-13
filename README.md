@@ -3,7 +3,7 @@
 Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, curtain, roman blind premium. Dibangun dengan **Next.js 16 App Router** dan **Supabase**.
 
 > 📖 **Panduan penggunaan per role (bahasa sederhana):** [`pendoman.md`](./pendoman.md)
-> 🐞 **Riwayat bug & perbaikan:** [`bug.md`](./bug.md)
+> 🐞 **Riwayat perbaikan, bug tracker & audit:** [`docs/riwayat.md`](./docs/riwayat.md)
 > 🔄 **Dokumentasi alur per modul:** [`docs/flows/`](./docs/flows/)
 
 ---
@@ -150,35 +150,35 @@ src/
 │   ├── catalog/                  # Public catalog
 │   ├── products/[slug]/          # Public product detail
 │   ├── booking/                  # Public booking
-│   └── api/                      # 32 route handlers
+│   └── api/                      # 22 route handlers (dead route dihapus 086 — UI via Supabase client)
 │       ├── admin/create-staff/   # Staff creation (service role)
 │       ├── orders/ [+[id], [id]/consume-materials]
-│       ├── customers/ products/ materials/ suppliers/
-│       ├── purchase-requests/ [+[id]]  purchase-orders/ [+[id]]
-│       ├── install-bookings/ [+[id]]
+│       ├── install-bookings/[id] # Status booking → RPC advance_install_booking_status
 │       ├── gudang/po-delivery/
 │       ├── journal/ notifications/ surveys/ [+[id]]
-│       ├── landing-settings/ seo/upload-robots/ seo/upload-sitemap/
+│       ├── seo/upload-robots/ seo/upload-sitemap/
 │       ├── setup-accounts/ upload/
-│       ├── tiktok/               # auth, webhook, sync-orders, sync-finance, sync-to-main-orders, create-piutang
+│       ├── tiktok/               # auth, auth/reauthorize, webhook, sync-orders, sync-finance, sync-to-main-orders, create-piutang
 │       └── webhooks/tiktok/      # Alias
 ├── components/
 │   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, Pagination, dll
 │   ├── dashboard/                # Sidebar, TopNav, NotificationBell, layout
+│   ├── orders/                   # Komponen order detail (Schedule/Photo/Cancel/Return/Payment Modal, PipelineStepper, OrderSummary, OrderItems, AddItemModal, dsb)
+│   ├── reports/                  # Laporan keuangan (10) + ReportsNav (finance & owner shared)
 │   ├── suppliers/                # PriceHistoryTab (tab Riwayat Harga di owner/suppliers)
 │   └── landing/                  # ScrollNav, ProductCatalog, AnimatedCounter, HeroParticles, ScrollHero
-├── config/                       # nav.tsx (navigasi per role — satu sumber)
+├── config/                       # nav.tsx (navigasi per role — satu sumber) + accounts.ts (getAccountIdByCode)
 ├── lib/
 │   ├── auth.ts                   # requireAuth, requireRole, requireAuthRole, checkRateLimit
 │   ├── orders.ts                 # ORDER_STAGES_BY_CLASSIFICATION, PHOTO_REQUIRED_STAGES, getNextStage...
+│   ├── order-detail.ts           # LOG_ACTION, ROLE_NEXT_ALLOWED, canRoleAdvanceNext, parseGordenMeter...
+│   ├── use-order-detail.ts       # Hook order detail (semua state & handlers — refactor 6B)
 │   ├── invoice.ts                # Invoice & Packing List PDF
 │   ├── survey.ts / survey-log.ts / survey-pdf.ts
-│   ├── ledger.ts                 # fetchAccountBalances (journal_lines)
+│   ├── ledger.ts                 # fetchAccountBalances (journal_lines) + piutangSisa
 │   ├── csv.ts                    # export/import CSV
 │   ├── upload.ts                 # uploadToLocal (compress → /api/upload)
-│   ├── tiktok.ts                 # signTikTokRequest, token refresh
-│   ├── upload.ts                 # uploadToLocal (compress → /api/upload)
-│   └── (tiktok-shop-sdk dihapus 2026-08-13 — dead code, 1.971 file, 0 import; integrasi via tiktok.ts)
+│   └── tiktok.ts                 # signTikTokRequest, token refresh
 ├── utils/supabase/
 │   ├── client.ts                 # Browser client
 │   ├── server.ts                 # SSR client + createServiceClient
@@ -211,6 +211,7 @@ Located in `supabase/migrations/` — referensi tunggal + sinkronisasi terbaru:
 | `085_realtime_notifications.sql` | Aktifkan `notifications` di `supabase_realtime` publication (NotificationBell realtime) |
 | `086_drop_dead_tables_and_rpcs.sql` | Hapus 3 tabel dead + 4 RPC dead; update `reset_transactional_data` |
 | `087_hardening_rls_catalog_cleanup_indexes.sql` | Hardening RLS katalog/BOM/users; REVOKE anon helper; cleanup `cash_accounts`; index FK hot + drop index tak terpakai; `order_totals` security_invoker |
+| `088_add_laundry_orders_order_id.sql` | BUG-116 — tambah `laundry_orders.order_id` (dipakai codebase tapi hilang di live); sync schema file = live (5 tabel) |
 
 > ⚠️ **Catatan:** migration lama `001–071` dihapus/dikonsolidasi ke `000_full_schema.sql`. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema. Semua operasi DB bisa via **Supabase MCP** (lihat AGENTS.md — `supabase-mcp-rules`), tanpa wajib CLI.
 
@@ -251,34 +252,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-- **2026-08-13 — Sesi 37 (audit menyeluruh + migration 087):** hardening RLS katalog & BOM (write → admin/owner, SELECT publik tetap); `REVOKE anon/PUBLIC` utk `is_finance_role` & `rls_auto_enable`; `users` SELECT → staff aktif; cleanup duplikat `cash_accounts` (19 baris Kas → 1); drop 7 index tak terpakai + tambah 15 index FK hot; `order_totals` → security_invoker; `SET search_path` 3 fungsi. Verifikasi user-level (penjahit ditolak, admin sukses).
-- **2026-08-13 — Sesi 35 (Phase 6F, dead code cleanup final):** hapus 8 route API tanpa caller produksi (UI berjalan via Supabase client langsung) + `clientError`; drop 3 tabel dead (`packing_checklists`, `return_requests`, `order_preparation_checklist`) + 4 RPC dead; update `reset_transactional_data` (migration 086). **Dipertahankan** karena masih dipakai: `low_stock_alerts`/`order_material_consumption` (RPC produksi) & `rls_auto_enable` (event trigger ensure_rls).
-- **2026-08-13 — Sesi 33 (Phase 6B-4, refactor order detail SELESAI):** semua state & handlers dipindah ke `useOrderDetail(id)` hook; page `admin/orders/[id]` jadi komposisi murni **505 baris** (dari 3.561 asli, **−85%**); 10 komponen di `components/orders/` + 1 hook. Verifikasi browser 10/10.
-- **2026-08-13 — Sesi 32 (Phase 6B-3d):** ekstrak blok terbesar order detail — `OrderItemsTable`, `PreparationChecklist`, `AddItemModal` (form 3 tipe + BOM hint); page turun 2.611 → 1.490 baris (total −2.071 dari 3.561). Verifikasi browser 10/10.
-- **2026-08-13 — Sesi 30 (Phase 6B-2):** ekstrak 5 modal order detail ke `components/orders/` (Schedule, Photo, Cancel, Return, Payment) — page turun 3.561 → 2.923 baris (−638), behavior-preserving.
-- **2026-08-13 — Sesi 29 (Phase 6B-1):** refactor monolit order detail langkah 1 — `LOG_ACTION` map & `DEFAULT_CHECKLIST` dipindah ke `lib/order-detail.ts` (`getOrderLogAction`), unit test +3 (27 total). Behavior-preserving.
-- **2026-08-13 — Sesi 28 (Phase 6D):** notifikasi realtime — migration 085 aktifkan `notifications` di `supabase_realtime` publication; `NotificationBell` ganti polling 30s → `postgres_changes` (INSERT, filter user). Notifikasi baru muncul langsung.
-- **2026-08-13 — Sesi 27 (Phase 6C):** dedup nav laporan keuangan — shared `components/reports/ReportsNav.tsx` (prop `basePath`), `finance/laporan` & `owner/laporan` jadi wrapper tipis (hapus copy-paste 10 kartu laporan).
-- **2026-08-13 — Sesi 26 (Phase 6A):** hapus dead SDK `src/lib/tiktok-shop-sdk/` (1.971 file, 0 import) + dependensi `request`/`@types/request`. Proses anti-regresi: pindah → build hijau → hapus → build+test hijau. `tiktok-shop-sdk/` tidak lagi ada di project structure (integrasi TikTok via `lib/tiktok.ts`).
-- **2026-08-13 — Plan Phase 6 (refactor & dead code):** rencana bertahap anti-regresi tertulis di `todo.md` — urutan: (6A) hapus dead SDK ✓ → (6C) dedup nav laporan finance/owner → (6D) notifikasi realtime → (6B) pecah monolit `admin/orders/[id]` 3.561 baris (4 sub-langkah, paling terakhir karena jalur kritis). Setiap milestone: build + test + cek halaman + commit kecil.
-- **2026-08-13 — Sesi 24 (Phase 5 UI cepat):** pagination di admin/portfolio & admin/laundry; `theme_preset` → `custom` saat warna diedit manual; `handleSave` landing deteksi 0-rows (anti toast palsu); kredensial default dihapus dari setup page; karakter Cina korup di installer checklist diperbaiki.
-- **2026-08-13 — Sesi 23 (Phase 4 akurasi laporan):** "Kronologi HPP" di-rename jadi **"Kronologi Omzet"** (nama jujur dgn isi) + pagination server-side; owner/marketplace akhir bulan dihitung dinamis (fix bulan 30 hari); helper `piutangSisa()` sebagai satu sumber kebenaran rumus piutang; admin/reports filter periode pindah ke server (tanpa `.limit(200)`). Metode mengikuti SOP `AGENTS.md`.
-- **2026-08-13 — Sesi 22 (Phase 3 integritas akuntansi):** rollback jurnal diseragamkan pola BUG-073 di semua jalur finansial (refund/hutang/piutang/payroll/aset — jurnal gagal = transaksi dibatalkan penuh); hardcoded UUID akun diganti helper `getAccountIdByCode` (lookup by code, anti-drift); `accounts/accounts` pakai `fetchAccountBalances` (hapus double-count saldo + field "Saldo Awal" COA); PO paid di owner/suppliers kini bikin jurnal `hutang_paid` idempotent; `markAsPaid` payroll + idempotency_key. Metode mengikuti SOP `AGENTS.md`.
-- **2026-08-13 — Sesi 21 (Phase 2 hardening API):** rate limit diterapkan di 9 route sensitif (`upload`, `create-staff`, SEO upload, TikTok auth/sync); `create-staff` — cek status active, password min 8, anti email-enumeration, role `laundry` ditambahkan ke enum & UI; TikTok OAuth `state` → random nonce single-use (migration 084). Metode mengikuti SOP di `AGENTS.md`.
-- **2026-08-13 — Sesi 20 (Phase 1 keamanan):** PII exposure ditutup — GET `orders/[id]`, `install-bookings` (+[id]), `materials`, `suppliers`, `purchase-*` di-role-gate server-side; cek `status='active'` di purchase-orders/po-delivery; fail-open `role ?? 'admin'` di client (login/layout/survey) → fail-closed. Tambah SOP Bug-Fix di `AGENTS.md` (root cause → live DB → role-gate server → verifikasi user-level → sync doc per fase).
-- **2026-08-13 — Sesi 19:** landing settings & SEO — RLS `landing_settings` write hanya admin/owner (migration 083); sitemap & robots kini disimpan di DB (`robots_content`/`sitemap_content`) + route `/robots.txt` & `/sitemap.xml` baca dari DB (persist saat redeploy); trust badges tampil di hero landing; preset tema `modern` diperbaiki (hex, bukan CSS-var); 5 field tanpa UI dihapus dari form landing; fix drift `laundry_orders_status_check` (migration 082 — task laundry bisa diterima); generate payroll diberi toast jelas (payroll paid = final, task baru masuk bulan berikutnya); `/owner/staff` — kolom Email dihapus (tidak ada di `public.users`), urutan role rapi, badge label
-- **2026-08-13 — Sesi 18:** fix BUG-079 search pesanan via RPC `search_orders` (migration 081); kerangka 10 spec E2E per role (37/37 render pass)
-- **2026-08-13 — Sesi 17:** search & sort pesanan server-side; BUG-078 landing theme/konten dari DB (merge kolom+value JSON); SEO meta dari DB (`generateMetadata`)
-- **2026-08-12 — Sesi 3–6:** schema = live (072-074), RLS hardening efektif, TikTok fee terjurnal penuh, security API (fail-open/mass-assignment/webhook), route POST role-gate, upload scope, tests unit (16), nav & laporan dedup, stock opname UI
-- **2026-08-11 — Pipeline fix (BUG-001/002/003/007):** Steam Pass auto-advance ke Siap; tombol Kemas di gudang; admin escape hatch; prefill foto; modal Jadwalkan Pasang + auto-create booking installer
-- **2026-08-11 — BUG-004:** DP admin auto-catat ke tabel payments; approve finance = verifikasi final (cek bayar terakhir di Finance)
-- **2026-08-11 — BUG-008:** harga jual bukan tanggung jawab admin — di-set Owner via HPP; produk tanpa harga tersembunyi dari katalog
-- **2026-08-11 — Docs:** `pendoman.md` (panduan per role), `bug.md`, `docs/flows/` disinkronkan dengan kode
-- **2026-07-18 — Audit & proxy migration:** `middleware.ts` → `proxy.ts`, auth helpers, rate limiting, RLS migrations 053-058
-- **2026-06-02 — Pipeline V2:** payment_ok di depan, steam revision loop, 3 QC distinct
-
-> 🔒 **Keamanan (terbaru 2026-08-13):** RLS `landing_settings` admin/owner-only; GET API yang membawa PII (`orders/[id]`, `install-bookings/[id]`) di-role-gate; fail-open `role ?? 'admin'` di client ditutup (fail-closed); rate limit di 9 route sensitif (upload, create-staff, SEO, TikTok sync); create-staff diperkuat (status active, password min 8, anti-enumeration); TikTok OAuth state = random nonce (migration 084); notifikasi realtime (migration 085); dead code dibersihkan (migration 086). Lihat `bug.md` & backlog `todo.md`. Test unit: `npm run test:run` (Vitest, `tests/unit`).
+> Riwayat per-fase (Sesi 1–37), tracker bug lengkap **BUG-001 s/d BUG-115**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-13 (sesi 36 — rapi & docs final) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-13 (sesi 38 — sync schema = live & fix laundry order_id) · Dev server: `npm run dev` → http://localhost:3000_
