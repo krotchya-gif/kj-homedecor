@@ -248,6 +248,7 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 
 ## Implementasi & Riwayat Perbaikan
 
+- **2026-08-13 — Sesi 34 (Phase 6 final):** dead code cleanup — hapus `clientError` export (nol referensi); route API dead tetap dipertahankan (keputusan owner + sudah di-hardening Phase 1 sebagai lapisan API). **Phase 6 selesai seluruhnya**: 6A (hapus dead SDK tiktok-shop-sdk 1.971 file), 6B (refactor order detail 3.561 → 505 baris, −85%), 6C (dedup nav laporan), 6D (notifikasi realtime).
 - **2026-08-13 — Sesi 33 (Phase 6B-4, refactor order detail SELESAI):** semua state & handlers dipindah ke `useOrderDetail(id)` hook; page `admin/orders/[id]` jadi komposisi murni **505 baris** (dari 3.561 asli, **−85%**); 10 komponen di `components/orders/` + 1 hook. Verifikasi browser 10/10.
 - **2026-08-13 — Sesi 32 (Phase 6B-3d):** ekstrak blok terbesar order detail — `OrderItemsTable`, `PreparationChecklist`, `AddItemModal` (form 3 tipe + BOM hint); page turun 2.611 → 1.490 baris (total −2.071 dari 3.561). Verifikasi browser 10/10.
 - **2026-08-13 — Sesi 30 (Phase 6B-2):** ekstrak 5 modal order detail ke `components/orders/` (Schedule, Photo, Cancel, Return, Payment) — page turun 3.561 → 2.923 baris (−638), behavior-preserving.

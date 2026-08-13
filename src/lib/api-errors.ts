@@ -9,8 +9,3 @@ export function toClientError(err: unknown, context?: string): string {
   else console.error(raw)
   return 'Terjadi kesalahan. Hubungi administrator jika berlanjut.'
 }
-
-/** Variasi utk validasi user (boleh tampil ke client) */
-export function clientError(message: string): string {
-  return message
-}

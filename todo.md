@@ -1,6 +1,15 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 33 — Phase 6B-4: useOrderDetail hook, selesai refactor order detail)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 34 — dead code cleanup)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 34: Dead Code Cleanup)
+
+1. ✅ **`clientError` export DIHAPUS** (`src/lib/api-errors.ts`) — nol referensi di seluruh repo (hanya terdokumentasi di bug.md).
+2. ✅ **Route API dead tetap dipertahankan** — keputusan owner (sesi 9) + sudah di-role-gate Phase 1 → kini lapisan API hardening (defense-in-depth). Dokumentasi diperbarui.
+3. ✅ Tabel/RPC dead di DB tidak dihapus (keputusan owner; membutuhkan migration berisiko). Verifikasi: `tsc` + `build` hijau.
+
+**Fase 6 SELESAI seluruhnya** — 6A (dead SDK) · 6B (refactor order detail −85%) · 6C (dedup laporan) · 6D (realtime notif) · cleanup.
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 33: Phase 6B-4 — Hook + Komposisi (Refactor Order Detail SELESAI))
