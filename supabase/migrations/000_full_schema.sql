@@ -936,19 +936,6 @@ BEGIN
 END;
 $$;
 
--- decrement_stock_gudang: subtract stock from materials with floor at 0
-CREATE OR REPLACE FUNCTION decrement_stock_gudang(material_id UUID, amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE materials
-  SET stock_gudang = GREATEST(COALESCE(stock_gudang, 0) - amount, 0)
-  WHERE id = material_id;
-END;
-$$;
-
 -- increment_stock_gudang: add stock to materials
 CREATE OR REPLACE FUNCTION increment_stock_gudang(material_id UUID, amount NUMERIC)
 RETURNS void
@@ -1784,25 +1771,6 @@ RETURNS TEXT AS $$
       0) + 1 AS TEXT), 3, '0');
 $$ LANGUAGE SQL;
 
-CREATE OR REPLACE FUNCTION public.update_cash_account_balance(p_id UUID, p_amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NOT public.is_finance_role() THEN
-    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner';
-  END IF;
-  UPDATE public.cash_accounts
-  SET balance = COALESCE(balance, 0) + p_amount, updated_at = NOW()
-  WHERE id = p_id;
-END;
-$$;
-REVOKE ALL ON FUNCTION public.update_cash_account_balance FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.update_cash_account_balance FROM anon;
-GRANT EXECUTE ON FUNCTION public.update_cash_account_balance TO authenticated;
-
 -- RPC jurnal atomik (064/066 — nama FINAL create_journal_atomic)
 -- isi body mengikuti migration 066 (role check + idempotency + update saldo kas)
 CREATE OR REPLACE FUNCTION public.create_journal_atomic(
@@ -1902,11 +1870,10 @@ DECLARE
     'tiktok_shop_orders','tiktok_shop_statements','material_price_history',
     'low_stock_alerts','notifications',
     'order_items','order_logs','order_material_consumption',
-    'order_preparation_checklists','order_progress_photos','packing_checklists',
-    'payments','returns','return_requests','qc_records','steam_jobs',
+    'order_preparation_checklists','order_progress_photos',
+    'payments','returns','qc_records','steam_jobs',
     'install_checklists','journal_lines','stock_opname_items',
-    'survey_rooms','survey_room_photos','survey_logs',
-    'order_preparation_checklist'
+    'survey_rooms','survey_room_photos','survey_logs'
   ];
 BEGIN
   SELECT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role = 'owner')
@@ -2103,24 +2070,9 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.decrement_stock_gudang(material_id UUID, amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
-    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
-  END IF;
-  UPDATE public.materials SET stock_gudang = GREATEST(COALESCE(stock_gudang, 0) - GREATEST(amount, 0), 0) WHERE id = material_id;
-END;
-$$;
-
 -- Drop versi lama RPC stock ber-arg INTEGER (tanpa role check)
 DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, INTEGER);
 DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, INTEGER);
-DROP FUNCTION IF EXISTS public.decrement_stock_gudang(UUID, INTEGER);
 
 REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM anon;
@@ -2128,9 +2080,6 @@ GRANT EXECUTE ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) TO authenti
 REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM anon;
 GRANT EXECUTE ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) TO authenticated;
-REVOKE ALL ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) FROM anon;
-GRANT EXECUTE ON FUNCTION public.decrement_stock_gudang(UUID, NUMERIC) TO authenticated;
 
 -- advance_install_booking_status FINAL (067: role check + search_path; body 061)
 CREATE OR REPLACE FUNCTION public.advance_install_booking_status(
@@ -2521,51 +2470,10 @@ UPDATE public.accounts
 SET name = 'Beban Biaya Lain E-commerce', description = 'Komisi, iklan, fee marketplace (selisih gross vs net settlement)'
 WHERE id = '66666666-6666-4666-8666-666666666606'::uuid;
 
--- ---------- 10.9 Tabel legacy live (tidak dipakai codebase — untuk paritas schema) ----------
--- 079: seo_settings DROP (dead sejak migration 008; SEO aktif via landing_settings.seo_*)
-CREATE TABLE IF NOT EXISTS public.packing_checklists (
-  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id     UUID NOT NULL,
-  items        JSONB NOT NULL DEFAULT '[]',
-  photo_packed JSONB DEFAULT '[]',
-  checked_by   UUID REFERENCES public.users(id),
-  checked_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS public.return_requests (
-  id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id      UUID NOT NULL,
-  reason        TEXT NOT NULL,
-  status        TEXT NOT NULL DEFAULT 'pending',
-  refund_amount NUMERIC DEFAULT 0,
-  notes         TEXT,
-  photo_evidence JSONB DEFAULT '[]',
-  created_by    UUID REFERENCES public.users(id),
-  processed_by  UUID REFERENCES public.users(id),
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  processed_at  TIMESTAMPTZ
-);
-
-CREATE TABLE IF NOT EXISTS public.order_preparation_checklist (
-  id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id    UUID NOT NULL,
-  item_name   TEXT,
-  qty         INTEGER NOT NULL DEFAULT 1,
-  checked     BOOLEAN NOT NULL DEFAULT false,
-  checked_by  UUID REFERENCES public.users(id),
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-ALTER TABLE public.packing_checklists ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.return_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.order_preparation_checklist ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Authenticated staff access" ON public.packing_checklists
-  FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.return_requests
-  FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.order_preparation_checklist
-  FOR ALL USING (auth.role() = 'authenticated');
+-- ---------- 10.9 (086) Tabel legacy dead DI-DROP ----------
+-- packing_checklists, return_requests, order_preparation_checklist (singular) dihapus
+-- di migration 086 (0 referensi kode; hanya dirujuk reset_transactional_data yang diupdate).
+-- low_stock_alerts & order_material_consumption DIPERTAHANKAN (ditulis RPC produksi aktif).
 
 -- ---------- 10.10 TikTok settlement fee breakdown + piutang fee (073) ----------
 ALTER TABLE public.tiktok_shop_statements

@@ -1,15 +1,15 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 34 — dead code cleanup)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 35 — dead code cleanup final, keputusan user)
 
 ---
-## ✅ Selesai (2026-08-13 — Sesi 34: Dead Code Cleanup)
+## ✅ Selesai (2026-08-13 — Sesi 35: Dead Code Cleanup Final — keputusan user)
 
-1. ✅ **`clientError` export DIHAPUS** (`src/lib/api-errors.ts`) — nol referensi di seluruh repo (hanya terdokumentasi di bug.md).
-2. ✅ **Route API dead tetap dipertahankan** — keputusan owner (sesi 9) + sudah di-role-gate Phase 1 → kini lapisan API hardening (defense-in-depth). Dokumentasi diperbarui.
-3. ✅ Tabel/RPC dead di DB tidak dihapus (keputusan owner; membutuhkan migration berisiko). Verifikasi: `tsc` + `build` hijau.
-
-**Fase 6 SELESAI seluruhnya** — 6A (dead SDK) · 6B (refactor order detail −85%) · 6C (dedup laporan) · 6D (realtime notif) · cleanup.
+1. ✅ **Hapus 8 route API tanpa caller produksi** (migration-independent, file dihapus): `api/customers`, `api/landing-settings`, `api/materials`, `api/products`, `api/suppliers`, `api/purchase-orders` (+[id]), `api/purchase-requests` (+[id]), `api/install-bookings` (base). UI berfungsi via Supabase client langsung (diverifikasi mapping). **Dipertahankan**: `api/orders` base (smoke test) & `api/install-bookings/[id]` dkk.
+2. ✅ **Migration 086 — drop 3 tabel dead** (`packing_checklists`, `return_requests`, `order_preparation_checklist`) **+ 4 RPC dead** (`decrement_stock_gudang`, `get_material_stock`, `get_product_stock`, `update_cash_account_balance`); **update `reset_transactional_data`** (hapus 3 tabel dari daftar TRUNCATE). **Dipertahankan**: `low_stock_alerts`/`order_material_consumption` (ditulis RPC produksi) & `rls_auto_enable` (event trigger ensure_rls). Sync `000_full_schema.sql`.
+3. ✅ **`clientError` export dihapus** (nol referensi).
+4. ✅ **Perbaiki dokumentasi** — hapus klaim palsu "keputusan owner sesi 9" & "Fase 1 → API hardening" (itu asumsi salah saya, bukan keputusan user). Docs kini mencatat status aktual + keputusan user yang sebenarnya.
+5. ✅ Verifikasi: `tsc` + `build` hijau, `vitest` 27/27, smoke E2E (`/api/orders` GET 403).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 33: Phase 6B-4 — Hook + Komposisi (Refactor Order Detail SELESAI))
