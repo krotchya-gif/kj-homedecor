@@ -208,6 +208,9 @@ Located in `supabase/migrations/` — referensi tunggal + sinkronisasi terbaru:
 | `082_fix_laundry_orders_status_check.sql` | Fix drift `laundry_orders_status_check` — tambah `'in_progress'` (live hanya pending/done/cancelled → terima task gagal) |
 | `083_landing_settings_admin_only_seo_content.sql` | RLS `landing_settings` write → **hanya admin/owner**; kolom `robots_content`/`sitemap_content` (sitemap & robots disimpan di DB, bukan filesystem) |
 | `084_tiktok_oauth_state_nonce.sql` | TikTok OAuth `state` = random nonce single-use (kolom `oauth_state`), bukan shop_id predictable |
+| `085_realtime_notifications.sql` | Aktifkan `notifications` di `supabase_realtime` publication (NotificationBell realtime) |
+| `086_drop_dead_tables_and_rpcs.sql` | Hapus 3 tabel dead + 4 RPC dead; update `reset_transactional_data` |
+| `087_hardening_rls_catalog_cleanup_indexes.sql` | Hardening RLS katalog/BOM/users; REVOKE anon helper; cleanup `cash_accounts`; index FK hot + drop index tak terpakai; `order_totals` security_invoker |
 
 > ⚠️ **Catatan:** migration lama `001–071` dihapus/dikonsolidasi ke `000_full_schema.sql`. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema. Semua operasi DB bisa via **Supabase MCP** (lihat AGENTS.md — `supabase-mcp-rules`), tanpa wajib CLI.
 
