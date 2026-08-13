@@ -2,6 +2,7 @@
 
 > 🔗 **Project URL**: `https://glblgsfenarnztawtpmu.supabase.co`
 > ⚠️ File ini WAJIB disinkronkan setiap ada perubahan akun (lihat juga `docs/flows/10-staff-akses.md`).
+> 📖 **Panduan penggunaan lengkap** (manual book per role & per fitur, bahasa sederhana): [`pendoman.md`](./pendoman.md)
 
 ## Akun Test (dipakai di lingkungan development)
 

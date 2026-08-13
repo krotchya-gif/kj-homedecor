@@ -242,12 +242,13 @@ npm run build
 npm start
 ```
 
-Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:** konfigurasi mengarah ke `tests/` yang tidak ada di repo (belum disiapkan kembali).
+Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test:e2e` (Playwright — `tests/e2e`, perlu dev server; auth storage `.auth/*.json`).
 
 ---
 
 ## Implementasi & Riwayat Perbaikan
 
+- **2026-08-13 — Sesi 36 (rapi + docs final):** fix warning Next.js `data-scroll-behavior="smooth"` di `<html>` (layout); `pendoman.md` ditulis ulang sebagai **manual book lengkap** per fitur & per role (bahasa sederhana); semua docs disinkronkan status terakhir (migration 072-086).
 - **2026-08-13 — Sesi 35 (Phase 6F, dead code cleanup final):** hapus 8 route API tanpa caller produksi (UI berjalan via Supabase client langsung) + `clientError`; drop 3 tabel dead (`packing_checklists`, `return_requests`, `order_preparation_checklist`) + 4 RPC dead; update `reset_transactional_data` (migration 086). **Dipertahankan** karena masih dipakai: `low_stock_alerts`/`order_material_consumption` (RPC produksi) & `rls_auto_enable` (event trigger ensure_rls).
 - **2026-08-13 — Sesi 33 (Phase 6B-4, refactor order detail SELESAI):** semua state & handlers dipindah ke `useOrderDetail(id)` hook; page `admin/orders/[id]` jadi komposisi murni **505 baris** (dari 3.561 asli, **−85%**); 10 komponen di `components/orders/` + 1 hook. Verifikasi browser 10/10.
 - **2026-08-13 — Sesi 32 (Phase 6B-3d):** ekstrak blok terbesar order detail — `OrderItemsTable`, `PreparationChecklist`, `AddItemModal` (form 3 tipe + BOM hint); page turun 2.611 → 1.490 baris (total −2.071 dari 3.561). Verifikasi browser 10/10.
@@ -273,8 +274,8 @@ Test: `npm run test:run` (Vitest) / `npm run test:e2e` (Playwright) — **note:*
 - **2026-07-18 — Audit & proxy migration:** `middleware.ts` → `proxy.ts`, auth helpers, rate limiting, RLS migrations 053-058
 - **2026-06-02 — Pipeline V2:** payment_ok di depan, steam revision loop, 3 QC distinct
 
-> 🔒 **Keamanan (terbaru 2026-08-13):** RLS `landing_settings` admin/owner-only; GET API yang membawa PII (`orders/[id]`, `install-bookings*`, `materials`, `suppliers`, `purchase-*`) di-role-gate; fail-open `role ?? 'admin'` di client ditutup (fail-closed); rate limit di 9 route sensitif (upload, create-staff, SEO, TikTok sync); create-staff diperkuat (status active, password min 8, anti-enumeration); TikTok OAuth state = random nonce (migration 084). Lihat `bug.md` & backlog `todo.md`. Test unit: `npm run test:run` (Vitest, `tests/unit`).
+> 🔒 **Keamanan (terbaru 2026-08-13):** RLS `landing_settings` admin/owner-only; GET API yang membawa PII (`orders/[id]`, `install-bookings/[id]`) di-role-gate; fail-open `role ?? 'admin'` di client ditutup (fail-closed); rate limit di 9 route sensitif (upload, create-staff, SEO, TikTok sync); create-staff diperkuat (status active, password min 8, anti-enumeration); TikTok OAuth state = random nonce (migration 084); notifikasi realtime (migration 085); dead code dibersihkan (migration 086). Lihat `bug.md` & backlog `todo.md`. Test unit: `npm run test:run` (Vitest, `tests/unit`).
 
 ---
 
-_Last updated: 2026-08-13 · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-13 (sesi 36 — rapi & docs final) · Dev server: `npm run dev` → http://localhost:3000_
