@@ -1939,6 +1939,125 @@ REVOKE ALL ON FUNCTION public.reset_transactional_data FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.reset_transactional_data FROM anon;
 GRANT EXECUTE ON FUNCTION public.reset_transactional_data TO authenticated;
 
+-- BUG-079 fix (081): search pesanan — filter search+status+kategori di SQL
+-- (PostgREST .or() tidak mendukung kolom relasi customer.name → error diam-diam).
+CREATE OR REPLACE FUNCTION public.search_orders(
+  p_term TEXT DEFAULT '',
+  p_status TEXT DEFAULT '',
+  p_category UUID DEFAULT NULL,
+  p_limit INT DEFAULT 20,
+  p_offset INT DEFAULT 0
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_result JSONB;
+  v_total INT;
+BEGIN
+  IF NOT public.is_staff_active_sd() AND auth.jwt() ->> 'role' <> 'service_role' THEN
+    RAISE EXCEPTION 'Forbidden';
+  END IF;
+
+  WITH base AS (
+    SELECT o.*
+    FROM orders o
+    WHERE
+      (
+        p_term IS NULL OR p_term = ''
+        OR o.order_number ILIKE '%' || p_term || '%'
+        OR COALESCE(o.tracking_number, '') ILIKE '%' || p_term || '%'
+        OR EXISTS (
+          SELECT 1 FROM customers c
+          WHERE c.id = o.customer_id AND c.name ILIKE '%' || p_term || '%'
+        )
+      )
+      AND (
+        p_status IS NULL OR p_status = ''
+        OR (p_status = 'ready_to_pack' AND o.status = 'ready' AND o.classification = 'kirim')
+        OR (p_status = 'ready_to_ship' AND o.status = 'packed')
+        OR o.status = p_status
+      )
+      AND (
+        p_category IS NULL
+        OR EXISTS (
+          SELECT 1 FROM order_items oi
+          JOIN products pr ON pr.id = oi.product_id
+          WHERE oi.order_id = o.id AND pr.category_id = p_category
+        )
+      )
+  )
+  SELECT jsonb_build_object(
+    'rows', COALESCE((
+      SELECT jsonb_agg(r)
+      FROM (
+        SELECT
+          b.id,
+          b.order_number,
+          b.order_id_external,
+          b.source,
+          b.customer_id,
+          b.classification,
+          b.status,
+          b.total_amount,
+          b.dp_amount,
+          b.lunas_amount,
+          b.shipping_cost,
+          b.payment_status,
+          b.notes,
+          b.admin_notes,
+          b.tracking_number,
+          b.courier,
+          b.created_at,
+          b.order_date,
+          b.estimated_completion,
+          b.scheduled_installation_date,
+          (
+            SELECT jsonb_build_object('name', c.name, 'phone', c.phone)
+            FROM customers c WHERE c.id = b.customer_id
+          ) AS customer,
+          (
+            SELECT COALESCE(jsonb_agg(oi2), '[]'::jsonb)
+            FROM (
+              SELECT
+                oi.id,
+                oi.product_id,
+                oi.price,
+                oi.qty,
+                oi.custom_specs,
+                (
+                  SELECT jsonb_build_object(
+                    'id', pr.id,
+                    'name', pr.name,
+                    'category', (
+                      SELECT jsonb_build_object('name', cat.name)
+                      FROM categories cat WHERE cat.id = pr.category_id
+                    )
+                  )
+                  FROM products pr WHERE pr.id = oi.product_id
+                ) AS product
+              FROM order_items oi
+              WHERE oi.order_id = b.id
+            ) oi2
+          ) AS order_items
+        FROM base b
+        ORDER BY b.created_at DESC
+        LIMIT p_limit OFFSET p_offset
+      ) r
+    ), '[]'::jsonb),
+    'total', (SELECT count(*)::int FROM base)
+  ) INTO v_result;
+
+  RETURN v_result;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) FROM anon;
+GRANT EXECUTE ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) TO authenticated;
+
 -- Versi FINAL RPC stock & pipeline dengan role check (067)
 CREATE OR REPLACE FUNCTION public.increment_stock_toko(product_id UUID, amount NUMERIC)
 RETURNS void

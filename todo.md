@@ -1,8 +1,18 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 18 — plan full E2E suite per role)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 18 — fix BUG-079 search pesanan via RPC)
 
 ---
+## ✅ Selesai (2026-08-13 — Sesi 18: Fix BUG-079 Search Pesanan)
+
+1. ✅ **BUG-079** — search pesanan (no. order/nama/resi) sebelumnya pakai `query.or('...customer.name.ilike...')` → **PostgREST `.or()` tidak mendukung kolom relasi** → query error diam-diam → UI kosong walau data ada.
+2. ✅ **Migration 081** — RPC `search_orders(p_term, p_status, p_category, p_limit, p_offset)` → filter search (ORDER BY orders / tracking / `EXISTS customers.name`), status (incl. `ready_to_pack`/`ready_to_ship`), kategori — semua di SQL, return `{ rows, total }`.
+3. ✅ **`admin/orders/page.tsx`** — `fetchOrders` kini panggil RPC + **tampilkan error** (console) jika RPC gagal (tidak diam lagi).
+4. ✅ Verifikasi UI: ketik "25" → **6 baris tampil** (sebelumnya kosong); search nama/status/kategori teruji via RPC.
+5. ✅ Sync `000_full_schema.sql` (RPC search_orders).
+
+---
+
 ## ◐ Sedang (2026-08-13 — Sesi 18: Full E2E Test Suite per Role)
 
 Plan komprehensif — menutup semua fitur user-facing per role agar tidak ada yang ketinggalan (laundry, surveyor, penjahit, HPP/BOM konsumsi material, input resi, input bayar, cancel/return, booking, dst). Jalankan: `npx playwright test --project=chromium`.

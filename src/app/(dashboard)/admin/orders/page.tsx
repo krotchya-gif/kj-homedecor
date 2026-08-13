@@ -133,39 +133,31 @@ export default function OrdersPage() {
 
   async function fetchOrders() {
     setLoading(true)
-    const from = (currentPage - 1) * PAGE_SIZE
-    const to = from + PAGE_SIZE - 1
     const term = search.trim()
 
-    // Server-side filter (halaman penuh): kategori (via !inner join) + status + search.
-    // search: no. order, tracking, NAMA PELANGGAN (dengan !inner join customer).
-    const hasSearch = term.length > 0
-    const needCustomerJoin = hasSearch
-    const needCatJoin = Boolean(filterCategory)
+    // BUG-079 fix: pakai RPC search_orders (filter search+status+kategori di SQL).
+    // Sebelumnya query.or() dengan kolom relasi (customer.name) → PostgREST error
+    // diam-diam → UI search kosong. RPC menyelesaikan OR antar kolom orders +
+    // EXISTS customer.name + status + kategori, return { rows, total }.
+    const { data, error } = await supabase.rpc('search_orders', {
+      p_term: term,
+      p_status: filterStatus,
+      p_category: filterCategory || null,
+      p_limit: PAGE_SIZE,
+      p_offset: (currentPage - 1) * PAGE_SIZE
+    })
 
-    const custRel = `customer:customers${needCustomerJoin ? '!inner' : ''}(name, phone)`
-    const catInner = needCatJoin ? '!inner' : ''
-    const itemsRel = `order_items${catInner}(product:products${catInner}(category:categories${catInner}(name)))`
-    const selectRel = `*, ${custRel}, ${itemsRel}`
-
-    const query = supabase.from('orders').select(selectRel, { count: 'exact' })
-    if (filterCategory) query.eq('order_items.product.category_id', filterCategory)
-    if (filterStatus) {
-      if (filterStatus === 'ready_to_pack') {
-        query.eq('status', 'ready').eq('classification', 'kirim')
-      } else if (filterStatus === 'ready_to_ship') {
-        query.eq('status', 'packed')
-      } else {
-        query.eq('status', filterStatus)
-      }
-    }
-    if (hasSearch) {
-      query.or(`order_number.ilike.%${term}%,tracking_number.ilike.%${term}%,customer.name.ilike.%${term}%`)
+    if (error) {
+      console.error('search_orders gagal:', error)
+      setOrders([])
+      setTotalCount(0)
+      setLoading(false)
+      return
     }
 
-    const { data, count } = await query.order('created_at', { ascending: false }).range(from, to)
-    setOrders((data as unknown as Order[]) ?? [])
-    setTotalCount(count ?? 0)
+    const result = (data ?? {}) as { rows?: unknown[]; total?: number }
+    setOrders((result.rows as Order[]) ?? [])
+    setTotalCount(result.total ?? 0)
     setLoading(false)
   }
 
