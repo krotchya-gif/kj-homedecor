@@ -81,6 +81,8 @@ Dokumentasi bug & masalah yang ditemukan selama audit + penggunaan harian. Updat
 | BUG-071 | **Steam rework macet** — setelah fail (status revision), `gudang/production` `.eq('order_id').maybeSingle()` lihat steam_job stale → tak buat baru, order stuck | ✅ Fixed (2026-08-13) | Guard cari `.eq('status','pending')` (abaikan revision/done stale) |
 | BUG-072 | **Hutang delete tanpa guard paid** — tagihan lunas/partial bisa dihapus (liabilitas+riwayat hilang) | ✅ Fixed (2026-08-13) | Tolak hapus paid/cancelled/paid_amount>0/return_amount>0 (mirror handleSave) |
 | BUG-073 | **Finance pay race / tanpa rollback** — jurnal gagal → payment row menggantung; update order kalah race → row orphan | ✅ Fixed (2026-08-13) | `handlePay`: jurnal gagal → hapus payment row (rollback penuh); `ordErr` → hapus payment row (mirror refund) |
+| BUG-074 | **Dropdown/select tidak ikut tema dark** — border hardcoded `#d1d5db`, tanpa background/color | ✅ Fixed (2026-08-13) | CSS global `select` + inline `var(--surface)/var(--input-border)` di 8 titik (tiktok, staff, cash, owner, surveyor, catalog) |
+| BUG-075 | **Tampilan tanggal mentah YYYY-MM-DD** di mobile card/tabel/toast | ✅ Fixed (2026-08-13) | Helper `formatDateDDMMYYYY()` diterapkan di 16 file |
 
 ### Dead code terdokumentasi (tidak dihapus — keputusan owner, sesi 9)
 - **Route API tanpa caller produksi:** `api/customers`, `api/landing-settings`, `api/materials`, `api/products`, `api/suppliers`, `api/purchase-orders` (+`[id]`), `api/purchase-requests` (+`[id]`), `api/install-bookings` (base), `api/orders` (base — hanya dipakai E2E smoke GET 403)

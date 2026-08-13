@@ -35,6 +35,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Customer database + WhatsApp integration
 - Booking calendar + assign installer
 - Portfolio, SEO, Landing settings (theme customization), Staff, Reports, Laundry
+- **TikTok Shop** (`/admin/tiktok`): tarik order dari TikTok (**Sync Orders**) & jadikan pesanan utama (**Link to Main Orders**) — tugas admin; settlement/piutang di `/owner/tiktok`
 
 ### Finance (`/finance`)
 - Payment tracking (DP → Lunas) + **Approve Cek Bayar** (verifikasi manual)
@@ -138,17 +139,17 @@ src/
 │   ├── (auth)/login/             # Staff login
 │   ├── setup/                    # Bootstrap akun awal
 │   ├── (dashboard)/              # Protected dashboard group
-│   │   ├── admin/                # Orders, catalog, booking, customers, staff, landing-settings, seo, shipping, laundry, portfolio, reports, surveys
+│   │   ├── admin/                # Orders, catalog, booking, customers, staff, landing-settings, seo, shipping, laundry, portfolio, reports, surveys, tiktok
 │   │   ├── finance/              # Payments, cash, hutang, piutang, accounts, journal, assets, laundry-payroll, laporan(10)
 │   │   ├── gudang/               # Production, steam, qc, stock, stock-opname, alerts, lembur, reports
 │   │   ├── penjahit/             # Jobs, reports, history
 │   │   ├── installer/            # Schedule, checklist, reports
 │   │   ├── surveyor/             # Survey new/[id]/edit, history
-│   │   └── owner/                # Overview, hpp, materials, suppliers, products, staff, marketplace, tiktok, surveys, laporan(10)
+│   │   └── owner/                # Overview, hpp, materials, suppliers(3 tab), products, staff, marketplace, tiktok, surveys, laporan(10)
 │   ├── catalog/                  # Public catalog
 │   ├── products/[slug]/          # Public product detail
 │   ├── booking/                  # Public booking
-│   └── api/                      # 34 route handlers
+│   └── api/                      # 32 route handlers
 │       ├── admin/create-staff/   # Staff creation (service role)
 │       ├── orders/ [+[id], [id]/consume-materials]
 │       ├── customers/ products/ materials/ suppliers/
@@ -161,8 +162,9 @@ src/
 │       ├── tiktok/               # auth, webhook, sync-orders, sync-finance, sync-to-main-orders, create-piutang
 │       └── webhooks/tiktok/      # Alias
 ├── components/
-│   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, dll
+│   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, Pagination, dll
 │   ├── dashboard/                # Sidebar, TopNav, NotificationBell, layout
+│   ├── suppliers/                # PriceHistoryTab (tab Riwayat Harga di owner/suppliers)
 │   └── landing/                  # ScrollNav, ProductCatalog, AnimatedCounter, HeroParticles, ScrollHero
 ├── config/                       # nav.tsx (navigasi per role — satu sumber)
 ├── lib/

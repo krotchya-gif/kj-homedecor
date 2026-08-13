@@ -98,6 +98,10 @@ CREATE TABLE IF NOT EXISTS public.products (
   is_catalog_visible BOOLEAN NOT NULL DEFAULT TRUE,
   product_type    VARCHAR(20) DEFAULT 'perabot',
   description     TEXT,
+  -- kolom legacy/extra (kondisi live)
+  variants        JSONB DEFAULT '[]',
+  shipping_options JSONB DEFAULT '[]',
+  is_visible      BOOLEAN DEFAULT TRUE,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -144,6 +148,17 @@ CREATE TABLE IF NOT EXISTS public.orders (
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- VIEW order_totals (live — agregasi DP/lunas per order; sync schema file = live)
+CREATE OR REPLACE VIEW public.order_totals AS
+  SELECT o.id,
+    o.status,
+    o.total_amount,
+    COALESCE(sum(p.amount) FILTER (WHERE p.type = 'dp'::text), 0::numeric) AS total_dp,
+    COALESCE(sum(p.amount) FILTER (WHERE p.type = 'lunas'::text), 0::numeric) AS total_lunas
+  FROM orders o
+  LEFT JOIN payments p ON p.order_id = o.id
+  GROUP BY o.id;
+
 -- ORDER LOGS (audit trail)
 CREATE TABLE IF NOT EXISTS public.order_logs (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -156,8 +171,10 @@ CREATE TABLE IF NOT EXISTS public.order_logs (
     'penjahit_assigned','install_started','install_done','install_revision',
     'steam_qc_pass','steam_revision_requeue','order_deleted','status_changed'
   )),
+  description TEXT,
   notes       TEXT,
   staff_id    UUID REFERENCES public.users(id),
+  created_by  UUID REFERENCES public.users(id),
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -313,6 +330,8 @@ CREATE TABLE IF NOT EXISTS public.install_bookings (
   installer_id      UUID REFERENCES public.users(id),
   scheduled_date    DATE,
   scheduled_time    TIME,
+  revision          INTEGER DEFAULT 0,
+  completed_at      TIMESTAMPTZ,
   notes             TEXT,
   revision_reason   TEXT,
   revision_photos   TEXT[],
@@ -338,6 +357,8 @@ CREATE TABLE IF NOT EXISTS public.payments (
   date              DATE NOT NULL DEFAULT CURRENT_DATE,
   verified_by       UUID REFERENCES public.users(id),
   verified_at       TIMESTAMPTZ,
+  xendit_id         TEXT,
+  external_payment_method TEXT,
   xendit_payment_id TEXT,
   notes             TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -530,10 +551,14 @@ CREATE TABLE IF NOT EXISTS public.landing_settings (
 -- 3. BUSINESS LOGIC TABLES
 -- ============================================================
 
--- STEAM JOBS (Post-production QC)
+-- STEAM JOBS (Post-production QC) — kolom legacy laundry + modern order (kondisi live)
 CREATE TABLE IF NOT EXISTS public.steam_jobs (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id          UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  laundry_id        UUID,
+  customer_name     TEXT,
+  item              TEXT,
+  qty               NUMERIC,
+  order_id          UUID REFERENCES public.orders(id) ON DELETE CASCADE,
   production_job_id UUID REFERENCES public.production_jobs(id) ON DELETE SET NULL,
   status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','done','revision')),
   result            TEXT CHECK (result IN ('pass','fail')),
@@ -647,7 +672,17 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
   total_credit    NUMERIC DEFAULT 0,
   is_auto         BOOLEAN DEFAULT false,
   created_by      UUID REFERENCES auth.users(id),
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- kolom legacy (kondisi live — tidak dipakai codebase tapi ada di DB)
+  date            DATE,
+  account         TEXT,
+  debit           NUMERIC DEFAULT 0,
+  credit          NUMERIC DEFAULT 0,
+  is_posted       BOOLEAN DEFAULT false,
+  entry_type      TEXT,
+  account_id      UUID REFERENCES public.accounts(id),
+  cash_account_id UUID REFERENCES public.cash_accounts(id),
+  idempotency_key TEXT
 );
 
 -- JOURNAL LINES
@@ -673,6 +708,12 @@ CREATE TABLE IF NOT EXISTS public.hutang (
   return_amount   NUMERIC DEFAULT 0,
   status          VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
   notes           TEXT,
+  description     TEXT,
+  remaining       NUMERIC DEFAULT 0,
+  paid_at         TIMESTAMPTZ,
+  created_by      UUID REFERENCES public.users(id),
+  return_reason   TEXT,
+  return_date     DATE,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -692,6 +733,10 @@ CREATE TABLE IF NOT EXISTS public.piutang (
   status          VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
   order_id        UUID REFERENCES public.orders(id),
   notes           TEXT,
+  description     TEXT,
+  remaining       NUMERIC DEFAULT 0,
+  paid_at         TIMESTAMPTZ,
+  created_by      UUID REFERENCES public.users(id),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -700,6 +745,8 @@ CREATE TABLE IF NOT EXISTS public.piutang (
 CREATE TABLE IF NOT EXISTS public.cash_accounts (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   account_id      UUID REFERENCES public.accounts(id),
+  name            VARCHAR(255),
+  code            VARCHAR(50),
   bank_name       VARCHAR(100),
   account_number  VARCHAR(50),
   account_holder  VARCHAR(255),
@@ -1444,6 +1491,10 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS source_tag TEXT;
 -- Kolom live yang dipakai codebase (audit schema <-> code 2026-08-12)
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS order_date TIMESTAMPTZ;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_courier TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_awb TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_cost_estimated NUMERIC DEFAULT 0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS packing_note TEXT;
 ALTER TABLE public.tiktok_shop_orders ADD COLUMN IF NOT EXISTS order_date TIMESTAMPTZ;
 ALTER TABLE public.tiktok_shop_orders ADD COLUMN IF NOT EXISTS shipping_address TEXT;
 ALTER TABLE public.install_bookings ADD COLUMN IF NOT EXISTS actual_date TIMESTAMPTZ;

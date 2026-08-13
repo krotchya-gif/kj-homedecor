@@ -1,8 +1,19 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 14 — halaman TikTok Shop untuk Admin)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 15 — format tanggal, pagination semua tabel, supplier 3 tab)
 
 ---
+## ✅ Selesai (2026-08-13 — Sesi 15: Format Tanggal + Pagination + Supplier 3 Tab)
+
+1. ✅ **Format tanggal DD/MM/YYYY** — helper `formatDateDDMMYYYY()` di `lib/utils`; diterapkan di 16 file (finance cash, journal, piutang/faktur, hutang, lembur, surveyor, penjahit, installer, admin booking/orders, buku-besar, daftar-jurnal)
+2. ✅ **Pagination semua tabel** (komponen `<Pagination>`, default 10, selector 10/20/50/100):
+   - admin/reports (Source Revenue + Top Products), owner/suppliers (Suppliers + PO)
+   - finance/cash, finance/cash/mutation, finance/hutang, finance/piutang/faktur
+3. ✅ **Supplier → 3 tab** — halaman `/owner/suppliers` kini `🏭 Suppliers | 📋 Purchase Orders | 📈 Riwayat Harga`; isi price-history dipindah ke komponen `PriceHistoryTab`, route `owner/suppliers/price-history` dihapus + nav item dihapus (tidak ambigu lagi)
+4. ✅ **Halaman `/admin/tiktok`** (lanjutan sesi 14) — menu TikTok Shop di sidebar admin (grup Operasional)
+
+---
+
 ## ✅ Selesai (2026-08-13 — Sesi 14: TikTok Shop untuk Admin)
 
 1. ✅ **Halaman `/admin/tiktok`** — khusus Admin: tabel order TikTok (tersync) + **2 tombol** (`Sync Orders` + `Link to Main Orders`) + date range + filter status/payment + pagination. Settlement/piutang/connect tetap di `/owner/tiktok` (Owner/Finance).
