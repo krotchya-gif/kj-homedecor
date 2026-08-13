@@ -11,7 +11,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 ## Tech Stack
 
 - **Frontend:** Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript, Tailwind CSS v4
-- **Backend:** Supabase (PostgreSQL, Auth, Realtime, Storage)
+- **Backend:** Supabase (PostgreSQL, Auth, Realtime)
 - **UI Components:** Shadcn-style custom (@base-ui/react) + komponen custom
 - **Auth:** Supabase Auth + auth helpers (`src/lib/auth.ts`)
 - **Proxy:** Next.js 16 `proxy.ts` — auth guard + role-based access + matcher
@@ -19,7 +19,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - **Marketplace:** TikTok Shop API (OAuth, sync order, sync finance, webhook) — settlement masuk akun **E Wallet Tiktok** (1104)
 - **PDF:** jsPDF + autoTable (Invoice, Packing List, Survey, Laporan Keuangan)
 - **Charts:** Recharts (Owner, Admin, Finance dashboards)
-- **Image:** browser-image-compression + Supabase Storage
+- **Image:** browser-image-compression + CDN `link.kjhomedecor.com` (upload via `/api/upload` → `upload.php`)
 - **Validation:** Zod (API routes)
 - **Deployment:** Vercel-ready
 
@@ -229,6 +229,8 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...       # Server-side only, never expose
 TIKTOK_APP_SECRET=                      # Webhook HMAC — WAJIB di-set (kalau kosong, verifikasi di-skip)
 NEXT_PUBLIC_BASE_URL=                   # Dipakai OAuth callback TikTok
 ```
+
+> 📁 **Upload file** (`/api/upload`) diteruskan ke CDN `link.kjhomedecor.com/upload.php` (const `CDN_UPLOAD_URL` di `src/app/api/upload/route.ts`) — file tersimpan permanen sebagai file asli di `public_html/link/uploads/{folder}/`, tidak terpengaruh redeploy. Bukan Supabase Storage (bucket `kj-uploads` tidak dipakai lagi). File PHP upload handler: `scripts/upload.php` (copy ke Hostinger).
 
 ---
 

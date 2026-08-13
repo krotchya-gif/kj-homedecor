@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
+
+// CDN upload endpoint (subdomain link.kjhomedecor.com → public_html/link/upload.php).
+// File tersimpan PERMANEN sebagai file asli di server file, tidak hilang saat redeploy
+// aplikasi. SEBELUMNYA: pakai Supabase Storage (blob .blob, kuota free 5GB tidak cukup
+// utk foto progres 2MB × 7 progres × banyak order) — dikembalikan ke plan lokal hosting.
+const CDN_UPLOAD_URL = 'https://link.kjhomedecor.com/upload.php'
 
 const FolderSchema = z.enum([
   'products',
@@ -45,8 +50,6 @@ const MAX_SIZES = {
   install: 2 * 1024 * 1024,
   survey: 5 * 1024 * 1024
 }
-
-const BUCKET = 'kj-uploads'
 
 // Role check per folder (Security fix 2026-08-12):
 // folder yang bisa disalahgunakan untuk abuse storage dibatasi ke admin/owner/finance.
@@ -103,11 +106,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Service-role client dibuat DI SINI (per-request, setelah auth) — bukan di module scope.
-    const serviceClient = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    // Service-role client TIDAK dipakai lagi — upload diteruskan ke CDN (upload.php),
+    // bukan ke Supabase Storage (lihat konstanta CDN_UPLOAD_URL di atas).
 
     const allowedTypes = ALLOWED_TYPES[folder]
     const maxSize = MAX_SIZES[folder]
@@ -134,7 +134,6 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)
     const filename = `${timestamp}-${random}.${ext}`
-    const objectPath = `${folder}/${filename}`
 
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
@@ -157,23 +156,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { error: upErr } = await serviceClient.storage.from(BUCKET).upload(objectPath, buffer, {
-      contentType: file.type,
-      cacheControl: '3600',
-      upsert: false
-    })
+    // Teruskan file ke CDN (link.kjhomedecor.com/upload.php) — file tersimpan permanen
+    // sebagai file asli di public_html/link/uploads/{folder}/.
+    const cdnForm = new FormData()
+    cdnForm.append('file', file, filename)
+    cdnForm.append('folder', folder)
 
-    if (upErr) {
-      console.error('Storage upload error:', upErr)
-      return NextResponse.json({ data: null, error: { message: 'Gagal upload ke storage' } }, { status: 500 })
+    let cdnRes: Response
+    try {
+      cdnRes = await fetch(CDN_UPLOAD_URL, { method: 'POST', body: cdnForm })
+    } catch (fetchErr) {
+      console.error('CDN upload request error:', fetchErr)
+      return NextResponse.json({ data: null, error: { message: 'Gagal menghubungi server file' } }, { status: 502 })
     }
 
-    // Public URL permanen (Supabase Storage — tidak hilang saat deploy)
-    const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${objectPath}`
+    const cdnBody = (await cdnRes.json().catch(() => null)) as { success?: boolean; url?: string; error?: string } | null
+
+    if (!cdnRes.ok || !cdnBody?.success || !cdnBody.url) {
+      console.error('CDN upload rejected:', cdnRes.status, cdnBody)
+      return NextResponse.json(
+        { data: null, error: { message: cdnBody?.error ?? `Upload ditolak server file (${cdnRes.status})` } },
+        { status: cdnRes.status >= 400 && cdnRes.status < 500 ? cdnRes.status : 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      url,
+      url: cdnBody.url,
       filename,
       size: file.size,
       type: file.type

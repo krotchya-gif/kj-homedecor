@@ -69,7 +69,8 @@ nul
 nul.*
 
 # QA workflow scripts (lokal saja — tidak relevan utk repo, 2026-08-11)
-scripts/
+scripts/*
+!scripts/upload.php
 
 # runtime uploads
 public/uploads/*
