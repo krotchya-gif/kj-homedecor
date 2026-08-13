@@ -183,6 +183,8 @@ src/
 │   ├── client.ts                 # Browser client
 │   ├── server.ts                 # SSR client + createServiceClient
 │   └── middleware.ts             # Proxy supabase client (request cookies)
+├── scripts/
+│   └── upload.php                # Upload handler utk subdomain link.kjhomedecor.com — copy ke public_html/link/upload.php (folder 'survey' + magic video)
 └── types/index.ts                # TypeScript interfaces + STATUS_LABELS dll
 ```
 
@@ -190,30 +192,12 @@ src/
 
 ## Database Migrations
 
-Located in `supabase/migrations/` — referensi tunggal + sinkronisasi terbaru:
-
+### Di repo GitHub (yang di-push)
 | File | Isi |
 |---|---|
-| `000_full_schema.sql` | **SATU-SATUNYA referensi schema** = kondisi live (58 tabel, 58 RLS, fungsi RPC, seed) — konsolidasi migration 001–071. Jangan baca migration lama per-file (lihat AGENTS.md) |
-| `072_schema_sync_codebase.sql` | RLS hardening efektif (nama policy benar, ENABLE RLS tiktok/survey_logs, hardening accounts), `order_logs_action_check` + `payment_verified`, kolom drift codebase↔live |
-| `073_tiktok_fee_breakdown.sql` | Kolom breakdown fee `tiktok_shop_statements` + `piutang.fee_amount` + unique index piutang tiktok |
-| `074_cleanup_accounts_income.sql` | Cleanup `accounts.type='income'` → `'revenue'` + VALIDATE `accounts_type_check` |
-| `075_approve_stock_opname.sql` | RPC `approve_stock_opname` — setujui sesi, terapkan selisih ke stok + mutasi adjustment |
-| `076_piutang_invoice_unique.sql` | Unique `piutang.invoice_number` (anti double-faktur semua channel) |
-| `077_e_wallet_tiktok_xendit_removal.sql` | Akun COA 1104 "Xendit Cash" → **E Wallet Tiktok** + row `cash_accounts`; mapping offline → Kas; `orders.scheduled_installation_time` |
-| `078_rls_core_hardening.sql` | RLS role-based 5 tabel inti (orders/customers/materials/suppliers/install_bookings) + helper `is_staff_active_sd`/`is_installer_sd` |
-| `079_reset_data_hardening.sql` | Rewrite `reset_transactional_data` (TRUNCATE 41 tabel + verifikasi), drop `seo_settings` |
-| `080_cleanup_xendit_fix_payments_type.sql` | Drop kolom Xendit + fix `payments_type_check` tambah `'refund'` |
-| `081_search_orders_rpc.sql` | RPC `search_orders` (search nama/resi/status/kategori di SQL) — BUG-079 |
-| `082_fix_laundry_orders_status_check.sql` | Fix drift `laundry_orders_status_check` — tambah `'in_progress'` (live hanya pending/done/cancelled → terima task gagal) |
-| `083_landing_settings_admin_only_seo_content.sql` | RLS `landing_settings` write → **hanya admin/owner**; kolom `robots_content`/`sitemap_content` (sitemap & robots disimpan di DB, bukan filesystem) |
-| `084_tiktok_oauth_state_nonce.sql` | TikTok OAuth `state` = random nonce single-use (kolom `oauth_state`), bukan shop_id predictable |
-| `085_realtime_notifications.sql` | Aktifkan `notifications` di `supabase_realtime` publication (NotificationBell realtime) |
-| `086_drop_dead_tables_and_rpcs.sql` | Hapus 3 tabel dead + 4 RPC dead; update `reset_transactional_data` |
-| `087_hardening_rls_catalog_cleanup_indexes.sql` | Hardening RLS katalog/BOM/users; REVOKE anon helper; cleanup `cash_accounts`; index FK hot + drop index tak terpakai; `order_totals` security_invoker |
-| `088_add_laundry_orders_order_id.sql` | BUG-116 — tambah `laundry_orders.order_id` (dipakai codebase tapi hilang di live); sync schema file = live (5 tabel) |
+| `000_full_schema.sql` | **SATU-SATUNYA referensi schema** = kondisi live (54 tabel, RLS, fungsi RPC, seed) — konsolidasi seluruh migration 001–088 + seed. Satu-satunya file yang di-push (keputusan 2026-08-13); migration per-file `001–071`/`072–088`/`900` tetap di disk lokal, di-ignore `.gitignore` |
 
-> ⚠️ **Catatan:** migration lama `001–071` dihapus/dikonsolidasi ke `000_full_schema.sql`. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema. Semua operasi DB bisa via **Supabase MCP** (lihat AGENTS.md — `supabase-mcp-rules`), tanpa wajib CLI.
+> ⚠️ **Catatan:** migration per-file (`001–071`, `072–088`, `900`) **tidak di-push** — hanya `000_full_schema.sql` yang di-push dan dijadikan referensi (sudah include init + seed yang sama dengan live DB). File per-file tetap ada di lokal untuk konteks. Sebagian besar pengembangan berjalan langsung terhadap project hosted (`glblgsfenarnztawtpmu`) — verifikasi kondisi live via query read-only (service role) sebelum mengubah schema. Semua operasi DB bisa via **Supabase MCP** (lihat AGENTS.md — `supabase-mcp-rules`), tanpa wajib CLI.
 
 ---
 
@@ -254,7 +238,7 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–37), tracker bug lengkap **BUG-001 s/d BUG-115**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–39), tracker bug lengkap **BUG-001 s/d BUG-117**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
