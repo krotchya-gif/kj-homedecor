@@ -18,7 +18,6 @@ import {
   Package,
   Clock,
   AlertTriangle,
-  Camera,
   Truck,
   Calendar as CalendarIcon
 } from 'lucide-react'
@@ -42,6 +41,8 @@ import PhotoUploadModal from '@/components/orders/PhotoUploadModal'
 import CancelOrderModal from '@/components/orders/CancelOrderModal'
 import ReturnModal from '@/components/orders/ReturnModal'
 import PaymentModal from '@/components/orders/PaymentModal'
+import OrderPipelineStepper from '@/components/orders/OrderPipelineStepper'
+import OrderSurveySection from '@/components/orders/OrderSurveySection'
 
 // Pipeline: ORDER_STAGES_BY_CLASSIFICATION (src/lib/orders.ts) = single source of truth.
 // STATUS_COLORS / PAYMENT_COLORS / ROLE_NEXT_ALLOWED / canRoleAdvanceNext /
@@ -1289,114 +1290,14 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      {/* Status pipeline */}
-      <div
-        style={{
-          background: 'var(--surface)',
-          border: '1px solid #e5e7eb',
-          borderRadius: '0.75rem',
-          padding: '1.25rem',
-          marginBottom: '1.25rem'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, overflowX: 'auto' }}>
-          {ORDER_STATUSES.map((s, i) => {
-            const done = i <= statusIdx
-            const current = s === order.status
-            // Foto lama (path relatif /uploads/... dari era public/uploads) sudah HILANG
-            // (file tidak pernah ada di storage) — jangan hitung sbg foto valid (fix 2026-08-10)
-            const stagePhotos = orderPhotos.filter((p) => p.stage === s && p.photo_url.startsWith('http'))
-            const hasPhotos = stagePhotos.length > 0
-            return (
-              <div key={s} style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 80 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    flex: 1,
-                    gap: '0.375rem',
-                    position: 'relative'
-                  }}
-                >
-                  <div
-                    onClick={() =>
-                      hasPhotos ? setPhotoPopup({ stage: s, photos: stagePhotos.map((p) => p.photo_url) }) : null
-                    }
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: '50%',
-                      background: current ? '#cc7030' : done ? '#d1fae5' : 'var(--neutral-100)',
-                      border: `2px solid ${current ? '#cc7030' : done ? '#22c55e' : 'var(--neutral-200)'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: current ? '#fff' : done ? '#16a34a' : 'var(--neutral-400)',
-                      fontSize: '0.75rem',
-                      fontWeight: '700',
-                      cursor: hasPhotos ? 'pointer' : 'default',
-                      position: 'relative'
-                    }}
-                  >
-                    {done && !current ? <CheckCircle2 size={14} /> : i + 1}
-                    {hasPhotos && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: -4,
-                          right: -4,
-                          width: 14,
-                          height: 14,
-                          borderRadius: '50%',
-                          background: '#ef4444',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '2px solid #fff'
-                        }}
-                      >
-                        <Camera size={8} style={{ color: '#fff' }} />
-                      </div>
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '0.68rem',
-                      fontWeight: current ? '700' : '400',
-                      color: current ? '#cc7030' : done ? 'var(--neutral-700)' : 'var(--neutral-400)',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {STATUS_LABELS[s]}
-                  </span>
-                  {current && (
-                    <span
-                      style={{
-                        fontSize: '0.6rem',
-                        fontWeight: '600',
-                        color: '#cc7030',
-                        background: 'rgba(204,112,48,0.12)',
-                        borderRadius: '0.25rem',
-                        padding: '0.1rem 0.35rem',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      Saat Ini
-                    </span>
-                  )}
-                </div>
-                {i < ORDER_STATUSES.length - 1 && (
-                  <div
-                    style={{ width: 24, height: 2, background: i < statusIdx ? '#22c55e' : 'var(--neutral-200)', flexShrink: 0 }}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      {/* Status pipeline — Phase 6B-3a: diekstrak ke komponen */}
+      <OrderPipelineStepper
+        statuses={ORDER_STATUSES}
+        statusIdx={statusIdx}
+        currentStatus={order.status}
+        photos={orderPhotos}
+        onPhotoClick={(stage, urls) => setPhotoPopup({ stage, photos: urls })}
+      />
 
       {/* Estimasi Selesai */}
       <div
@@ -1546,92 +1447,17 @@ export default function OrderDetailPage() {
         </div>
       </div>
 
-      {/* Hasil Survey (fitur "hasil survey masuk invoice") */}
-      <div className="form-section" style={{ marginBottom: '1rem' }}>
-        <div className="form-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Hasil Survey</span>
-          {order.survey ? (
-            <button
-              onClick={unlinkSurvey}
-              title="Lepas tautan survey dari pesanan ini"
-              style={{ padding: '0.3rem 0.625rem', border: '1px solid #fecaca', borderRadius: '0.375rem', background: '#fef2f2', color: '#dc2626', fontSize: '0.7rem', fontWeight: '600', cursor: 'pointer' }}
-            >
-              Lepas Survey
-            </button>
-          ) : (
-            <button
-              onClick={openSurveyLink}
-              style={{ padding: '0.3rem 0.625rem', border: 'none', borderRadius: '0.375rem', background: '#cc7030', color: '#fff', fontSize: '0.7rem', fontWeight: '600', cursor: 'pointer' }}
-            >
-              🔗 Pilih Survey
-            </button>
-          )}
-        </div>
-        {order.survey ? (
-          <div style={{ fontSize: '0.875rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-            <div>
-              <span style={{ color: 'var(--neutral-400)' }}>No: </span>
-              <strong>{order.survey.survey_number ?? '—'}</strong>{' '}
-              <a href={`/surveyor/survey/${order.survey.id}`} style={{ color: '#cc7030', fontSize: '0.8rem' }}>
-                lihat detail →
-              </a>
-            </div>
-            <div>
-              <span style={{ color: 'var(--neutral-400)' }}>Client: </span>
-              {order.survey.client_name}
-              {order.survey.client_address ? ' — ' + order.survey.client_address : ''}
-            </div>
-            <div>
-              <span style={{ color: 'var(--neutral-400)' }}>Ruangan: </span>
-              {order.survey.rooms?.length ?? 0} ruangan · Tanggal {formatDateDDMMYYYY(order.survey.survey_date)}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '600' }}>
-              Blok HASIL SURVEY akan otomatis masuk ke Invoice PDF.
-            </div>
-          </div>
-        ) : (
-          <div style={{ fontSize: '0.8rem', color: 'var(--neutral-400)' }}>
-            Belum ada survey ter-link. Pilih survey untuk menampilkan hasilnya di invoice.
-          </div>
-        )}
-      </div>
-
-      {/* Modal pilih survey */}
-      <Modal open={surveyLinkOpen} onClose={() => setSurveyLinkOpen(false)} maxWidth={560}>
-        <div style={{ padding: '1.25rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: '700', marginBottom: '0.75rem' }}>Pilih Survey</h3>
-          {surveyLoading ? (
-            <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
-          ) : surveyCandidates.length === 0 ? (
-            <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
-              Belum ada survey ber-status Tersimpan. Buat survey dulu di menu Survey.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: 320, overflowY: 'auto' }}>
-              {surveyCandidates.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => linkSurvey(s.id)}
-                  style={{
-                    textAlign: 'left',
-                    padding: '0.75rem',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '0.5rem',
-                    background: 'var(--surface)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  <strong>{s.survey_number ?? '—'}</strong> · {s.client_name}
-                  <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>
-                    ({s.rooms?.[0]?.count ?? 0} ruangan · {formatDateDDMMYYYY(s.survey_date)})
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </Modal>
+      {/* Hasil Survey (fitur "hasil survey masuk invoice") — Phase 6B-3b: diekstrak ke komponen */}
+      <OrderSurveySection
+        survey={order.survey}
+        surveyLinkOpen={surveyLinkOpen}
+        onCloseSurveyLink={() => setSurveyLinkOpen(false)}
+        surveyCandidates={surveyCandidates}
+        surveyLoading={surveyLoading}
+        onUnlink={unlinkSurvey}
+        onOpenSurveyLink={openSurveyLink}
+        onLinkSurvey={linkSurvey}
+      />
 
       {/* Order Items */}
       <div style={{ marginBottom: '1rem' }}>

@@ -1,6 +1,15 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 30 — Phase 6B-2: ekstrak 5 modal order detail)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 31 — Phase 6B-3: ekstrak section render order detail)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 31: Phase 6B-3 — Ekstrak Section Render Order Detail)
+
+1. ✅ **BUG-112 — `OrderPipelineStepper`** (pipeline 9-10 tahap + foto per stage, props statuses/statusIdx/photos/onPhotoClick) & **`OrderSurveySection`** (Hasil Survey + modal pilih survey) diekstrak ke `components/orders/`.
+2. ✅ Page `admin/orders/[id]` turun **2.923 → 2.749 baris** (total −812 dari 3.561 asli).
+3. ✅ Verifikasi: `tsc` + `build` hijau, `vitest` 27/27. Docs: `bug.md` (BUG-112), `README.md`, `todo.md`.
+
+**Lanjutan 6B:** → **6B-3d** (section tersisa: EstimasiSelesai, CustomerInfo, OrderInfo, OrderItems, PreparationChecklist) → **6B-4** (useOrderDetail hook) → **6B-5** (verifikasi pipeline kirim/pasang + commit final).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 30: Phase 6B-2 — Ekstrak 5 Modal Order Detail)
