@@ -1,8 +1,65 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 24 — Phase 5 perbaikan UI cepat)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 25 — planning Phase 6: refactor & dead code)
 
 ---
+## 📋 PLAN Phase 6 — Refactor & Dead Code (BERTAHAP, anti-regresi)
+
+> **Konteks:** item-item ini BERISIKO REGRESI TINGGI (jalur kritis order pipeline, 1.971 file dead SDK).
+> Karena itu dikerjakan **bertahap kecil** — tiap langkah: build + test + cek halaman, baru lanjut.
+> Prinsip: JANGAN gabung refactor dengan perubahan fungsional; 1 PR kecil = 1 verifikasi.
+
+### Prinsip eksekusi (wajib, per SOP AGENTS.md)
+1. Tiap sub-langkah berdiri sendiri & **build-pass** (`tsc` + `npm run build`) sebelum lanjut.
+2. **Jangan ubah perilaku** selama refactor — hanya memindah/pisah kode (behavior-preserving).
+3. Jalankan `vitest run` (24 test) + cek manual halaman terkait setiap beberapa langkah.
+4. Commit per milestone kecil → mudah rollback kalau ada regresi.
+
+### 6A. Hapus dead code `tiktok-shop-sdk/` (PALING AMAN — mulai dari sini)
+- **Fakta:** 1.971 file, **0 import** di seluruh `src/` (sudah diverifikasi). Integrasi aktual pakai `lib/tiktok.ts` + fetch manual.
+- **Langkah:**
+  1. Pindahkan folder ke `src/lib/_dead/tiktok-shop-sdk/` (bukan hapus langsung → bisa restore) — lalu `tsc` + build untuk bukti 0 break.
+  2. Kalau build hijau → hapus folder permanen.
+  3. Cek dependensi yang hanya dipakai SDK (`request` di package.json — SDK token.ts pakai `request`). Kalau SDK dihapus & `request` tak terpakai → hapus dependency + npm install.
+- **Risiko:** sangat rendah (0 import). Verifikasi: `rg "tiktok-shop-sdk"` kosong.
+
+### 6B. Refactor monolit `admin/orders/[id]` (3.561 baris) — BERTAHAP
+> Jalur kritis pipeline — refactor PURE (pindah kode, tanpa ubah logika). Sudah ada partial: `lib/order-detail.ts`, `lib/orders.ts`, `lib/invoice.ts`, komponen `OrderActivityLog` (todo sesi 6 menyebut sudah selesai).
+
+- **6B-1. Pisahkan logika murni (pure functions) yang masih inline:**
+  - Hitung sisa bayar, parse meter gorden, warna status/payment, `canRoleAdvanceNext`, format label — pindah ke `lib/order-detail.ts` (jika belum), lalu import. **Verifikasi:** test unit baru utk fungsi yang dipindah.
+- **6B-2. Ekstrak modal besar menjadi komponen terpisah** (1 modal per file):
+  - `ScheduleInstallModal` (Jadwalkan Pasang, ~1.100 baris area 2810)
+  - `PhotoUploadModal` (2952)
+  - `CancelOrderModal` (3112) · `ReturnModal` (3179) · `PaymentModal` (3382)
+  - Tiap modal: pindah JSX + handler terkait → komponen ber-props (order, callbacks, supabase). **Verifikasi:** buka detail order sebagai admin — semua modal jalan.
+- **6B-3. Ekstrak section render (non-modal) bertahap:**
+  - `PipelineStepper` (1306) · `CustomerInfoBlock` (1459) · `OrderItemsTable` (1650) · `PreparationChecklist` (1785)
+  - **Verifikasi per section:** render benar utk status kirim & pasang, role berbeda.
+- **6B-4. Terakhir:** page utama jadi komposisi (`useOrderDetail` hook + komponen), target < 1.000 baris.
+
+- **Risiko:** TINGGI (pipeline). Mitigasi: behavior-preserving, test unit utk pure logic, cek manual pipeline kirim+pasang setelah tiap milestone. **JANGAN dikerjakan sekaligus.**
+
+### 6C. Duplikasi laporan `finance/laporan` vs `owner/laporan`
+- **Fakta:** 10 laporan sudah pakai shared component (`components/reports/*` + `variant`). Yang tersisa: **nav page copy-paste** (`finance/laporan/page.tsx` vs `owner/laporan/page.tsx` — beda hanya href).
+- **Langkah:** buat shared `components/reports/ReportsNav.tsx` (prop `basePath`), kedua route jadi wrapper tipis.
+- **Risiko:** rendah. Verifikasi: kedua halaman render daftar 10 laporan dgn link benar.
+
+### 6D. Notifikasi polling → realtime (`NotificationBell`)
+- **Fakta:** polling `setInterval(30s)` di `NotificationBell.tsx:41`.
+- **Langkah:** ganti dengan `supabase.channel('notif').on('postgres_changes', { table: 'notifications', filter: user_id=eq.<id> })` — subscription dibuat saat user login, cleanup di unmount; polling dihapus.
+- **Risiko:** sedang (realtime perlu RLS/REALTIME enabled pada tabel). Verifikasi: notification muncul tanpa refresh saat row baru diinsert (simulasi via SQL). **Catatan:** pastikan `notifications` punya `replica identity` / realtime diaktifkan (cek via MCP `get_advisors`/SQL) SEBELUM eksekusi.
+
+### Urutan eksekusi yang disarankan
+1. **6A** (dead SDK) — risiko paling rendah, buang paling besar (1.971 file).
+2. **6C** (duplikasi laporan) — rendah, cepat.
+3. **6D** (realtime notif) — sedang, mandiri.
+4. **6B** (monolit order detail) — TERAKHIR & paling bertahap (4 sub-langkah), jalur kritis.
+
+> Setiap milestone selesai → update `bug.md`/`README.md`/`todo.md` (SOP #7) + stop & lapor.
+
+---
+
 ## ✅ Selesai (2026-08-13 — Sesi 24: Phase 5 — Perbaikan UI Cepat)
 
 1. ✅ **BUG-102 — Pagination** — `admin/portfolio` (server-side, 12/halaman) & `admin/laundry` (client-side pada filtered, 20/halaman, reset saat search/filter).
