@@ -1,8 +1,45 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 17 — search/sort pesanan, landing theme dari DB, verifikasi SEO)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 18 — plan full E2E suite per role)
 
 ---
+## ◐ Sedang (2026-08-13 — Sesi 18: Full E2E Test Suite per Role)
+
+Plan komprehensif — menutup semua fitur user-facing per role agar tidak ada yang ketinggalan (laundry, surveyor, penjahit, HPP/BOM konsumsi material, input resi, input bayar, cancel/return, booking, dst). Jalankan: `npx playwright test --project=chromium`.
+
+### Keputusan scope
+- ✅ **Reset data**: cukup verifikasi render + modal konfirmasi 2 langkah (TIDAK jalankan reset beneran — menghapus data)
+- ✅ **TikTok**: cukup test permukaan (tombol + error box), tanpa mock API eksternal
+- ✅ Konvensi: reuse `helpers.ts` (`uid`/`expectToast`/`gotoDashboard`) + storage state `.auth/*.json` per role; `describe.serial` per spec
+
+### File spec baru + cakupan (urutan prioritas)
+| # | Spec | Cakupan |
+|---|---|---|
+| 1 | `tests/e2e/laundry.spec.ts` | Admin input task + set **rate/kg** → laundry **terima → lapor selesai + kg_actual** → finance **generate payroll + mark paid (jurnal)**; verifikasi = rate × kg_actual (regresi F-55) |
+| 2 | `tests/e2e/surveyor.spec.ts` | Buat survey (client → **room** + foto + GPS + **tanda tangan**) → simpan → edit → **copy hasil / kirim WA / PDF** → **link ke order** |
+| 3 | `tests/e2e/penjahit.spec.ts` | Job queue → **mulai** → **lapor selesai + meter** (gorden/vitras/roman/kupu²) → **auto-create steam_jobs** + order auto ke `steam`; verifikasi `production_reports` |
+| 4 | `tests/e2e/hpp-bom-consume.spec.ts` | **HPP manual override** + setelah produksi verifikasi **material terkonsumsi** (`order_material_consumption`) + **stok berkurang** di `/gudang/stock` |
+| 5 | `tests/e2e/shipping-resi.spec.ts` | Halaman **`/admin/shipping`**: tandai packed → **Input Resi modal** (kurir + resi + **wajib foto**) → shipped |
+| 6 | `tests/e2e/finance-payments.spec.ts` | Finance **catat bayar** (DP/pelunasan + akun kas) + admin **tambah pembayaran** + finance **Proses Refund** (jalur pasca migration 080) |
+| 7 | `tests/e2e/gudang.spec.ts` | Stock **mutasi/adjust/PO confirm**; **Steam FAIL**→re-queue; **QC fail**; **verifikasi retur** (good→stock in, damaged→dispose); **lembur**; **alerts→Buat PR**; **stock opname submit→finance approve** (stok berubah) |
+| 8 | `tests/e2e/admin-ops.spec.ts` | Booking **accept/buat manual/batalkan**; **cancel order** (void + reversal, verifikasi tanpa jurnal hantu BUG-060); **return order**; **staff CRUD**; **PDF Invoice/PackingList/Faktur**; link survey |
+| 9 | `tests/e2e/owner.spec.ts` | Supplier **PO flow** (create→Dikirim→Terima→Bayar, verifikasi stok masuk + jurnal hutang); **PriceHistoryTab** render; **reset render+modal**; **saldo awal** finance/settings (jurnal pembuka) |
+| 10 | `tests/e2e/finance-ext.spec.ts` | **Cash transfer**; **aset CRUD**; **COA/mapping** render; **stock opname approve** |
+
+### Baseline (sudah ada)
+`smoke` (login 8 role + security + render) · `pipeline-kirim` (9 tahap) · `pipeline-pasang` (10 tahap) · `finance` (kas→piutang→jurnal→laporan) · `catalog-bom` (material→produk→HPP→katalog)
+
+### Kerangka spec siap (dibuat sesi 18, TODO per blok)
+- 10 spec baru dibuat sebagai kerangka valid + test render minimal per halaman kunci → suite langsung bisa dijalankan
+- Isi detail per fitur sesuai tabel di atas (masing-masing blok diberi `// TODO sesi 18`)
+
+### Verifikasi akhir
+1. `npx tsc --noEmit` + `npm run build`
+2. `npx playwright test --project=chromium` — seluruh suite hijau
+3. Update `bug.md` untuk bug nyata yang ditemukan saat test (jangan fix dadakan — catat & laporkan)
+
+---
+
 ## ✅ Selesai (2026-08-13 — Sesi 17: Search Pesanan + Landing Theme DB + SEO)
 
 1. ✅ **Search & sort pesanan** (`/admin/orders`):
