@@ -1,6 +1,6 @@
 # Riwayat Perbaikan & Bug — KJ Homedecor
 
-> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-115)** + **audit modul finance** + **backlog**.
+> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-119)** + **audit modul finance** + **backlog**.
 > File ini menggabungkan `bug.md`, `todo.md`, `audit-finance.md`, dan bagian "Riwayat Perbaikan" README (dikonsolidasi 2026-08-13, sesi 37).
 >
 > Cara pakai: cari bug berdasarkan ID (tabel di bawah) → status & cara fix langsung terlihat di kolom "Cara Fix". Untuk konteks fase, lihat "Riwayat Perbaikan per Fase". Untuk temuan audit finance, lihat bagian "Audit Modul Finance".
@@ -115,7 +115,7 @@
 
 ---
 
-## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-115)
+## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-119)
 
 > Semua bug sudah **Fixed** kecuali BUG-020 (bukan bug — false positive). Bagian detail Gejala/Akar per bug sudah diringkas ke kolom "Cara Fix".
 
