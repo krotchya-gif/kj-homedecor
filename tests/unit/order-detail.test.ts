@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter } from '@/lib/order-detail'
+import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, getOrderLogAction, DEFAULT_CHECKLIST } from '@/lib/order-detail'
 
 describe('canRoleAdvanceNext', () => {
   it('owner = escape hatch, boleh semua stage', () => {
@@ -54,5 +54,33 @@ describe('parseGordenMeter', () => {
     expect(parseGordenMeter('')).toBe(0)
     expect(parseGordenMeter('gorden panjang')).toBe(0)
     expect(parseGordenMeter('250')).toBe(0)
+  })
+})
+
+describe('getOrderLogAction (Phase 6B-1)', () => {
+  it('memetakan status → action log yang valid utk constraint chk_action', () => {
+    expect(getOrderLogAction('new')).toBe('created')
+    expect(getOrderLogAction('payment_ok')).toBe('payment_verified')
+    expect(getOrderLogAction('sorted')).toBe('sorted')
+    expect(getOrderLogAction('production')).toBe('production_started')
+    expect(getOrderLogAction('steam')).toBe('steam_qc_pass')
+    expect(getOrderLogAction('ready')).toBe('qc_pass')
+    expect(getOrderLogAction('packed')).toBe('packed')
+    expect(getOrderLogAction('shipped')).toBe('shipped')
+    expect(getOrderLogAction('done')).toBe('done')
+    expect(getOrderLogAction('cancelled')).toBe('cancelled')
+  })
+
+  it('status tak dikenal → fallback status_changed (jangan pakai status mentah)', () => {
+    expect(getOrderLogAction('scheduled')).toBe('status_changed')
+    expect(getOrderLogAction('installing')).toBe('status_changed')
+    expect(getOrderLogAction('')).toBe('status_changed')
+  })
+})
+
+describe('DEFAULT_CHECKLIST (Phase 6B-1)', () => {
+  it('memuat 6 item persiapan default', () => {
+    expect(DEFAULT_CHECKLIST).toHaveLength(6)
+    expect(DEFAULT_CHECKLIST[0]).toMatchObject({ key: 'besi', done: false, notes: '' })
   })
 })

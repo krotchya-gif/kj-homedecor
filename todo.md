@@ -1,6 +1,14 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 28 — Phase 6D: notifikasi realtime)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 29 — Phase 6B-1: pure logic order detail)
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 29: Phase 6B-1 — Pure Logic Order Detail)
+
+1. ✅ **BUG-110 — `LOG_ACTION` map & `DEFAULT_CHECKLIST` dipindah ke `lib/order-detail.ts`** (`getOrderLogAction` + `DEFAULT_CHECKLIST`) — behavior-preserving, unit test +3 (27 total).
+2. ✅ Verifikasi: `tsc` + `build` hijau, `vitest` 27/27. Docs: `bug.md` (BUG-110), `README.md`, `todo.md`.
+
+**Lanjutan 6B:** → **6B-2** (ekstrak 5 modal besar → komponen: Schedule, Photo, Cancel, Return, Payment) → 6B-3 (section render) → 6B-4 (useOrderDetail hook) → 6B-5 (verifikasi pipeline kirim/pasang + commit final).
 
 ---
 ## ✅ Selesai (2026-08-13 — Sesi 28: Phase 6D — Notifikasi Realtime)

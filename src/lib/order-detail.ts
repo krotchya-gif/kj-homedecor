@@ -110,3 +110,35 @@ export function parseGordenMeter(size: string): number {
   if (!m) return 0
   return Number(m[2]) / 100
 }
+
+/**
+ * Map status order → action di tabel order_logs (constraint chk_action).
+ * Phase 6B-1: dipindah dari page.tsx (logika murni, bisa di-unit-test).
+ * PENTING: semua action harus masuk constraint — fallback 'status_changed'.
+ */
+export const LOG_ACTION: Record<string, string> = {
+  new: 'created',
+  payment_ok: 'payment_verified',
+  sorted: 'sorted',
+  production: 'production_started',
+  steam: 'steam_qc_pass',
+  ready: 'qc_pass',
+  packed: 'packed',
+  shipped: 'shipped',
+  done: 'done',
+  cancelled: 'cancelled'
+}
+
+export function getOrderLogAction(newStatus: string): string {
+  return LOG_ACTION[newStatus] ?? 'status_changed'
+}
+
+/** Checklist persiapan default (order_preparation_checklists). Phase 6B-1. */
+export const DEFAULT_CHECKLIST: { key: string; label: string; done: boolean; notes: string }[] = [
+  { key: 'besi', label: 'Besi', done: false, notes: '' },
+  { key: 'endcup_rollet', label: 'Endcup Rolet', done: false, notes: '' },
+  { key: 'tutup_vitrase', label: 'Tutup Vitrase', done: false, notes: '' },
+  { key: 'braket', label: 'Braket', done: false, notes: '' },
+  { key: 'hook', label: 'Hook', done: false, notes: '' },
+  { key: 'roda', label: 'Roda', done: false, notes: '' }
+]

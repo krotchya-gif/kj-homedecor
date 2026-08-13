@@ -33,7 +33,7 @@ import { Modal } from '@/components/ui/Modal'
 import { generateInvoicePDF, generatePackingListPDF, generateFakturPDF, generateSuratJalanPDF } from '@/lib/invoice'
 import { useToast } from '@/components/ui/Toast'
 import { createSimpleJournal } from '@/utils/journal/create'
-import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, STATUS_COLORS, PAYMENT_COLORS } from '@/lib/order-detail'
+import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, STATUS_COLORS, PAYMENT_COLORS, getOrderLogAction, DEFAULT_CHECKLIST } from '@/lib/order-detail'
 import type { ItemType, OrderLog, OrderPhoto, BomRow, MeterRow, SurveyCand } from '@/lib/order-detail'
 import { formatDateDDMMYYYY } from '@/lib/utils'
 import OrderActivityLog from '@/components/orders/OrderActivityLog'
@@ -147,14 +147,6 @@ export default function OrderDetailPage() {
 
   // Preparation checklist
   const [checklist, setChecklist] = useState<PreparationChecklistItem[]>([])
-  const DEFAULT_CHECKLIST: PreparationChecklistItem[] = [
-    { key: 'besi', label: 'Besi', done: false, notes: '' },
-    { key: 'endcup_rollet', label: 'Endcup Rolet', done: false, notes: '' },
-    { key: 'tutup_vitrase', label: 'Tutup Vitrase', done: false, notes: '' },
-    { key: 'braket', label: 'Braket', done: false, notes: '' },
-    { key: 'hook', label: 'Hook', done: false, notes: '' },
-    { key: 'roda', label: 'Roda', done: false, notes: '' }
-  ]
 
   async function load() {
     setLoading(true)
@@ -282,22 +274,11 @@ export default function OrderDetailPage() {
 
     // 2) Catat ke order_logs untuk audit trail
     // PENTING: semua action harus masuk daftar chk_action — fallback pakai 'status_changed'
-    // (bukan newStatus mentah: 'steam'/'install' tidak ada di constraint → insert 400)
-    const LOG_ACTION: Record<string, string> = {
-      new: 'created',
-      payment_ok: 'payment_verified',
-      sorted: 'sorted',
-      production: 'production_started',
-      steam: 'steam_qc_pass',
-      ready: 'qc_pass',
-      packed: 'packed',
-      shipped: 'shipped',
-      done: 'done',
-      cancelled: 'cancelled'
-    }
+    // (bukan newStatus mentah: 'steam'/'install' tidak ada di constraint → insert 400).
+    // Phase 6B-1: map action dipindah ke lib/order-detail (getOrderLogAction).
     const { error: logErr } = await supabase.from('order_logs').insert({
       order_id: id,
-      action: LOG_ACTION[newStatus] ?? 'status_changed',
+      action: getOrderLogAction(newStatus),
       notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
       staff_id: user?.id ?? null
     })
