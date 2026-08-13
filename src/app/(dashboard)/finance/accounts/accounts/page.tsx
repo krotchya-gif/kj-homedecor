@@ -1,5 +1,4 @@
 'use client'
-import type { JournalLine } from '@/types'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
@@ -10,6 +9,7 @@ import { Plus, Search, Pencil, Trash2, Book } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import { formatRp } from '@/lib/utils'
+import { fetchAccountBalances } from '@/lib/ledger'
 
 const ACCOUNT_TYPES = ['asset', 'liability', 'equity', 'revenue', 'expense'] as const
 const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
@@ -45,7 +45,6 @@ export default function AccountsListPage() {
     code: '',
     name: '',
     type: 'asset' as (typeof ACCOUNT_TYPES)[number],
-    balance: '',
     is_cash_account: false,
     description: ''
   })
@@ -54,23 +53,16 @@ export default function AccountsListPage() {
 
   async function fetchAccounts() {
     setLoading(true)
-    const { data: accountsData } = await supabase.from('accounts').select('*').order('code')
-
-    // Compute balance from journal_lines for each account
-    const accountsWithBalance = await Promise.all(
-      (accountsData ?? []).map(async (acc: Account) => {
-        const { data: lines } = await supabase.from('journal_lines').select('debit, credit').eq('account_id', acc.id)
-        const totalDebit = (lines ?? [] as { debit?: number; credit?: number }[]).reduce((s, l) => s + Number(l.debit ?? 0), 0)
-        const totalCredit = (lines ?? [] as { debit?: number; credit?: number }[]).reduce((s, l) => s + Number(l.credit ?? 0), 0)
-        // For asset/expense: balance = debit - credit
-        // For liability/equity/revenue: balance = credit - debit
-        const isDebitNormal = ['asset', 'expense'].includes(acc.type)
-        const computedBalance = isDebitNormal ? totalDebit - totalCredit : totalCredit - totalDebit
-        return { ...acc, computed_balance: computedBalance + Number(acc.balance ?? 0) }
-      })
-    )
-
-    setAccounts(accountsWithBalance as (Account & { computed_balance: number })[])
+    // Phase 3 (BUG-095): pakai fetchAccountBalances dari lib/ledger — SATU sumber
+    // kebenaran (sama dgn neraca/laba-rugi/buku-besar). Sebelumnya hitung N+1 query
+    // journal_lines + TAMBAH `accounts.balance` → double-count kalau saldo awal pernah
+    // diisi, dan hasilnya DIVERGEN dari laporan keuangan.
+    const { data: balances, error } = await fetchAccountBalances(supabase)
+    if (error) {
+      console.error('Gagal ambil saldo akun:', error)
+      toast('error', 'Gagal memuat saldo akun.')
+    }
+    setAccounts((balances as Account[]) ?? [])
     setLoading(false)
   }
 
@@ -84,7 +76,7 @@ export default function AccountsListPage() {
 
   function openAdd() {
     setEditItem(null)
-    setForm({ code: '', name: '', type: 'asset', balance: '', is_cash_account: false, description: '' })
+    setForm({ code: '', name: '', type: 'asset', is_cash_account: false, description: '' })
     setShowForm(true)
   }
 
@@ -94,7 +86,6 @@ export default function AccountsListPage() {
       code: a.code,
       name: a.name,
       type: a.type,
-      balance: String(a.balance ?? 0),
       is_cash_account: a.is_cash_account ?? false,
       description: a.description ?? ''
     })
@@ -104,11 +95,13 @@ export default function AccountsListPage() {
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
+    // Phase 3 (BUG-095): jangan tulis `balance` — saldo akun dihitung LIVE dari
+    // journal_lines (fetchAccountBalances). Kolom balance tidak dipakai laporan;
+    // menulisnya = sumber double-count & divergensi. Saldo awal diatur via Finance → Settings.
     const payload = {
       code: form.code,
       name: form.name,
       type: form.type,
-      balance: Number(form.balance) || 0,
       is_cash_account: form.is_cash_account,
       description: form.description || null
     }
@@ -232,7 +225,7 @@ export default function AccountsListPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Saldo</span>
-                  <span className="mobile-card-value">{a.balance ?? 0}</span>
+                  <span className="mobile-card-value">{formatRp(a.balance ?? 0)}</span>
                 </div>
                 <div className="mobile-card-actions">
                   <button onClick={() => openEdit(a)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
@@ -285,7 +278,7 @@ export default function AccountsListPage() {
                       </span>
                     </td>
                     <td style={{ fontWeight: '600', color: '#cc7030', textAlign: 'right' }}>
-                      {formatRp(a.computed_balance ?? a.balance ?? 0)}
+                      {formatRp(a.balance ?? 0)}
                     </td>
                     <td>{a.is_cash_account ? '✓' : '—'}</td>
                     <td>
@@ -399,35 +392,7 @@ export default function AccountsListPage() {
               }}
             />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: '0.8rem',
-                  fontWeight: '600',
-                  color: 'var(--neutral-700)',
-                  marginBottom: '0.3rem'
-                }}
-              >
-                Saldo Awal
-              </label>
-              <input
-                type="number"
-                placeholder="0"
-                value={form.balance}
-                onChange={(e) => setForm((f) => ({ ...f, balance: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '0.625rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
-                  outline: 'none'
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', paddingTop: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', paddingTop: '1.5rem' }}>
               <label
                 style={{
                   display: 'flex',
@@ -445,7 +410,6 @@ export default function AccountsListPage() {
                 Akun Kas/Bank?
               </label>
             </div>
-          </div>
           <div>
             <label
               style={{

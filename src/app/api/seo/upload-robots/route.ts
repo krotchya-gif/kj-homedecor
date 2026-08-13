@@ -1,47 +1,62 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import path from 'path'
 import { createClient } from '@/utils/supabase/server'
+import { toClientError } from '@/lib/api-errors'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
-// Security fix (2026-08-11): route ini SEBELUMNYA TANPA AUTH — siapa pun bisa
-// menimpa public/robots.txt. Sekarang: hanya admin/owner yang boleh.
+// Security fix (2026-08-11): route ini SEBELUMNYA TANPA AUTH — siapa pun bisa menimpa
+// robots.txt. 083: isi file kini disimpan di DB (landing_settings.robots_content), bukan
+// filesystem, agar persist saat redeploy. Route publik /robots.txt membaca dari DB.
+
+const MAX_FILE_SIZE = 64 * 1024 // 64KB
 
 export async function POST(req: NextRequest) {
   try {
+    // Phase 2 (BUG-091): rate limit — cegah spam upload robots.
+    const rateLimit = checkRateLimit(getClientIp(req))
+    if (rateLimit.blocked) {
+      return NextResponse.json({ success: false, error: 'Too many requests' }, { status: 429 })
+    }
+
     const supabase = await createClient()
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
     if (!requester || !['admin', 'owner'].includes(requester.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
 
     if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 })
     }
 
     if (!file.name.endsWith('.txt')) {
-      return NextResponse.json({ error: 'Only .txt files allowed' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Only .txt files allowed' }, { status: 400 })
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ success: false, error: 'File terlalu besar (maks 64KB)' }, { status: 400 })
+    }
 
-    const publicDir = path.join(process.cwd(), 'public')
-    await mkdir(publicDir, { recursive: true })
+    const content = await file.text()
 
-    const filePath = path.join(publicDir, 'robots.txt')
-    await writeFile(filePath, buffer)
+    const { error } = await supabase
+      .from('landing_settings')
+      .update({ robots_content: content, updated_at: new Date().toISOString() })
+      .eq('key', 'hero')
 
-    return NextResponse.json({ data: { path: '/robots.txt' }, error: null })
+    if (error) {
+      return NextResponse.json({ success: false, error: toClientError(error) }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, data: { path: '/robots.txt' }, error: null })
   } catch (err) {
     console.error('robots upload error:', err)
-    return NextResponse.json({ data: null, error: { message: 'Upload failed' } }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 })
   }
 }
 

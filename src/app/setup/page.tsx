@@ -21,11 +21,13 @@ export default function SetupPage() {
 
 const [result, setResult] = useState<SetupResult | null>(null)
   const [form, setForm] = useState({
-    owner_email: 'owner@kj.com',
-    owner_password: 'kjowner123',
+    // Phase 5 (BUG-105): kredensial default TIDAK di-hardcode di client (sebelumnya
+    // owner@kj.com/kjowner123 dsb tampil di bundle & bisa dipakai tanpa sadar).
+    owner_email: '',
+    owner_password: '',
     owner_name: 'Owner KJ',
-    admin_email: 'admin@kj.com',
-    admin_password: 'kjadmin123',
+    admin_email: '',
+    admin_password: '',
     admin_name: 'Admin KJ'
   })
 

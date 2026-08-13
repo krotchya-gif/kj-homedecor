@@ -52,9 +52,9 @@ const REPORTS = [
     color: 'teal'
   },
   {
-    title: 'Kronologi HPP',
-    desc: 'Harga pokok penjualan per periode',
-    href: '/finance/laporan/kronologi-hpp',
+    title: 'Kronologi Omzet',
+    desc: 'Kronologi penjualan (omzet) per periode',
+    href: '/finance/laporan/kronologi-omzet',
     icon: <Clock size={24} />,
     color: 'orange'
   },

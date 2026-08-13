@@ -38,8 +38,8 @@ export default function InstallerChecklistPage() {
     { id: '1', label: 'Ukur ulang di lokasi', completed: false },
     { id: '2', label: 'Pasang bracket/genggam', completed: false },
     { id: '3', label: 'Pasang gorden/roman', completed: false },
-    { id: '4', label: 'Rapikan& rapikan kiri-kanan', completed: false },
-    { id: '5', label: 'Pasang ker HEADER/熟知', completed: false },
+    { id: '4', label: 'Rapikan kiri-kanan', completed: false },
+    { id: '5', label: 'Pasang kepala/header', completed: false },
     { id: '6', label: 'Pastikan fungsi optimal', completed: false },
     { id: '7', label: 'Bersihkan area kerja', completed: false },
     { id: '8', label: 'Foto hasil jadi', completed: false }

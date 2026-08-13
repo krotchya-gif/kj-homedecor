@@ -224,8 +224,19 @@ const [pageSize, setPageSize] = useState(10)
         idempotency_key: `hutang_paid:${paymentItem.id}:${payRefId}`
       })
     } catch (jErr) {
+      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal gagal → kembalikan
+      // hutang ke paid_amount/status semula (sebelumnya hanya toast warning →
+      // pembayaran tercatat tanpa jurnal → ledger bocor).
       console.error('Gagal buat jurnal bayar hutang:', jErr)
-      toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun di /finance/accounts/mapping.')
+      await supabase
+        .from('hutang')
+        .update({ paid_amount: fresh.paid_amount ?? 0, status: fresh.status })
+        .eq('id', paymentItem.id)
+      setSaving(false)
+      setShowPayment(false)
+      toast('error',
+        'Pembayaran dibatalkan — jurnal tidak tersimpan. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      return
     }
 
     // F-39 fix: simpan catatan pembayaran (sebelumnya dikumpulkan tapi tidak pernah disimpan)

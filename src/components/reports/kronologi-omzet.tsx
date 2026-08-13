@@ -9,6 +9,7 @@ import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp } from '@/lib/utils'
+import Pagination from '@/components/ui/Pagination'
 
 
 interface LooseRow {
@@ -47,37 +48,46 @@ interface LooseRow {
   [k: string]: unknown
 }
 
-export default function KronologiHPPPage({ variant = 'finance' }: { variant?: 'finance' | 'owner' } = {}) {
+const PAGE_SIZE = 50
+
+export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 'finance' | 'owner' } = {}) {
   const isOwner = variant === 'owner'
   const [startDate, setStartDate] = useState('2020-01-01')
   const [endDate, setEndDate] = useState('2099-12-31')
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<LooseRow[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
 
   const supabase = createClient()
 
+  // Phase 4 (BUG-098): ganti .limit(200) → pagination server-side (range + count exact).
+  // Sebelumnya laporan periode lama selalu terpotong di 200 order → angka omzet salah.
   async function fetchData() {
     setLoading(true)
-    const { data } = await supabase
+    const from = page * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+    const { data, count } = await supabase
       .from('orders')
-      .select('id, order_number, created_at, total_amount, payment_status')
+      .select('id, order_number, created_at, total_amount, payment_status', { count: 'exact' })
       .gte('created_at', startDate)
       .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
       .order('created_at', { ascending: false })
-      .limit(200)
+      .range(from, to)
     setOrders((data ?? []) as LooseRow[])
+    setTotal(count ?? 0)
     setLoading(false)
   }
 
   useEffect(() => {
     fetchData()
-  }, [startDate, endDate])
+  }, [startDate, endDate, page])
 
   function downloadPDF() {
     const doc = new jsPDF()
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(16)
-    doc.text(`Kronologi HPP${isOwner ? ' (Owner)' : ''}`, 14, 20)
+    doc.text(`Kronologi Omzet${isOwner ? ' (Owner)' : ''}`, 14, 20)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
@@ -101,14 +111,16 @@ export default function KronologiHPPPage({ variant = 'finance' }: { variant?: 'f
       }
     })
 
-    doc.save(`${isOwner ? 'owner-' : ''}kronologi-hpp-${startDate}-${endDate}.pdf`)
+    doc.save(`${isOwner ? 'owner-' : ''}kronologi-omzet-${startDate}-${endDate}.pdf`)
   }
+
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
     <div>
       <BackButton href={isOwner ? '/owner/laporan' : '/finance/laporan'} />
       <PageHeader
-        title="Kronologi HPP"
+        title="Kronologi Omzet"
         subtitle={`Omzet penjualan per periode${isOwner ? ' - Tampilan Owner (Read Only)' : ''}`}
         action={<ReportPDFButton onClick={downloadPDF} label="Download PDF" />}
       />
@@ -175,6 +187,20 @@ export default function KronologiHPPPage({ variant = 'finance' }: { variant?: 'f
               ))}
             </tbody>
           </table>
+        )}
+        {total > PAGE_SIZE && (
+          <div style={{ padding: '0 1.25rem 1rem' }}>
+            <Pagination
+              currentPage={page + 1}
+              totalPages={totalPages}
+              onPageChange={(p) => setPage(p - 1)}
+              pageSize={PAGE_SIZE}
+              onPageSizeChange={() => setPage(0)}
+              totalItems={total}
+              startIndex={page * PAGE_SIZE + 1}
+              endIndex={Math.min((page + 1) * PAGE_SIZE, total)}
+            />
+          </div>
         )}
       </div>
     </div>

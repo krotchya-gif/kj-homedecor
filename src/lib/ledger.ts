@@ -73,6 +73,23 @@ export interface AccountLine {
 }
 
 /**
+ * Phase 4 (BUG-100): SATU sumber kebenaran untuk sisa piutang.
+ * Dipakai oleh umur-piutang, finance dashboard, payments, channel, rekonsiliasi,
+ * settings — agar tidak ada lagi "3 rumus piutang" yang beda-beda (F-61 & BUG-034).
+ * Formula: amount − paid − return − fee (fee marketplace dipotong dari tagihan).
+ * Hasil dikunci ≥ 0 (piutang tidak negatif).
+ */
+export function piutangSisa(p: {
+  amount?: number | null
+  paid_amount?: number | null
+  return_amount?: number | null
+  fee_amount?: number | null
+}): number {
+  const sisa = Number(p.amount ?? 0) - Number(p.paid_amount ?? 0) - Number(p.return_amount ?? 0) - Number(p.fee_amount ?? 0)
+  return Math.max(0, sisa)
+}
+
+/**
  * F-58 fix: ambil DETAIL transaksi (journal_lines) per akun untuk Buku Besar,
  * diurutkan per tanggal dengan running balance.
  * Tanda saldo mengikuti normal-side akun (asset/expense debit; liability/equity/revenue credit).

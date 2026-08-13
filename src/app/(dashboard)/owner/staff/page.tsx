@@ -5,31 +5,44 @@ import Link from 'next/link'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Users, Shield, Loader2, Search } from 'lucide-react'
+import { Shield, Loader2, Search, Settings } from 'lucide-react'
 
 interface StaffUser {
   id: string
   name: string
-  email: string
   role: string
   status: string
   created_at: string
-  _count?: { order_logs?: number }
 }
 
 const ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
   admin: 'Admin',
+  finance: 'Finance',
   gudang: 'Gudang',
   penjahit: 'Penjahit',
-  finance: 'Finance',
   installer: 'Installer',
   surveyor: 'Surveyor',
-  owner: 'Owner'
+  laundry: 'Laundry'
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  active: '#d1fae5',
-  inactive: '#fee2e2'
+// Urutan tampil yang diharapkan (Owner paling atas)
+const ROLE_ORDER = ['owner', 'admin', 'finance', 'gudang', 'penjahit', 'installer', 'surveyor', 'laundry']
+
+const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
+  owner: { bg: '#f3e8ff', text: '#7c3aed' },
+  admin: { bg: '#fff3e8', text: '#cc7030' },
+  finance: { bg: '#fef3c7', text: '#92400e' },
+  gudang: { bg: '#dbeafe', text: '#1e40af' },
+  penjahit: { bg: '#dcfce7', text: '#166534' },
+  installer: { bg: '#ede9fe', text: '#6d28d9' },
+  surveyor: { bg: '#ffedd5', text: '#c2410c' },
+  laundry: { bg: '#cffafe', text: '#155e75' }
+}
+
+const STATUS_META: Record<string, { label: string; bg: string; text: string }> = {
+  active: { label: 'Aktif', bg: '#d1fae5', text: '#065f46' },
+  inactive: { label: 'Nonaktif', bg: '#fee2e2', text: '#991b1b' }
 }
 
 export default function OwnerStaffPage() {
@@ -45,12 +58,13 @@ export default function OwnerStaffPage() {
 
   async function loadStaff() {
     setLoading(true)
-    const { data } = await supabase.from('users').select('*, order_logs(count)').order('role')
+    const { data } = await supabase.from('users').select('*')
 
-    // @ts-ignore
+    // Role tak dikenal (jika ada) ditaruh di akhir, bukan diangkat ke atas
     const sorted = (data ?? []).sort((a: StaffUser, b: StaffUser) => {
-      const roleOrder = ['owner', 'admin', 'finance', 'gudang', 'penjahit', 'installer']
-      return roleOrder.indexOf(a.role) - roleOrder.indexOf(b.role)
+      const ia = ROLE_ORDER.indexOf(a.role)
+      const ib = ROLE_ORDER.indexOf(b.role)
+      return (ia === -1 ? Number.MAX_SAFE_INTEGER : ia) - (ib === -1 ? Number.MAX_SAFE_INTEGER : ib)
     })
 
     setStaff(sorted)
@@ -58,11 +72,7 @@ export default function OwnerStaffPage() {
   }
 
   const filtered = staff.filter(
-    (s) =>
-      !search ||
-      s.name?.toLowerCase().includes(search.toLowerCase()) ||
-      s.email?.toLowerCase().includes(search.toLowerCase()) ||
-      s.role?.toLowerCase().includes(search.toLowerCase())
+    (s) => !search || s.name?.toLowerCase().includes(search.toLowerCase()) || s.role?.toLowerCase().includes(search.toLowerCase())
   )
 
   // Stats
@@ -70,6 +80,43 @@ export default function OwnerStaffPage() {
   staff.forEach((s) => {
     roleCounts[s.role] = (roleCounts[s.role] ?? 0) + 1
   })
+
+  const renderRoleBadge = (role: string) => {
+    const color = ROLE_COLORS[role] ?? { bg: 'var(--neutral-100)', text: 'var(--neutral-700)' }
+    return (
+      <span
+        style={{
+          padding: '0.2rem 0.6rem',
+          borderRadius: '999px',
+          fontSize: '0.75rem',
+          fontWeight: '600',
+          background: color.bg,
+          color: color.text
+        }}
+      >
+        <Shield size={10} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+        {ROLE_LABELS[role] ?? role}
+      </span>
+    )
+  }
+
+  const renderStatusBadge = (status: string) => {
+    const meta = STATUS_META[status] ?? { label: status, bg: 'var(--neutral-100)', text: 'var(--neutral-700)' }
+    return (
+      <span
+        style={{
+          padding: '0.2rem 0.6rem',
+          borderRadius: '999px',
+          fontSize: '0.75rem',
+          fontWeight: '600',
+          background: meta.bg,
+          color: meta.text
+        }}
+      >
+        {meta.label}
+      </span>
+    )
+  }
 
   return (
     <div>
@@ -126,7 +173,7 @@ export default function OwnerStaffPage() {
           />
           <input
             type="text"
-            placeholder="Cari nama, email, atau role..."
+            placeholder="Cari nama atau role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -148,37 +195,46 @@ export default function OwnerStaffPage() {
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-                {/* Mobile: card list */}
-      <div className="mobile-only">
-        {loading ? (
-          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
-        ) : (
-          <MobileCards items={filtered} keyOf={(s) => s.id} renderCard={(s) => (
-            <div className="mobile-card">
-                <div className="mobile-card-row">
-                  <span className="mobile-card-label">Nama</span>
-                  <span className="mobile-card-value">{s.name}</span>
-                </div>
-                <div className="mobile-card-row">
-                  <span className="mobile-card-label">Role</span>
-                  <span className="mobile-card-value">{s.role}</span>
-                </div>
-                <div className="mobile-card-row">
-                  <span className="mobile-card-label">Status</span>
-                  <span className="mobile-card-value">{s.status}</span>
-                </div>
-            </div>
-          )} />
-        )}
-      </div>
-      <div className="data-table desktop-only">
+          {/* Mobile: card list */}
+          <div className="mobile-only">
+            {filtered.length === 0 ? (
+              <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+            ) : (
+              <MobileCards
+                items={filtered}
+                keyOf={(s) => s.id}
+                renderCard={(s) => (
+                  <div className="mobile-card">
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Nama</span>
+                      <span className="mobile-card-value">{s.name}</span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Role</span>
+                      <span className="mobile-card-value">{renderRoleBadge(s.role)}</span>
+                    </div>
+                    <div className="mobile-card-row">
+                      <span className="mobile-card-label">Status</span>
+                      <span className="mobile-card-value">{renderStatusBadge(s.status)}</span>
+                    </div>
+                    <div className="mobile-card-row" style={{ borderTop: '1px solid var(--neutral-100)', marginTop: '0.5rem', paddingTop: '0.5rem' }}>
+                      <Link href="/admin/staff" style={{ color: '#cc7030', fontSize: '0.8rem', fontWeight: '600', textDecoration: 'none' }}>
+                        <Settings size={12} style={{ marginRight: 4, verticalAlign: 'middle' }} />
+                        Kelola Staff
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              />
+            )}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="data-table desktop-only">
             <table>
               <thead>
                 <tr>
                   <th>Nama</th>
-                  <th>Email</th>
                   <th>Role</th>
                   <th>Status</th>
                   <th>Aksi</th>
@@ -209,43 +265,16 @@ export default function OwnerStaffPage() {
                         {s.name}
                       </div>
                     </td>
-                    <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{s.email}</td>
+                    <td>{renderRoleBadge(s.role)}</td>
+                    <td>{renderStatusBadge(s.status)}</td>
                     <td>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: '999px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          background: s.role === 'owner' ? '#f3e8ff' : s.role === 'admin' ? '#fff3e8' : '#e0e7ff',
-                          color: s.role === 'owner' ? '#7c3aed' : s.role === 'admin' ? '#cc7030' : '#3730a3'
-                        }}
+                      <Link
+                        href="/admin/staff"
+                        style={{ color: '#cc7030', fontSize: '0.8rem', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                       >
-                        <Shield size={10} style={{ marginRight: 4 }} />
-                        {ROLE_LABELS[s.role] ?? s.role}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.6rem',
-                          borderRadius: '999px',
-                          fontSize: '0.75rem',
-                          fontWeight: '600',
-                          background: STATUS_COLORS[s.status] ?? 'var(--neutral-100)',
-                          color: s.status === 'active' ? '#065f46' : '#991b1b'
-                        }}
-                      >
-                        {s.status}
-                      </span>
-                    </td>
-                    <td>
-                      <a
-                        href={`/admin/staff`}
-                        style={{ color: '#cc7030', fontSize: '0.78rem', fontWeight: '600', textDecoration: 'none' }}
-                      >
-                        Edit
-                      </a>
+                        <Settings size={12} />
+                        Kelola Staff
+                      </Link>
                     </td>
                   </tr>
                 ))}

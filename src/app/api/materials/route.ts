@@ -20,6 +20,13 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Phase 1 (BUG-089): GET material membawa cost_per_unit & stok (data biaya sensitif) —
+  // batasi ke role operasional yang berhak (gudang/admin/owner), konsisten dengan POST.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['admin', 'owner', 'gudang'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { data, error } = await supabase.from('materials').select('*, supplier:suppliers(name)').order('name')
   if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })

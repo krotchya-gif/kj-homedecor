@@ -2,8 +2,15 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken, signTikTokRequest } from '@/lib/tiktok'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
+  // Phase 2 (BUG-091): rate limit — cegah spam trigger sync (memanggil API TikTok eksternal).
+  const rateLimit = checkRateLimit(getClientIp(req))
+  if (rateLimit.blocked) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user }

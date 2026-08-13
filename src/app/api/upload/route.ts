@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 const FolderSchema = z.enum([
   'products',
@@ -65,6 +66,13 @@ const FOLDER_ROLES: Record<string, string[]> = {
 
 export async function POST(request: NextRequest) {
   try {
+    // Phase 2 (BUG-091): rate limit per IP — cegah abuse storage (upload DoS).
+    // 60 req/menit cukup untuk upload interaktif, tapi menghentikan spam otomatis.
+    const rateLimit = checkRateLimit(getClientIp(request), 60, 60_000)
+    if (rateLimit.blocked) {
+      return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+    }
+
     const supabase = await createClient()
     const {
       data: { user }

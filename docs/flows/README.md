@@ -18,6 +18,7 @@ Dokumentasi alur (flow) per modul — **1 file = 1 flow**. Bahasa sederhana, sia
 | 9 | **Marketplace** — TikTok Shop & Shopee sync | [09-marketplace.md](09-marketplace.md) |
 | 10 | **Staff & Hak Akses** — kelola akun & role | [10-staff-akses.md](10-staff-akses.md) |
 | 11 | **Stock Opname** — cocok stok sistem vs fisik | [11-stock-opname.md](11-stock-opname.md) |
+| 12 | **Website (Landing & SEO)** — konten landing, tema, trust badges, sitemap/robots dari DB | _di `pendoman.md` bagian 4.8 & 8_ |
 
 ## Peta alur besar (gambaran)
 
@@ -36,4 +37,4 @@ Order masuk (09) ──► Buat Order (01) ──► Bayar & Approve (04) ──
                                             Retur/Refund (08) ◄── (jika ada masalah)
 ```
 
-> Dibuat: 2026-08-11 · Update saat ada perubahan alur di aplikasi.
+> Dibuat: 2026-08-11 · Update: 2026-08-13 (sesi 19 — landing/SEO, laundry, owner/staff)

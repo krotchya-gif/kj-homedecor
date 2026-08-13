@@ -462,8 +462,15 @@ export default function FinancePaymentsPage() {
         idempotency_key: refundRow?.id ? `refund:${refundRow.id}` : undefined
       })
     } catch (e) {
+      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal reversal gagal →
+      // hapus payment refund & batalkan proses (sebelumnya hanya toast warning →
+      // refund tercatat tanpa jurnal → ledger bocor). Return tetap di status awal.
       console.error('Gagal buat jurnal refund:', e)
-      toast('warning', 'Refund tercatat, TAPI jurnal reversal GAGAL. Periksa /finance/accounts/mapping.')
+      await supabase.from('payments').delete().eq('id', refundRow?.id ?? '')
+      setProcessingRefund(null)
+      toast('error',
+        'Refund dibatalkan — jurnal reversal gagal. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      return
     }
 
     // 3) Kurangi dp/lunas order (lunas dulu, baru dp) + hitung ulang payment_status

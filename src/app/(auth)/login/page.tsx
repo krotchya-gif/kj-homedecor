@@ -72,8 +72,17 @@ export default function LoginPage() {
         setLockedUntil(null)
         const { data: staffData } = await supabase.from('users').select('role').eq('id', data.user.id).single()
 
-        const role = staffData?.role ?? 'admin'
-        router.push(ROLE_DASHBOARDS[role] ?? '/admin')
+        // Phase 1 (BUG-090): fail-closed — user tanpa profil di users (role null) TIDAK
+        // boleh dianggap admin (sebelumnya ?? 'admin'). Alasan: konsisten dgn deny-by-default
+        // di proxy.ts (F-21) & layout; akun tanpa profil = akun cacat, bukan admin.
+        const role = staffData?.role
+        if (!role) {
+          await supabase.auth.signOut()
+          setError('Akun tidak memiliki role valid. Hubungi admin.')
+          toast('error', 'Akun tidak memiliki role valid. Hubungi admin.')
+          return
+        }
+        router.push(ROLE_DASHBOARDS[role] ?? '/login')
         router.refresh()
       }
     } catch {

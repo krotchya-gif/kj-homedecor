@@ -31,6 +31,7 @@ const ROLES = [
   { value: 'finance', label: 'Finance', desc: 'BOM, HPP, pembayaran', color: '#f59e0b' },
   { value: 'installer', label: 'Installer', desc: 'Jadwal pemasangan', color: '#8b5cf6' },
   { value: 'surveyor', label: 'Surveyor', desc: 'Catat hasil survey di lokasi', color: '#cc7030' },
+  { value: 'laundry', label: 'Laundry', desc: 'Terima & selesaikan tugas laundry', color: '#0ea5e9' },
   { value: 'owner', label: 'Owner', desc: 'Overview semua modul', color: '#0d9488' }
 ]
 
@@ -46,6 +47,7 @@ const ROLE_COLORS: Record<string, string> = {
   finance: '#f59e0b',
   installer: '#8b5cf6',
   surveyor: '#cc7030',
+  laundry: '#0ea5e9',
   owner: '#0d9488'
 }
 
@@ -141,8 +143,10 @@ export default function StaffPage() {
   }
 
   async function handleDelete(id: string, name: string) {
-    // F-19 fix: hanya admin/owner yang boleh hapus staff (RLS users masih terbuka
-    // — guard client ini penting agar staff lain tidak bisa hapus user/owner)
+    // F-19 fix: hanya admin/owner yang boleh hapus staff.
+    // Phase 1 (BUG-088): RLS users WRITE sudah dikunci admin/owner via
+    // is_admin_or_owner_sd() (migration 072/078) — guard client ini = defense-in-depth,
+    // BUKAN compensating control utk RLS yang terbuka (komentar lama sudah usang).
     const { data: { user: me } } = await supabase.auth.getUser()
     const { data: myProfile } = await supabase.from('users').select('role').eq('id', me?.id ?? '').single()
     if (!myProfile || !['admin', 'owner'].includes(myProfile.role)) {

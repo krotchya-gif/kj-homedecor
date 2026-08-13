@@ -3,8 +3,15 @@ import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken } from '@/lib/tiktok'
 import { E_WALLET_TIKTOK_ACCOUNT_ID } from '@/config/accounts'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
+  // Phase 2 (BUG-091): rate limit — cegah spam backfill piutang (jurnal).
+  const rateLimit = checkRateLimit(getClientIp(req))
+  if (rateLimit.blocked) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user }

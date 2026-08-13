@@ -11,6 +11,7 @@ import ActionMenu from '@/components/ui/ActionMenu'
 import Pagination from '@/components/ui/Pagination'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
+import { getAccountIdByCode } from '@/config/accounts'
 
 
 interface Piutang {
@@ -144,18 +145,39 @@ const [pageSize, setPageSize] = useState(10)
       if (Number(payload.amount) !== Number(editItem.amount)) {
         const delta = Number(payload.amount) - Number(editItem.amount)
         try {
+          // Phase 3 (BUG-095): lookup akun by code (anti-drift), bukan hardcode UUID.
+          //   naik  → Dr Piutang Customer (1201) / Cr Penjualan (4101)
+          //   turun → Dr Penjualan (4101) / Cr Piutang Customer (1201)
+          const piutangId = await getAccountIdByCode(supabase, '1201')
+          const penjualanId = await getAccountIdByCode(supabase, '4101')
+          if (!piutangId || !penjualanId) {
+            throw new Error('Akun Piutang (1201) / Penjualan (4101) tidak ditemukan — cek /finance/accounts')
+          }
+          const { createSimpleJournal } = await import('@/utils/journal/create')
           await createSimpleJournal({
             transaction_type: 'order_created',
             reference_type: 'piutang_adj',
             reference_id: editItem.id,
             description: `Penyesuaian faktur ${form.invoice_number ?? ''} (${delta > 0 ? 'naik' : 'turun'} Rp${Math.abs(delta).toLocaleString('id-ID')})`,
             amount: Math.abs(delta),
-            debit_account_id: delta > 0 ? '22222222-2222-4222-8222-222222222205' : '55555555-5555-4555-8555-555555555501',
-            credit_account_id: delta > 0 ? '55555555-5555-4555-8555-555555555501' : '22222222-2222-4222-8222-222222222205',
+            debit_account_id: delta > 0 ? piutangId : penjualanId,
+            credit_account_id: delta > 0 ? penjualanId : piutangId,
             idempotency_key: `piutang_adj:${editItem.id}:${crypto.randomUUID()}`
           })
         } catch (jErr) {
+          // Phase 3 (BUG-094): rollback PENUH — jurnal penyesuaian gagal → kembalikan
+          // piutang ke amount semula (sebelumnya hanya console.error → faktur naik/turun
+          // tanpa jurnal → buku besar bocor).
           console.error('Gagal buat jurnal penyesuaian faktur:', jErr)
+          await supabase
+            .from('piutang')
+            .update({ amount: editItem.amount })
+            .eq('id', editItem.id)
+          setPiutang(prev)
+          setSaving(false)
+          setShowForm(false)
+          toast('error', 'Perubahan dibatalkan — jurnal penyesuaian tidak tersimpan. Periksa mapping akun.')
+          return
         }
       }
     } else {
@@ -195,11 +217,19 @@ const [pageSize, setPageSize] = useState(10)
               reference_type: 'piutang',
               reference_id: data.id,
               description: `Faktur piutang ${form.invoice_number ?? ''} — ${form.amount}`,
-              amount: Number(form.amount) || 0
+              amount: Number(form.amount) || 0,
+              idempotency_key: `piutang_created:${data.id}`
             })
           } catch (jErr) {
+            // Phase 3 (BUG-094): rollback PENUH — jurnal gagal → hapus row piutang yang baru
+            // di-insert (sebelumnya toast warning → faktur tanpa jurnal → ledger bocor).
             console.error('Gagal buat jurnal faktur piutang:', jErr)
-            toast('warning', 'Faktur tersimpan, TAPI jurnal GAGAL. Periksa mapping akun.')
+            await supabase.from('piutang').delete().eq('id', data.id)
+            setPiutang((curr) => curr.filter((x) => x.id !== data.id))
+            setSaving(false)
+            setShowForm(false)
+            toast('error', 'Faktur dibatalkan — jurnal tidak tersimpan. Periksa mapping akun.')
+            return
           }
         }
       }
@@ -283,8 +313,18 @@ const [pageSize, setPageSize] = useState(10)
         idempotency_key: `piutang_paid:${payItem.id}:${crypto.randomUUID()}`
       })
     } catch (jErr) {
+      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal gagal → kembalikan
+      // piutang ke paid_amount/status semula (sebelumnya toast warning → ledger bocor).
       console.error('Gagal buat jurnal terima piutang:', jErr)
-      toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun di /finance/accounts/mapping.')
+      await supabase
+        .from('piutang')
+        .update({ paid_amount: fresh.paid_amount ?? 0, status: fresh.status })
+        .eq('id', payItem.id)
+      setPaying(false)
+      setShowPayModal(false)
+      toast('error',
+        'Pembayaran dibatalkan — jurnal tidak tersimpan. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      return
     }
 
     setPaying(false)

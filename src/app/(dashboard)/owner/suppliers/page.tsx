@@ -231,6 +231,37 @@ const [poPageSize, setPoPageSize] = useState(10)
   }
 
   async function updatePOStatus(poId: string, status: string) {
+    // Phase 3 (BUG-096): bayar PO wajib jurnal hutang_paid (Dr Hutang / Cr Kas) —
+    // judul tombol mengklaim "jurnal dibuat otomatis" tapi sebelumnya TIDAK dibuat →
+    // PO paid tanpa jurnal → liabilitas & ledger bocor. Idempotent per PO.
+    if (status === 'paid') {
+      const { data: po } = await supabase
+        .from('purchase_orders')
+        .select('actual_cost, status, supplier:suppliers(name), invoice_document')
+        .eq('id', poId)
+        .single()
+      if (!po) { toast('error', 'PO tidak ditemukan.'); return }
+      const cost = Number(po.actual_cost ?? 0)
+      if (cost > 0) {
+        try {
+          const { createSimpleJournal } = await import('@/utils/journal/create')
+          await createSimpleJournal({
+            transaction_type: 'hutang_paid',
+            reference_type: 'purchase_order',
+            reference_id: poId,
+            description: `PO payment — pelunasan tagihan supplier ${(po.supplier as { name?: string } | null)?.name ?? ''}`,
+            amount: cost,
+            idempotency_key: `po_paid:${poId}`
+          })
+        } catch (jErr) {
+          // Rollback: jurnal gagal → jangan tandai paid (PO tetap di status semula)
+          console.error('Gagal buat jurnal PO paid:', jErr)
+          toast('error', 'PO tidak ditandai lunas — jurnal hutang gagal. Periksa mapping akun di /finance/accounts/mapping.')
+          return
+        }
+      }
+    }
+
     const updates: Record<string, unknown> = { status }
     if (status === 'received') updates.received_at = new Date().toISOString()
     if (status === 'paid') {
@@ -242,6 +273,7 @@ const [poPageSize, setPoPageSize] = useState(10)
     }
     const { error } = await supabase.from('purchase_orders').update(updates).eq('id', poId)
     if (error) { toast('error', 'Gagal update PO: ' + error.message); return }
+    toast('success', `PO → ${status === 'paid' ? 'Lunas' : status}`)
     loadPOs()
   }
 

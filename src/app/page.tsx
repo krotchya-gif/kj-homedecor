@@ -7,8 +7,6 @@ import {
   Shield,
   Truck,
   Star,
-  CheckCircle,
-  Clock,
   Calendar,
   ShoppingBag
 } from 'lucide-react'
@@ -19,14 +17,6 @@ import ScrollHero from '@/components/ScrollHero'
 import AnimatedCounter from '@/components/landing/AnimatedCounter'
 
 const CATEGORY_COLORS = ['#DDC0B4', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626']
-
-const TRUST_ICON_MAP: Record<string, React.ReactNode> = {
-  Star: <Star size={16} />,
-  Shield: <Shield size={16} />,
-  Truck: <Truck size={16} />,
-  Clock: <Clock size={16} />,
-  CheckCircle: <CheckCircle size={16} />
-}
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -81,6 +71,13 @@ export default async function LandingPage() {
   const themeBackground = String(settingsMap.theme_background_color ?? '#FAF5EE')
   const themeText = String(settingsMap.theme_text_color ?? '#2B2321')
 
+  // Trust badges (dari DB, di-render di hero stats; fallback ke angka hardcoded di ScrollHero).
+  // Dibaca langsung dari row (bukan settingsMap — itu sudah di-String-kan).
+  const rawTrust = settingsRes.data?.trust_badges as unknown
+  const trustBadges = Array.isArray(rawTrust)
+    ? (rawTrust as { icon: string; label: string }[]).filter((b) => b && typeof b.label === 'string')
+    : []
+
   return (
     <>
       {/* Inject theme CSS variables */}
@@ -108,6 +105,7 @@ export default async function LandingPage() {
           ctaLink={heroCtaLink}
           whatsappNumber={whatsappNumber}
           whatsappMessage={whatsappMessage}
+          trustBadges={trustBadges}
         />
 
         {/* ===== CATEGORIES ===== */}

@@ -451,7 +451,7 @@ CREATE TABLE IF NOT EXISTS public.laundry_orders (
   kg              NUMERIC NOT NULL,
   meter           NUMERIC DEFAULT 0,
   description     TEXT,
-  status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','done')),
+  status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','in_progress','done','cancelled')),
   assigned_to     UUID REFERENCES public.users(id),
   received_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at    TIMESTAMPTZ,
@@ -541,6 +541,8 @@ CREATE TABLE IF NOT EXISTS public.landing_settings (
   theme_border_radius TEXT DEFAULT '0.5rem',
   theme_font_heading TEXT DEFAULT 'Playfair Display',
   theme_font_body TEXT DEFAULT 'Inter',
+  robots_content TEXT,
+  sitemap_content TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1242,11 +1244,11 @@ CREATE POLICY "Public can read portfolio" ON public.portfolio_posts
 CREATE POLICY "Auth can write portfolio" ON public.portfolio_posts
   FOR ALL USING (auth.role() = 'authenticated');
 
--- Landing settings: public read, auth write (nama policy = kondisi live 053)
+-- Landing settings: public read, write hanya admin/owner (083)
 CREATE POLICY "Public can read landing_settings" ON public.landing_settings
   FOR SELECT USING (true);
-CREATE POLICY "Auth can write landing_settings" ON public.landing_settings
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Admin manage landing_settings" ON public.landing_settings
+  FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
 -- Order logs: authenticated full access (kondisi live)
 CREATE POLICY "Authenticated staff access" ON public.order_logs
@@ -1562,6 +1564,7 @@ CREATE TABLE IF NOT EXISTS public.tiktok_shop_settings (
   token_expires_at TIMESTAMPTZ,
   seller_name     VARCHAR(255),
   open_id         VARCHAR(255),
+  oauth_state     TEXT,
   is_active       BOOLEAN DEFAULT false,
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now()

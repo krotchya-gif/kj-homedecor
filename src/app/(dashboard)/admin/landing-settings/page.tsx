@@ -35,62 +35,6 @@ interface TrustBadge {
   label: string
 }
 
-interface LandingSettings {
-  id: string
-  hero_title: string
-  hero_subtitle: string
-  hero_cta_text: string
-  hero_cta_link: string
-  hero_image_url: string
-  hero_video_url?: string
-  whatsapp_number: string
-  whatsapp_message: string
-  trust_badges: TrustBadge[]
-  instagram?: string
-  facebook?: string
-  tiktok?: string
-  shopee?: string
-  tokopedia?: string
-  address?: string
-  phone?: string
-  // Categories section
-  categories_label?: string
-  categories_title?: string
-  categories_subtitle?: string
-  // Why Us section
-  whyus_label?: string
-  whyus_title?: string
-  whyus_subtitle?: string
-  whyus_card1_title?: string
-  whyus_card1_desc?: string
-  whyus_card2_title?: string
-  whyus_card2_desc?: string
-  whyus_card3_title?: string
-  whyus_card3_desc?: string
-  whyus_card4_title?: string
-  whyus_card4_desc?: string
-  // Portfolio section
-  portfolio_label?: string
-  portfolio_title?: string
-  portfolio_subtitle?: string
-  // CTA Banner
-  cta_badge?: string
-  cta_title?: string
-  cta_subtitle?: string
-  // Theme customization
-  theme_primary_color?: string
-  theme_secondary_color?: string
-  theme_accent_color?: string
-  theme_background_color?: string
-  theme_text_color?: string
-  theme_preset?: string
-  hero_background_image?: string
-  hero_background_overlay_opacity?: number
-  theme_border_radius?: string
-  theme_font_heading?: string
-  theme_font_body?: string
-}
-
 const ICON_OPTIONS = [
   { value: 'Star', label: 'Star', icon: <Star size={14} /> },
   { value: 'Shield', label: 'Shield', icon: <Shield size={14} /> },
@@ -101,7 +45,6 @@ const ICON_OPTIONS = [
 
 export default function AdminLandingSettingsPage() {
   const { toast } = useToast()
-  const [settings, setSettings] = useState<LandingSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -151,12 +94,7 @@ export default function AdminLandingSettingsPage() {
     theme_accent_color: '#f4a857',
     theme_background_color: '#FAF5EE',
     theme_text_color: '#2B2321',
-    theme_preset: 'default',
-    hero_background_image: '',
-    hero_background_overlay_opacity: 0.75,
-    theme_border_radius: '0.5rem',
-    theme_font_heading: 'Playfair Display',
-    theme_font_body: 'Inter'
+    theme_preset: 'default'
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
   const [heroImageUploading, setHeroImageUploading] = useState(false)
@@ -173,7 +111,6 @@ export default function AdminLandingSettingsPage() {
     const { data } = await supabase.from('landing_settings').select('*').eq('key', 'hero').single()
 
     if (data) {
-      setSettings(data as LandingSettings)
       setForm({
         hero_title: data.hero_title ?? '',
         hero_subtitle: data.hero_subtitle ?? '',
@@ -216,12 +153,7 @@ export default function AdminLandingSettingsPage() {
         theme_accent_color: data.theme_accent_color ?? '#f4a857',
         theme_background_color: data.theme_background_color ?? '#FAF5EE',
         theme_text_color: data.theme_text_color ?? '#2B2321',
-        theme_preset: data.theme_preset ?? 'default',
-        hero_background_image: data.hero_background_image ?? '',
-        hero_background_overlay_opacity: data.hero_background_overlay_opacity ?? 0.75,
-        theme_border_radius: data.theme_border_radius ?? '0.5rem',
-        theme_font_heading: data.theme_font_heading ?? 'Playfair Display',
-        theme_font_body: data.theme_font_body ?? 'Inter'
+        theme_preset: data.theme_preset ?? 'default'
       })
       setTrustBadges(data.trust_badges ?? [])
     }
@@ -230,7 +162,9 @@ export default function AdminLandingSettingsPage() {
 
   async function handleSave() {
     setSaving(true)
-    const { error } = await supabase
+    // Phase 5 (BUG-104): pakai count agar bisa deteksi "0 rows updated" —
+    // sebelumnya toast sukses walau row (key='hero') tidak ada/tidak ter-update.
+    const { error, count } = await supabase
       .from('landing_settings')
       .update({
         hero_title: form.hero_title,
@@ -276,20 +210,17 @@ export default function AdminLandingSettingsPage() {
         theme_background_color: form.theme_background_color,
         theme_text_color: form.theme_text_color,
         theme_preset: form.theme_preset,
-        hero_background_image: form.hero_background_image,
-        hero_background_overlay_opacity: form.hero_background_overlay_opacity,
-        theme_border_radius: form.theme_border_radius,
-        theme_font_heading: form.theme_font_heading,
-        theme_font_body: form.theme_font_body,
         updated_at: new Date().toISOString()
       })
       .eq('key', 'hero')
 
     setSaving(false)
-    if (!error) {
-      toast('info', 'Settings saved successfully!')
-    } else {
+    if (error) {
       toast('error', 'Failed to save: ' + error.message)
+    } else if (count === 0) {
+      toast('error', 'Gagal simpan — baris pengaturan (key=hero) tidak ditemukan. Hubungi admin.')
+    } else {
+      toast('info', 'Settings saved successfully!')
     }
   }
 
@@ -345,6 +276,39 @@ export default function AdminLandingSettingsPage() {
     }))
   }
 
+  // Phase 5 (BUG-103): edit warna manual → preset dianggap 'custom' agar kartu
+  // preset tidak lagi menandai warna lama yang sudah diubah user.
+  function updateThemeColor(
+    key: 'theme_primary_color' | 'theme_secondary_color' | 'theme_accent_color' | 'theme_background_color' | 'theme_text_color',
+    color: string
+  ) {
+    setForm((f) => {
+      const activePreset = THEME_PRESETS.find((p) => p.id === f.theme_preset)
+      const presetKeyMap: Record<string, keyof ThemePreset['colors']> = {
+        theme_primary_color: 'primary',
+        theme_secondary_color: 'secondary',
+        theme_accent_color: 'accent',
+        theme_background_color: 'background',
+        theme_text_color: 'text'
+      }
+      const currentColors: Record<string, string> = {
+        theme_primary_color: f.theme_primary_color,
+        theme_secondary_color: f.theme_secondary_color,
+        theme_accent_color: f.theme_accent_color,
+        theme_background_color: f.theme_background_color,
+        theme_text_color: f.theme_text_color
+      }
+      const matchesPreset = activePreset
+        ? (Object.keys(presetKeyMap) as (keyof typeof presetKeyMap)[]).every(
+            (formKey) =>
+              activePreset.colors[presetKeyMap[formKey]].toLowerCase() ===
+              (formKey === key ? color : currentColors[formKey]).toLowerCase()
+          )
+        : false
+      return { ...f, [key]: color, theme_preset: matchesPreset ? f.theme_preset : 'custom' }
+    })
+  }
+
   function handleResetTheme() {
     if (!confirm('Reset theme to default KJ Homedecor colors? This will overwrite your current theme settings.')) {
       return
@@ -357,12 +321,7 @@ export default function AdminLandingSettingsPage() {
       theme_accent_color: defaultPreset.colors.accent,
       theme_background_color: defaultPreset.colors.background,
       theme_text_color: defaultPreset.colors.text,
-      theme_preset: 'default',
-      hero_background_image: '',
-      hero_background_overlay_opacity: 0.75,
-      theme_border_radius: '0.5rem',
-      theme_font_heading: 'Playfair Display',
-      theme_font_body: 'Inter'
+      theme_preset: 'default'
     }))
   }
 
@@ -820,35 +779,35 @@ export default function AdminLandingSettingsPage() {
                 label="Primary Color"
                 value={form.theme_primary_color}
                 defaultValue="#DDC0B4"
-                onChange={(color) => setForm((f) => ({ ...f, theme_primary_color: color }))}
+                onChange={(color) => updateThemeColor('theme_primary_color', color)}
                 description="Main brand color for buttons and accents"
               />
               <ColorPicker
                 label="Secondary Color"
                 value={form.theme_secondary_color}
                 defaultValue="#C9A98C"
-                onChange={(color) => setForm((f) => ({ ...f, theme_secondary_color: color }))}
+                onChange={(color) => updateThemeColor('theme_secondary_color', color)}
                 description="Secondary brand color for gradients"
               />
               <ColorPicker
                 label="Accent Color"
                 value={form.theme_accent_color}
                 defaultValue="#f4a857"
-                onChange={(color) => setForm((f) => ({ ...f, theme_accent_color: color }))}
+                onChange={(color) => updateThemeColor('theme_accent_color', color)}
                 description="Highlight color for badges and icons"
               />
               <ColorPicker
                 label="Background Color"
                 value={form.theme_background_color}
                 defaultValue="#FAF5EE"
-                onChange={(color) => setForm((f) => ({ ...f, theme_background_color: color }))}
+                onChange={(color) => updateThemeColor('theme_background_color', color)}
                 description="Page background color"
               />
               <ColorPicker
                 label="Text Color"
                 value={form.theme_text_color}
                 defaultValue="#2B2321"
-                onChange={(color) => setForm((f) => ({ ...f, theme_text_color: color }))}
+                onChange={(color) => updateThemeColor('theme_text_color', color)}
                 description="Primary text color for headings"
               />
             </div>
@@ -1638,7 +1597,7 @@ export default function AdminLandingSettingsPage() {
                   fontWeight: '700',
                   lineHeight: 1.3,
                   marginBottom: '0.75rem',
-                  fontFamily: form.theme_font_heading
+                  fontFamily: 'Playfair Display, serif'
                 }}
               >
                 {form.hero_title || 'Hero Title'}
@@ -1650,7 +1609,7 @@ export default function AdminLandingSettingsPage() {
                   fontSize: '0.875rem',
                   lineHeight: 1.6,
                   marginBottom: '1.25rem',
-                  fontFamily: form.theme_font_body
+                  fontFamily: 'Inter, sans-serif'
                 }}
               >
                 {form.hero_subtitle || 'Subtitle text...'}
@@ -1662,7 +1621,7 @@ export default function AdminLandingSettingsPage() {
                     padding: '0.625rem 1.25rem',
                     background: `linear-gradient(135deg, ${form.theme_primary_color}, ${form.theme_secondary_color})`,
                     color: '#fff',
-                    borderRadius: form.theme_border_radius,
+                    borderRadius: '0.5rem',
                     fontSize: '0.8rem',
                     fontWeight: '600'
                   }}
@@ -1674,7 +1633,7 @@ export default function AdminLandingSettingsPage() {
                     padding: '0.625rem 1.25rem',
                     border: '2px solid rgba(255,255,255,0.4)',
                     color: '#fff',
-                    borderRadius: form.theme_border_radius,
+                    borderRadius: '0.5rem',
                     fontSize: '0.8rem',
                     fontWeight: '600',
                     display: 'flex',

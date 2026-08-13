@@ -63,6 +63,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Phase 1 (BUG-086): GET order membawa PII pelanggan (customer(*) phone/address) —
+  // batasi ke role operasional, konsisten dengan GET koleksi di api/orders/route.ts.
+  // Alasan: role penjahit/surveyor/installer tidak butuh akses PII order semua pelanggan.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['admin', 'owner', 'finance', 'gudang'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { data, error } = await supabase
     .from('orders')
     .select('*, customer:customers(*), order_items(*, product:products(name))')

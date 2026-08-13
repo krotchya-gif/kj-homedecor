@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Settings, Save, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { formatRp } from '@/lib/utils'
+import { getAccountIdByCode } from '@/config/accounts'
 
 
 
@@ -88,7 +89,11 @@ export default function FinanceSettingsPage() {
       //   delta < 0 (saldo turun) → Cr Kas / Dr Modal
       try {
         const { createSimpleJournal } = await import('@/utils/journal/create')
-        const modalId = '44444444-4444-4444-8444-444444444401' // Modal Pemilik
+        // Phase 3 (BUG-095): lookup Modal by code 3101 (anti-drift), bukan hardcode UUID.
+        const modalId = await getAccountIdByCode(supabase, '3101') // Modal Pemilik
+        if (!modalId) {
+          throw new Error('Akun Modal (3101) tidak ditemukan — cek /finance/accounts')
+        }
         await createSimpleJournal({
           transaction_type: 'opening_balance',
           reference_type: 'cash_account',
@@ -96,7 +101,8 @@ export default function FinanceSettingsPage() {
           description: `Penyesuaian saldo kas/bank ${id.slice(0, 8)} (${delta > 0 ? 'naik' : 'turun'})`,
           amount: Math.abs(delta),
           debit_account_id: delta > 0 ? acc.account_id : modalId,
-          credit_account_id: delta > 0 ? modalId : acc.account_id
+          credit_account_id: delta > 0 ? modalId : acc.account_id,
+          idempotency_key: `opening_balance:${id}:${newBalance}`
         })
       } catch (jErr) {
         console.error('Gagal buat jurnal pembuka:', jErr)

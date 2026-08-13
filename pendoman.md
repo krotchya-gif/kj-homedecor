@@ -137,8 +137,8 @@ Halaman `/admin` — pusat kegiatan toko.
 | **Shipping** | Mengantar kiriman: isi resi + foto |
 | **Laundry** | Mencatat layanan laundry |
 | **Staff** | Membuat akun karyawan baru |
-| **Landing Settings** | Mengatur tampilan halaman depan website |
-| **Portfolio / SEO / Reports** | Konten website & laporan |
+| **Landing Settings** | Mengatur tampilan halaman depan website (hero, tema warna, WhatsApp, trust badges, konten section) |
+| **Portfolio / SEO / Reports** | Konten website & laporan. SEO: meta title/description, Pixel/GA4, upload **sitemap.xml & robots.txt** (disimpan di database — aman saat website di-redeploy) |
 
 **Tugas utama Admin:**
 - **Membuat pesanan** (nama pelanggan, produk, total, DP, jenis Kirim/Pasang)
@@ -251,6 +251,11 @@ Halaman `/laundry` — untuk karyawan laundry.
 - Gaji dihitung otomatis di **Finance → Laundry Payroll** (berat × tarif per kg)
 
 > 💡 Admin juga tetap bisa melihat semua tugas & membuat tugas baru di **Admin → Laundry**. Tapi berat yang dipakai untuk gaji tetap berat yang dilaporkan karyawan laundry.
+
+**Soal payroll (Finance → Laundry Payroll):**
+- Klik **"Generate Payroll"** → hitung upah per karyawan = total berat aktual (kg) × tarif per kg.
+- Payroll yang sudah **dibayar (Lunas) bersifat final** — tidak bisa di-generate ulang di bulan yang sama.
+- Jika ada tugas laundry selesai **setelah payroll bulan itu dibayar**, tugas tersebut otomatis masuk **payroll bulan berikutnya** (bukan ditolak/hilang).
 
 ---
 

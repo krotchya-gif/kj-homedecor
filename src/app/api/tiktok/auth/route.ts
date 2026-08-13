@@ -2,31 +2,42 @@ import crypto from 'crypto'
 import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'
 
-// GET /api/tiktok/auth?code=xxx&state=shop_id → OAuth callback from TikTok
+// GET /api/tiktok/auth?code=xxx&state=nonce → OAuth callback from TikTok
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url)
     const code = searchParams.get('code')
-    const state = searchParams.get('state') // shop_id passed during redirect
+    const state = searchParams.get('state') // random nonce (BUG-093), bukan shop_id
     const shopCipherFromUrl = searchParams.get('shop_cipher') // TikTok returns shop_cipher in redirect URL
 
     // OAuth callback — exchange code for access token.
     // Redirect dari TikTok (server-to-server flow, tanpa session browser yang valid di sini).
     // Security fix (2026-08-12): HAPUS gate `getUser()` pada service client — service client
     // tanpa cookie storage selalu null → callback selalu 401 → koneksi TikTok tidak pernah
-    // selesai. Keamanan callback dijamin oleh `code` OAuth (single-use) + `state` (shop_id).
+    // selesai. Keamanan callback dijamin oleh `code` OAuth (single-use) + `state` nonce.
     const supabase = createServiceClient()
 
     // OAuth callback — exchange code for access token
     if (code && state) {
-      const { data: settings } = await supabase.from('tiktok_shop_settings').select('*').eq('id', state).single()
+      // Phase 2 (BUG-093): cari settings via oauth_state (nonce single-use), bukan id.
+      // Nonce dihapus setelah dipakai → replay state ditolak.
+      const { data: settings } = await supabase
+        .from('tiktok_shop_settings')
+        .select('*')
+        .eq('oauth_state', state)
+        .single()
 
       if (!settings) {
         return NextResponse.redirect(new URL('/owner/tiktok?error=settings_not_found', BASE_URL))
       }
+
+      // Hapus nonce SEKARANG (single-use) — kalau token exchange gagal, user harus
+      // re-authorize ulang. Ini mencegah replay state oleh pihak lain.
+      await supabase.from('tiktok_shop_settings').update({ oauth_state: null }).eq('id', settings.id)
 
       try {
         const qs = new URLSearchParams({
@@ -98,7 +109,7 @@ export async function GET(req: NextRequest) {
             }
           }
 
-          await supabase.from('tiktok_shop_settings').update(updateData).eq('id', state)
+          await supabase.from('tiktok_shop_settings').update(updateData).eq('id', settings.id)
         }
 
         return NextResponse.redirect(new URL('/owner/tiktok?success=connected', BASE_URL))
@@ -115,6 +126,12 @@ export async function GET(req: NextRequest) {
 
 // POST /api/tiktok/auth — save/update TikTok Shop settings
 export async function POST(req: NextRequest) {
+  // Phase 2 (BUG-091): rate limit — cegah spam simpan kredensial / generate OAuth URL.
+  const rateLimit = checkRateLimit(getClientIp(req))
+  if (rateLimit.blocked) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user }
@@ -151,10 +168,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: toClientError(error) }, { status: 500 })
   }
 
+  // Phase 2 (BUG-093): state OAuth = random nonce (single-use), disimpan di DB agar
+  // callback bisa mencocokkan & menghapusnya. Bukan shop_id (predictable).
+  const oauthState = crypto.randomBytes(24).toString('hex')
+  await supabase.from('tiktok_shop_settings').update({ oauth_state: oauthState }).eq('id', data.id)
+
   // Build OAuth URL with required scopes
   const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'}/api/tiktok/auth`
   const scope = ['seller.order.info', 'seller.finance.info', 'seller.authorization.info', 'seller.shop.info'].join(',')
-  const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${app_key}&state=${data.id}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`
+  const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${app_key}&state=${oauthState}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`
 
   // F-19 fix: TIDAK mengembalikan settings (app_secret tidak boleh bocor ke client)
   return NextResponse.json({ settings_id: data.id, oauth_url: oauthUrl })
@@ -162,6 +184,12 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/tiktok/auth — update existing settings
 export async function PUT(req: NextRequest) {
+  // Phase 2 (BUG-091): rate limit.
+  const rateLimit = checkRateLimit(getClientIp(req))
+  if (rateLimit.blocked) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user }

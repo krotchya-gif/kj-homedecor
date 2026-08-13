@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Edit, Trash2, X, ImageIcon, Loader2, ExternalLink } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
 import { useToast } from '@/components/ui/Toast'
+import Pagination from '@/components/ui/Pagination'
 
 interface PortfolioPost {
   id: string
@@ -17,9 +18,13 @@ interface PortfolioPost {
   updated_at: string
 }
 
+const PAGE_SIZE = 12
+
 export default function AdminPortfolioPage() {
   const { toast } = useToast()
   const [posts, setPosts] = useState<PortfolioPost[]>([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingPost, setEditingPost] = useState<PortfolioPost | null>(null)
@@ -36,16 +41,21 @@ export default function AdminPortfolioPage() {
 
   useEffect(() => {
     loadPosts()
-  }, [])
+  }, [page])
 
   async function loadPosts() {
     setLoading(true)
-    const { data } = await supabase
+    // Phase 5 (BUG-102): pagination server-side — sebelumnya .limit(50) tanpa
+    // pagination → post lama tak pernah tampil saat data bertambah.
+    const from = page * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+    const { data, count } = await supabase
       .from('portfolio_posts')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .limit(50)
+      .range(from, to)
     setPosts(data ?? [])
+    setTotal(count ?? 0)
     setLoading(false)
   }
 
@@ -346,6 +356,19 @@ export default function AdminPortfolioPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {total > PAGE_SIZE && (
+        <Pagination
+          currentPage={page + 1}
+          totalPages={Math.max(1, Math.ceil(total / PAGE_SIZE))}
+          onPageChange={(p) => setPage(p - 1)}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={() => setPage(0)}
+          totalItems={total}
+          startIndex={page * PAGE_SIZE + 1}
+          endIndex={Math.min((page + 1) * PAGE_SIZE, total)}
+        />
       )}
 
       {/* Create/Edit Modal */}

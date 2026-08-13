@@ -37,10 +37,10 @@ export async function POST(request: Request) {
   const {
     data: { user }
   } = await supabase.auth.getUser()
-  // Security fix: wajib login + role gudang/admin/owner (sebelumnya fail-open!)
+  // Security fix: wajib login + role gudang/admin/owner + status active (Phase 1 BUG-089)
   if (!user) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
-  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (!requester || !['gudang', 'admin', 'owner'].includes(requester.role)) {
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['gudang', 'admin', 'owner'].includes(requester.role)) {
     return NextResponse.json({ error: { message: 'Forbidden' } }, { status: 403 })
   }
 

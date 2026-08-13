@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 interface TikTokLineItem {
   sale_price?: number | string
@@ -12,7 +13,13 @@ interface TikTokLineItem {
   sku_name?: string
 }
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
+  // Phase 2 (BUG-091): rate limit — cegah spam link order (insert order + jurnal).
+  const rateLimit = checkRateLimit(getClientIp(req))
+  if (rateLimit.blocked) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const supabase = await createClient()
   const {
     data: { user }

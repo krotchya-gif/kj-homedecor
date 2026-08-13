@@ -34,11 +34,16 @@ export default function OwnerMarketplacePage() {
 
   async function loadOrders() {
     setLoading(true)
+    // Phase 4 (BUG-099): hitung akhir bulan dinamis — sebelumnya .lte('...-31') →
+    // bulan 30 hari (Apr/Jun/Sep/Nov) & Februari order-nya tidak pernah terhitung.
+    const monthStart = `${period.year}-${String(period.month).padStart(2, '0')}-01`
+    const lastDay = new Date(period.year, period.month, 0).getDate()
+    const monthEnd = `${period.year}-${String(period.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
     const { data } = await supabase
       .from('orders')
       .select('id, source, total_amount, payment_status, created_at')
-      .gte('created_at', `${period.year}-${String(period.month).padStart(2, '0')}-01`)
-      .lte('created_at', `${period.year}-${String(period.month).padStart(2, '0')}-31`)
+      .gte('created_at', `${monthStart}T00:00:00`)
+      .lte('created_at', `${monthEnd}T23:59:59`)
       .order('created_at', { ascending: false })
     setOrders(data ?? [])
     setLoading(false)

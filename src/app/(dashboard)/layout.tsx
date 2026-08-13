@@ -26,7 +26,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: staffData } = await supabase.from('users').select('name, role').eq('id', user.id).single()
 
-  const role = staffData?.role ?? 'admin'
+  // Phase 1 (BUG-090): fail-closed — user tanpa profil users (role null) TIDAK boleh
+  // masuk dashboard (sebelumnya ?? 'admin' → bisa dianggap admin). Alasan: konsisten
+  // deny-by-default (F-21 di proxy & login). Redundan dgn proxy, tapi defense-in-depth.
+  const role = staffData?.role
+  if (!role) {
+    redirect('/login')
+  }
   const name = staffData?.name ?? user.email ?? 'Staff'
 
   // Validate that user's role matches the dashboard path segment

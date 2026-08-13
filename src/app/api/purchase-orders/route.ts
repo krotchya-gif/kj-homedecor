@@ -26,6 +26,12 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Phase 1 (BUG-089): GET PO membawa data pembelian/supplier — batasi ke role pengadaan.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !ALLOWED_ROLES.includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
 
@@ -47,8 +53,9 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
-  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (!requester || !ALLOWED_ROLES.includes(requester.role)) {
+  // Phase 1 (BUG-089): tambah cek status='active' — user nonaktif tidak boleh aksi.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !ALLOWED_ROLES.includes(requester.role)) {
     return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
   }
 

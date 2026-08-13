@@ -9,6 +9,7 @@ import { Plus, Search, Pencil, Trash2, LandPlot } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import { formatRp } from '@/lib/utils'
+import { getAccountIdByCode } from '@/config/accounts'
 
 
 interface Asset {
@@ -139,17 +140,32 @@ export default function AssetsPage() {
           if (purchaseValue > 0) {
             try {
               const { createSimpleJournal } = await import('@/utils/journal/create')
+              // Phase 3 (BUG-095): lookup akun by code (anti-drift), bukan hardcode UUID.
+              const peralatanId = await getAccountIdByCode(supabase, '1401')
+              const kasId = await getAccountIdByCode(supabase, '1101')
+              if (!peralatanId || !kasId) {
+                throw new Error('Akun COA 1401/1101 tidak ditemukan — cek /finance/accounts')
+              }
               await createSimpleJournal({
                 transaction_type: 'asset_purchase',
                 reference_type: 'asset',
                 reference_id: data.id,
                 description: `Pembelian aset ${form.name}`,
                 amount: purchaseValue,
-                debit_account_id: '22222222-2222-4222-8222-222222222208', // Peralatan Toko
-                credit_account_id: '22222222-2222-4222-8222-222222222201' // Kas
+                debit_account_id: peralatanId, // Peralatan Toko
+                credit_account_id: kasId, // Kas
+                idempotency_key: `asset_purchase:${data.id}`
               })
             } catch (jErr) {
+              // Phase 3 (BUG-094): rollback PENUH — jurnal gagal → hapus row aset yang baru
+              // di-insert (sebelumnya hanya console.error → aset tanpa jurnal → neraca bocor).
               console.error('Gagal buat jurnal pembelian aset:', jErr)
+              await supabase.from('assets').delete().eq('id', data.id)
+              setAssets((curr) => curr.filter((x) => x.id !== data.id))
+              setSaving(false)
+              setShowForm(false)
+              toast('error', 'Aset dibatalkan — jurnal tidak tersimpan. Periksa mapping akun.')
+              return
             }
           }
         }

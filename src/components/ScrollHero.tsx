@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import HeroParticles from './landing/HeroParticles'
-import { ChevronRight, MessageCircle } from 'lucide-react'
+import { ChevronRight, MessageCircle, Star, Shield, Truck, Clock, CheckCircle } from 'lucide-react'
 
 interface ScrollHeroProps {
   videoUrl?: string | null
@@ -13,6 +13,21 @@ interface ScrollHeroProps {
   ctaLink?: string
   whatsappNumber?: string
   whatsappMessage?: string
+  trustBadges?: { icon: string; label: string }[]
+}
+
+const DEFAULT_TRUST_STATS = [
+  { n: 500, suf: '+', label: 'Pelanggan Puas' },
+  { n: 8, suf: '+', label: 'Tahun Pengalaman' },
+  { n: 100, suf: '%', label: 'Garansi Kualitas' }
+]
+
+const TRUST_ICONS: Record<string, React.ReactNode> = {
+  Star: <Star size={14} />,
+  Shield: <Shield size={14} />,
+  Truck: <Truck size={14} />,
+  Clock: <Clock size={14} />,
+  CheckCircle: <CheckCircle size={14} />
 }
 
 export default function ScrollHero({
@@ -23,7 +38,8 @@ export default function ScrollHero({
   ctaText,
   ctaLink = '#products',
   whatsappNumber = '6281234567890',
-  whatsappMessage = 'Halo KJ Homedecor, saya ingin konsultasi gorden'
+  whatsappMessage = 'Halo KJ Homedecor, saya ingin konsultasi gorden',
+  trustBadges
 }: ScrollHeroProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoError, setVideoError] = useState(false)
@@ -256,18 +272,35 @@ export default function ScrollHero({
             animation: 'fadeUp 0.7s 0.7s ease both'
           }}
         >
-          {[
-            { n: 500, suf: '+', label: 'Pelanggan Puas' },
-            { n: 8, suf: '+', label: 'Tahun Pengalaman' },
-            { n: 100, suf: '%', label: 'Garansi Kualitas' }
-          ].map((s) => (
+          {(trustBadges && trustBadges.length > 0
+            ? trustBadges.map((b) => ({ icon: TRUST_ICONS[b.icon] ?? <Star size={14} />, label: b.label, custom: true as const }))
+            : DEFAULT_TRUST_STATS.map((s) => ({ ...s, custom: false as const }))
+          ).map((s) => (
             <div key={s.label}>
-              <div
-                style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', fontWeight: 700, color: '#DDC0B4' }}
-              >
-                {s.n}
-                {s.suf}
-              </div>
+              {s.custom ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    fontFamily: 'Playfair Display, serif',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: '#DDC0B4',
+                    minHeight: '2rem'
+                  }}
+                >
+                  {s.icon}
+                </div>
+              ) : (
+                <div
+                  style={{ fontFamily: 'Playfair Display, serif', fontSize: '2rem', fontWeight: 700, color: '#DDC0B4' }}
+                >
+                  {(s as { n: number; suf: string }).n}
+                  {(s as { n: number; suf: string }).suf}
+                </div>
+              )}
               <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', marginTop: '0.25rem' }}>{s.label}</div>
             </div>
           ))}

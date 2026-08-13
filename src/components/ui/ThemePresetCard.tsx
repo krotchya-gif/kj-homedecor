@@ -33,11 +33,11 @@ export const THEME_PRESETS: ThemePreset[] = [
     name: 'Modern Minimalis',
     description: 'Clean & professional dark gray with blue accent',
     colors: {
-      primary: 'var(--neutral-800)',
-      secondary: 'var(--neutral-700)',
+      primary: '#1f2937',
+      secondary: '#374151',
       accent: '#3b82f6',
-      background: 'var(--neutral-100)',
-      text: 'var(--neutral-900)'
+      background: '#f3f4f6',
+      text: '#111827'
     }
   },
   {

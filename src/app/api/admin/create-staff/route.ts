@@ -3,18 +3,28 @@ import { toClientError } from '@/lib/api-errors'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 const CreateStaffSchema = z.object({
   name: z.string().min(2, 'Nama minimal 2 karakter').max(100),
   email: z.string().email('Email tidak valid'),
-  password: z.string().min(6, 'Password minimal 6 karakter').max(100),
-  role: z.enum(['admin', 'gudang', 'penjahit', 'finance', 'installer', 'surveyor', 'owner'], {
+  // Phase 2 (BUG-092): password min 8 (sebelumnya 6 — terlalu lemah utk akun backend).
+  password: z.string().min(8, 'Password minimal 8 karakter').max(100),
+  // Phase 2 (BUG-092): tambah 'laundry' — role ada di DB & UI tapi absen dari enum
+  // → admin tidak bisa buat akun laundry via API (inconsistent dgn 8 role).
+  role: z.enum(['admin', 'gudang', 'penjahit', 'finance', 'installer', 'surveyor', 'owner', 'laundry'], {
     message: 'Role tidak valid'
   })
 })
 
 export async function POST(request: NextRequest) {
   try {
+    // Phase 2 (BUG-092): rate limit — cegah brute-force akun / email enumeration.
+    const rateLimit = checkRateLimit(getClientIp(request))
+    if (rateLimit.blocked) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+
     const body = await request.json()
     const parsed = CreateStaffSchema.safeParse(body)
 
@@ -47,9 +57,19 @@ export async function POST(request: NextRequest) {
     if (!requester) {
       return NextResponse.json({ error: 'Unauthorized — silakan login' }, { status: 401 })
     }
-    const { data: requesterData } = await supabase.from('users').select('role').eq('id', requester.id).single()
-    if (requesterData?.role !== 'admin' && requesterData?.role !== 'owner') {
-      return NextResponse.json({ error: 'Hanya Admin yang dapat membuat akun staff' }, { status: 403 })
+    // Phase 2 (BUG-092): cek status='active' — admin/owner yang dinonaktifkan
+    // tidak boleh membuat akun (sebelumnya hanya cek role).
+    const { data: requesterData } = await supabase
+      .from('users')
+      .select('role, status')
+      .eq('id', requester.id)
+      .single()
+    if (
+      !requesterData ||
+      requesterData.status !== 'active' ||
+      (requesterData.role !== 'admin' && requesterData.role !== 'owner')
+    ) {
+      return NextResponse.json({ error: 'Hanya Admin aktif yang dapat membuat akun staff' }, { status: 403 })
     }
 
     // Create auth user
@@ -60,7 +80,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError) {
-      return NextResponse.json({ error: toClientError(authError) }, { status: 400 })
+      // Phase 2 (BUG-092): anti-enumeration — error auth (mis. "email already registered")
+      // DI-REDAKSI ke pesan generik; detail hanya di log server.
+      console.error('create-staff auth error:', authError.message)
+      return NextResponse.json({ error: 'Gagal membuat akun. Periksa kembali data.' }, { status: 400 })
     }
 
     // Create user record

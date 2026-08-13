@@ -11,6 +11,7 @@ import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
 import { SectionCard } from '@/components/ui/SectionCard'
 import { formatRp } from '@/lib/utils'
+import { piutangSisa } from '@/lib/ledger'
 
 const COLORS = ['#16a34a', '#f59e0b', '#ef4444', '#2563eb', '#9333ea']
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
@@ -113,10 +114,8 @@ export default function FinanceDashboard() {
     .map(([k, v]) => ({ name: STATUS_LABELS[k] ?? k, value: v }))
 
   // F-61 fix: piutang aging & total dari TABEL piutang (sumber utama)
-  const piutangTotal = piutang.reduce(
-    (s, p) => s + Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)),
-    0
-  )
+  // Phase 4 (BUG-100): pakai helper piutangSisa (satu sumber kebenaran).
+  const piutangTotal = piutang.reduce((s, p) => s + piutangSisa(p), 0)
 
   // Orders waiting for Finance verification (2026-07-31: gate di DEPAN — status='new' menunggu Finance approve ke payment_ok)
   // Finance approve → status='payment_ok' (verifikasi DP/bukti transfer sebelum produksi, anti transfer palsu)
@@ -129,7 +128,7 @@ export default function FinanceDashboard() {
   piutang.forEach((p) => {
     const anchor = p.invoice_date ?? p.created_at ?? ''
     const days = Math.floor((now.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
-    const sisa = Math.max(0, (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0))
+    const sisa = piutangSisa(p)
     if (days < 30) aging['<30'] += sisa
     else if (days < 60) aging['30-60'] += sisa
     else if (days < 90) aging['60-90'] += sisa

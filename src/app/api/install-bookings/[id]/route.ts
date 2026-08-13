@@ -31,6 +31,27 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
   }
 
+  // Phase 1 (BUG-087): GET membawa PII customer — role check admin/owner/finance,
+  // installer hanya booking miliknya (mirror PUT). Role lain ditolak.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  const role = requester?.role ?? ''
+  const isStaffView = requester?.status === 'active' && ['admin', 'owner', 'finance'].includes(role)
+  const isInstaller = requester?.status === 'active' && role === 'installer'
+  if (!isStaffView && !isInstaller) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
+  if (isInstaller) {
+    const { data: booking } = await supabase
+      .from('install_bookings')
+      .select('installer_id')
+      .eq('id', id)
+      .single()
+    if (!booking || booking.installer_id !== user.id) {
+      return NextResponse.json({ data: null, error: { message: 'Forbidden: bukan booking Anda' } }, { status: 403 })
+    }
+  }
+
   const { data, error } = await supabase
     .from('install_bookings')
     .select('*, customer:customers(*), installer:users(name), order:orders(*)')

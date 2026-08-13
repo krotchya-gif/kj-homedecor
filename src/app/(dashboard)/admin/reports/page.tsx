@@ -93,41 +93,51 @@ const [prodPageSize, setProdPageSize] = useState(10)
 
   async function loadOrders() {
     setLoading(true)
-    const query = supabase
+    // Phase 4 (BUG-101): filter periode pindah ke SERVER (gte/lte) — sebelumnya
+    // .limit(200) + filter client → laporan periode lama selalu terpotong & angka salah.
+    // Ambil 2 periode (current + prev utk MoM) dalam satu query rentang luas.
+    let startISO = '2020-01-01'
+    let endISO = '2099-12-31'
+    if (month !== 0) {
+      const s = new Date(year, month - 1, 1)
+      const e = new Date(year, month, 0)
+      startISO = s.toISOString()
+      endISO = new Date(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59, 59).toISOString()
+    } else {
+      startISO = `${year}-01-01T00:00:00`
+      endISO = `${year}-12-31T23:59:59`
+    }
+
+    const { data } = await supabase
       .from('orders')
       .select('*, order_items(product_id, price, qty, custom_specs, product:products(name))')
+      .gte('created_at', startISO)
+      .lte('created_at', endISO)
       .order('created_at', { ascending: false })
-      .limit(200)
 
-    const { data } = await query
-    let filtered = (data as Order[]) ?? []
-
-    // Filter by year/month if not "all"
+    // Previous period (MoM): bulan/tahun sebelumnya
+    let prevStart: string | null = null
+    let prevEnd: string | null = null
     if (month !== 0) {
-      filtered = filtered.filter((o) => {
-        const d = new Date(o.created_at)
-        return d.getFullYear() === year && d.getMonth() + 1 === month
-      })
+      const pm = month === 1 ? 12 : month - 1
+      const py = month === 1 ? year - 1 : year
+      const s = new Date(py, pm - 1, 1)
+      const e = new Date(py, pm, 0)
+      prevStart = s.toISOString()
+      prevEnd = new Date(e.getFullYear(), e.getMonth(), e.getDate(), 23, 59, 59).toISOString()
     } else {
-      filtered = filtered.filter((o) => new Date(o.created_at).getFullYear() === year)
+      prevStart = `${year - 1}-01-01T00:00:00`
+      prevEnd = `${year - 1}-12-31T23:59:59`
     }
 
-    setOrders(filtered)
+    const { data: prevData } = await supabase
+      .from('orders')
+      .select('total_amount, created_at')
+      .gte('created_at', prevStart)
+      .lte('created_at', prevEnd)
 
-    // Previous period data for MoM
-    let prevFiltered: Order[] = []
-    if (month !== 0) {
-      const prevMonth = month === 1 ? 12 : month - 1
-      const prevYear = month === 1 ? year - 1 : year
-      prevFiltered =
-        (data as Order[])?.filter((o) => {
-          const d = new Date(o.created_at)
-          return d.getFullYear() === prevYear && d.getMonth() + 1 === prevMonth
-        }) ?? []
-    } else {
-      prevFiltered = (data as Order[])?.filter((o) => new Date(o.created_at).getFullYear() === year - 1) ?? []
-    }
-    setPrevOrders(prevFiltered)
+    setOrders((data as Order[]) ?? [])
+    setPrevOrders((prevData as Order[]) ?? [])
     setLoading(false)
   }
 

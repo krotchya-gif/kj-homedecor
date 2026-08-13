@@ -11,6 +11,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Phase 1 (BUG-089): GET PO detail membawa data supplier + PR — batasi role pengadaan + finance.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['gudang', 'admin', 'owner', 'finance'].includes(requester.role)) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { data, error } = await supabase
     .from('purchase_orders')
     .select('*, supplier:suppliers(*), pr:purchase_requests(*)')
@@ -28,10 +34,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const {
     data: { user }
   } = await supabase.auth.getUser()
-  // Security fix: wajib login + role gudang/admin/owner
+  // Security fix: wajib login + role gudang/admin/owner + status active (Phase 1)
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
-  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (!requester || !['gudang', 'admin', 'owner', 'finance'].includes(requester.role)) {
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active' || !['gudang', 'admin', 'owner', 'finance'].includes(requester.role)) {
     return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
   }
 

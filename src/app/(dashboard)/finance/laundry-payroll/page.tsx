@@ -61,6 +61,18 @@ export default function LaundryPayrollPage() {
 
   async function generatePayroll() {
     const ratePerKg = rate?.rate_per_kg ?? 0
+    const monthLabel = `${MONTHS[selectedMonth - 1]} ${selectedYear}`
+
+    // Rate belum di-set → tidak bisa hitung upah
+    if (!rate || ratePerKg <= 0) {
+      toast('warning', 'Rate per kg belum diatur — set dulu di Admin → Laundry.')
+      return
+    }
+
+    let generated = 0
+    let hasData = false
+    let allPaid = false
+
     for (const s of staff) {
       const staffOrders = orders.filter((o) => {
         if (o.assigned_to !== s.id) return false
@@ -74,12 +86,14 @@ export default function LaundryPayrollPage() {
       const totalKg = staffOrders.reduce((sum, o) => sum + Number(o.kg_actual ?? o.kg ?? 0), 0)
       const totalAmount = totalKg * ratePerKg
       if (totalKg === 0) continue
+      hasData = true
 
       const existing = payrolls.find((p) => p.staff_id === s.id)
       if (existing) {
-        // F-23 fix: jangan timpa payroll yang SUDAH dibayar
+        // F-23 fix: payroll yang SUDAH dibayar bersifat final — task baru
+        // yang selesai setelahnya otomatis masuk payroll bulan berikutnya.
         if (existing.status === 'paid') {
-          toast('warning', `Payroll ${staff.find((x) => x.id === s.id)?.name ?? ''} sudah dibayar — tidak diubah.`)
+          allPaid = true
           continue
         }
         const { error: updErr } = await supabase
@@ -91,6 +105,7 @@ export default function LaundryPayrollPage() {
           })
           .eq('id', existing.id)
         if (updErr) { toast('error', 'Gagal update payroll: ' + updErr.message); return }
+        generated++
       } else {
         const { error } = await supabase.from('laundry_payroll').insert({
           staff_id: s.id,
@@ -102,8 +117,18 @@ export default function LaundryPayrollPage() {
           status: 'pending'
         })
         if (error) { toast('error', 'Gagal simpan payroll: ' + error.message); return }
+        generated++
       }
     }
+
+    if (!hasData) {
+      toast('info', `Belum ada pesanan laundry selesai di ${monthLabel} — tidak ada yang di-generate.`)
+    } else if (generated > 0) {
+      toast('success', `Payroll ${monthLabel} berhasil di-generate.`)
+    } else if (allPaid) {
+      toast('warning', `Payroll ${monthLabel} sudah lunas — task laundry yang selesai setelah dibayar akan masuk payroll bulan berikutnya.`)
+    }
+
     fetchData()
   }
 
@@ -124,11 +149,20 @@ export default function LaundryPayrollPage() {
           reference_type: 'laundry_payroll',
           reference_id: payrollId,
           description: `Pembayaran gaji laundry ${staffName} (${target.period_month}/${target.period_year})`,
-          amount: target.total_amount
+          amount: target.total_amount,
+          // Phase 3 (BUG-094): idempotency_key — mark paid berulang tidak bikin jurnal dobel.
+          idempotency_key: `laundry_payroll_paid:${payrollId}`
         })
       } catch (jErr) {
+        // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal gagal → payroll
+        // dikembalikan ke 'pending' (sebelumnya hanya toast warning → payroll paid tanpa jurnal).
         console.error('Gagal buat jurnal payroll:', jErr)
-        toast('warning', 'Payroll ditandai lunas, TAPI jurnal GAGAL. Periksa mapping akun.')
+        await supabase.from('laundry_payroll').update({ status: 'pending' }).eq('id', payrollId)
+        setPayrolls(prev)
+        setSaving(false)
+        setShowPaidModal(null)
+        toast('error', 'Gagal menandai lunas: jurnal tidak tersimpan. Periksa mapping akun.')
+        return
       }
     }
     setSaving(false)

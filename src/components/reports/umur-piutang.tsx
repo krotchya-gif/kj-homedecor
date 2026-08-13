@@ -9,6 +9,7 @@ import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp } from '@/lib/utils'
+import { piutangSisa } from '@/lib/ledger'
 
 
 interface LooseRow {
@@ -99,9 +100,10 @@ export default function UmurPiutangPage({ variant = 'finance' }: { variant?: 'fi
     const days = Math.floor((asOf.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
     // F-69 fix: tanggal masa depan → days negatif, clamp ke 0
     const bucket = getBucket(Math.max(0, days))
-    // BUG-015 fix: jumlahkan SISA tagihan (amount − paid − return), bukan amount penuh
-    const sisa = (o.amount ?? 0) - (o.paid_amount ?? 0) - (o.return_amount ?? 0) - Number(o.fee_amount ?? 0)
-    buckets[bucket] += sisa > 0 ? sisa : 0
+    // BUG-015 fix: jumlahkan SISA tagihan (amount − paid − return − fee), bukan amount penuh.
+    // Phase 4 (BUG-100): pakai helper piutangSisa (satu sumber kebenaran).
+    const sisa = piutangSisa(o)
+    buckets[bucket] += sisa
   })
 
   const bucketData = Object.entries(buckets).map(([bucket, amount]) => ({ bucket, amount }))

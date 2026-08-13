@@ -19,6 +19,17 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
+  // Phase 1 (BUG-087): GET membawa PII customer (phone/address). Batasi role:
+  // admin/owner/finance = semua booking; installer = hanya booking miliknya.
+  // Alasan: konsisten dengan PUT [id] (ownership check), PII tidak bocor ke role lain.
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  const role = requester?.role ?? ''
+  const isStaffView = requester?.status === 'active' && ['admin', 'owner', 'finance'].includes(role)
+  const isInstaller = requester?.status === 'active' && role === 'installer'
+  if (!isStaffView && !isInstaller) {
+    return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
+  }
+
   const { searchParams } = new URL(request.url)
   const installer_id = searchParams.get('installer_id')
   const status = searchParams.get('status')
@@ -28,6 +39,8 @@ export async function GET(request: Request) {
     .select('*, customer:customers(name, phone, address), installer:users(name), order:orders(id)')
     .order('scheduled_date', { ascending: false })
 
+  // Installer hanya melihat booking miliknya (ownership)
+  if (isInstaller) query = query.eq('installer_id', user.id)
   if (installer_id) query = query.eq('installer_id', installer_id)
   if (status) query = query.eq('status', status)
 

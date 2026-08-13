@@ -1,15 +1,93 @@
 # KJ Homedecor — Todo / Sesi Audit & Perbaikan
 
-> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 18 — fix BUG-079 search pesanan via RPC)
+> **Branch:** `main` · Update terakhir: 2026-08-13 (sesi 24 — Phase 5 perbaikan UI cepat)
 
 ---
-## ✅ Selesai (2026-08-13 — Sesi 18: Fix BUG-079 Search Pesanan)
+## ✅ Selesai (2026-08-13 — Sesi 24: Phase 5 — Perbaikan UI Cepat)
 
-1. ✅ **BUG-079** — search pesanan (no. order/nama/resi) sebelumnya pakai `query.or('...customer.name.ilike...')` → **PostgREST `.or()` tidak mendukung kolom relasi** → query error diam-diam → UI kosong walau data ada.
-2. ✅ **Migration 081** — RPC `search_orders(p_term, p_status, p_category, p_limit, p_offset)` → filter search (ORDER BY orders / tracking / `EXISTS customers.name`), status (incl. `ready_to_pack`/`ready_to_ship`), kategori — semua di SQL, return `{ rows, total }`.
-3. ✅ **`admin/orders/page.tsx`** — `fetchOrders` kini panggil RPC + **tampilkan error** (console) jika RPC gagal (tidak diam lagi).
-4. ✅ Verifikasi UI: ketik "25" → **6 baris tampil** (sebelumnya kosong); search nama/status/kategori teruji via RPC.
-5. ✅ Sync `000_full_schema.sql` (RPC search_orders).
+1. ✅ **BUG-102 — Pagination** — `admin/portfolio` (server-side, 12/halaman) & `admin/laundry` (client-side pada filtered, 20/halaman, reset saat search/filter).
+2. ✅ **BUG-103 — `theme_preset` → `custom`** saat user edit warna manual (`updateThemeColor`).
+3. ✅ **BUG-104 — `handleSave` landing deteksi 0 rows updated** (anti toast sukses palsu).
+4. ✅ **BUG-105 — kredensial default dihapus dari `setup/page.tsx`** (field kosong).
+5. ✅ **BUG-106 — karakter Cina korup di installer checklist** diperbaiki (garbled string BUG-066 lanjutan).
+
+**Verifikasi:** `tsc --noEmit` ✅ · `npm run build` ✅ · `vitest run` 24/24 ✅. Docs: `bug.md` (BUG-102–106), `README.md`, `todo.md`.
+
+**Fase berikutnya:** Phase 6 (refactor & dead code — backlog: monolit order detail, tiktok-shop-sdk dead code, duplikat laporan finance/owner, notifikasi polling→realtime).
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 23: Phase 4 — Akurasi Laporan)
+
+1. ✅ **BUG-098 — `kronologi-hpp` di-rename jadi "Kronologi Omzet"** — file `kronologi-omzet.tsx`, route finance & owner, label di hub laporan, PDF filename; plus pagination server-side (range + count, default 50) menggantikan `.limit(200)`.
+2. ✅ **BUG-099 — `lte '-31'` di owner/marketplace** — akhir bulan dihitung dinamis (`new Date(year, month, 0)`), batas T00:00/T23:59; bulan 30 hari & Februari kini terhitung benar.
+3. ✅ **BUG-100 — helper `piutangSisa()` di `lib/ledger.ts`** — satu sumber kebenaran (amount − paid − return − fee, clamped ≥ 0); dipakai di umur-piutang & finance dashboard (rumus lain sudah seragam).
+4. ✅ **BUG-101 — `admin/reports` filter server-side** — periode current + prev utk MoM via `gte/lte`, tanpa `.limit(200)` → laporan akurat utk semua data.
+
+**Verifikasi:** `tsc --noEmit` ✅ · `npm run build` ✅ (route `kronologi-omzet` finance & owner) · `vitest run` 24/24 ✅. Docs: `bug.md` (BUG-098–101), `README.md`, `todo.md`.
+
+**Fase berikutnya:** Phase 5 (UI cepat — garbled string installer, pagination portfolio, theme_preset→custom, handleSave 0-rows, kredensial setup) → Phase 6 (refactor/dead code, backlog).
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 22: Phase 3 — Integritas Akuntansi)
+
+1. ✅ **BUG-094 — rollback jurnal diseragamkan** (pola BUG-073) di SEMUA jalur finansial: `payments.handleRefund`, `hutang.handlePayment`, `piutang/faktur` (create+pay+adjust), `piutang/process`, `laundry-payroll.markAsPaid`, `assets.create`. Jurnal gagal → transaksi dibatalkan penuh (hapus row / kembalikan paid_amount & status) — bukan lagi toast warning yang membuat ledger bocor.
+2. ✅ **BUG-095 — hardcoded UUID akun diganti lookup by code** — helper `getAccountIdByCode(supabase, code)` di `config/accounts.ts`; dipakai di assets (1401/1101), settings (3101), piutang process (1201), piutang faktur (1201/4101). Anti-drift saat DB reset.
+3. ✅ **BUG-095 — double-count saldo di `accounts/accounts`** — pakai `fetchAccountBalances` (satu sumber kebenaran dgn laporan); field "Saldo Awal" dihapus dari form COA (saldo awal diatur via Finance → Settings).
+4. ✅ **BUG-096 — PO paid jurnal di `owner/suppliers`** — `updatePOStatus('paid')` kini buat jurnal `hutang_paid` idempotent (`po_paid:<id>`) + rollback; seragam dgn jalur API `purchase-orders/[id]`.
+5. ✅ **BUG-097 — `markAsPaid` payroll idempotency + rollback** — `laundry_payroll_paid:<id>`; jurnal gagal → payroll kembali pending.
+
+**Verifikasi:** `tsc --noEmit` ✅ · `npm run build` ✅ · `vitest run` 24/24 ✅ · lookup akun by code live cocok dgn UUID sebelumnya. Docs: `bug.md` (BUG-094–097), `README.md`, `todo.md`.
+
+**Fase berikutnya:** Phase 4 (akurasi laporan — `.limit(200)`, `lte '-31'`, 3 rumus piutang, `kronologi-hpp` misnamed) → Phase 5 (UI cepat) → Phase 6 (refactor/dead code, backlog terpisah).
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 21: Phase 2 — Hardening API)
+
+1. ✅ **BUG-091 — rate limit 9 route sensitif** — `checkRateLimit` (IP, in-memory) diterapkan di: `upload` (60/menit), `create-staff`, `seo/upload-sitemap`, `seo/upload-robots`, `tiktok/auth` POST+PUT, `tiktok/auth/reauthorize`, `tiktok/sync-orders`, `sync-finance`, `sync-to-main-orders`, `create-piutang`. Alasan: mencegah storage DoS, brute-force akun, dan spam panggil API eksternal TikTok.
+2. ✅ **BUG-092 — `create-staff` diperkuat** — cek `status='active'` requester; password min **8**; error auth di-redaksi (anti email-enumeration, detail hanya di log server); role `laundry` ditambahkan ke enum API + `ROLES`/`ROLE_COLORS` UI (sebelumnya admin tak bisa buat akun laundry — inkonsisten 8 role).
+3. ✅ **BUG-093 — TikTok OAuth state = random nonce** (migration 084) — `crypto.randomBytes(24)` disimpan di `tiktok_shop_settings.oauth_state`; callback cocokkan via nonce + hapus setelah dipakai (single-use, anti-replay); `reauthorize` ikut pola sama. Sync `000_full_schema.sql`.
+
+**Verifikasi:** `tsc --noEmit` ✅ · `npm run build` ✅ · `vitest run` 24/24 ✅ · migration 084 live (kolom `oauth_state` ada). Docs: `bug.md` (BUG-091–093), `README.md`, `todo.md`.
+
+**Fase berikutnya:** Phase 3 (integritas akuntansi — rollback jurnal seragam BUG-073, PO paid jurnal di owner/suppliers, idempotency markAsPaid, hapus hardcoded UUID akun, unifikasi double-count saldo).
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 20: Phase 1 — Keamanan PII & Fail-Closed)
+
+**Kontekst:** sesuai SOP Bug-Fix baru di `AGENTS.md` (bugfix-sop) — root cause → cek live DB → role-gate server-side → verifikasi user-level → sync doc per fase. Phase 1 fokus PII exposure + fail-closed.
+
+1. ✅ **BUG-086 — GET `orders/[id]` role gate** — admin/owner/finance/gudang + active (pola GET koleksi). PII pelanggan tidak bocor ke penjahit/surveyor/installer.
+2. ✅ **BUG-087 — GET `install-bookings` & `[id]`** — admin/owner/finance = semua; installer = hanya miliknya (ownership, mirror PUT).
+3. ✅ **BUG-088 — Komentar usang "RLS users terbuka"** — verifikasi live: write users SUDAH dikunci admin/owner → tanpa migration baru, perbaiki komentar agar tidak menyesatkan.
+4. ✅ **BUG-089 — GET bebas materials/suppliers/PR/PO** — dibatasi role pengadaan/finance; tambah cek `status='active'` di `purchase-orders` POST/PUT & `po-delivery` POST.
+5. ✅ **BUG-090 — Client fail-open `role ?? 'admin'`** — login/layout/survey detail → fail-closed (role null → signout/redirect, UI tanpa tombol edit palsu).
+
+**Verifikasi:** `tsc --noEmit` ✅ · `npm run build` ✅ · `vitest run` 24/24 ✅. Docs: `bug.md` (BUG-086–090), `README.md`, `todo.md`.
+
+**Fase berikutnya (prioritas):** Phase 2 (rate limit, create-staff, OAuth state) → Phase 3 (integritas akuntansi — rollback jurnal seragam, PO paid jurnal, idempotency markAsPaid).
+
+---
+## ✅ Selesai (2026-08-13 — Sesi 19: Landing Settings & SEO + Fix Laundry & Owner/Staff)
+
+### Landing settings & SEO (migration 083)
+1. ✅ **BUG-081 — RLS `landing_settings` terbuka** — policy write `FOR ALL (auth.role()='authenticated')` (semua staff bisa ubah konten landing & SEO) → **hanya admin/owner** via `is_admin_or_owner_sd()`. SELECT publik tetap. Sync `000_full_schema.sql`.
+2. ✅ **sitemap & robots disimpan ke DB** (bukan filesystem `public/`) — kolom `robots_content`/`sitemap_content` di `landing_settings` (key `hero`); route upload menulis ke DB; **route publik `/robots.txt` & `/sitemap.xml` baca dari DB** (fallback default) — persist saat redeploy. `proxy.ts` matcher mengecualikan kedua route (tidak perlu `getUser()`).
+3. ✅ **BUG-082 — upload SEO tampil error padahal sukses** — kontrak respons API → `{ success: true }` (klien cek `data?.success`).
+4. ✅ **BUG-083 — trust badges tidak tampil di landing** — `ScrollHero` terima prop `trustBadges` dari DB (fallback angka hardcoded), render di hero stats.
+5. ✅ **BUG-084 — preset tema `modern` CSS-var** → hex nyata (ColorPicker/preview/landing valid).
+6. ✅ **5 field tanpa UI dihapus dari form landing** (`hero_background_image`, `hero_background_overlay_opacity`, `theme_border_radius`, `theme_font_heading`, `theme_font_body`) — kolom DB dibiarkan; state `settings` dead + interface `LandingSettings` + `TRUST_ICON_MAP` tak terpakai dibersihkan.
+
+### Laundry (migration 082)
+7. ✅ **BUG-080 — task laundry tak bisa diterima** — check constraint `laundry_orders_status_check` di live tanpa `'in_progress'` → drop+recreate `('pending','in_progress','done','cancelled')` + sync schema.
+8. ✅ **Generate payroll toast jelas** (Arah A) — payroll `paid` = final; task baru setelah dibayar masuk bulan berikutnya; toast: rate belum di-set / belum ada data / sukses / sudah lunas.
+9. ✅ **Simulasi end-to-end laundry** (admin buat task+rate → terima → lapor selesai kg_actual → generate payroll → mark paid + jurnal) semua LULUS; data simulasi dibersihkan.
+
+### Owner/Staff (BUG-085)
+10. ✅ **`/owner/staff` kosong** — `order_logs(count)` ambigu (PGRST201, 2 FK) → `select('*')`; kolom Email dihapus (tidak ada di `public.users`); urutan role lengkap 8 role + badge label role/status; aksi "Kelola Staff" → `/admin/staff`.
+
+### Docs
+11. ✅ `AGENTS.md` — aturan `supabase-mcp-rules` (pakai MCP langsung, tanpa wajib CLI).
+12. ✅ README (migration 072–083, riwayat sesi 19), `bug.md` (BUG-080–085), `todo.md`.
 
 ---
 

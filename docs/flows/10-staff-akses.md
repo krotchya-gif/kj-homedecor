@@ -22,12 +22,14 @@
 | `laundry` | Melayani laundry — punya **dashboard sendiri** (`/laundry`); gaji di Finance → Laundry Payroll |
 
 ## Langkah-langkah
-1. Owner buka **Pengaturan → Staff**
+1. Owner/Admin buka **Admin → Staff** (`/admin/staff`) — halaman kelola akun (buat/edit/hapus)
 2. **Tambah staff**: nama, email, password (min 6 karakter), pilih role
 3. Staff langsung bisa **login** dengan email + password tersebut
-4. **Ubah**: nama/role (Owner)
+4. **Ubah**: nama/role/status (aktif/nonaktif)
 5. **Nonaktifkan akun** → staff tidak bisa login lagi (aktifkan kembali kapan saja)
 6. **Hapus** → akun dihapus
+
+> ℹ️ **Owner → Staff** (`/owner/staff`) adalah halaman **lihat daftar staff** (read-only): nama, role, status, jumlah per role. Kelola akun tetap di **Admin → Staff** (tombol "Kelola Staff" mengarah ke sana). Kolom email tidak ditampilkan di daftar (email hanya dipakai untuk login).
 
 ## Aturan
 - **Owner** + **Admin** bisa kelola staff (API dicek di server — bukan hanya UI)

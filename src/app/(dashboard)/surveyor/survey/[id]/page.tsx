@@ -108,7 +108,10 @@ export default function SurveyDetailPage() {
       } = await supabase.auth.getUser()
       if (user) {
         const { data: staff } = await supabase.from('users').select('role').eq('id', user.id).single()
-        setRole(staff?.role ?? 'admin')
+        // Phase 1 (BUG-090): fail-closed — user tanpa profil = role '' (bukan 'admin').
+        // Alasan: konsisten deny-by-default; server API tetap menolak, UI juga tidak
+        // boleh menampilkan tombol edit/delete palsu.
+        setRole(staff?.role ?? '')
       }
       await load()
     })()

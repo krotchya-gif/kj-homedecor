@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, WashingMachine, CheckCircle2, Clock, User } from 'lucide-react'
 import type { LaundryOrder, LaundryRate, User as UserType } from '@/types'
 import { useToast } from '@/components/ui/Toast'
+import Pagination from '@/components/ui/Pagination'
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   pending: { bg: '#fef3c7', text: '#92400e', label: 'Menunggu' },
@@ -30,6 +31,7 @@ export default function AdminLaundryPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [page, setPage] = useState(0)
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showRateModal, setShowRateModal] = useState(false)
@@ -193,6 +195,13 @@ export default function AdminLaundryPage() {
     return matchSearch && matchStatus
   })
 
+  // Phase 5 (BUG-102): pagination client-side — data dibatasi fetch (.limit 500),
+  // daftar dislice per halaman agar tidak render semua sekaligus.
+  const PAGE_SIZE = 20
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const paginated = filtered.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+
   return (
     <div>
       <PageHeader
@@ -264,7 +273,7 @@ export default function AdminLaundryPage() {
             type="text"
             placeholder="Cari nama atau telepon..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(0) }}
             style={{
               width: '100%',
               padding: '0.625rem 0.75rem 0.625rem 2.25rem',
@@ -277,7 +286,7 @@ export default function AdminLaundryPage() {
         </div>
         <select
           value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
+          onChange={(e) => { setFilterStatus(e.target.value); setPage(0) }}
           style={{
             padding: '0.625rem 0.75rem',
             border: '1px solid #d1d5db',
@@ -352,7 +361,7 @@ export default function AdminLaundryPage() {
           </div>
         ) : (
           <MobileCards
-            items={filtered}
+            items={paginated}
             keyOf={(o) => o.id}
             renderCard={(o) => {
               const sc = STATUS_COLORS[o.status]
@@ -427,7 +436,7 @@ export default function AdminLaundryPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((o) => {
+              {paginated.map((o) => {
                 const sc = STATUS_COLORS[o.status]
                 const staff = laundryStaff.find((s) => s.id === o.assigned_to)
                 return (
@@ -522,6 +531,19 @@ export default function AdminLaundryPage() {
           </table>
         )}
       </div>
+
+      {filtered.length > PAGE_SIZE && (
+        <Pagination
+          currentPage={safePage + 1}
+          totalPages={totalPages}
+          onPageChange={(p) => setPage(p - 1)}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={() => setPage(0)}
+          totalItems={filtered.length}
+          startIndex={safePage * PAGE_SIZE + 1}
+          endIndex={Math.min((safePage + 1) * PAGE_SIZE, filtered.length)}
+        />
+      )}
 
       {/* Input Form Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={480} padding="2rem" zIndex={200}>
