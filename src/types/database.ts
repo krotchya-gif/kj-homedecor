@@ -845,6 +845,7 @@ export type Database = {
           address: string | null
           brand_color: string | null
           brand_font_url: string | null
+          brand_logo_url: string | null
           brand_name: string | null
           brand_short: string | null
           categories_label: string | null
@@ -910,6 +911,7 @@ export type Database = {
           address?: string | null
           brand_color?: string | null
           brand_font_url?: string | null
+          brand_logo_url?: string | null
           brand_name?: string | null
           brand_short?: string | null
           categories_label?: string | null
@@ -975,6 +977,7 @@ export type Database = {
           address?: string | null
           brand_color?: string | null
           brand_font_url?: string | null
+          brand_logo_url?: string | null
           brand_name?: string | null
           brand_short?: string | null
           categories_label?: string | null

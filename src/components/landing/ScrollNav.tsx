@@ -80,7 +80,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
           }}
         >
           <img
-            src="/kjlogo.png"
+            src={brand.logoUrl ?? '/kjlogo.png'}
             alt={brand.name}
             style={{ height: '38px', width: 'auto' }}
             suppressHydrationWarning

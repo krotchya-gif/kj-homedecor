@@ -12,13 +12,15 @@ export interface BrandSettings {
   short: string
   color: string
   fontUrl: string | null
+  logoUrl: string | null
 }
 
 export const DEFAULT_BRAND: BrandSettings = {
   name: 'KJ Homedecor',
   short: 'KJ',
   color: '#b37a60',
-  fontUrl: '/bright-darling-sans.ttf'
+  fontUrl: '/bright-darling-sans.ttf',
+  logoUrl: '/kjlogo.png'
 }
 
 let cache: BrandSettings | null = null
@@ -31,14 +33,15 @@ export async function getBrandSettings(): Promise<BrandSettings> {
     const supabase = createClient()
     const { data } = await supabase
       .from('landing_settings')
-      .select('brand_name, brand_short, brand_color, brand_font_url')
+      .select('brand_name, brand_short, brand_color, brand_font_url, brand_logo_url')
       .eq('key', 'hero')
       .maybeSingle()
     cache = {
       name: data?.brand_name || DEFAULT_BRAND.name,
       short: (data?.brand_short || DEFAULT_BRAND.short).trim() || DEFAULT_BRAND.short,
       color: data?.brand_color || DEFAULT_BRAND.color,
-      fontUrl: data?.brand_font_url || null
+      fontUrl: data?.brand_font_url || null,
+      logoUrl: data?.brand_logo_url || DEFAULT_BRAND.logoUrl
     }
     return cache
   } catch {

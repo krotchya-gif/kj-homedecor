@@ -17,6 +17,12 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 48: Upload logo brand (web + PDF header/watermark)
+- Kolom `landing_settings.brand_logo_url` (default `/kjlogo.png`); **Admin → Landing Settings → Brand** kini punya **Upload Logo** (PNG/JPG/WEBP transparan ≤2MB via folder `banners`) + preview + URL manual + hapus.
+- **PDF** (`pdf-logo.ts` dinamis): header & watermark memakai `brand_logo_url` dari settings (fallback `/kjlogo.png`); cache per URL.
+- **Web**: logo navbar landing (`ScrollNav`) & footer landing memakai logo brand (fallback `/kjlogo.png`).
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 37/37 (finance.spec sempat flaky, lolos saat dijalankan ulang).
+
 ### 2026-08-15 — Sesi 47: Brand dinamis (nama, singkatan, warna, font) dari Admin → web + semua PDF
 - **Konsep** (permintaan user): nama brand bisa diubah & dipakai SEMUA tempat termasuk penamaan invoice — contoh "Calysta Store" → singkatan "CS" untuk nama file & nomor dokumen. Diatur di **Admin → Landing Settings → Brand** (kolom baru `landing_settings`: `brand_name`, `brand_short`, `brand_color`, `brand_font_url`; default KJ Homedecor / KJ / #b37a60 / `/bright-darling-sans.ttf`).
 - **Upload font baru**: folder `fonts` (ttf/otf/woff/woff2, ≤5MB, admin/owner) di `/api/upload` (magic bytes: TTF `00 01 00 00`/`true`, OTF `OTTO`, WOFF/WOFF2) + `scripts/upload.php` (**wajib di-copy ke hosting** — tambah `fonts` ke allowed_folders/folder_mimes/allowed_mimes/max_sizes).

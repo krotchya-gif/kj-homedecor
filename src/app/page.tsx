@@ -593,7 +593,7 @@ export default async function LandingPage() {
               <div>
                 <div style={{ marginBottom: '1.5rem' }}>
                   <img
-                    src="/kjlogo.png"
+                    src={String(settingsMap.brand_logo_url ?? '/kjlogo.png')}
                     alt={brandName}
                     style={{ height: '42px', width: 'auto' }}
                     suppressHydrationWarning

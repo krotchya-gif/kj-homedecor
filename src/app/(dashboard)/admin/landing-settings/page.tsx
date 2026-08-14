@@ -99,7 +99,8 @@ export default function AdminLandingSettingsPage() {
     brand_name: 'KJ Homedecor',
     brand_short: 'KJ',
     brand_color: '#b37a60',
-    brand_font_url: null as string | null
+    brand_font_url: null as string | null,
+    brand_logo_url: null as string | null
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
   const [heroImageUploading, setHeroImageUploading] = useState(false)
@@ -159,11 +160,12 @@ export default function AdminLandingSettingsPage() {
         theme_background_color: data.theme_background_color ?? '#FAF5EE',
         theme_text_color: data.theme_text_color ?? '#2B2321',
         theme_preset: data.theme_preset ?? 'default',
-        // Brand (sesi 47)
+        // Brand (sesi 47-48)
         brand_name: data.brand_name ?? 'KJ Homedecor',
         brand_short: data.brand_short ?? 'KJ',
         brand_color: data.brand_color ?? '#b37a60',
-        brand_font_url: data.brand_font_url ?? null
+        brand_font_url: data.brand_font_url ?? null,
+        brand_logo_url: data.brand_logo_url ?? null
       })
       setTrustBadges(data.trust_badges ?? [])
     }
@@ -220,11 +222,12 @@ export default function AdminLandingSettingsPage() {
         theme_background_color: form.theme_background_color,
         theme_text_color: form.theme_text_color,
         theme_preset: form.theme_preset,
-        // Brand (sesi 47)
+        // Brand (sesi 47-48)
         brand_name: form.brand_name,
         brand_short: form.brand_short,
         brand_color: form.brand_color,
         brand_font_url: form.brand_font_url,
+        brand_logo_url: form.brand_logo_url,
         updated_at: new Date().toISOString()
       })
       .eq('key', 'hero')
@@ -285,6 +288,23 @@ export default function AdminLandingSettingsPage() {
       toast('error', 'Gagal upload font: ' + (err instanceof Error ? err.message : 'unknown'))
     } finally {
       setBrandFontUploading(false)
+    }
+  }
+
+  // Sesi 48: upload logo brand (png/jpg/webp → folder 'banners')
+  const [brandLogoUploading, setBrandLogoUploading] = useState(false)
+  async function handleBrandLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBrandLogoUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'banners', { compress: true, maxSizeMB: 2 })
+      setForm((f) => ({ ...f, brand_logo_url: result.url }))
+      toast('success', 'Logo brand di-upload. Simpan pengaturan untuk menerapkan.')
+    } catch (err) {
+      toast('error', 'Gagal upload logo: ' + (err instanceof Error ? err.message : 'unknown'))
+    } finally {
+      setBrandLogoUploading(false)
     }
   }
 
@@ -833,6 +853,107 @@ export default function AdminLandingSettingsPage() {
                 onChange={(color) => setForm((f) => ({ ...f, brand_color: color }))}
                 description="Warna aksen di PDF (judul, tabel) & elemen brand website"
               />
+              {/* Sesi 48: Logo Brand */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+                  Logo Brand
+                </label>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div
+                    style={{
+                      width: 72,
+                      height: 72,
+                      borderRadius: '0.5rem',
+                      border: '1px solid #e5e7eb',
+                      background: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      flexShrink: 0
+                    }}
+                  >
+                    {form.brand_logo_url ? (
+                      <img
+                        src={form.brand_logo_url}
+                        alt="Logo brand"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <img
+                        src="/kjlogo.png"
+                        alt="Logo default"
+                        style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', opacity: 0.5 }}
+                      />
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', flex: 1, minWidth: 220 }}>
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.375rem',
+                        padding: '0.625rem 1rem',
+                        background: brandLogoUploading ? 'var(--neutral-200)' : 'var(--neutral-100)',
+                        color: 'var(--neutral-700)',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.82rem',
+                        fontWeight: '600',
+                        cursor: brandLogoUploading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleBrandLogoUpload}
+                        disabled={brandLogoUploading}
+                        style={{ display: 'none' }}
+                      />
+                      {brandLogoUploading ? 'Upload...' : '⬆ Upload Logo'}
+                    </label>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        value={form.brand_logo_url ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, brand_logo_url: e.target.value }))}
+                        placeholder="/kjlogo.png"
+                        style={{
+                          flex: 1,
+                          padding: '0.5rem 0.625rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.78rem',
+                          outline: 'none',
+                          fontFamily: 'monospace'
+                        }}
+                      />
+                      {form.brand_logo_url && (
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, brand_logo_url: null }))}
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            background: '#fef2f2',
+                            color: '#b91c1c',
+                            border: '1px solid #fecaca',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.78rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', margin: '0.375rem 0 0' }}>
+                  PNG/JPG/WEBP transparan (maks 2MB). Dipakai di website (navbar & footer) dan PDF (header + watermark tengah). Kosongkan untuk kembali ke logo default.
+                </p>
+              </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
                   Font Brand

@@ -242,4 +242,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-15 (sesi 47 — brand dinamis nama/singkatan/warna/font dari Admin → web + PDF) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 48 — upload logo brand: web + PDF header/watermark) · Dev server: `npm run dev` → http://localhost:3000_

@@ -1,23 +1,27 @@
 import { jsPDF, GState } from 'jspdf'
+import { getBrandSettings } from '@/lib/pdf-brand'
 
 /**
- * Logo KJ Homedecor untuk PDF (sesi 46).
- * `public/kjlogo.png` (transparan) — dipakai di header (kiri atas) dan sebagai
- * watermark transparan di tengah dokumen. Fail-safe: kalau logo gagal dimuat
- * (offline/CDN), PDF tetap jalan tanpa logo.
+ * Logo brand untuk PDF (sesi 46, dinamis sesi 48).
+ * URL logo dari `landing_settings.brand_logo_url` (diatur Admin → Landing Settings
+ * → Brand); fallback `/kjlogo.png` (logo repo). Dipakai di header (kiri atas) dan
+ * sebagai watermark transparan di tengah dokumen. Fail-safe: logo gagal dimuat
+ * (offline/CDN) → PDF tetap jalan tanpa logo.
  */
 
-const LOGO_URL = '/kjlogo.png'
+const FALLBACK_LOGO_URL = '/kjlogo.png'
 
-let logoCache: { dataUrl: string; ratio: number } | null = null
+let logoCache: { url: string; dataUrl: string; ratio: number } | null = null
 let logoFailed = false
 
 /** Muat logo sekali per sesi (cache) → { dataUrl, ratio }. Gagal → null. */
 export async function loadLogo(): Promise<{ dataUrl: string; ratio: number } | null> {
-  if (logoCache) return logoCache
+  const brand = await getBrandSettings()
+  const url = brand.logoUrl || FALLBACK_LOGO_URL
+  if (logoCache && logoCache.url === url) return logoCache
   if (logoFailed) return null
   try {
-    const res = await fetch(LOGO_URL)
+    const res = await fetch(url)
     if (!res.ok) throw new Error(`logo fetch ${res.status}`)
     const blob = await res.blob()
     const dataUrl = await new Promise<string | null>((resolve) => {
@@ -34,7 +38,7 @@ export async function loadLogo(): Promise<{ dataUrl: string; ratio: number } | n
       img.onerror = () => resolve()
     })
     const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1
-    logoCache = { dataUrl, ratio }
+    logoCache = { url, dataUrl, ratio }
     return logoCache
   } catch {
     logoFailed = true

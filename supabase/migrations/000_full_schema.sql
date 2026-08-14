@@ -555,11 +555,12 @@ CREATE TABLE IF NOT EXISTS public.landing_settings (
   theme_font_body TEXT DEFAULT 'Inter',
   robots_content TEXT,
   sitemap_content TEXT,
-  -- Sesi 47: brand dinamis (nama, singkatan, warna, font) — dipakai web + semua PDF
+  -- Sesi 47-48: brand dinamis (nama, singkatan, warna, font, logo) — web + semua PDF
   brand_name TEXT DEFAULT 'KJ Homedecor',
   brand_short TEXT DEFAULT 'KJ',
   brand_color TEXT DEFAULT '#b37a60',
   brand_font_url TEXT,
+  brand_logo_url TEXT DEFAULT '/kjlogo.png',
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1466,7 +1467,8 @@ UPDATE public.landing_settings
 SET brand_name = COALESCE(brand_name, 'KJ Homedecor'),
     brand_short = COALESCE(brand_short, 'KJ'),
     brand_color = COALESCE(brand_color, '#b37a60'),
-    brand_font_url = COALESCE(brand_font_url, '/bright-darling-sans.ttf')
+    brand_font_url = COALESCE(brand_font_url, '/bright-darling-sans.ttf'),
+    brand_logo_url = COALESCE(brand_logo_url, '/kjlogo.png')
 WHERE key = 'hero';
 
 -- Style rates
