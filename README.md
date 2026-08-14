@@ -238,8 +238,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–52), tracker bug lengkap **BUG-001 s/d BUG-130**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–52), tracker bug lengkap **BUG-001 s/d BUG-131**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-15 (sesi 52 — audit ulang 3 wave: Wave 1 kebenaran angka + Wave 2 RPC atomic piutang/hutang/TikTok & hardening) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 52 — audit 3 wave + BUG-131 proxy brand asset: font & logo CDN tanpa CORS kini via /api/brand-asset) · Dev server: `npm run dev` → http://localhost:3000_

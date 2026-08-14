@@ -20,8 +20,9 @@ export async function loadLogo(): Promise<{ dataUrl: string; ratio: number } | n
   const url = brand.logoUrl || FALLBACK_LOGO_URL
   if (logoCache && logoCache.url === url) return logoCache
   if (logoFailed) return null
-  try {
-    const res = await fetch(url)
+
+  const loadFrom = async (target: string): Promise<{ dataUrl: string; ratio: number }> => {
+    const res = await fetch(target)
     if (!res.ok) throw new Error(`logo fetch ${res.status}`)
     const blob = await res.blob()
     const dataUrl = await new Promise<string | null>((resolve) => {
@@ -38,7 +39,27 @@ export async function loadLogo(): Promise<{ dataUrl: string; ratio: number } | n
       img.onerror = () => resolve()
     })
     const ratio = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1
-    logoCache = { url, dataUrl, ratio }
+    return { dataUrl, ratio }
+  }
+
+  try {
+    // SESI 52 (BUG-131): logo diambil lewat proxy same-origin /api/brand-asset —
+    // CDN link.kjhomedecor.com tidak kirim CORS → fetch cross-origin diblokir →
+    // logo yang diupload tidak muncul di PDF (sebelumnya fallback /kjlogo.png
+    // same-origin). Server-side proxy tidak kena CORS. Kalau CDN gagal (offline/
+    // belum upload), fallback sekali ke /kjlogo.png sebelum menyerah.
+    const urlProxy = url.startsWith('http') ? '/api/brand-asset?kind=logo' : url
+    let loaded: { dataUrl: string; ratio: number }
+    try {
+      loaded = await loadFrom(urlProxy)
+    } catch (proxyErr) {
+      if (url !== FALLBACK_LOGO_URL) {
+        loaded = await loadFrom(FALLBACK_LOGO_URL)
+      } else {
+        throw proxyErr
+      }
+    }
+    logoCache = { url, ...loaded }
     return logoCache
   } catch {
     logoFailed = true

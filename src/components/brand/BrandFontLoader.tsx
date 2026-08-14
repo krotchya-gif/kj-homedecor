@@ -40,7 +40,10 @@ export default function BrandFontLoader() {
         el.id = 'brand-font-face'
         document.head.appendChild(el)
       }
-      el.textContent = `@font-face{font-family:'BrandFont';src:url('${brand.fontUrl}') format('truetype');font-display:swap}.brand-font{font-family:'BrandFont',var(--font-sans),sans-serif}`
+      // SESI 52 (BUG-131): font dimuat lewat proxy /api/brand-asset (same-origin) —
+      // CDN link.kjhomedecor.com tidak kirim CORS → @font-face cross-origin diblokir
+      // browser. `brand.fontUrl` tetap jadi "ada/tidaknya" font dari settings.
+      el.textContent = `@font-face{font-family:'BrandFont';src:url('/api/brand-asset?kind=font') format('truetype');font-display:swap}.brand-font{font-family:'BrandFont',var(--font-sans),sans-serif}`
     }
   }, [brand])
 

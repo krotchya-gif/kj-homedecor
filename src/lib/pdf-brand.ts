@@ -75,7 +75,10 @@ export async function registerBrandFont(doc: jsPDF, fontUrl: string | null): Pro
     return 'helvetica'
   }
   try {
-    const res = await fetch(fontUrl)
+    // SESI 52 (BUG-131): font diambil lewat proxy same-origin /api/brand-asset —
+    // CDN tidak kirim CORS → fetch cross-origin dari browser diblokir (font & PDF
+    // jatuh ke fallback). Server-side proxy tidak kena CORS.
+    const res = await fetch('/api/brand-asset?kind=font')
     if (!res.ok) throw new Error(`font fetch ${res.status}`)
     const buf = await res.arrayBuffer()
     if (buf.byteLength < 4) throw new Error('font terlalu kecil')
