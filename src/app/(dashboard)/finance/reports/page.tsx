@@ -4,8 +4,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { BarChart3, TrendingUp, DollarSign, Scissors, FileDown } from 'lucide-react'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -98,9 +97,11 @@ export default function FinanceReportsPage() {
 
   // Platform breakdown
   const bySource: Record<string, number> = {}
+  const bySourceAmount: Record<string, number> = {}
   periodOrders.forEach((o) => {
     const src = String(o.source ?? 'unknown')
     bySource[src] = (bySource[src] ?? 0) + 1
+    bySourceAmount[src] = (bySourceAmount[src] ?? 0) + (o.total_amount ?? 0)
   })
   // Lebar bar proporsional (persen) agar TIDAK melebihi card saat jumlah pesanan besar.
   const maxSourceCount = Math.max(1, ...Object.values(bySource))
@@ -141,27 +142,49 @@ export default function FinanceReportsPage() {
   const totalLemburJam = periodLembur.reduce((s, l) => s + (l.jam ?? 0), 0)
 
   function exportPDF() {
-    const doc = new jsPDF()
-    doc.setFontSize(16)
+    const { doc, startY } = createReportDoc({
+      title: 'Laporan Keuangan',
+      period: `${MONTHS[month]} ${year}`
+    })
+    let y = startY
+
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('KJ Homedecor — Laporan Keuangan', 14, 20)
+    doc.text('Ringkasan', 14, y)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    // F-29 fix: jsPDF tidak menerima CSS variable — pakai nilai RGB konkret
-    doc.setTextColor(107, 114, 128)
-    doc.text(`Periode: ${MONTHS[month]} ${year} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
-    doc.setTextColor('#000')
+    y += 6
+    doc.text(`Total Omzet      : ${fmt(totalRevenue)}`, 14, y)
+    y += 5
+    doc.text(`Total DP Masuk   : ${fmt(totalDp)}`, 14, y)
+    y += 5
+    doc.text(`Total Pelunasan  : ${fmt(totalLunas)}`, 14, y)
+    y += 5
+    doc.text(`Jumlah Pesanan   : ${periodOrders.length}`, 14, y)
+    y += 8
 
-    doc.setFontSize(12)
+    // Breakdown per Platform (sesi 44: sebelumnya tidak masuk PDF)
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('Ringkasan', 14, 40)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Total Omzet      : ${fmt(totalRevenue)}`, 14, 48)
-    doc.text(`Total DP Masuk   : ${fmt(totalDp)}`, 14, 54)
-    doc.text(`Total Pelunasan  : ${fmt(totalLunas)}`, 14, 60)
-    doc.text(`Jumlah Pesanan   : ${periodOrders.length}`, 14, 66)
+    doc.text('Breakdown per Platform', 14, y)
+    y += 4
+    const sourceRows = Object.entries(bySource)
+      .sort((a, b) => b[1] - a[1])
+      .map(([src, count]) => [src, String(count), fmt(bySourceAmount[src] ?? 0)])
+    y = addReportTable(doc, {
+      startY: y,
+      head: [['Platform', 'Jumlah Pesanan', 'Total Omzet']],
+      body: sourceRows.length > 0 ? sourceRows : [['—', '0', fmt(0)]],
+      foot: [['TOTAL', String(periodOrders.length), fmt(totalRevenue)]],
+      theme: 'striped'
+    })
+    y += 8
 
+    // Rekap pengupahan penjahit
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Rekap Pengupahan Penjahit', 14, y)
+    y += 4
     const penjahitData = Object.entries(byPenjahit).map(([id, p]) => ({
       name: p.name,
       gorden: p.gorden.toFixed(2),
@@ -174,35 +197,66 @@ export default function FinanceReportsPage() {
     }))
     const totalUpah = Object.values(byPenjahit).reduce((s, p) => s + calcUpah(p), 0)
 
-    const startY = 78
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Rekap Pengupahan Penjahit', 14, startY)
-    autoTable(doc, {
-      startY: startY + 4,
-      head: [['Nama', 'Gorden (m)', 'Vitras (m)', 'Roman (m)', 'Kupu² (m)', 'P.Lurus', 'P.Gel', 'Est. Upah']],
-      body: [
-        ...penjahitData,
-        {
-          name: 'TOTAL',
-          gorden: '',
-          vitras: '',
-          roman: '',
-          kupu_kupu: '',
-          poni_lurus: '',
-          poni_gel: '',
-          upah: fmt(totalUpah)
+    if (penjahitData.length === 0) {
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(107, 114, 128)
+      doc.text('Tidak ada data produksi di periode ini.', 14, y)
+      doc.setTextColor(0, 0, 0)
+      y += 8
+    } else {
+      y = addReportTable(doc, {
+        startY: y,
+        head: [['Nama', 'Gorden (m)', 'Vitras (m)', 'Roman (m)', 'Kupu² (m)', 'P.Lurus', 'P.Gel', 'Est. Upah']],
+        body: [
+          ...penjahitData,
+          {
+            name: 'TOTAL',
+            gorden: '',
+            vitras: '',
+            roman: '',
+            kupu_kupu: '',
+            poni_lurus: '',
+            poni_gel: '',
+            upah: fmt(totalUpah)
+          }
+        ],
+        theme: 'striped',
+        didParseCell: (data) => {
+          if (data.section === 'body' && data.row.index === penjahitData.length) {
+            data.cell.styles.fontStyle = 'bold'
+          }
         }
-      ],
-      theme: 'striped',
-      headStyles: { fillColor: '#cc7030' },
-      didParseCell: (data) => {
-        if (data.section === 'body' && data.row.index === penjahitData.length) {
-          data.cell.styles.fontStyle = 'bold'
-        }
-      }
-    })
+      })
+      y += 8
+    }
 
+    // Lembur bulan ini (sesi 44: sebelumnya tidak masuk PDF)
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Lembur Bulan Ini', 14, y)
+    y += 4
+    if (periodLembur.length === 0) {
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(107, 114, 128)
+      doc.text('Tidak ada catatan lembur di periode ini.', 14, y)
+      doc.setTextColor(0, 0, 0)
+    } else {
+      y = addReportTable(doc, {
+        startY: y,
+        head: [['Nama Staff', 'Tanggal', 'Jam']],
+        body: periodLembur.map((l) => [
+          l.staff?.name ?? '—',
+          new Date(l.date ?? '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+          String(l.jam ?? 0)
+        ]),
+        foot: [['TOTAL', '', `${totalLemburJam} jam`]],
+        theme: 'striped'
+      })
+    }
+
+    addPageNumbers(doc)
     doc.save(`kj-keuangan-${year}-${String(month + 1).padStart(2, '0')}.pdf`)
   }
 

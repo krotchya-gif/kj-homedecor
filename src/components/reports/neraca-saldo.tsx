@@ -4,12 +4,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { fetchAccountBalances } from '@/lib/ledger'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -76,14 +75,11 @@ export default function NeracaSaldoPage({ variant = 'finance' }: { variant?: 'fi
   const totalCredit = accounts.filter((a) => isCredit(a.type ?? '')).reduce((s, a) => s + (a.balance ?? 0), 0)
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Neraca Saldo${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Daftar Aktivitas Akun (Format Debit-Kredit)', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Neraca Saldo${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Daftar saldo akun (format debit-kredit)'
+    })
 
     const body = accounts.map((a) => {
       const debit = isDebit(a.type ?? '') ? (a.balance ?? 0) : 0
@@ -91,13 +87,12 @@ export default function NeracaSaldoPage({ variant = 'finance' }: { variant?: 'fi
       return [a.code ?? '', a.name ?? '', debit > 0 ? formatRp(debit) : '', credit > 0 ? formatRp(credit) : '']
     })
 
-    autoTable(doc, {
-      startY: 40,
+    addReportTable(doc, {
+      startY,
       head: [['Kode', 'Nama Akun', 'Debit', 'Kredit']],
-      headStyles: { fillColor: [99, 102, 241] },
       body,
       foot: [['', 'TOTAL', formatRp(totalDebit), formatRp(totalCredit)]],
-      footStyles: { fillColor: [238, 242, 255], textColor: [55, 48, 163], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: {
         0: { cellWidth: 25, fontStyle: 'bold' },
         1: { cellWidth: 80 },
@@ -106,6 +101,23 @@ export default function NeracaSaldoPage({ variant = 'finance' }: { variant?: 'fi
       }
     })
 
+    // Sesi 44: status seimbang (sebelumnya hanya di web, tidak di PDF)
+    const seimbang = Math.abs(totalDebit - totalCredit) < 1
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(seimbang ? 22 : 220, seimbang ? 163 : 38, seimbang ? 74 : 38)
+    doc.text(
+      seimbang
+        ? 'Neraca saldo SEIMBANG (Total Debit = Total Kredit)'
+        : `Neraca saldo TIDAK seimbang (Selisih: ${formatRp(Math.abs(totalDebit - totalCredit))})`,
+      14,
+      (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY
+        ? (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
+        : startY + 8
+    )
+    doc.setTextColor(0, 0, 0)
+
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}neraca-saldo-${startDate}-${endDate}.pdf`)
   }
 

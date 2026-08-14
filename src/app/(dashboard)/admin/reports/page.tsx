@@ -16,12 +16,11 @@ import {
   FileDown
 } from 'lucide-react'
 import { SOURCE_LABELS, STATUS_LABELS } from '@/types'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { StatCardSkeleton, CardGridSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import Pagination from '@/components/ui/Pagination'
 import { formatRp } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 interface Order {
   id: string
@@ -69,10 +68,6 @@ const STATUS_COLORS: Record<string, string> = {
   production: '#06b6d4',
   ready: '#10b981',
   done: '#22c55e'
-}
-
-interface AutoTableDoc {
-  lastAutoTable: { finalY: number }
 }
 
 export default function AdminReportsPage() {
@@ -218,47 +213,48 @@ const [prodPageSize, setProdPageSize] = useState(10)
   }
 
   function exportPDF() {
-    const doc = new jsPDF()
     const periodLabel = month === 0 ? `Tahun ${year}` : `${MONTHS[month - 1]} ${year}`
-    doc.setFontSize(16)
+    const { doc, startY } = createReportDoc({ title: 'Laporan Penjualan', period: periodLabel })
+    let y = startY
+
+    // Ringkasan
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('KJ Homedecor — Laporan Penjualan', 14, 20)
+    doc.text('Ringkasan', 14, y)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor('var(--neutral-600)')
-    doc.text(`Periode: ${periodLabel} — Generated: ${new Date().toLocaleDateString('id-ID')}`, 14, 28)
-    doc.setTextColor('#000')
+    y += 6
+    doc.text(`Total Pesanan  : ${totalOrders}`, 14, y)
+    y += 5
+    doc.text(`Total Omzet    : ${formatRp(totalRevenue)}`, 14, y)
+    y += 5
+    doc.text(`Rata-rata Order: ${formatRp(avgOrderValue)}`, 14, y)
+    y += 8
 
-    // Summary stats
-    doc.setFontSize(12)
+    // Pipeline
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('Ringkasan', 14, 40)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Total Pesanan : ${totalOrders}`, 14, 48)
-    doc.text(`Total Omzet   : ${formatRp(totalRevenue)}`, 14, 54)
-    doc.text(`Rata-rata Order: ${formatRp(avgOrderValue)}`, 14, 60)
-
-    // Pipeline table
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Pipeline Pesanan', 14, 72)
-    autoTable(doc, {
-      startY: 76,
+    doc.text('Pipeline Pesanan', 14, y)
+    y += 4
+    y = addReportTable(doc, {
+      startY: y,
       head: [['Status', 'Jumlah']],
       body: STATUS_ORDER.map((s) => [STATUS_LABELS[s as keyof typeof STATUS_LABELS] ?? s, String(pipelineCounts[s])]),
-      theme: 'striped',
-      headStyles: { fillColor: '#cc7030' }
+      foot: [['TOTAL', String(STATUS_ORDER.reduce((sum, s) => sum + (pipelineCounts[s] ?? 0), 0))]],
+      theme: 'striped'
     })
+    y += 8
 
-    // Marketplace breakdown
-    const marketStartY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
-    doc.setFontSize(12)
+    // Marketplace (sesi 44: + baris TOTAL)
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('Per Marketplace', 14, marketStartY)
-    autoTable(doc, {
-      startY: marketStartY + 4,
-      head: [['Marketplace', 'Order', 'Omzet']],
+    doc.text('Per Marketplace', 14, y)
+    y += 4
+    const marketTotal = Object.values(sourceRevenue).reduce((s, v) => s + v, 0)
+    const marketOrderTotal = Object.values(sourceOrders).reduce((s, v) => s + v, 0)
+    y = addReportTable(doc, {
+      startY: y,
+      head: [['Marketplace', 'Jumlah Order', 'Omzet']],
       body: Object.entries(sourceRevenue)
         .sort(([, a], [, b]) => b - a)
         .map(([src, rev]) => [
@@ -266,23 +262,27 @@ const [prodPageSize, setProdPageSize] = useState(10)
           String(sourceOrders[src] ?? 0),
           formatRp(rev)
         ]),
-      theme: 'striped',
-      headStyles: { fillColor: '#cc7030' }
+      foot: [['TOTAL', String(marketOrderTotal), formatRp(marketTotal)]],
+      theme: 'striped'
     })
+    y += 8
 
-    // Top products
-    const prodStartY = ((doc as unknown as AutoTableDoc).lastAutoTable.finalY ?? 0) + 10
-    doc.setFontSize(12)
+    // Produk terlaris (sesi 44: + baris TOTAL)
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('Produk Terlaris', 14, prodStartY)
-    autoTable(doc, {
-      startY: prodStartY + 4,
+    doc.text('Produk Terlaris', 14, y)
+    y += 4
+    const prodTotal = topProducts.reduce((s, p) => s + p.revenue, 0)
+    const prodQty = topProducts.reduce((s, p) => s + p.count, 0)
+    addReportTable(doc, {
+      startY: y,
       head: [['#', 'Produk', 'Qty', 'Revenue']],
       body: topProducts.map((p, i) => [String(i + 1), p.name, String(p.count), formatRp(p.revenue)]),
-      theme: 'striped',
-      headStyles: { fillColor: '#cc7030' }
+      foot: [['', 'TOTAL', String(prodQty), formatRp(prodTotal)]],
+      theme: 'striped'
     })
 
+    addPageNumbers(doc)
     doc.save(`kj-laporan-${year}-${month}.pdf`)
   }
 

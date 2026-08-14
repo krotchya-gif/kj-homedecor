@@ -1,15 +1,13 @@
 'use client'
-import type { AutoTableDoc } from '@/lib/pdf-types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -118,49 +116,72 @@ export default function UmurHutangPage({ variant = 'finance' }: { variant?: 'fin
   const totalHutang = Object.values(buckets).reduce((s, v) => s + v, 0)
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Umur Hutang${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Umur Hutang per Pemasok', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Umur Hutang${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Rincian sisa tagihan per pemasok'
+    })
+    let y = startY
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Supplier', 'Invoice', 'Tanggal', 'Amount', 'Bucket']],
-      headStyles: { fillColor: [220, 38, 38] },
-      body: enriched.map((h) => [
+    // Detail per pemasok — kolom SISA TAGIHAN (sesi 44: sebelumnya pakai amount penuh)
+    const detailRows = enriched
+      .filter((h) => h.sisa > 0)
+      .sort((a, b) => b.sisa - a.sisa)
+      .map((h) => [
         (h as unknown as { supplier?: { name?: string } | null }).supplier?.name ?? '—',
         h.invoice_number ?? (h.id ?? '').slice(0, 8),
-        new Date(h.invoice_date ?? '').toLocaleDateString('id-ID'),
-        formatRp(h.amount ?? 0),
+        new Date(h.invoice_date ?? '').toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+        formatRp(h.sisa),
         h.bucket
-      ]),
-      columnStyles: {
-        0: { cellWidth: 45 },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 40, halign: 'right' },
-        4: { cellWidth: 30 }
-      }
-    })
+      ])
 
-    const finalY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
-    autoTable(doc, {
-      startY: finalY,
-      head: [['Bucket', 'Total Amount']],
-      headStyles: { fillColor: [220, 38, 38] },
+    if (detailRows.length === 0) {
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(107, 114, 128)
+      doc.text('Tidak ada hutang terbuka di periode ini.', 14, y)
+      doc.setTextColor(0, 0, 0)
+      y += 8
+    } else {
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Rincian per Pemasok', 14, y)
+      y += 4
+      y = addReportTable(doc, {
+        startY: y,
+        head: [['Pemasok', 'No. Invoice', 'Tanggal', 'Sisa Tagihan', 'Umur']],
+        body: detailRows,
+        foot: [['TOTAL', '', '', formatRp(totalHutang), '']],
+        theme: 'striped',
+        columnStyles: {
+          0: { cellWidth: 45 },
+          1: { cellWidth: 35 },
+          2: { cellWidth: 32 },
+          3: { cellWidth: 38, halign: 'right' },
+          4: { cellWidth: 30 }
+        }
+      })
+      y += 8
+    }
+
+    // Ringkasan umur
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Distribusi Umur Hutang', 14, y)
+    y += 4
+    addReportTable(doc, {
+      startY: y,
+      head: [['Umur', 'Total Sisa Tagihan']],
       body: bucketData.map((d) => [d.bucket, formatRp(d.amount)]),
       foot: [['TOTAL', formatRp(totalHutang)]],
-      footStyles: { fillColor: [254, 242, 242], textColor: [153, 27, 27], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 60, halign: 'right' }
       }
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}umur-hutang-${startDate}-${endDate}.pdf`)
   }
 

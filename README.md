@@ -238,8 +238,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–42), tracker bug lengkap **BUG-001 s/d BUG-124**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–45), tracker bug lengkap **BUG-001 s/d BUG-124**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-14 (sesi 43 — settlement TikTok Shop: fee per kategori + RPC atomic; live test 20/20) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 45 — jurnal tampil langsung + widget dashboard admin/finance/owner) · Dev server: `npm run dev` → http://localhost:3000_

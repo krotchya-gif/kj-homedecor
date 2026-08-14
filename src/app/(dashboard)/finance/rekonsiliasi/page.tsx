@@ -9,6 +9,8 @@ import { formatRp } from '@/lib/utils'
 
 interface DiffRow {
   label: string
+  sumberA: string
+  sumberB: string
   a: number
   b: number
   diff: number
@@ -89,31 +91,39 @@ export default function RekonsiliasiPage() {
         setRows([
           {
             label: 'Piutang',
+            sumberA: 'Piutang (tabel faktur & settlement)',
+            sumberB: 'Sisa tagihan (orders belum lunas)',
             a: piutangTabel,
             b: piutangOrders,
             diff: piutangTabel - piutangOrders,
-            desc: 'Tabel piutang (faktur + settlement) vs orders belum lunas. Selisih = order belum difakturkan / faktur tanpa order.'
+            desc: 'Membandingkan total sisa tagihan yang tercatat di tabel piutang dengan sisa tagihan yang dihitung dari pesanan. Selisih muncul kalau ada pesanan yang belum dibuatkan faktur piutang, atau faktur tanpa pesanan terkait.'
           },
           {
             label: 'Kas',
+            sumberA: 'Saldo kas (dari jurnal)',
+            sumberB: 'Saldo kas (tabel cash_accounts)',
             a: kasJournal,
             b: kasBalance,
             diff: kasJournal - kasBalance,
-            desc: 'Journal lines akun kas vs cash_accounts.balance. Selisih = jurnal gagal / edit saldo manual lama.'
+            desc: 'Membandingkan total saldo kas yang dihitung dari jurnal dengan saldo yang tersimpan di tabel kas. Selisih muncul kalau ada jurnal yang gagal tersimpan, atau saldo pernah diubah manual.'
           },
           {
             label: 'Revenue',
+            sumberA: 'Penjualan (dari jurnal)',
+            sumberB: 'Omzet (total pesanan)',
             a: revJournal,
             b: omzetOrdersSum,
             diff: revJournal - omzetOrdersSum,
-            desc: 'Journal lines akun Penjualan vs omzet orders. Selisih = order tanpa jurnal / jurnal dobel.'
+            desc: 'Membandingkan total penjualan yang tercatat di jurnal dengan total omzet dari pesanan. Selisih muncul kalau ada pesanan tanpa jurnal, atau jurnal dicatat dua kali.'
           },
           {
             label: 'Hutang',
+            sumberA: 'Hutang (tabel tagihan)',
+            sumberB: 'Hutang (jurnal akun 2101)',
             a: hutangTabel,
             b: hutangJournal,
             diff: hutangTabel - hutangJournal,
-            desc: 'Tabel hutang vs journal lines akun 2101. Selisih = tagihan tanpa jurnal / bayar tidak tercatat jurnal.'
+            desc: 'Membandingkan total hutang di tabel tagihan dengan hutang yang tercatat di jurnal. Selisih muncul kalau ada tagihan tanpa jurnal, atau pembayaran tidak dicatat ke jurnal.'
           }
         ])
       } catch (e) {
@@ -132,6 +142,9 @@ export default function RekonsiliasiPage() {
     )
   }
 
+  const okCount = rows.filter((r) => Math.abs(r.diff) < 1).length
+  const allOk = okCount === rows.length
+
   return (
     <div>
       <PageHeader title="Rekonsiliasi" subtitle="Cek keselarasan antar sumber data keuangan (read-only)" />
@@ -141,6 +154,36 @@ export default function RekonsiliasiPage() {
           {error}
         </div>
       )}
+
+      {/* Kesimpulan */}
+      <div
+        style={{
+          background: allOk ? '#f0fdf4' : '#fffbeb',
+          border: `1px solid ${allOk ? '#bbf7d0' : '#fde68a'}`,
+          borderRadius: '0.75rem',
+          padding: '1rem 1.25rem',
+          marginBottom: '1.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}
+      >
+        {allOk ? (
+          <CheckCircle2 size={22} style={{ color: '#16a34a', flexShrink: 0 }} />
+        ) : (
+          <AlertTriangle size={22} style={{ color: '#d97706', flexShrink: 0 }} />
+        )}
+        <div>
+          <div style={{ fontWeight: '800', fontSize: '0.95rem', color: allOk ? '#166534' : '#92400e' }}>
+            {allOk ? 'Semua sumber data seimbang' : `${rows.length - okCount} dari ${rows.length} sumber data memiliki selisih`}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: allOk ? '#15803d' : '#b45309' }}>
+            {allOk
+              ? 'Tidak ada selisih yang perlu ditindaklanjuti.'
+              : 'Buka kartu di bawah untuk melihat sumber mana yang berbeda dan artinya.'}
+          </div>
+        </div>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1rem' }}>
         {rows.map((r) => {
@@ -158,15 +201,28 @@ export default function RekonsiliasiPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 {ok ? <CheckCircle2 size={18} style={{ color: '#16a34a' }} /> : <AlertTriangle size={18} style={{ color: '#dc2626' }} />}
                 <h3 style={{ fontSize: '0.95rem', fontWeight: '800', color: 'var(--neutral-800)', margin: 0 }}>{r.label}</h3>
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    fontSize: '0.7rem',
+                    fontWeight: '700',
+                    padding: '0.15rem 0.6rem',
+                    borderRadius: '999px',
+                    background: ok ? '#dcfce7' : '#fee2e2',
+                    color: ok ? '#166534' : '#b91c1c'
+                  }}
+                >
+                  {ok ? '✓ Seimbang' : '⚠️ Ada Selisih'}
+                </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.85rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--neutral-600)' }}>Sumber A</span>
-                  <span style={{ fontWeight: '700' }}>{formatRp(r.a)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                  <span style={{ color: 'var(--neutral-600)' }}>{r.sumberA}</span>
+                  <span style={{ fontWeight: '700', whiteSpace: 'nowrap' }}>{formatRp(r.a)}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: 'var(--neutral-600)' }}>Sumber B</span>
-                  <span style={{ fontWeight: '700' }}>{formatRp(r.b)}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                  <span style={{ color: 'var(--neutral-600)' }}>{r.sumberB}</span>
+                  <span style={{ fontWeight: '700', whiteSpace: 'nowrap' }}>{formatRp(r.b)}</span>
                 </div>
                 <div
                   style={{
@@ -189,7 +245,7 @@ export default function RekonsiliasiPage() {
 
       <div style={{ marginTop: '1.25rem', fontSize: '0.8rem', color: 'var(--neutral-500)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         <Scale size={14} />
-        Selisih yang tampil adalah informasi — halaman ini read-only. Perbaikan otomatis belum tersedia.
+        Halaman ini hanya menampilkan informasi — tidak mengubah data apa pun. Perbaikan dilakukan lewat jalur pencatatan yang sudah ada (jurnal, pembayaran, dll).
       </div>
     </div>
   )

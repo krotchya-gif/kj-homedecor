@@ -4,12 +4,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 export default function DaftarJurnalPage({ variant = 'finance' }: { variant?: 'finance' | 'owner' } = {}) {
@@ -46,42 +45,48 @@ export default function DaftarJurnalPage({ variant = 'finance' }: { variant?: 'f
   const goto = (n: number) => setPage(Math.min(Math.max(0, n), pageCount - 1))
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Daftar Jurnal${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Journal Entries List', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Daftar Jurnal${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Daftar jurnal per periode'
+    })
 
     const tableBody: (string | number)[][] = []
+    let totalDebit = 0
+    let totalCredit = 0
     entries.forEach((e) => {
       e.lines?.forEach((line: JournalLine, idx: number) => {
+        const debit = line.debit > 0 ? line.debit : 0
+        const credit = line.credit > 0 ? line.credit : 0
+        totalDebit += Number(debit)
+        totalCredit += Number(credit)
         tableBody.push([
           idx === 0 ? (e.entry_date ?? '') : '',
           `${line.account?.code ?? ''} ${line.account?.name ?? ''}`,
-          line.debit > 0 ? formatRp(line.debit) : '',
-          line.credit > 0 ? formatRp(line.credit) : '',
+          debit > 0 ? formatRp(debit) : '',
+          credit > 0 ? formatRp(credit) : '',
           idx === 0 ? (e.description ?? '') : ''
         ])
       })
     })
 
-    autoTable(doc, {
-      startY: 40,
+    // Sesi 44: lebar kolom ≤ lebar A4 (180mm) + TOTAL debit/kredit
+    addReportTable(doc, {
+      startY,
       head: [['Tanggal', 'Akun', 'Debit', 'Kredit', 'Deskripsi']],
-      headStyles: { fillColor: [147, 51, 234] },
       body: tableBody,
+      foot: [['', 'TOTAL', formatRp(totalDebit), formatRp(totalCredit), '']],
+      theme: 'striped',
       columnStyles: {
-        0: { cellWidth: 25 },
-        1: { cellWidth: 55 },
-        2: { cellWidth: 35, halign: 'right' },
-        3: { cellWidth: 35, halign: 'right' },
-        4: { cellWidth: 40 }
+        0: { cellWidth: 22 },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 32, halign: 'right' },
+        3: { cellWidth: 32, halign: 'right' },
+        4: { cellWidth: 44 }
       }
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}daftar-jurnal-${startDate}-${endDate}.pdf`)
   }
 

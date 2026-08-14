@@ -17,6 +17,21 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 45: Jurnal tampil langsung + widget dashboard overview (admin/finance/owner)
+- **Halaman Jurnal disederhanakan**: `/finance/journal` (sebelumnya hub dengan 1 kartu) kini **langsung menampilkan daftar jurnal** — tabel Tanggal · Deskripsi · Reference · Baris · Debit · Kredit, urut terbaru, **pagination 50 baris/halaman** (komponen `<Pagination>`), + tombol link ke "Laporan Daftar Jurnal (PDF)". `/finance/journal/auto` → redirect (bookmark lama aman). Label "input manual" yang keliru dihapus.
+- **Admin dashboard** + 2 widget: **Perlu Tindakan** (survey baru, order menunggu sortir, siap dikemas, booking pending — link langsung) & **Booking Pasang Terdekat** (5 booking `scheduled` terdekat; data `installBookings` sebelumnya di-fetch tapi tidak pernah dirender; query kini juga mencakup status `pending`).
+- **Finance dashboard** + 4 widget: **Perlu Tindakan** (order menunggu approve bayar + refund pending), **Saldo Kas & Bank ringkas** (+total), **Piutang Menua** (5 faktur terlama + umur hari — `agingData` yang tadinya dead code kini dirender), **Status Rekonsiliasi mini** (4 pasang sumber, badge seimbang/selisih + link).
+- **Owner dashboard** + 2: **Omzet MoM** (bulan ini vs bulan lalu, Rp + %, panah ▲▼ di kartu Omzet Bulan Ini) & **Status Rekonsiliasi mini** (banner + link detail).
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 37/37.
+
+### 2026-08-15 — Sesi 44: Normalisasi urutan tabel (baru→lama) + perapian semua PDF laporan + rekonsiliasi readable
+- **Normalisasi urutan tabel data**: `penjahit/jobs` & `order_logs` (aktivitas order) dibalik ke `desc` (terbaru di atas); modal detail buku besar ditampilkan `[...detailLines].reverse()` (saldo berjalan per baris tetap benar — pola yang sama dengan `finance/cash/mutation`). **Tetap ascending (bukan data riwayat)**: `installer/schedule` & `installer/checklist` (jadwal terdekat dulu), foto progress (desain stepper), `ledger.ts` (saldo berjalan).
+- **Helper PDF baru `src/lib/report-pdf.ts`** (single-source-of-truth): header konsisten ("KJ Homedecor" + judul + periode + "Dicetak:"), warna brand #cc7030, **nomor halaman di footer**. Semua 13 generator PDF laporan dipindah ke helper.
+- **Isi PDF dilengkapi**: `finance/reports` + Breakdown per Platform (jumlah + omzet) + Lembur; `umur-piutang` + rincian per pelanggan (pelanggan, invoice, tanggal, sisa, umur); `umur-hutang` kolom **sisa tagihan** (bukan amount penuh); `neraca` + baris Selisih + status seimbang; `neraca-saldo` + status seimbang; `kronologi-omzet` PDF ambil **semua data periode** (bukan hanya halaman aktif) + TOTAL; `daftar-jurnal` lebar kolom ≤ A4 + TOTAL debit/kredit; `admin/reports` & `gudang/reports` + TOTAL row, gudang urutan deterministik + lebar 8 kolom.
+- **Bug fix**: `setTextColor('var(--neutral-600)')` (CSS var invalid di jsPDF) di admin & gudang reports → nilai RGB konkret.
+- **Rekonsiliasi readable**: "Sumber A/B" → label jelas (mis. "Piutang (tabel faktur & settlement)" vs "Sisa tagihan (orders belum lunas)"), badge "✓ Seimbang / ⚠️ Ada Selisih", baris kesimpulan ("Semua sumber data seimbang"), dan penjelasan bahasa awam per kartu.
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 37/37 + smoke render helper PDF (4 halaman, nomor halaman OK).
+
 ### 2026-08-14 — Sesi 43: Settlement TikTok Shop — fee per kategori + RPC atomic
 - **Konteks**: audit live menemukan **0 jurnal TikTok** (revenue/beban/kas E-Wallet belum pernah dibukukan), 106 piutang legacy `pending` (overstatement Total Piutang Rp107,77 jt), 105 order `source='tiktok'` tanpa jurnal, dan logika settlement **duplikat** (sync-finance & create-piutang berisi piutang+jurnal sama, non-atomic).
 - **Keputusan user**: (1) **tanpa backfill** — hanya statement baru yg diproses (data di-reset saat handover; `reset_transactional_data` sudah truncate `tiktok_shop_statements/orders`, `piutang`, `journal_*` dan pertahankan seed accounts/account_mappings); (2) **potongan dipecah per kategori** (komisi/ongkir/penyesuaian) + akun **Beban Iklan** untuk pencatatan manual (TikTok Ads tidak ada di statement settlement); (3) piutang settle → `status='paid'` (tidak muncul di Total Piutang).
@@ -337,7 +352,7 @@ F-62 jurnal order warn saja · F-63 toast ganda · F-64 tanggal bebas backdate �
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **E2E suite (chromium)** | 🟠 High | ✅ `tests/e2e/` — **37/37 pass** (2026-08-14): login 8 role, security (penjahit redirect + API 403), pipeline kirim 9 tahap, pasang 10 tahap, finance, katalog/BOM, dsb. Jalankan: `npx playwright test --project=chromium` (butuh dev server / auth setup live) |
+| 1 | **E2E suite (chromium)** | 🟠 High | ✅ `tests/e2e/` — **37/37 pass** (2026-08-15): login 8 role, security (penjahit redirect + API 403), pipeline kirim 9 tahap, pasang 10 tahap, finance, katalog/BOM, dsb. Jalankan: `npx playwright test --project=chromium` (butuh dev server / auth setup live) |
 | 2 | **Dual modal system** (`Modal` 36× vs `dialog` 3×) | ⏳ Ditunda | Keduanya jalan; konsolidasi = risiko regresi UI (nilai 0). `dialog` utk konfirmasi, `Modal` utk ringan |
 | 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` ✅ (42 file → import `lib/utils`). `STATUS_COLORS` ganda: yang di `gudang/production/page.tsx` & `finance/payments/page.tsx` = **dipakai**; yang di `src/lib/order-detail.ts` = **dead code** (jangan dipakai sebagai referensi warna status) |
 | 4 | **Unique `invoice_number` piutang non-tiktok** | 🟢 Low | ✅ migration 076 + cek duplikat di faktur page |
@@ -368,4 +383,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-14 (sesi 42) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-15 (sesi 45) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_

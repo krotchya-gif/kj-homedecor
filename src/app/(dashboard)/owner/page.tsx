@@ -88,6 +88,9 @@ export default function OwnerDashboard() {
   const [installBookings, setInstallBookings] = useState<LooseRow[]>([])
   const [materialAlerts, setMaterialAlerts] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  // Sesi 45: omzet bulan ini vs bulan lalu + status rekonsiliasi mini
+  const [mom, setMom] = useState<{ current: number; previous: number } | null>(null)
+  const [rekon, setRekon] = useState<{ piutang: number; kas: number; revenue: number; hutang: number } | null>(null)
   const [period, setPeriod] = useState<{ month: number; year: number }>({
     month: new Date().getMonth() + 1,
     year: new Date().getFullYear()
@@ -101,17 +104,33 @@ export default function OwnerDashboard() {
 
   async function loadOrders() {
     setLoading(true)
-    const [{ data }, { data: installData }] = await Promise.all([
-      supabase
-        .from('orders')
-        .select('*, order_items(qty, price, custom_specs, product:products(name))')
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('install_bookings')
-        .select('id, status, scheduled_date, order:orders(customer:customers(name))')
-        .gte('scheduled_date', new Date().toISOString().split('T')[0])
-        .in('status', ['scheduled', 'in_progress'])
-    ])
+    const [{ data }, { data: installData }, rekonPiutangOrders, rekonKasLines, rekonKasBalance, rekonRevLines, rekonHutangLines, rekonHutangTable, rekonPiutangTable] =
+      await Promise.all([
+        supabase
+          .from('orders')
+          .select('*, order_items(qty, price, custom_specs, product:products(name))')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('install_bookings')
+          .select('id, status, scheduled_date, order:orders(customer:customers(name))')
+          .gte('scheduled_date', new Date().toISOString().split('T')[0])
+          .in('status', ['scheduled', 'in_progress']),
+        // Rekonsiliasi mini (sesi 45) — 4 pasang sumber
+        supabase
+          .from('orders')
+          .select('total_amount, dp_amount, lunas_amount')
+          .neq('payment_status', 'paid')
+          .neq('status', 'cancelled'),
+        supabase.from('journal_lines').select('debit, credit, account:accounts!inner(id, is_cash_account)'),
+        supabase.from('cash_accounts').select('balance'),
+        supabase.from('journal_lines').select('debit, credit, account:accounts!inner(id, type)'),
+        supabase
+          .from('journal_lines')
+          .select('debit, credit, account:accounts!inner(id, code)')
+          .eq('account.code', '2101'),
+        supabase.from('hutang').select('amount, paid_amount, return_amount').in('status', ['pending', 'partial']),
+        supabase.from('piutang').select('amount, paid_amount, return_amount, fee_amount').in('status', ['pending', 'partial'])
+      ])
 
     let filtered = (data as Order[]) ?? []
 
@@ -129,6 +148,57 @@ export default function OwnerDashboard() {
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const todayOrders = (data as Order[])?.filter((o) => new Date(o.order_date || o.created_at) >= todayStart) ?? []
     setRealtimeOrders(todayOrders)
+
+    // Sesi 45: omzet bulan ini (paid) vs bulan lalu
+    const paid = (data as Order[] | undefined)?.filter((o) => o.payment_status === 'paid') ?? []
+    const momCurrent = paid
+      .filter((o) => {
+        const d = new Date(o.order_date || o.created_at || '')
+        return d.getFullYear() === period.year && d.getMonth() + 1 === period.month
+      })
+      .reduce((s, o) => s + (o.total_amount ?? 0), 0)
+    const prev = new Date(period.year, period.month - 2, 1)
+    const momPrev = paid
+      .filter((o) => {
+        const d = new Date(o.order_date || o.created_at || '')
+        return d.getFullYear() === prev.getFullYear() && d.getMonth() + 1 === prev.getMonth() + 1
+      })
+      .reduce((s, o) => s + (o.total_amount ?? 0), 0)
+    setMom({ current: momCurrent, previous: momPrev })
+
+    // Sesi 45: rekonsiliasi mini (sama seperti halaman /finance/rekonsiliasi)
+    const piutangOrders = (rekonPiutangOrders.data ?? []).reduce(
+      (s, o) => s + Math.max(0, Number(o.total_amount ?? 0) - Number(o.dp_amount ?? 0) - Number(o.lunas_amount ?? 0)),
+      0
+    )
+    const piutangTabel = (rekonPiutangTable.data ?? []).reduce(
+      (s, p) =>
+        s +
+        Math.max(0, Number(p.amount ?? 0) - Number(p.paid_amount ?? 0) - Number(p.return_amount ?? 0) - Number(p.fee_amount ?? 0)),
+      0
+    )
+    const kasJournal = (rekonKasLines.data ?? [])
+      .filter((l) => (l.account as unknown as { is_cash_account?: boolean } | null)?.is_cash_account)
+      .reduce((s, l) => s + Number(l.debit ?? 0) - Number(l.credit ?? 0), 0)
+    const kasBalance = (rekonKasBalance.data ?? []).reduce((s, c) => s + Number(c.balance ?? 0), 0)
+    const revJournal = (rekonRevLines.data ?? [])
+      .filter((l) => (l.account as unknown as { type?: string } | null)?.type === 'revenue')
+      .reduce((s, l) => s + Number(l.credit ?? 0) - Number(l.debit ?? 0), 0)
+    const omzetOrders = (data as Order[] | undefined)?.reduce((s, o) => s + Number(o.total_amount ?? 0), 0) ?? 0
+    const hutangJournal = (rekonHutangLines.data ?? []).reduce(
+      (s, l) => s + Number(l.credit ?? 0) - Number(l.debit ?? 0),
+      0
+    )
+    const hutangTabel = (rekonHutangTable.data ?? []).reduce(
+      (s, h) => s + Math.max(0, Number(h.amount ?? 0) - Number(h.paid_amount ?? 0) - Number(h.return_amount ?? 0)),
+      0
+    )
+    setRekon({
+      piutang: piutangTabel - piutangOrders,
+      kas: kasJournal - kasBalance,
+      revenue: revJournal - omzetOrders,
+      hutang: hutangTabel - hutangJournal
+    })
 
     setLoading(false)
   }
@@ -393,12 +463,113 @@ export default function OwnerDashboard() {
                 {formatRp(totalRevenue)}
               </div>
               <div className="stat-card-sub">{totalOrders} pesanan</div>
+              {/* Sesi 45: MoM — omzet bulan ini vs bulan lalu */}
+              {mom !== null && mom.previous > 0 && (
+                <div
+                  className="stat-card-sub"
+                  style={{
+                    marginTop: '0.25rem',
+                    fontWeight: '600',
+                    color: mom.current >= mom.previous ? '#059669' : '#dc2626'
+                  }}
+                >
+                  {mom.current >= mom.previous ? '▲' : '▼'}{' '}
+                  {formatRp(Math.abs(mom.current - mom.previous))} (
+                  {((Math.abs(mom.current - mom.previous) / mom.previous) * 100).toFixed(0)}%) vs bulan lalu
+                </div>
+              )}
+              {mom !== null && mom.previous === 0 && (
+                <div className="stat-card-sub" style={{ marginTop: '0.25rem' }}>
+                  Belum ada data bulan lalu
+                </div>
+              )}
             </div>
             <div className="stat-card">
               <div className="stat-card-label">Pesanan</div>
               <div className="stat-card-value">{totalOrders}</div>
               <div className="stat-card-sub">{Object.keys(platformOrders).length} platform aktif</div>
             </div>
+          </div>
+
+          {/* Sesi 45: Status Rekonsiliasi mini */}
+          <div
+            className="section-card"
+            style={{
+              marginBottom: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {(() => {
+                if (rekon === null) {
+                  return (
+                    <>
+                      <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: '#cc7030' }} />
+                      <span style={{ fontSize: '0.85rem', color: 'var(--neutral-500)' }}>Memeriksa keselarasan data…</span>
+                    </>
+                  )
+                }
+                const issues = Object.values(rekon).filter((v) => Math.abs(v) >= 1).length
+                return issues === 0 ? (
+                  <>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: '#16a34a',
+                        flexShrink: 0
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#166534' }}>Semua sumber data seimbang</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)' }}>
+                        Piutang, kas, revenue & hutang cocok dengan pembukuan
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        background: '#d97706',
+                        flexShrink: 0
+                      }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#92400e' }}>
+                        {issues} dari 4 sumber data memiliki selisih
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)' }}>
+                        {Object.entries(rekon)
+                          .filter(([, v]) => Math.abs(v) >= 1)
+                          .map(([k]) => k)
+                          .join(', ')}
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+            <a
+              href="/finance/rekonsiliasi"
+              style={{
+                fontSize: '0.8rem',
+                color: '#cc7030',
+                fontWeight: '600',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              Lihat Detail Rekonsiliasi →
+            </a>
           </div>
 
           {/* Charts Row */}

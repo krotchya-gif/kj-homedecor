@@ -238,7 +238,7 @@ export default function AdminDashboardPage() {
           'id, status, scheduled_date, scheduled_time, type, order:orders(customer:customers(name, phone, address))'
         )
         .gte('scheduled_date', new Date().toISOString().split('T')[0])
-        .in('status', ['scheduled', 'in_progress', 'revision'])
+        .in('status', ['pending', 'scheduled', 'in_progress', 'revision'])
     ])
 
     setInstallBookings((installsData ?? []) as InstallBooking[])
@@ -625,6 +625,175 @@ export default function AdminDashboardPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Sesi 45: Perlu Tindakan + Booking Pasang Terdekat */}
+      {!loading && data && (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+            gap: '1.5rem',
+            marginTop: '1.5rem'
+          }}
+        >
+          {/* Perlu Tindakan Hari Ini */}
+          <div className="section-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <AlertTriangle size={16} color="#cc7030" />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
+                Perlu Tindakan
+              </h3>
+            </div>
+            {(() => {
+              const orders = data.orders ?? []
+              const countPaymentOk = orders.filter((o) => o.status === 'payment_ok').length
+              const countReady = orders.filter((o) => o.status === 'ready').length
+              const countBookingPending = installBookings.filter((b) => b.status === 'pending').length
+              const items = [
+                { label: 'Survey baru hari ini', count: surveyToday, href: '/admin/surveys', color: '#9333ea' },
+                { label: 'Order menunggu sortir', count: countPaymentOk, href: '/admin/orders', color: '#f59e0b' },
+                { label: 'Order siap dikemas', count: countReady, href: '/admin/orders', color: '#0d9488' },
+                { label: 'Booking baru (pending)', count: countBookingPending, href: '/admin/booking', color: '#2563eb' }
+              ].filter((i) => i.count > 0)
+              if (items.length === 0) {
+                return (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', margin: 0 }}>
+                    Tidak ada yang perlu ditindaklanjuti.
+                  </p>
+                )
+              }
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                  {items.map((i) => (
+                    <a
+                      key={i.label}
+                      href={i.href}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '0.5rem',
+                        background: 'var(--neutral-50)',
+                        border: '1px solid #e5e7eb',
+                        textDecoration: 'none',
+                        color: 'var(--neutral-800)',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: i.color,
+                            flexShrink: 0
+                          }}
+                        />
+                        {i.label}
+                      </span>
+                      <span
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '999px',
+                          padding: '0.05rem 0.6rem',
+                          fontWeight: '700',
+                          fontSize: '0.75rem',
+                          color: i.color,
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        {i.count}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
+
+          {/* Booking Pasang Terdekat */}
+          <div className="section-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Calendar size={16} color="#cc7030" />
+              <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
+                Booking Pasang Terdekat
+              </h3>
+              <a
+                href="/admin/booking"
+                style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#cc7030', fontWeight: '600', textDecoration: 'none' }}
+              >
+                Kelola →
+              </a>
+            </div>
+            {(() => {
+              const upcoming = [...installBookings]
+                .filter((b) => b.status === 'scheduled')
+                .sort((a, b) => String(a.scheduled_date ?? '').localeCompare(String(b.scheduled_date ?? '')))
+                .slice(0, 5)
+              if (upcoming.length === 0) {
+                return (
+                  <p style={{ fontSize: '0.82rem', color: 'var(--neutral-400)', margin: 0 }}>
+                    Belum ada jadwal pasang terdekat.
+                  </p>
+                )
+              }
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                  {upcoming.map((b) => (
+                    <a
+                      key={b.id}
+                      href="/admin/booking"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.75rem',
+                        padding: '0.5rem 0.75rem',
+                        borderRadius: '0.5rem',
+                        background: 'var(--neutral-50)',
+                        border: '1px solid #e5e7eb',
+                        textDecoration: 'none',
+                        color: 'var(--neutral-800)',
+                        fontSize: '0.82rem'
+                      }}
+                    >
+                      <span>
+                        {b.order?.customer?.name ?? 'Booking publik'}
+                        <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--neutral-500)' }}>
+                          {new Date(b.scheduled_date + 'T00:00:00').toLocaleDateString('id-ID', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short'
+                          })}
+                          {b.scheduled_time ? ` · ${b.scheduled_time}` : ''}
+                        </span>
+                      </span>
+                      <span
+                        style={{
+                          background: '#fff',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '999px',
+                          padding: '0.05rem 0.6rem',
+                          fontWeight: '600',
+                          fontSize: '0.7rem',
+                          color: '#2563eb',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Terjadwal
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )
+            })()}
+          </div>
+        </div>
       )}
 
       {/* Two Column Layout */}

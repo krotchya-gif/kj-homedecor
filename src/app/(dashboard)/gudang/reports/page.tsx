@@ -5,9 +5,8 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { BarChart3, Download, Package, ArrowDownLeft, ArrowUpRight, Loader2, FileDown } from 'lucide-react'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { formatRp } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 interface InventoryMovement {
   id: string
@@ -61,34 +60,36 @@ export default function GudangReportsPage() {
 
   
   function exportPDF() {
-    const doc = new jsPDF()
-    doc.setFontSize(16)
+    const { doc, startY } = createReportDoc({
+      title: 'Laporan Gudang',
+      period: `${MONTHS[period.month - 1]} ${period.year}`,
+      subtitle: filterType ? `Filter tipe: ${typeLabels[filterType] ?? filterType}` : undefined
+    })
+    let y = startY
+
+    doc.setFontSize(11)
     doc.setFont('helvetica', 'bold')
-    doc.text('KJ Homedecor — Laporan Gudang', 14, 20)
+    doc.text('Ringkasan', 14, y)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor('var(--neutral-600)')
-    doc.text(
-      `Periode: ${MONTHS[period.month - 1]} ${period.year} — Generated: ${new Date().toLocaleDateString('id-ID')}`,
-      14,
-      28
-    )
-    doc.setTextColor('#000')
+    y += 6
+    doc.text(`Barang Masuk  : ${totalIn.toLocaleString()} unit`, 14, y)
+    y += 5
+    doc.text(`Barang Keluar : ${totalOut.toLocaleString()} unit`, 14, y)
+    y += 5
+    doc.text(`Transfer      : ${totalTransfer.toLocaleString()} unit`, 14, y)
+    y += 5
+    doc.text(`Total Movement: ${movements.length} transaksi`, 14, y)
+    y += 8
 
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('Ringkasan', 14, 40)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Barang Masuk  : ${totalIn.toLocaleString()} unit`, 14, 48)
-    doc.text(`Barang Keluar : ${totalOut.toLocaleString()} unit`, 14, 54)
-    doc.text(`Transfer      : ${totalTransfer.toLocaleString()} unit`, 14, 60)
-    doc.text(`Total Movement: ${movements.length} transaksi`, 14, 66)
-
-    autoTable(doc, {
-      startY: 74,
+    // Sesi 44: urutan deterministik (terbaru dulu) + lebar kolom 8 kolom diatur
+    // supaya tidak terpotong + TOTAL qty.
+    const rows = [...movements].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+    const totalQty = rows.reduce((s, m) => s + m.qty, 0)
+    addReportTable(doc, {
+      startY: y,
       head: [['Tanggal', 'Material', 'Tipe', 'Qty', 'Dari', 'Ke', 'Alasan', 'Staff']],
-      body: movements.map((m) => [
+      body: rows.map((m) => [
         new Date(m.created_at).toLocaleDateString('id-ID'),
         m.material?.name ?? '—',
         typeLabels[m.type] ?? m.type,
@@ -98,11 +99,21 @@ export default function GudangReportsPage() {
         m.reason ?? '—',
         m.staff?.name ?? '—'
       ]),
+      foot: [['', '', 'TOTAL', String(totalQty), '', '', '', '']],
       theme: 'striped',
-      headStyles: { fillColor: '#cc7030' },
-      columnStyles: { 4: { cellWidth: 30 }, 5: { cellWidth: 30 } }
+      columnStyles: {
+        0: { cellWidth: 18 },
+        1: { cellWidth: 30 },
+        2: { cellWidth: 22 },
+        3: { cellWidth: 14, halign: 'right' },
+        4: { cellWidth: 22 },
+        5: { cellWidth: 22 },
+        6: { cellWidth: 32 },
+        7: { cellWidth: 20 }
+      }
     })
 
+    addPageNumbers(doc)
     doc.save(`kj-gudang-${period.year}-${String(period.month).padStart(2, '0')}.pdf`)
   }
 

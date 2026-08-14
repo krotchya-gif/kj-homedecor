@@ -1,15 +1,13 @@
 'use client'
-import type { AutoTableDoc } from '@/lib/pdf-types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { fetchAccountBalances } from '@/lib/ledger'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 import { formatRp } from '@/lib/utils'
 
 
@@ -97,49 +95,74 @@ export default function NeracaPage({ variant = 'finance' }: { variant?: 'finance
   const totalEquity = equities.reduce((s, a) => s + (a.balance ?? 0), 0) + labaBerjalan
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.text(`KJ Homedecor - Laporan Neraca${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`, 14, 28)
-    doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Laporan Neraca${isOwner ? ' (Owner)' : ''}`,
+      period: `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`
+    })
+    let y = startY
+    const selisih = totalAssets - totalLiabilities - totalEquity
 
-    autoTable(doc, {
-      startY: 40,
+    // Aset
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('ASET', 14, y)
+    y += 4
+    y = addReportTable(doc, {
+      startY: y,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
         ...assets.map((a) => [a.code ?? '', a.name ?? '', 'Aset', formatRp(a.balance ?? 0)]),
         [{ content: 'TOTAL ASET', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalAssets)]
       ],
-      theme: 'striped',
-      headStyles: { fillColor: [204, 112, 48] }
+      theme: 'striped'
     })
+    y += 8
 
-    autoTable(doc, {
-      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
+    // Liabilitas
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('LIABILITAS', 14, y)
+    y += 4
+    y = addReportTable(doc, {
+      startY: y,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
         ...liabilities.map((a) => [a.code ?? '', a.name ?? '', 'Liabilitas', formatRp(a.balance ?? 0)]),
         [{ content: 'TOTAL LIABILITAS', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalLiabilities)]
       ],
-      theme: 'striped',
-      headStyles: { fillColor: [220, 38, 38] }
+      theme: 'striped'
     })
+    y += 8
 
-    autoTable(doc, {
-      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
+    // Ekuitas
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('EKUITAS', 14, y)
+    y += 4
+    y = addReportTable(doc, {
+      startY: y,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
       body: [
         ...equities.map((a) => [a.code ?? '', a.name ?? '', 'Ekuitas', formatRp(a.balance ?? 0)]),
         [{ content: 'Laba Berjalan', colSpan: 3, styles: { fontStyle: 'italic' } }, formatRp(labaBerjalan)],
         [{ content: 'TOTAL EKUITAS', colSpan: 3, styles: { fontStyle: 'bold' } }, formatRp(totalEquity)]
       ],
-      theme: 'striped',
-      headStyles: { fillColor: [22, 163, 74] }
+      theme: 'striped'
     })
+    y += 8
 
+    // Selisih (sesi 44: baris ini sebelumnya tidak ada di PDF padahal ada di web)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(Math.abs(selisih) < 1 ? 22 : 220, Math.abs(selisih) < 1 ? 163 : 38, Math.abs(selisih) < 1 ? 74 : 38)
+    doc.text(
+      `Selisih (Aset − Liabilitas − Ekuitas): ${formatRpDec(selisih)}${Math.abs(selisih) < 1 ? ' — Seimbang' : ' — TIDAK seimbang'}`,
+      14,
+      y
+    )
+    doc.setTextColor(0, 0, 0)
+
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}neraca-${startDate}-${endDate}.pdf`)
   }
 

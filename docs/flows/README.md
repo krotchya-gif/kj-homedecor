@@ -38,4 +38,4 @@ Order masuk (09) ──► Buat Order (01) ──► Bayar & Approve (04) ──
                                             Retur/Refund (08) ◄── (jika ada masalah)
 ```
 
-> Dibuat: 2026-08-11 · Update: 2026-08-13 (sesi 19 — landing/SEO, laundry, owner/staff)
+> Dibuat: 2026-08-11 · Update: 2026-08-15 (sesi 45 — sinkronisasi dengan kode terbaru; alur teknis inti tidak berubah)

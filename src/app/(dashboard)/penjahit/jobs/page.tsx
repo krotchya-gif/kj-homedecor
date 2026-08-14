@@ -65,7 +65,7 @@ export default function PenjahitJobsPage() {
       )
       .eq('penjahit_id', user.id)
       .neq('status', 'done')
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
     if (error) {
       console.error('[Penjahit Jobs] Query error:', error)
       toast('error', '⚠️ Gagal load job: ' + error.message)

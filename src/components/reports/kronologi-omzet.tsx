@@ -3,13 +3,12 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 import Pagination from '@/components/ui/Pagination'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -83,34 +82,45 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
     fetchData()
   }, [startDate, endDate, page])
 
-  function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Kronologi Omzet${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Omzet Penjualan per Periode', 14, 34)
+  async function downloadPDF() {
+    const { doc, startY } = createReportDoc({
+      title: `Kronologi Omzet${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Omzet penjualan per periode'
+    })
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Order ID', 'Tanggal', 'Total', 'Status']],
-      headStyles: { fillColor: [217, 119, 6] },
-      body: orders.map((o) => [
+    // Sesi 44: PDF ambil SEMUA data periode (bukan hanya halaman aktif yang
+    // sedang dilihat di web) supaya total & daftarnya lengkap.
+    const { data: allOrders } = await supabase
+      .from('orders')
+      .select('id, order_number, created_at, total_amount, payment_status')
+      .gte('created_at', startDate)
+      .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
+      .order('created_at', { ascending: false })
+
+    const rows = (allOrders ?? []) as LooseRow[]
+    const grandTotal = rows.reduce((s, o) => s + (o.total_amount ?? 0), 0)
+
+    addReportTable(doc, {
+      startY,
+      head: [['No. Order', 'Tanggal', 'Total', 'Status Bayar']],
+      body: rows.map((o) => [
         o.order_number ?? (o.id ?? 'N/A').slice(0, 8),
-        new Date(o.created_at ?? '').toLocaleDateString('id-ID'),
+        formatDateDDMMYYYY(o.created_at ?? ''),
         formatRp(o.total_amount ?? 0),
         o.payment_status ?? '—'
       ]),
+      foot: [['TOTAL', `${rows.length} order`, formatRp(grandTotal), '']],
+      theme: 'striped',
       columnStyles: {
-        0: { cellWidth: 35, fontStyle: 'bold' },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 45, halign: 'right' },
-        3: { cellWidth: 45 }
+        0: { cellWidth: 40, fontStyle: 'bold' },
+        1: { cellWidth: 32 },
+        2: { cellWidth: 48, halign: 'right' },
+        3: { cellWidth: 40 }
       }
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}kronologi-omzet-${startDate}-${endDate}.pdf`)
   }
 

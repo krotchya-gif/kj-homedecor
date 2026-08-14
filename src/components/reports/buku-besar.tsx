@@ -4,14 +4,13 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { fetchAccountBalances, fetchAccountLines, type AccountLine } from '@/lib/ledger'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { useRef } from 'react'
 import { Modal } from '@/components/ui/Modal'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -90,28 +89,23 @@ export default function BukuBesarPage({ variant = 'finance' }: { variant?: 'fina
   }
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Buku Besar${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} - ${endDate}`, 14, 28)
-    if (filterActive) {
-      doc.text(`Filter akun: ${filtered.length} dari ${accounts.length} akun`, 14, 34)
-    }
+    const { doc, startY } = createReportDoc({
+      title: `Buku Besar${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: filterActive ? `Filter akun: ${filtered.length} dari ${accounts.length} akun` : undefined
+    })
 
-    autoTable(doc, {
-      startY: filterActive ? 38 : 35,
+    addReportTable(doc, {
+      startY,
       head: [['Kode', 'Nama Akun', 'Tipe', 'Saldo']],
-      headStyles: { fillColor: [37, 99, 235] },
       body: [
         ...filtered.map((a) => [a.code ?? '', a.name ?? '', a.type ?? '—', formatRp(a.balance ?? 0)]),
         ['', 'TOTAL', '', formatRp(totalPreview)]
       ],
-      footStyles: { fillColor: [37, 99, 235], fontStyle: 'bold' }
+      theme: 'striped'
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}buku-besar-${startDate}-${endDate}.pdf`)
   }
 
@@ -359,7 +353,9 @@ export default function BukuBesarPage({ variant = 'finance' }: { variant?: 'fina
                 </tr>
               </thead>
               <tbody>
-                {detailLines.map((l, i) => (
+                {/* Terbaru → terlama (normalisasi tabel data). Saldo per baris tetap
+                    benar karena running_balance dihitung ascending di fetchAccountLines. */}
+                {[...detailLines].reverse().map((l, i) => (
                   <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '0.45rem 0.6rem', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>
                       {formatDateDDMMYYYY(l.entry_date)}

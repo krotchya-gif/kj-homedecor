@@ -158,7 +158,7 @@ export function useOrderDetail(id: string) {
         .from('order_logs')
         .select('*, staff:users(name)')
         .eq('order_id', id)
-        .order('created_at', { ascending: true }),
+        .order('created_at', { ascending: false }),
       supabase.from('order_preparation_checklists').select('items').eq('order_id', id).single(),
       supabase.from('order_progress_photos').select('*').eq('order_id', id).order('created_at', { ascending: true }),
       supabase.from('bom').select('*, material:materials(name,unit,cost_per_unit,stock_gudang,min_stock_level)'),

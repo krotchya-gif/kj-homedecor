@@ -3,12 +3,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -111,22 +110,18 @@ export default function PerformaTagPage({ variant = 'finance' }: { variant?: 'fi
   const grandCount = tagData.reduce((s, d) => s + (d.count ?? 0), 0)
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Performa Per Tag${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Ringkasan Laba Rugi per Tag/Marketplace', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Performa Per Tag${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Ringkasan laba rugi per tag/marketplace'
+    })
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Tag/Platform', 'Jumlah Order', 'Total Revenue']],
-      headStyles: { fillColor: [236, 72, 153] },
+    addReportTable(doc, {
+      startY,
+      head: [['Tag/Platform', 'Jumlah Order', 'Total Omzet']],
       body: tagData.map((d) => [d.tag, (d.count ?? 0).toString(), formatRp(d.total ?? 0)]),
       foot: [['TOTAL', grandCount.toString(), formatRp(grandTotal)]],
-      footStyles: { fillColor: [253, 242, 252], textColor: [131, 24, 67], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 40, halign: 'center' },
@@ -134,6 +129,7 @@ export default function PerformaTagPage({ variant = 'finance' }: { variant?: 'fi
       }
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}performa-tag-${startDate}-${endDate}.pdf`)
   }
 

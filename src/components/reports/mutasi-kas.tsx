@@ -3,12 +3,11 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
 import { formatRp } from '@/lib/utils'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -90,19 +89,15 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
   const totalBalance = cashAccounts.reduce((s, c) => s + (c.balance ?? 0), 0)
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Mutasi Kas & Bank${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Perubahan Saldo Kas dan Bank', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Mutasi Kas & Bank${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Perubahan saldo kas dan bank'
+    })
 
-    autoTable(doc, {
-      startY: 40,
+    addReportTable(doc, {
+      startY,
       head: [['Kode', 'Bank', 'No. Rekening', 'Saldo']],
-      headStyles: { fillColor: [20, 184, 166] },
       body: cashAccounts.map((c) => [
         c.account?.code ?? '—',
         c.bank_name ?? '—',
@@ -110,7 +105,7 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
         formatRp(c.balance ?? 0)
       ]),
       foot: [['', '', 'TOTAL', formatRp(totalBalance)]],
-      footStyles: { fillColor: [240, 253, 250], textColor: [19, 78, 74], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: {
         0: { cellWidth: 25, fontStyle: 'bold' },
         1: { cellWidth: 60 },
@@ -119,6 +114,7 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
       }
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}mutasi-kas-${startDate}-${endDate}.pdf`)
   }
 

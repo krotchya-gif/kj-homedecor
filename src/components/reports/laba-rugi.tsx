@@ -1,15 +1,13 @@
 'use client'
-import type { AutoTableDoc } from '@/lib/pdf-types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { fetchAccountBalances } from '@/lib/ledger'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 import { formatRp } from '@/lib/utils'
 
 
@@ -76,44 +74,53 @@ export default function LabaRugiPage({ variant = 'finance' }: { variant?: 'finan
   const profit = totalRevenue - totalExpense
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Laporan Laba Rugi${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Profit & Loss Statement', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Laporan Laba Rugi${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Pendapatan dan biaya periode'
+    })
+    let y = startY
 
-    autoTable(doc, {
-      startY: 40,
+    // Pendapatan
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('PENDAPATAN', 14, y)
+    y += 4
+    y = addReportTable(doc, {
+      startY: y,
       head: [['Kode', 'Nama Akun', 'Saldo']],
-      headStyles: { fillColor: [34, 197, 94] },
       body: revenues.map((a) => [a.code ?? '', a.name ?? '', formatRp(a.balance ?? 0)]),
       foot: [['', 'TOTAL PENDAPATAN', formatRp(totalRevenue)]],
-      footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
     })
+    y += 8
 
-    autoTable(doc, {
-      startY: (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10,
+    // Biaya
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('BIAYA', 14, y)
+    y += 4
+    y = addReportTable(doc, {
+      startY: y,
       head: [['Kode', 'Nama Akun', 'Saldo']],
-      headStyles: { fillColor: [220, 38, 38] },
       body: expenses.map((a) => [a.code ?? '', a.name ?? '', formatRp(a.balance ?? 0)]),
       foot: [['', 'TOTAL BIAYA', formatRp(totalExpense)]],
-      footStyles: { fillColor: [254, 242, 242], textColor: [153, 27, 27], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 80 }, 2: { cellWidth: 50, halign: 'right' } }
     })
+    y += 10
 
-    const finalY = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 10
+    // LABA/RUGI PERIODE
     doc.setFillColor(profit >= 0 ? 34 : 220, profit >= 0 ? 197 : 38, profit >= 0 ? 94 : 38)
-    doc.rect(14, finalY, 180, 18, 'F')
+    doc.rect(14, y, 180, 18, 'F')
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(12)
     doc.setTextColor(255, 255, 255)
-    doc.text('LABA/RUGI PERIODE', 20, finalY + 7)
-    doc.text(formatRp(profit), 194 - doc.getTextWidth(formatRp(profit)) / 2, finalY + 13)
+    doc.text(profit >= 0 ? 'LABA PERIODE' : 'RUGI PERIODE', 20, y + 7)
+    doc.text(formatRp(profit), 194 - doc.getTextWidth(formatRp(profit)) / 2, y + 13)
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}laba-rugi-${startDate}-${endDate}.pdf`)
   }
 

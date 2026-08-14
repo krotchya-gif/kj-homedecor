@@ -1,87 +1,169 @@
 'use client'
+import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
 import { FileText, ExternalLink } from 'lucide-react'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
+import Pagination from '@/components/ui/Pagination'
 
-const SUB_MODULES = [
-  {
-    title: 'Jurnal Otomatis',
-    desc: 'Input dan kelola jurnal manual',
-    href: '/finance/journal/auto',
-    icon: <FileText size={20} />,
-    color: 'blue'
-  }
-]
+interface LooseRow {
+  id: string
+  entry_date?: string
+  created_at?: string
+  description?: string
+  notes?: string
+  reference_type?: string
+  debit?: number
+  credit?: number
+  total_debit?: number
+  total_credit?: number
+  lines?: { count?: number } | { count?: number }[] | number
+}
+
+const PAGE_SIZE = 50
 
 export default function JournalPage() {
+  const [entries, setEntries] = useState<LooseRow[]>([])
+  const [loading, setLoading] = useState(true)
+  // Sesi 45: pagination 50 baris/halaman (default) — jurnal lama tidak disembunyikan
+  const [page, setPage] = useState(0)
+
+  const supabase = createClient()
+
+  async function fetchData() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('*, lines:journal_lines(count)')
+      .order('entry_date', { ascending: false })
+    setEntries((data ?? []) as LooseRow[])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  useEffect(() => {
+    setPage(0)
+  }, [entries.length])
+
+  const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE))
+  const pageEntries = entries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
+
+  const lineCount = (e: LooseRow): number => {
+    const l = e.lines
+    if (Array.isArray(l)) return l.length
+    if (l && typeof l === 'object' && 'count' in l) return Number(l.count ?? 0)
+    return 0
+  }
+
   return (
     <div>
-      <PageHeader title="JURNAL" subtitle="Input dan kelola jurnal manual" />
-
-      <div style={{ marginBottom: '2rem' }}>
-        <h2
-          style={{
-            fontSize: '0.9rem',
-            fontWeight: '600',
-            color: 'var(--neutral-600)',
-            marginBottom: '0.75rem',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em'
-          }}
-        >
-          Menu
-        </h2>
-        <div className="module-grid">
-          {SUB_MODULES.map((m) => (
-            <Link key={m.href} href={m.href} className="module-card">
-              <div className={`module-card-icon ${m.color}`}>{m.icon}</div>
-              <div className="module-card-body">
-                <div className="module-card-title">{m.title}</div>
-                <div className="module-card-desc">{m.desc}</div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div>
-        <div
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}
-        >
-          <h2
+      <PageHeader
+        title="Daftar Jurnal"
+        subtitle="Jurnal otomatis dari sistem — detail per baris & PDF di Laporan"
+        action={
+          <a
+            href="/finance/laporan/daftar-jurnal"
             style={{
-              fontSize: '0.9rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.625rem 1.25rem',
+              background: 'var(--surface)',
+              color: 'var(--neutral-700)',
+              border: '1px solid #d1d5db',
+              borderRadius: '0.5rem',
               fontWeight: '600',
-              color: 'var(--neutral-600)',
-              margin: 0,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
+              fontSize: '0.875rem',
+              textDecoration: 'none'
             }}
           >
-            Laporan Keuangan
-          </h2>
-          <Link
-            href="/finance/laporan"
-            className="flex items-center gap-1.5 text-sm font-medium text-orange-600 hover:text-orange-700"
-          >
-            <ExternalLink size={14} />
-            Lihat Semua
-          </Link>
-        </div>
-        <div className="module-grid">
-          <Link href="/finance/laporan" className="module-card">
-            <div className="module-card-icon green">
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+            <ExternalLink size={16} /> Laporan Daftar Jurnal (PDF)
+          </a>
+        }
+      />
+
+      {/* Mobile: card list */}
+      <div className="mobile-only">
+        {loading ? (
+          <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat…</div>
+        ) : pageEntries.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Belum ada data</div>
+        ) : (
+          <MobileCards items={pageEntries} keyOf={(e) => e.id} renderCard={(e) => (
+            <div className="mobile-card">
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Tanggal</span>
+                <span className="mobile-card-value">{formatDateDDMMYYYY(e.entry_date ?? e.created_at)}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Keterangan</span>
+                <span className="mobile-card-value">{e.description ?? e.notes}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Debit</span>
+                <span className="mobile-card-value">{formatRp(Number(e.total_debit ?? e.debit ?? 0))}</span>
+              </div>
+              <div className="mobile-card-row">
+                <span className="mobile-card-label">Kredit</span>
+                <span className="mobile-card-value">{formatRp(Number(e.total_credit ?? e.credit ?? 0))}</span>
+              </div>
             </div>
-            <div className="module-card-body">
-              <div className="module-card-title">10 Laporan Keuangan</div>
-              <div className="module-card-desc">Neraca, Laba Rugi, Buku Besar, Jurnal, dan lainnya</div>
-            </div>
-          </Link>
-        </div>
+          )} />
+        )}
+      </div>
+      <div className="data-table desktop-only">
+        {loading ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat...</div>
+        ) : entries.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--neutral-400)' }}>
+            <FileText size={32} style={{ opacity: 0.3, margin: '0 auto 0.75rem' }} />
+            <p>Belum ada jurnal</p>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Deskripsi</th>
+                <th>Reference</th>
+                <th style={{ textAlign: 'center' }}>Baris</th>
+                <th style={{ textAlign: 'right' }}>Debit</th>
+                <th style={{ textAlign: 'right' }}>Kredit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pageEntries.map((e) => (
+                <tr key={e.id}>
+                  <td style={{ color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}>
+                    {formatDateDDMMYYYY(e.entry_date ?? e.created_at)}
+                  </td>
+                  <td style={{ fontWeight: '500' }}>{e.description ?? '—'}</td>
+                  <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{e.reference_type ?? '—'}</td>
+                  <td style={{ textAlign: 'center', color: 'var(--neutral-500)' }}>{lineCount(e)}</td>
+                  <td style={{ textAlign: 'right', color: '#166534' }}>{formatRp(Number(e.total_debit ?? e.debit ?? 0))}</td>
+                  <td style={{ textAlign: 'right', color: '#b91c1c' }}>{formatRp(Number(e.total_credit ?? e.credit ?? 0))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {!loading && entries.length > 0 && (
+          <Pagination
+            currentPage={page + 1}
+            totalPages={totalPages}
+            onPageChange={(p) => setPage(p - 1)}
+            pageSize={PAGE_SIZE}
+            onPageSizeChange={() => setPage(0)}
+            totalItems={entries.length}
+            startIndex={page * PAGE_SIZE + 1}
+            endIndex={Math.min((page + 1) * PAGE_SIZE, entries.length)}
+          />
+        )}
       </div>
     </div>
   )

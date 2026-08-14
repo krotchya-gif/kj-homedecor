@@ -3,13 +3,12 @@ import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import BackButton from '@/components/ui/BackButton'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import ReportPDFButton from '@/components/ui/ReportPDFButton'
-import { formatRp } from '@/lib/utils'
+import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 import { piutangSisa } from '@/lib/ledger'
+import { createReportDoc, addReportTable, addPageNumbers } from '@/lib/report-pdf'
 
 
 interface LooseRow {
@@ -110,28 +109,70 @@ export default function UmurPiutangPage({ variant = 'finance' }: { variant?: 'fi
   const totalUnpaid = Object.values(buckets).reduce((s, v) => s + v, 0)
 
   function downloadPDF() {
-    const doc = new jsPDF()
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16)
-    doc.text(`Umur Piutang${isOwner ? ' (Owner)' : ''}`, 14, 20)
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text(`Periode: ${startDate} s/d ${endDate}`, 14, 28)
-    doc.text('Umur Piutang per Pelanggan', 14, 34)
+    const { doc, startY } = createReportDoc({
+      title: `Umur Piutang${isOwner ? ' (Owner)' : ''}`,
+      period: `${startDate} s/d ${endDate}`,
+      subtitle: 'Rincian sisa tagihan per pelanggan'
+    })
+    let y = startY
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Bucket', 'Total Amount']],
-      headStyles: { fillColor: [34, 197, 94] },
+    // Detail per pelanggan (sesi 44: sebelumnya PDF hanya ringkasan bucket
+    // padahal judulnya "per Pelanggan")
+    const detailRows = orders
+      .map((o) => {
+        const anchor = o.invoice_date ?? o.created_at ?? ''
+        const days = Math.max(0, Math.floor((asOf.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24)))
+        return {
+          nama: (o.customer as { name?: string } | null)?.name ?? '—',
+          invoice: String(o.invoice_number ?? '—'),
+          tanggal: formatDateDDMMYYYY(o.invoice_date ?? o.created_at ?? ''),
+          sisa: piutangSisa(o),
+          bucket: getBucket(days)
+        }
+      })
+      .sort((a, b) => b.sisa - a.sisa)
+
+    if (detailRows.length === 0) {
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(107, 114, 128)
+      doc.text('Tidak ada piutang terbuka di periode ini.', 14, y)
+      doc.setTextColor(0, 0, 0)
+      y += 8
+    } else {
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Rincian per Pelanggan', 14, y)
+      y += 4
+      y = addReportTable(doc, {
+        startY: y,
+        head: [['Pelanggan', 'No. Invoice', 'Tanggal', 'Sisa Tagihan', 'Umur']],
+        body: detailRows.map((r) => [r.nama, r.invoice, r.tanggal, formatRp(r.sisa), r.bucket]),
+        foot: [['TOTAL', '', '', formatRp(totalUnpaid), '']],
+        theme: 'striped',
+        columnStyles: { 3: { halign: 'right' } }
+      })
+      y += 8
+    }
+
+    // Ringkasan umur
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Distribusi Umur Piutang', 14, y)
+    y += 4
+    addReportTable(doc, {
+      startY: y,
+      head: [['Umur', 'Total Sisa Tagihan']],
       body: bucketData.map((d) => [d.bucket, formatRp(d.amount)]),
       foot: [['TOTAL', formatRp(totalUnpaid)]],
-      footStyles: { fillColor: [220, 252, 231], textColor: [22, 101, 52], fontStyle: 'bold' },
+      theme: 'striped',
       columnStyles: {
         0: { cellWidth: 80 },
         1: { cellWidth: 60, halign: 'right' }
       }
     })
 
+    addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}umur-piutang-${startDate}-${endDate}.pdf`)
   }
 
