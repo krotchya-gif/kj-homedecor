@@ -1,6 +1,6 @@
 # Riwayat Perbaikan & Bug — KJ Homedecor
 
-> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-128)** + **audit modul finance** + **backlog**.
+> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-130)** + **audit modul finance** + **backlog**.
 > File ini menggabungkan `bug.md`, `todo.md`, `audit-finance.md`, dan bagian "Riwayat Perbaikan" README (dikonsolidasi 2026-08-13, sesi 37).
 >
 > Cara pakai: cari bug berdasarkan ID (tabel di bawah) → status & cara fix langsung terlihat di kolom "Cara Fix". Untuk konteks fase, lihat "Riwayat Perbaikan per Fase". Untuk temuan audit finance, lihat bagian "Audit Modul Finance".
@@ -33,8 +33,14 @@
   - **sync-to-main-orders → RPC TikTok** dengan BLOCK on error: `process_tiktok_order_atomic` (order + payment `verified_by NULL` + jurnal order_created idempotent + `order_items` HANYA saat order baru — `v_was_new`, sync ulang tidak duplikat) & `cancel_tiktok_order_atomic` (void payment + reversal jurnal + order_logs; perbaiki `SELECT ... INTO` 3 kolom→2 variabel yang menimpa nomor order dengan status).
   - **Installer submitRevision → `PUT /api/install-bookings/[id]`** (RPC advance_install_booking_status + cascade order; sebelumnya update langsung + insert order_logs terpisah).
   - **Housekeeping**: create-staff komentar eksplisit "owner by-design" (keputusan bisnis — jangan ditandai audit lagi); setup-accounts password min 8; rate limit consume-materials & notifications PATCH; seo upload-robots/sitemap cek `status='active'`.
-- **Wave 3 (pagination mobile, reset filter, dead code, upload/csv) = BELUM** — backlog.
-- **Verifikasi**: tsc + build + vitest 27/27 + **E2E chromium 38/38** (2 regresi ditemukan & diperbaiki: PGRST203 overload + gudang `packed_at` role lock) + live: constraint 'partial' OK, index idempotency `payments_idempotency_unique` & `journal_entries_idempotency_unique` ada, 7 RPC terpasang & grant authenticated. Riwayat: BUG-125 (constraint 'partial'), BUG-126 (overload PGRST203), BUG-127 (role lock IDOR PUT orders), BUG-128 (jalur paralel piutang/hutang/TikTok → RPC atomic).
+- **Wave 3 (UX mobile & housekeeping) — selesai**:
+  - **Pagination di LUAR `.desktop-only`** (5 halaman: hutang, faktur, journal, cash, cash/mutation) — MobileCards di-slice `page*pageSize` tanpa kontrol halaman → user HP terkunci 10 baris pertama (BUG-129).
+  - **Reset page saat search/filter** berubah (setPage(0)) di 4 halaman ber-search/filter.
+  - **Dead exports dihapus**: `formatDateFromISO`, `generateOrderNumber` (`src/lib/utils.ts`, 0 caller — sudah diverifikasi grep).
+  - **upload.ts guard JSON = false-positive (verified)**: MIME whitelist (ALLOWED_TYPES) + magic bytes sudah menolak `application/json` (`{`/`[` tidak lolos) — tidak ada perubahan kode, dicatat agar audit berikutnya tidak menandai lagi.
+  - **csv.ts**: `exportToCSV`/`generateCSVTemplate` + BOM `\uFEFF` (Excel Windows baca karakter Indonesia benar); `parseCSV` kini split RECORD stateful (newline di dalam field ber-quote tidak memecah record) + buang BOM input (BUG-130).
+- **Wave 3 selesai — semua 22 temuan audit sesi 52 tuntas.**
+- **Verifikasi**: tsc + build + vitest 27/27 + **E2E chromium 38/38** (1× flaky timeout `goto /gudang/qc` = dev-recompile lambat — lolos penuh di run ulang) + live: constraint 'partial' OK, index idempotency `payments_idempotency_unique` & `journal_entries_idempotency_unique` ada, 7 RPC terpasang & grant authenticated. Riwayat: BUG-125 (constraint 'partial'), BUG-126 (overload PGRST203), BUG-127 (role lock IDOR PUT orders), BUG-128 (jalur paralel piutang/hutang/TikTok → RPC atomic), BUG-129 (pagination mobile), BUG-130 (csv BOM/parse).
 
 ### 2026-08-15 — Sesi 50: Chart recharts tidak render di mobile (lebar 0) — ganti ResponsiveContainer ke ChartBox terukur
 - **Gejala**: semua 8 grafik dashboard (admin 3, finance 2, owner 3) tidak muncul di viewport mobile — `ResponsiveContainer` recharts **v3.8.1** render SVG dengan lebar 0 (container 324px tapi svg 0px) → chart kosong. Terverifikasi via Playwright emulasi iPhone 12.
@@ -206,7 +212,7 @@
 
 ---
 
-## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-128)
+## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-130)
 
 > Semua bug sudah **Fixed** kecuali BUG-020 (bukan bug — false positive). Bagian detail Gejala/Akar per bug sudah diringkas ke kolom "Cara Fix".
 
@@ -338,6 +344,8 @@
 | BUG-126 | **Overload usang `add_order_payment_atomic` bikin PGRST203** — 3 varian live (4-arg, 6-arg, 7-arg); client panggil named-args parsial (tanpa `p_date`) → PostgREST "could not choose the best candidate function" → auto-payment admin/orders gagal (ketangkap E2E: toast "auto-payment gagal") | ✅ Fixed (2026-08-15) | DROP 2 overload lama; final = 7-arg (`p_date`). **Verifikasi**: E2E pipeline kirim/pasang pass (create order + auto-DP) |
 | BUG-127 | **PUT `/api/orders/[id]` bebas field non-status (IDOR)** — role operasional (installer/penjahit/surveyor) bisa ubah `courier/tracking_number/notes/installed_at` order mana pun; gudang perlu `packed_at` saat kemas | ✅ Fixed (2026-08-15) | Role lock per field: admin/owner/finance = semua; gudang = `packed_at`; lain = ditolak 403. Status tetap via role matrix. **Verifikasi**: E2E 38/38 (gudang kemas tetap jalan) |
 | BUG-128 | **Jalur paralel piutang/hutang & TikTok non-atomic** — faktur/hutang/process: insert/update langsung client + `createSimpleJournal` + rollback manual (2 sumber kebenaran, divergen saat 2 finance bersamaan); `sync-to-main-orders`: insert order+payment+jurnal multi-step dengan swallow error & duplikasi item saat repair; cancel TikTok hanya update status (payment/jurnal tidak di-void) | ✅ Fixed (2026-08-15) | 7 RPC atomic baru (pay/save/retur piutang-hutang + process/cancel TikTok) via `create_journal_atomic` + `actor_is_active_with_role`; client di-refactor; sync route BLOCK on error; item TikTok hanya saat order baru (`v_was_new`); cancel void payment + reversal jurnal. **Verifikasi**: E2E 38/38 + tsc + build + vitest 27/27 |
+| BUG-129 | **Pagination tidak tampil di mobile** — 5 halaman finance (hutang, faktur, journal, cash, cash/mutation) menaruh `<Pagination>` di dalam `.data-table.desktop-only`; daftar mobile (`MobileCards`) di-slice `page*pageSize` tanpa kontrol halaman → user HP terkunci di 10 baris pertama; search/filter juga tidak reset page → "halaman kosong" saat hasil filter pendek | ✅ Fixed (2026-08-15) | Pagination dipindah keluar `.desktop-only` (render desktop + mobile); `setPage(0)` di onChange search/filter (4 halaman). **Verifikasi**: tsc + build + vitest 27/27 + E2E 38/38 |
+| BUG-130 | **CSV export mojok di Excel Windows & parse pecah saat newline dalam quote** — `exportToCSV`/template tanpa BOM `\uFEFF` → karakter Indonesia (Rp, é) garbled; `parseCSV` split `/\r?\n/` polos → field ber-quote berisi newline dipecah jadi record salah | ✅ Fixed (2026-08-15) | BOM prepend di `downloadCSV`; `parseCSV` pakai `splitCSVRecords` stateful (menghormati quote saat split record) + buang BOM input. **Verifikasi**: tsc + build + E2E 38/38 (ImportModal customers/products/materials/suppliers tetap jalan) |
 
 ---
 

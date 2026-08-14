@@ -16,7 +16,7 @@ export function exportToCSV<T extends object>(
         const val = row[col.key]
         const str = val == null ? '' : String(val)
         // Escape fields that contain comma, quote, or newline
-        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
           return `"${str.replace(/"/g, '""')}"`
         }
         return str
@@ -37,7 +37,9 @@ export function generateCSVTemplate(columns: { key: string; label: string }[]): 
 }
 
 function downloadCSV(content: string, filename: string): void {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+  // SESI 52 (Wave 3): BOM (\uFEFF) di awal file — Excel Windows membaca karakter
+  // Indonesia (Rp, é, dll.) dengan benar; tanpa BOM CSV UTF-8 bisa mojok/garbled.
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -55,8 +57,12 @@ function downloadCSV(content: string, filename: string): void {
  */
 export async function parseCSV(file: File): Promise<{ headers: string[]; rows: string[][] }> {
   const text = await file.text()
-  const lines = text.trim().split(/\r?\n/)
-  if (lines.length === 0) return { headers: [], rows: [] }
+  // SESI 52 (Wave 3): buang BOM bila ada (file hasil export aplikasi lain), lalu
+  // pecah menjadi RECORD (bukan baris) — stateful parse menghormati tanda kutip
+  // sehingga newline di dalam field ber-quote tidak memecah record.
+  const content = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
+  const records = splitCSVRecords(content)
+  if (records.length === 0) return { headers: [], rows: [] }
 
   const parseRow = (line: string): string[] => {
     const result: string[] = []
@@ -82,9 +88,40 @@ export async function parseCSV(file: File): Promise<{ headers: string[]; rows: s
     return result
   }
 
-  const headers = parseRow(lines[0])
-  const rows = lines.slice(1).map(parseRow)
+  const headers = parseRow(records[0])
+  const rows = records.slice(1).map(parseRow)
   return { headers, rows }
+}
+
+/**
+ * Pecah konten CSV menjadi record (baris logis). Field ber-quote boleh memuat
+ * newline/CRLF di dalamnya — hanya pemisah di luar quote yang memecah record.
+ */
+function splitCSVRecords(content: string): string[] {
+  const records: string[] = []
+  let current = ''
+  let inQuotes = false
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i]
+    if (char === '"') {
+      if (inQuotes && content[i + 1] === '"') {
+        current += '"'
+        i++
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+    if (!inQuotes && (char === '\n' || char === '\r')) {
+      if (char === '\r' && content[i + 1] === '\n') i++
+      records.push(current)
+      current = ''
+      continue
+    }
+    current += char
+  }
+  records.push(current)
+  return records.filter((r, idx) => idx < records.length - 1 || r.trim() !== '')
 }
 
 /**

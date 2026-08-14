@@ -111,7 +111,10 @@ export default function CashMutationPage() {
       >
         <select
           value={selectedAccount}
-          onChange={(e) => setSelectedAccount(e.target.value)}
+          onChange={(e) => {
+            setSelectedAccount(e.target.value)
+            setPage(0)
+          }}
           style={{
             padding: '0.625rem',
             border: '1px solid #d1d5db',
@@ -266,24 +269,26 @@ export default function CashMutationPage() {
             </tbody>
           </table>
         )}
-        {runningBalance.length > 0 && (
-          <div style={{ padding: '0 1.25rem 1rem' }}>
-            <Pagination
-              currentPage={page + 1}
-              totalPages={Math.max(1, Math.ceil(runningBalance.length / pageSize))}
-              onPageChange={(p) => setPage(p - 1)}
-              pageSize={pageSize}
-              onPageSizeChange={(s) => {
-                setPageSize(s)
-                setPage(0)
-              }}
-              totalItems={runningBalance.length}
-              startIndex={page * pageSize + 1}
-              endIndex={Math.min((page + 1) * pageSize, runningBalance.length)}
-            />
-          </div>
-        )}
       </div>
+      {/* SESI 52 (Wave 3): pagination di LUAR .desktop-only — mobile juga butuh
+          kontrol halaman (MobileCards di-slice runningBalance). */}
+      {runningBalance.length > 0 && (
+        <div style={{ padding: '0 1.25rem 1rem' }}>
+          <Pagination
+            currentPage={page + 1}
+            totalPages={Math.max(1, Math.ceil(runningBalance.length / pageSize))}
+            onPageChange={(p) => setPage(p - 1)}
+            pageSize={pageSize}
+            onPageSizeChange={(s) => {
+              setPageSize(s)
+              setPage(0)
+            }}
+            totalItems={runningBalance.length}
+            startIndex={page * pageSize + 1}
+            endIndex={Math.min((page + 1) * pageSize, runningBalance.length)}
+          />
+        </div>
+      )}
     </div>
   )
 }

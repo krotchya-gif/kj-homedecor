@@ -152,19 +152,22 @@ export default function JournalPage() {
             </tbody>
           </table>
         )}
-        {!loading && entries.length > 0 && (
-          <Pagination
-            currentPage={page + 1}
-            totalPages={totalPages}
-            onPageChange={(p) => setPage(p - 1)}
-            pageSize={PAGE_SIZE}
-            onPageSizeChange={() => setPage(0)}
-            totalItems={entries.length}
-            startIndex={page * PAGE_SIZE + 1}
-            endIndex={Math.min((page + 1) * PAGE_SIZE, entries.length)}
-          />
-        )}
       </div>
+      {/* SESI 52 (Wave 3): pagination di LUAR .desktop-only — mobile juga butuh
+          kontrol halaman (MobileCards di-slice pageEntries). Sebelumnya hanya
+          tampil di desktop → user HP terkunci di 10 baris pertama. */}
+      {!loading && entries.length > 0 && (
+        <Pagination
+          currentPage={page + 1}
+          totalPages={totalPages}
+          onPageChange={(p) => setPage(p - 1)}
+          pageSize={PAGE_SIZE}
+          onPageSizeChange={() => setPage(0)}
+          totalItems={entries.length}
+          startIndex={page * PAGE_SIZE + 1}
+          endIndex={Math.min((page + 1) * PAGE_SIZE, entries.length)}
+        />
+      )}
     </div>
   )
 }

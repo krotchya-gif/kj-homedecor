@@ -234,7 +234,10 @@ const [pageSize, setPageSize] = useState(10)
             type="text"
             placeholder="Cari invoice atau supplier..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(0)
+            }}
             style={{
               width: '100%',
               padding: '0.625rem 1rem 0.625rem 2.25rem',
@@ -368,24 +371,27 @@ const [pageSize, setPageSize] = useState(10)
             </tbody>
           </table>
         )}
-        {filtered.length > 0 && (
-          <div style={{ padding: '0 1.25rem 1rem' }}>
-            <Pagination
-              currentPage={page + 1}
-              totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
-              onPageChange={(p) => setPage(p - 1)}
-              pageSize={pageSize}
-              onPageSizeChange={(s) => {
-                setPageSize(s)
-                setPage(0)
-              }}
-              totalItems={filtered.length}
-              startIndex={page * pageSize + 1}
-              endIndex={Math.min((page + 1) * pageSize, filtered.length)}
-            />
-          </div>
-        )}
       </div>
+      {/* SESI 52 (Wave 3): pagination di LUAR .desktop-only — mobile juga butuh
+          kontrol halaman (MobileCards di-slice filtered). Sebelumnya hanya
+          tampil di desktop → user HP terkunci di 10 baris pertama. */}
+      {filtered.length > 0 && (
+        <div style={{ padding: '0 1.25rem 1rem' }}>
+          <Pagination
+            currentPage={page + 1}
+            totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
+            onPageChange={(p) => setPage(p - 1)}
+            pageSize={pageSize}
+            onPageSizeChange={(s) => {
+              setPageSize(s)
+              setPage(0)
+            }}
+            totalItems={filtered.length}
+            startIndex={page * pageSize + 1}
+            endIndex={Math.min((page + 1) * pageSize, filtered.length)}
+          />
+        </div>
+      )}
 
       <Modal open={showForm} onClose={() => setShowForm(false)} maxWidth={480} padding="2rem" zIndex={200}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
