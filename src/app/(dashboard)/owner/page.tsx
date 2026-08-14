@@ -272,11 +272,13 @@ export default function OwnerDashboard() {
       })
 
       const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+      // Sesi 51: "Tren 12 Bulan" = jendela 12 bulan berakhir di periode terpilih
+      // (sebelumnya bucket tahun calendar year-1 → 2025 tanpa data → chart kosong).
       const trend = Array.from({ length: 12 }, (_, i) => {
-        const m = String(i + 1).padStart(2, '0')
-        const key = `${period.year - 1}-${m}`
-        return { month: MONTHS_SHORT[i], revenue: months[key] ?? 0 }
-      })
+        const d = new Date(period.year, period.month - 1 - i, 1)
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+        return { month: MONTHS_SHORT[d.getMonth()], revenue: months[key] ?? 0 }
+      }).reverse()
       setTrendData(trend)
     }
     loadTrend()

@@ -229,7 +229,7 @@ export default function AdminDashboardPage() {
       { data: pendingPRs },
       { data: installsData }
     ] = await Promise.all([
-      supabase.from('orders').select('id, status, payment_status', { count: 'exact' }),
+      supabase.from('orders').select('id, status, payment_status, source, total_amount', { count: 'exact' }),
       supabase.from('customers').select('id', { count: 'exact' }),
       supabase.from('products').select('id', { count: 'exact' }),
       supabase.from('purchase_requests').select('*, material:materials(name)').eq('status', 'pending'),

@@ -28,6 +28,15 @@ test('mobile: charts render di dashboard admin/finance/owner', async ({ browser 
     console.log(`${c.role} ${c.url}: svg=${count} widths=${JSON.stringify(widths)}`)
     expect(count, `${c.url} harus render chart`).toBeGreaterThan(0)
     for (const w of widths) expect(w, `${c.url} width chart`).toBeGreaterThan(100)
+    // Sesi 51: pastikan chart punya ISI (bukan nol semua) — bar chart admin Omzet per Sumber
+    if (c.role === 'admin') {
+      const barHeights = await page
+        .locator('.recharts-bar-rectangle path, .recharts-bar-rectangle rect')
+        .evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height))
+      const positive = barHeights.filter((h) => h > 0).length
+      console.log(`admin bars with height>0: ${positive}/${barHeights.length}`)
+      expect(positive, 'Omzet per Sumber harus punya bar berisi').toBeGreaterThan(0)
+    }
     await page.screenshot({ path: `C:/Users/okkyh/AppData/Local/Temp/opencode/mobile-${c.role}.png` })
     await ctx.close()
   }

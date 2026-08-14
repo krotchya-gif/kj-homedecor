@@ -242,4 +242,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-15 (sesi 50 — fix chart mobile: ChartBox terukur pengganti ResponsiveContainer) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 51 — fix chart data: Omzet per Sumber & Tren 12 Bulan) · Dev server: `npm run dev` → http://localhost:3000_

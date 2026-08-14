@@ -17,6 +17,12 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 51: Chart dashboard kosong (data) — Omzet per Sumber & Tren 12 Bulan
+- **Admin "Omzet per Sumber" kosong**: query `data.orders` hanya `select('id, status, payment_status')` — `source` & `total_amount` tidak diambil → `revenueBySource` menjumlahkan `undefined` → semua bar 0. Fix: tambah `source, total_amount` ke select. Terverifikasi: 13/13 bar height > 0.
+- **Owner "Tren Omzet 12 Bulan" kosong**: `loadTrend` mengelompokkan hanya tahun kalender `year-1` (2025) padahal live hanya punya paid order 2022 & 2026 → semua titik 0. Fix: **jendela 12 bulan berakhir di periode terpilih** (trailing 12 bulan).
+- Test `mobile-charts.spec` diperkuat: assert bar chart admin punya bar height > 0.
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 38/38 (sekali run sempat flaky 5 gagal karena dev recompile lambat 11 menit — lolos penuh di run berikutnya).
+
 ### 2026-08-15 — Sesi 50: Chart recharts tidak render di mobile (lebar 0) — ganti ResponsiveContainer ke ChartBox terukur
 - **Gejala**: semua 8 grafik dashboard (admin 3, finance 2, owner 3) tidak muncul di viewport mobile — `ResponsiveContainer` recharts **v3.8.1** render SVG dengan lebar 0 (container 324px tapi svg 0px) → chart kosong. Terverifikasi via Playwright emulasi iPhone 12.
 - **Fix**: komponen baru `src/components/ui/ChartBox.tsx` (`useContainerWidth` via ResizeObserver + fallback lebar window) — chart menerima **width eksplisit** (`width={w}`), tidak lagi bergantung pengukuran internal recharts. 8 blok chart diganti (admin/finance/owner).
