@@ -3589,3 +3589,226 @@ REVOKE ALL ON FUNCTION public.create_public_booking(text, text, text, date, time
 GRANT EXECUTE ON FUNCTION public.create_public_booking(text, text, text, date, time without time zone, text, text) TO anon, authenticated;
 
 NOTIFY pgrst, 'reload schema';
+
+-- ============================================================
+-- 089 (sesi 43, 2026-08-14): Settlement TikTok Shop — fee per kategori
+-- + RPC atomic process_tiktok_settlement_atomic (kondisi live).
+-- ============================================================
+
+-- Akun COA baru (seed — bertahan setelah reset_transactional_data)
+INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account, description)
+VALUES
+  ('66666666-6666-4666-8666-666666666607', '5204', 'Beban Iklan', 'expense',
+   '11111111-1111-4111-8111-111111111109', false, 'Biaya iklan (pencatatan manual — TikTok Ads billing terpisah)'),
+  ('66666666-6666-4666-8666-666666666608', '5302', 'Beban Komisi Marketplace', 'expense',
+   '11111111-1111-4111-8111-111111111110', false, 'Komisi TikTok Shop dipotong dari settlement'),
+  ('66666666-6666-4666-8666-666666666609', '5303', 'Beban Ongkir', 'expense',
+   '11111111-1111-4111-8111-111111111110', false, 'Ongkos kirim dipotong dari settlement'),
+  ('66666666-6666-4666-8666-666666666610', '5304', 'Beban Penyesuaian Marketplace', 'expense',
+   '11111111-1111-4111-8111-111111111110', false, 'Penyesuaian/adjustment TikTok Shop')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, type = EXCLUDED.type, description = EXCLUDED.description;
+
+-- Mapping per kategori potongan (seed) + kas settlement
+INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_account_id, description, is_active)
+VALUES
+  ('ecommerce_commission',
+   '66666666-6666-4666-8666-666666666608', '22222222-2222-4222-8222-222222222205',
+   'Komisi marketplace — Beban Komisi (Debit) / Piutang (Kredit)', true),
+  ('ecommerce_shipping',
+   '66666666-6666-4666-8666-666666666609', '22222222-2222-4222-8222-222222222205',
+   'Ongkir marketplace — Beban Ongkir (Debit) / Piutang (Kredit)', true),
+  ('ecommerce_adjustment',
+   '66666666-6666-4666-8666-666666666610', '22222222-2222-4222-8222-222222222205',
+   'Penyesuaian marketplace — Beban Penyesuaian (Debit) / Piutang (Kredit)', true),
+  ('tiktok_settlement_received',
+   '22222222-2222-4222-8222-222222222204', '22222222-2222-4222-8222-222222222205',
+   'Settlement TikTok masuk — E Wallet Tiktok (Debit) / Piutang (Kredit)', true)
+ON CONFLICT (transaction_type) DO UPDATE SET
+  debit_account_id = EXCLUDED.debit_account_id, credit_account_id = EXCLUDED.credit_account_id,
+  description = EXCLUDED.description, is_active = true;
+
+-- Mapping lama ecommerce_fee NONAKTIF (jalur kedua dihapus)
+UPDATE public.account_mappings
+SET is_active = false,
+    description = 'JALUR LAMA — diganti ecommerce_commission/shipping/adjustment (sesi 43)'
+WHERE transaction_type = 'ecommerce_fee';
+
+-- RPC atomic settlement (SESUATU metode final untuk pembukuan settlement TikTok)
+CREATE OR REPLACE FUNCTION public.process_tiktok_settlement_atomic(p_statement_id uuid, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_stmt record;
+  v_gross numeric := 0;
+  v_net numeric := 0;
+  v_commission numeric := 0;
+  v_shipping numeric := 0;
+  v_adjustment numeric := 0;
+  v_total_deductions numeric := 0;
+  v_balance_diff numeric;
+  v_piutang_id uuid;
+  v_invoice_no text;
+  v_mapping record;
+  v_amount numeric;
+  v_adj_date date;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+
+  SELECT * INTO v_stmt FROM public.tiktok_shop_statements WHERE id = p_statement_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Statement TikTok tidak ditemukan'; END IF;
+  IF v_stmt.status NOT IN ('SETTLED','SUCCESS','PAID','COMPLETED') THEN
+    RAISE EXCEPTION 'Statement belum settled (status: %)', v_stmt.status;
+  END IF;
+  IF v_stmt.piutang_id IS NOT NULL THEN
+    RETURN jsonb_build_object('piutang_id', v_stmt.piutang_id, 'idempotent', true);
+  END IF;
+
+  v_invoice_no := 'TTK-' || left(v_stmt.statement_id, 8);
+
+  -- 089 fix (live test catch): piutang dengan invoice yang sama SUDAH ada
+  -- (mis. dibuat jalur lama / statement id prefix sama) → link ulang, jangan
+  -- crash 23505 duplicate key.
+  SELECT id INTO v_piutang_id FROM public.piutang WHERE invoice_number = v_invoice_no;
+  IF v_piutang_id IS NOT NULL THEN
+    UPDATE public.tiktok_shop_statements SET piutang_id = v_piutang_id, synced_at = NOW() WHERE id = p_statement_id;
+    RETURN jsonb_build_object('piutang_id', v_piutang_id, 'idempotent', true, 'linked_existing', true);
+  END IF;
+
+  v_gross := COALESCE(v_stmt.total_amount, 0);
+  v_net := COALESCE(v_stmt.revenue_amount, 0);
+  v_commission := COALESCE(v_stmt.fee_amount, 0);
+  v_shipping := COALESCE(v_stmt.shipping_cost_amount, 0);
+  v_adjustment := COALESCE(v_stmt.adjustment_amount, 0);
+  v_total_deductions := v_commission + v_shipping + v_adjustment;
+  v_adj_date := COALESCE(v_stmt.start_date, CURRENT_DATE);
+
+  v_balance_diff := v_gross - (v_net + v_total_deductions);
+  IF abs(v_balance_diff) > 0.01 THEN
+    RAISE EXCEPTION 'Statement tidak balance: gross % != net % + potongan % (selisih %)',
+      v_gross, v_net, v_total_deductions, v_balance_diff;
+  END IF;
+
+  INSERT INTO public.piutang (
+    customer_id, invoice_number, invoice_date, amount, fee_amount, paid_amount,
+    channel, description, status
+  ) VALUES (
+    NULL, v_invoice_no, v_adj_date, v_gross, v_total_deductions, v_net,
+    'tiktok', 'TikTok Shop settlement ' || left(v_stmt.statement_id, 8), 'paid'
+  ) RETURNING id INTO v_piutang_id;
+
+  IF v_commission <> 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_commission' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+      RAISE EXCEPTION 'Mapping ecommerce_commission belum dikonfigurasi';
+    END IF;
+    v_amount := abs(v_commission);
+    PERFORM public.create_journal_atomic(
+      'tiktok_fee_commission:' || v_stmt.statement_id,
+      'piutang', v_piutang_id,
+      'Settlement TikTok ' || left(v_stmt.statement_id, 8) || ' — komisi platform Rp' || v_amount,
+      v_adj_date, true,
+      CASE WHEN v_commission > 0 THEN
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_amount))
+      ELSE
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_amount))
+      END,
+      p_actor);
+  END IF;
+
+  IF v_shipping <> 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_shipping' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+      RAISE EXCEPTION 'Mapping ecommerce_shipping belum dikonfigurasi';
+    END IF;
+    v_amount := abs(v_shipping);
+    PERFORM public.create_journal_atomic(
+      'tiktok_fee_shipping:' || v_stmt.statement_id,
+      'piutang', v_piutang_id,
+      'Settlement TikTok ' || left(v_stmt.statement_id, 8) || ' — ongkir Rp' || v_amount,
+      v_adj_date, true,
+      CASE WHEN v_shipping > 0 THEN
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_amount))
+      ELSE
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_amount))
+      END,
+      p_actor);
+  END IF;
+
+  IF v_adjustment <> 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_adjustment' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+      RAISE EXCEPTION 'Mapping ecommerce_adjustment belum dikonfigurasi';
+    END IF;
+    v_amount := abs(v_adjustment);
+    PERFORM public.create_journal_atomic(
+      'tiktok_fee_adjustment:' || v_stmt.statement_id,
+      'piutang', v_piutang_id,
+      'Settlement TikTok ' || left(v_stmt.statement_id, 8) || ' — penyesuaian Rp' || v_amount,
+      v_adj_date, true,
+      CASE WHEN v_adjustment > 0 THEN
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_amount))
+      ELSE
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_amount))
+      END,
+      p_actor);
+  END IF;
+
+  IF v_net <> 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'tiktok_settlement_received' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+      RAISE EXCEPTION 'Mapping tiktok_settlement_received belum dikonfigurasi';
+    END IF;
+    v_amount := abs(v_net);
+    PERFORM public.create_journal_atomic(
+      'tiktok_paid:' || v_stmt.statement_id,
+      'piutang', v_piutang_id,
+      'Settlement TikTok ' || left(v_stmt.statement_id, 8) || ' — kas masuk E Wallet Tiktok Rp' || v_amount,
+      v_adj_date, true,
+      CASE WHEN v_net > 0 THEN
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_amount))
+      ELSE
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_amount, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_amount))
+      END,
+      p_actor);
+  END IF;
+
+  UPDATE public.tiktok_shop_statements SET piutang_id = v_piutang_id, synced_at = NOW() WHERE id = p_statement_id;
+
+  RETURN jsonb_build_object(
+    'piutang_id', v_piutang_id, 'idempotent', false,
+    'gross', v_gross, 'net', v_net,
+    'commission', v_commission, 'shipping', v_shipping, 'adjustment', v_adjustment
+  );
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.process_tiktok_settlement_atomic(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_tiktok_settlement_atomic(uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_tiktok_settlement_atomic(uuid, uuid) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';

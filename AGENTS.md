@@ -164,6 +164,7 @@ menjalankan CLI / login ulang / set up Docker lokal.
 | Link / unlink survey ke order | RPC `link_survey_atomic` |
 | Simpan HPP/BOM | RPC `save_hpp_bom_atomic` |
 | Booking publik (website) | RPC `create_public_booking` (policy INSERT publik sudah DROP) |
+| Settlement TikTok Shop (piutang + jurnal) | RPC `process_tiktok_settlement_atomic` — potongan per kategori (`ecommerce_commission/shipping/adjustment`), kas via `tiktok_settlement_received`; mapping lama `ecommerce_fee` NONAKTIF (sesi 43) |
 | Role check di RPC | Helper `actor_is_active_with_role(p_actor, roles)` (session-bound, anti spoof) |
 | Role check di policy RLS | Helper `is_*_sd()` / `is_finance_role()` (SECURITY DEFINER — BUKAN subquery ke tabel sama) |
 | Sisa piutang | Helper `piutangSisa()` (`src/lib/ledger.ts`) |

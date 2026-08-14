@@ -2,8 +2,6 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { getTikTokSettings, getValidToken, signTikTokRequest } from '@/lib/tiktok'
-import { createSimpleJournal } from '@/utils/journal/create'
-import { E_WALLET_TIKTOK_ACCOUNT_ID } from '@/config/accounts'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
@@ -101,89 +99,18 @@ export async function POST(req: NextRequest) {
 
     let synced = 0
     let created_piutang = 0
+    const actorId = user.id // sudah diverifikasi non-null di atas (auth check)
 
-    // 073 fix (2026-08-12): piutang settlement dicatat GROSS (settlement_amount =
-    // pembayaran customer) + fee terpisah, 3 jurnal (order_created, ecommerce_fee,
-    // piutang_received) — TIDAK main net. Net yang masuk bank = revenue_amount.
-    // Anti-double: cek duplikat invoice_number + idempotency key per jurnal.
-    async function ensurePiutangForStatement(opts: {
-      stmtId: string
-      gross: number
-      fee: number
-      net: number
-      invoiceDate: string
-    }): Promise<string | null> {
-      const { stmtId, gross, fee, net, invoiceDate } = opts
-      const invoiceNum = `TTK-${stmtId.slice(0, 8)}`
-
-      // Guard 1: piutang sudah ada untuk invoice ini → link ulang, jangan buat baru
-      const { data: existing } = await supabase
-        .from('piutang')
-        .select('id')
-        .eq('invoice_number', invoiceNum)
-        .maybeSingle()
-      if (existing) return existing.id
-
-      const { data: piutang, error: piutangErr } = await supabase
-        .from('piutang')
-        .insert({
-          customer_id: null,
-          invoice_number: invoiceNum,
-          invoice_date: invoiceDate,
-          amount: gross,
-          fee_amount: fee,
-          paid_amount: net,
-          
-          channel: 'tiktok',
-          description: `TikTok Shop settlement ${stmtId.slice(0, 8)}`,
-          status: 'paid'
-        })
-        .select('id')
-        .single()
-
-      if (piutangErr || !piutang) {
-        console.error(`Gagal buat piutang TikTok ${stmtId}:`, piutangErr ? toClientError(piutangErr) : 'no id')
-        return null
-      }
-
-      // Jurnal settlement — BUG-069 fix (model akrual):
-      // revenue (order_created) SUDAH dicatat saat order di sync-to-main-orders.
-      // Jalur settlement hanya mencatat KAS (piutang_received) + BEBAN (ecommerce_fee).
-      // Semua ber-idempotency key — retry tidak dobel.
-      if (fee > 0) {
-        try {
-          await createSimpleJournal({
-            transaction_type: 'ecommerce_fee',
-            reference_type: 'piutang',
-            reference_id: piutang.id,
-            description: `Settlement TikTok ${stmtId.slice(0, 8)} — komisi & biaya platform`,
-            amount: fee,
-            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-            supabase,
-            idempotency_key: `tiktok_fee:${stmtId}`
-          })
-        } catch (jErr) {
-          console.error(`Gagal jurnal ecommerce_fee TikTok ${stmtId}:`, jErr)
-        }
-      }
-
-      try {
-        await createSimpleJournal({
-          transaction_type: 'piutang_received',
-          reference_type: 'piutang',
-          reference_id: piutang.id,
-          description: `TikTok Shop settlement ${stmtId.slice(0, 8)} — kas masuk E Wallet Tiktok Rp${net.toLocaleString('id-ID')}`,
-          amount: net,
-          debit_account_id: E_WALLET_TIKTOK_ACCOUNT_ID,
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-          supabase,
-          idempotency_key: `tiktok_paid:${stmtId}`
-        })
-      } catch (jErr) {
-        console.error(`Gagal jurnal piutang_received TikTok ${stmtId}:`, jErr)
-      }
-
-      return piutang.id
+    // Sesi 43 (single-source-of-truth): pembukuan settlement (piutang + jurnal
+    // per kategori + kas E-Wallet) = SATU RPC atomic process_tiktok_settlement_atomic.
+    // Route ini hanya: fetch statement → simpan → panggil RPC. Error = BLOCK
+    // (bukan console.error terus lanjut) supaya tidak ada statement lewat tanpa dibukukan.
+    async function settleStatement(stmtRowId: string): Promise<void> {
+      const { error: rpcErr } = await supabase.rpc('process_tiktok_settlement_atomic', {
+        p_statement_id: stmtRowId,
+        p_actor: actorId
+      })
+      if (rpcErr) throw new Error(rpcErr.message)
     }
 
     for (const stmt of statementsData.data.statements) {
@@ -194,10 +121,9 @@ export async function POST(req: NextRequest) {
       const payTime = stmt.payment_time || stmt.paymentTime
       // 073 fix — mapping BENAR (terverifikasi dari payload live, settlement = revenue + fee):
       //   settlement_amount = GROSS (total pembayaran customer)
-      //   revenue_amount     = NET (yang dibayar TikTok ke bank, setelah fee)
-      //   fee_amount         = biaya/komisi platform
-      // 077 fix — settlement FULL: semua potongan (komisi + ongkir + adjustment)
-      // di-jurnal sebagai beban e-commerce agar sisa piutang = gross − net − potongan = 0.
+      //   revenue_amount     = NET (yang dibayar TikTok ke bank, setelah potongan)
+      // 077 fix — potongan (komisi + ongkir + adjustment) dipecah per kategori
+      // (sesi 43: mapping ecommerce_commission/shipping/adjustment).
       const settlement = Number(stmt.settlement_amount ?? stmt.settlementAmount ?? 0) || 0
       const revenue = Number(stmt.revenue_amount ?? stmt.revenueAmount ?? stmt.net_sales_amount ?? stmt.netSalesAmount ?? 0) || 0
       const fee = Number(stmt.fee_amount ?? stmt.feeAmount ?? 0) || 0
@@ -216,40 +142,38 @@ export async function POST(req: NextRequest) {
         .eq('statement_id', stmtId)
         .maybeSingle()
 
-      // Auto-create piutang jika enabled & status SETTLED (baru maupun existing tanpa piutang)
+      // Auto-create piutang + jurnal jika enabled & status SETTLED (baru maupun existing tanpa piutang)
       const settleStatuses = ['PAID', 'SETTLED', 'COMPLETED']
-      let piutangId: string | null = null
+      const shouldSettle = auto_create_piutang && settleStatuses.includes(payStatus)
 
-      if (auto_create_piutang && settleStatuses.includes(payStatus)) {
-        piutangId = await ensurePiutangForStatement({ stmtId, gross, fee: totalDeductions, net, invoiceDate })
-        if (piutangId && !existing) created_piutang++
-      }
-
-      // Statement baru → insert; statement existing tanpa piutang → link piutang_id
+      // Statement baru → insert
       if (!existing) {
-        const { error: stmtErr } = await supabase.from('tiktok_shop_statements').insert({
-          statement_id: stmtId,
-          statement_type: 'SETTLEMENT',
-          total_amount: gross,
-          revenue_amount: net,
-          fee_amount: totalDeductions,
-          shipping_cost_amount: shipping,
-          net_sales_amount: Number(stmt.net_sales_amount ?? stmt.netSalesAmount ?? 0) || 0,
-          adjustment_amount: adjustment,
-          status: payStatus,
-          currency: stmt.currency || 'IDR',
-          start_date: stmtTime ? new Date(stmtTime * 1000).toISOString().split('T')[0] : null,
-          end_date: stmtTime ? new Date(stmtTime * 1000).toISOString().split('T')[0] : null,
-          paid_at: payTime ? new Date(payTime * 1000).toISOString() : null,
-          transaction_count: 0,
-          statement_data: stmt,
-          is_synced: true,
-          piutang_id: piutangId
-        })
-        if (stmtErr) {
+        const { data: newStmt, error: stmtErr } = await supabase
+          .from('tiktok_shop_statements')
+          .insert({
+            statement_id: stmtId,
+            statement_type: 'SETTLEMENT',
+            total_amount: gross,
+            revenue_amount: net,
+            fee_amount: fee,
+            shipping_cost_amount: shipping,
+            net_sales_amount: Number(stmt.net_sales_amount ?? stmt.netSalesAmount ?? 0) || 0,
+            adjustment_amount: adjustment,
+            status: payStatus,
+            currency: stmt.currency || 'IDR',
+            start_date: stmtTime ? new Date(stmtTime * 1000).toISOString().split('T')[0] : null,
+            end_date: stmtTime ? new Date(stmtTime * 1000).toISOString().split('T')[0] : null,
+            paid_at: payTime ? new Date(payTime * 1000).toISOString() : null,
+            transaction_count: 0,
+            statement_data: stmt,
+            is_synced: true
+          })
+          .select('id')
+          .single()
+        if (stmtErr || !newStmt) {
           return NextResponse.json(
             {
-              error: `Gagal simpan statement TikTok ${stmtId}: ${toClientError(stmtErr)}`,
+              error: `Gagal simpan statement TikTok ${stmtId}: ${stmtErr ? toClientError(stmtErr) : 'no id'}`,
               synced,
               created_piutang
             },
@@ -257,9 +181,30 @@ export async function POST(req: NextRequest) {
           )
         }
         synced++
-      } else if (piutangId && !existing.piutang_id) {
-        await supabase.from('tiktok_shop_statements').update({ piutang_id: piutangId }).eq('id', existing.id)
-        created_piutang++
+        if (shouldSettle) {
+          try {
+            await settleStatement(newStmt.id)
+            created_piutang++
+          } catch (rpcErr) {
+            const msg = rpcErr instanceof Error ? rpcErr.message : String(rpcErr)
+            return NextResponse.json(
+              { error: `Gagal proses settlement TikTok ${stmtId}: ${msg}`, synced, created_piutang },
+              { status: 500 }
+            )
+          }
+        }
+      } else if (shouldSettle && !existing.piutang_id) {
+        // Statement sudah tersimpan tapi belum dibukukan → proses ulang lewat RPC
+        try {
+          await settleStatement(existing.id)
+          created_piutang++
+        } catch (rpcErr) {
+          const msg = rpcErr instanceof Error ? rpcErr.message : String(rpcErr)
+          return NextResponse.json(
+            { error: `Gagal proses settlement TikTok ${stmtId}: ${msg}`, synced, created_piutang },
+            { status: 500 }
+          )
+        }
       }
     }
 

@@ -242,4 +242,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-14 (sesi 42 — audit keamanan: anti-spoof actor, idempotency, atomic RPC; E2E 37/37) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-14 (sesi 43 — settlement TikTok Shop: fee per kategori + RPC atomic; live test 20/20) · Dev server: `npm run dev` → http://localhost:3000_

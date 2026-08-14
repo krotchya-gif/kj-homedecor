@@ -3520,6 +3520,10 @@ export type Database = {
         Args: { p_actor: string; p_return_id: string }
         Returns: Json
       }
+      process_tiktok_settlement_atomic: {
+        Args: { p_actor: string; p_statement_id: string }
+        Returns: Json
+      }
       receive_purchase_order_atomic: {
         Args: { p_po_id: string; p_received_by: string }
         Returns: Json
