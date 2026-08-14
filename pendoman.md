@@ -401,6 +401,7 @@ Semua bisa di-filter tanggal & diunduh PDF.
 - **Tema warna** (preset siap pakai atau warna custom)
 - **Trust badges** (ikon kepercayaan di hero)
 - Social media, kontak, kategori, why-us, portfolio, CTA
+- **Brand** — nama toko, singkatan, warna, **font (TTF)** & **logo**; dipakai di website **dan semua PDF** (laporan, invoice, faktur, surat jalan, survey). Font/logo di-upload sendiri; tanpa upload = pakai bawaan.
 
 > Perubahan langsung tampil di website setelah disimpan. Hanya Admin/Owner yang bisa.
 
