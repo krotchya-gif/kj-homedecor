@@ -27,7 +27,14 @@ export async function POST(req: NextRequest) {
   // F-19 fix: hanya owner/admin yang boleh re-authorize kredensial TikTok
   const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
   if (!requester || requester.status !== 'active' || !['owner', 'admin'].includes(requester.role)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json(
+      {
+        error:
+          'Hanya role owner/admin yang dapat re-authorize TikTok. Login dengan akun owner atau admin (menu Staff).',
+        code: 'FORBIDDEN_ROLE',
+      },
+      { status: 403 }
+    )
   }
 
   const body = await req.json()
