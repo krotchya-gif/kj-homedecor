@@ -422,4 +422,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-15 (sesi 49) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-15 (sesi 51) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
