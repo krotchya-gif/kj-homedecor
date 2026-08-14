@@ -23,7 +23,7 @@
 - Test `mobile-charts.spec` diperkuat: assert bar chart admin punya bar height > 0.
 - **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 38/38 (sekali run sempat flaky 5 gagal karena dev recompile lambat 11 menit — lolos penuh di run berikutnya).
 
-### 2026-08-15 — Sesi 52: Audit ulang menyeluruh (22 temuan, 3 wave) — Wave 1 & Wave 2 selesai
+### 2026-08-15 — Sesi 52: Audit ulang menyeluruh (22 temuan, 3 wave) — Wave 1–3 selesai
 - **Wave 1 — kebenaran angka (12 fix, semuanya ✅)**: finance/payments stat `neq('payment_status','cancelled')` (cancelled ikut terhitung); admin/customers `c.phone.includes` null-crash; kronologi-omzet (reset page via effect terpisah, filter cancelled/returned, boundary `T00:00:00`); performa-tag filter cancelled; umur-piutang select `invoice_number` + filter `invoice_date` (ganda 500); mutasi-kas label "Mutasi (Periode)" (web+PDF); owner trend deps `[period.year, period.month]`; pdf-brand font per-doc WeakSet (anti-font bocor antar dokumen); survey-pdf `getBrandRgb()`; use-order-detail payKeyRef reset saat modal tutup + qty return ≤0 ditolak; finance aging anchor kosong jangan '>90'.
 - **HIGH (dikonfirmasi live): constraint `piutang_status_check` & `hutang_status_check` hanya `('pending','paid','cancelled')`** — halaman faktur/hutang/process men-set `'partial'` → bayar/retur SEBAGIAN selalu gagal 23514 (pesan menyesatkan, data live bersih karena semua gagal). Fix: constraint diperluas ke `'partial'`; INSERT 'partial' terverifikasi live.
 - **Wave 2 — keamanan & konsolidasi metode final**:
