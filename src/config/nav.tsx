@@ -155,7 +155,7 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         { label: 'Piutang', href: '/finance/piutang', icon: ArrowLeftRight },
         { label: 'Cek Pembayaran', href: '/finance/payments', icon: DollarSign },
         { label: 'Marketplace', href: '/owner/marketplace', icon: ShoppingBag },
-        { label: 'TikTok Shop', href: '/owner/tiktok', icon: ShoppingBag }
+        { label: 'TikTok Shop', href: '/finance/tiktok', icon: ShoppingBag }
       ]
     },
     {

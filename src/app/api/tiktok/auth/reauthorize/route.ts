@@ -24,13 +24,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // F-19 fix: hanya owner/admin yang boleh re-authorize kredensial TikTok
+  // F-19 fix: owner/admin/finance yang boleh re-authorize kredensial TikTok
+  // (finance = pengelola transaksi TikTok: token expired harus bisa diperbarui sendiri)
   const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
-  if (!requester || requester.status !== 'active' || !['owner', 'admin'].includes(requester.role)) {
+  if (!requester || requester.status !== 'active' || !['owner', 'admin', 'finance'].includes(requester.role)) {
     return NextResponse.json(
       {
         error:
-          'Hanya role owner/admin yang dapat re-authorize TikTok. Login dengan akun owner atau admin (menu Staff).',
+          'Hanya role owner/admin/finance yang dapat re-authorize TikTok. Login dengan akun owner, admin, atau finance (menu Staff).',
         code: 'FORBIDDEN_ROLE',
       },
       { status: 403 }
