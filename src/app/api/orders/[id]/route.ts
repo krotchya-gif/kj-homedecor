@@ -399,6 +399,32 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     'installed_at',
     'notes'
   ]
+  // SESI 52 (#12): field NON-status dibatasi per role.
+  //   admin/owner/finance → semua field (bookkeeping order)
+  //   gudang              → packed_at (di-set saat ready→packed di /gudang/qc)
+  //   role lain           → tidak boleh (sebelumnya installer/penjahit/surveyor
+  //                          bisa mengubah courier/tracking/notes order mana pun → IDOR)
+  // Status tetap mengikuti ROLE_STATUS_PERMISSIONS (role matrix + transition check).
+  const nonStatusFields = allowedOrderFields.filter((f) => f !== 'status' && f in body)
+  const allowedNonStatusByRole: Record<string, string[]> = {
+    admin: allowedOrderFields.filter((f) => f !== 'status'),
+    owner: allowedOrderFields.filter((f) => f !== 'status'),
+    finance: allowedOrderFields.filter((f) => f !== 'status'),
+    gudang: ['packed_at']
+  }
+  const allowedNonStatus = allowedNonStatusByRole[userRole] ?? []
+  const deniedNonStatus = nonStatusFields.filter((f) => !allowedNonStatus.includes(f))
+  if (deniedNonStatus.length > 0) {
+    return NextResponse.json(
+      {
+        data: null,
+        error: {
+          message: `Role "${userRole}" tidak berhak mengubah data order (field: ${deniedNonStatus.join(', ')}). Hanya admin/owner/finance${userRole === 'gudang' ? ' (+packed_at)' : ''}.`
+        }
+      },
+      { status: 403 }
+    )
+  }
   const updateData: Record<string, unknown> = {}
   for (const k of allowedOrderFields) {
     if (k in body) updateData[k] = body[k]

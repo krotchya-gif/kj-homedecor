@@ -3,13 +3,12 @@ import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, CreditCard, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import Pagination from '@/components/ui/Pagination'
-import { createSimpleJournal } from '@/utils/journal/create'
 import { formatRp } from '@/lib/utils'
 
 
@@ -54,6 +53,9 @@ const [pageSize, setPageSize] = useState(10)
     notes: ''
   })
   const [payForm, setPayForm] = useState({ amount: '', notes: '' })
+  // SESI 52 (#14): idempotency key dibuat saat modal pembayaran dibuka —
+  // retry/submit ganda tidak bikin pembayaran + jurnal dobel.
+  const payKeyRef = useRef<string | null>(null)
 
   const supabase = createClient()
 
@@ -100,72 +102,68 @@ const [pageSize, setPageSize] = useState(10)
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const payload = {
-      supplier_id: form.supplier_id || null,
-      invoice_number: form.invoice_number || null,
-      invoice_date: form.invoice_date || null,
-      amount: Number(form.amount) || 0,
-      notes: form.notes || null
-    }
-    if (editItem) {
-        // BUG-013: tolak edit amount jika sudah ada pembayaran / lunas / batal
-        const hasPayment = (editItem.paid_amount ?? 0) > 0 || (editItem.return_amount ?? 0) > 0
-        if (hasPayment || editItem.status === 'paid' || editItem.status === 'cancelled') {
-          setSaving(false)
-          toast('error', 'Tidak bisa mengubah tagihan yang sudah dibayar / lunas / dibatalkan.')
-          return
-        }
-        // UPDATE optimistic
-        const prev = hutang
-        setHutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Hutang) : x)))
-        const { error } = await supabase.from('hutang').update(payload).eq('id', editItem.id)
-        if (error) { setHutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
-      } else {
-        // CREATE optimistic: id sementara dulu, diganti id asli dari server
-        const tempId = crypto.randomUUID()
-        const tempItem = { id: tempId, ...payload }
-        setHutang((curr) => [tempItem as Hutang, ...curr])
-        const { data, error } = await supabase.from('hutang').insert(payload).select('id').single()
-        if (error) {
-          setHutang((curr) => curr.filter((x) => x.id !== tempId))
-          setSaving(false)
-          toast('error', 'Gagal simpan: ' + error.message)
-          return
-        }
-        if (data?.id) {
-          setHutang((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
-        }
-      }
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
       setSaving(false)
-      setShowForm(false)
-      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
+    // SESI 52 (#14): CRUD hutang terpusat lewat save_hutang_atomic (SECURITY DEFINER) —
+    // insert/update/delete + jurnal Dr Beban/Cr Hutang (atau delta penyesuaian)
+    // dalam SATU transaksi server. Rollback otomatis bila jurnal gagal
+    // (menggantikan jalur client optimistic yang bisa meninggalkan tagihan tanpa jurnal).
+    const { error } = await supabase.rpc('save_hutang_atomic', {
+      p_mode: editItem ? 'update' : 'create',
+      p_id: editItem?.id ?? null,
+      p_supplier_id: form.supplier_id || null,
+      p_invoice_number: form.invoice_number || null,
+      p_invoice_date: form.invoice_date || null,
+      p_amount: Number(form.amount) || 0,
+      p_description: form.notes || null,
+      p_actor: user.id
+    })
+    if (error) {
+      setSaving(false)
+      toast('error', 'Gagal simpan: ' + error.message)
+      return
+    }
+    setSaving(false)
+    setShowForm(false)
+    toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
+    fetchData()
   }
 
   async function handleDelete(id: string) {
-    // BUG-072 fix (2026-08-13): tolak hapus tagihan yang sudah dibayar / lunas /
-    // dibatalkan — mirror guard handleSave. Hapus tagihan ber-payment = menghapus
-    // liabilitas + riwayat pembayaran dari pembukuan.
-    const target = hutang.find((x) => x.id === id)
-    if (target) {
-      const hasPayment = (target.paid_amount ?? 0) > 0 || (target.return_amount ?? 0) > 0
-      if (hasPayment || target.status === 'paid' || target.status === 'cancelled') {
-        toast('error', 'Tidak bisa menghapus tagihan yang sudah dibayar / lunas / dibatalkan.')
-        return
-      }
-    }
+    // SESI 52 (#14): hapus via RPC — menolak tagihan sudah dibayar/dibatalkan di server
+    // (menggantikan guard client-only BUG-072 yang bisa di-bypass).
     if (!confirm('Yakin hapus?')) return
-      // Optimistic delete
-      const prev = hutang
-      setHutang((curr) => curr.filter((x) => x.id !== id))
-      const { error } = await supabase.from('hutang').delete().eq('id', id)
-      if (error) { setHutang(prev); toast('error', 'Gagal hapus: ' + error.message); return }
-      toast('success', 'Berhasil dihapus')
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
+    const { error } = await supabase.rpc('save_hutang_atomic', {
+      p_mode: 'delete',
+      p_id: id,
+      p_actor: user.id
+    })
+    if (error) {
+      toast('error', 'Gagal hapus: ' + error.message)
+      return
+    }
+    toast('success', 'Berhasil dihapus')
+    fetchData()
   }
 
   function openPayment(h: Hutang) {
     setPaymentItem(h)
     const sisa = (h.amount ?? 0) - (h.paid_amount ?? 0) - (h.return_amount ?? 0)
     setPayForm({ amount: String(sisa), notes: '' })
+    payKeyRef.current = null
     setShowPayment(true)
   }
 
@@ -179,76 +177,41 @@ const [pageSize, setPageSize] = useState(10)
       toast('error', 'Nominal pembayaran harus lebih dari 0.')
       return
     }
-    // F-11 fix: refetch FRESH (anti race 2 finance bayar bersamaan)
-    const { data: fresh } = await supabase
-      .from('hutang')
-      .select('id, amount, paid_amount, return_amount, status, invoice_number, supplier:suppliers(name)')
-      .eq('id', paymentItem.id)
-      .single()
-    if (!fresh) { setSaving(false); toast('error', 'Hutang tidak ditemukan.'); return }
-    if (fresh.status === 'cancelled') {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
       setSaving(false)
-      toast('error', 'Hutang ini sudah dibatalkan — tidak bisa dibayar.')
+      toast('error', 'Sesi login berakhir.')
       return
     }
-    const sisaBefore = (fresh.amount ?? 0) - (fresh.paid_amount ?? 0) - (fresh.return_amount ?? 0)
-    if (payAmount > sisaBefore) {
-      setSaving(false)
-      toast('error', `Nominal pembayaran melebihi sisa hutang (Rp ${sisaBefore.toLocaleString('id-ID')}).`)
-      return
+    if (!payKeyRef.current) {
+      payKeyRef.current = `hutang_paid:${paymentItem.id}:${crypto.randomUUID()}`
     }
-    const newPaidAmount = (fresh.paid_amount ?? 0) + payAmount
-    const sisa = (fresh.amount ?? 0) - newPaidAmount - (fresh.return_amount ?? 0)
-    const newStatus = sisa <= 0 ? 'paid' : 'partial'
-    const { error } = await supabase
-      .from('hutang')
-      .update({
-        paid_amount: newPaidAmount,
-        status: newStatus
-      })
-      .eq('id', paymentItem.id)
-      .eq('paid_amount', fresh.paid_amount)
-      .eq('return_amount', fresh.return_amount)
-    if (error) { setSaving(false); toast('error', 'Gagal simpan pembayaran hutang (mungkin dibayar finance lain): ' + error.message); return }
-
-    // BUG-013 fix (2026-08-11): bayar hutang wajib jurnal Dr Hutang Supplier / Cr Kas
-    // F-11 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
-    const payRefId = crypto.randomUUID()
-    try {
-      await createSimpleJournal({
-        transaction_type: 'hutang_paid',
-        reference_type: 'hutang',
-        reference_id: paymentItem.id,
-        description: `Pembayaran hutang ${fresh.invoice_number ?? 'Invoice'} — ${(fresh.supplier as { name?: string } | null)?.name ?? ''} Rp${payAmount.toLocaleString('id-ID')}`,
-        amount: payAmount,
-        idempotency_key: `hutang_paid:${paymentItem.id}:${payRefId}`
-      })
-    } catch (jErr) {
-      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal gagal → kembalikan
-      // hutang ke paid_amount/status semula (sebelumnya hanya toast warning →
-      // pembayaran tercatat tanpa jurnal → ledger bocor).
-      console.error('Gagal buat jurnal bayar hutang:', jErr)
-      await supabase
-        .from('hutang')
-        .update({ paid_amount: fresh.paid_amount ?? 0, status: fresh.status })
-        .eq('id', paymentItem.id)
+    // SESI 52 (#14): pay_hutang_atomic — validasi sisa + FOR UPDATE + update
+    // paid_amount/status + jurnal hutang_paid dalam SATU transaksi server.
+    // Catatan pembayaran disimpan di notes oleh RPC (p_notes).
+    // Menggantikan jalur client multi-step (fetch fresh → update → jurnal + rollback
+    // manual) yang bisa divergen saat 2 finance bayar bersamaan.
+    const { error: payErr } = await supabase.rpc('pay_hutang_atomic', {
+      p_hutang_id: paymentItem.id,
+      p_amount: payAmount,
+      p_actor: user.id,
+      p_idempotency_key: payKeyRef.current,
+      p_notes: payForm.notes?.trim() || null
+    })
+    if (payErr) {
       setSaving(false)
-      setShowPayment(false)
-      toast('error',
-        'Pembayaran dibatalkan — jurnal tidak tersimpan. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      toast('error', 'Gagal catat pembayaran: ' + payErr.message)
       return
     }
 
-    // F-39 fix: simpan catatan pembayaran (sebelumnya dikumpulkan tapi tidak pernah disimpan)
-    if (payForm.notes?.trim()) {
-      const { error: noteErr } = await supabase.from('hutang').update({ notes: payForm.notes.trim() }).eq('id', paymentItem.id)
-      if (noteErr) console.error('Gagal simpan catatan pembayaran:', noteErr)
-    }
     setSaving(false)
     setShowPayment(false)
-    // Optimistic update: sisa hutang langsung berubah tanpa refetch
-    setHutang((curr) => curr.map((h) => (h.id === paymentItem.id ? { ...h, paid_amount: newPaidAmount, status: newStatus } : h)))
+    setPaymentItem(null)
+    payKeyRef.current = null
     toast('success', 'Pembayaran hutang dicatat')
+    fetchData()
   }
 
   return (

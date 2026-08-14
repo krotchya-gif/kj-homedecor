@@ -66,7 +66,10 @@ export default function PerformaTagPage({ variant = 'finance' }: { variant?: 'fi
     const { data } = await supabase
       .from('orders')
       .select('source, total_amount, created_at')
-      .gte('created_at', startDate)
+      // Sesi 52: order dibatalkan/diretur tidak dihitung ke omzet per tag
+      .neq('status', 'cancelled')
+      .neq('status', 'returned')
+      .gte('created_at', new Date(startDate + 'T00:00:00').toISOString())
       .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
       .order('created_at', { ascending: false })
     setOrders((data ?? []) as LooseRow[])

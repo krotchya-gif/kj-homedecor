@@ -3460,6 +3460,10 @@ export type Database = {
         Args: { p_actor: string; p_order_id: string; p_reason: string }
         Returns: Json
       }
+      cancel_tiktok_order_atomic: {
+        Args: { p_actor: string; p_order_id: string; p_reason: string }
+        Returns: Json
+      }
       consume_materials_for_production: {
         Args: {
           p_consumed_by: string
@@ -3519,6 +3523,26 @@ export type Database = {
         Args: { p_actor: string; p_order_id: string; p_survey_id: string }
         Returns: Json
       }
+      pay_hutang_atomic: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_hutang_id: string
+          p_idempotency_key?: string
+          p_notes?: string
+        }
+        Returns: Json
+      }
+      pay_piutang_atomic: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_faktur_id: string
+          p_idempotency_key?: string
+          p_notes?: string
+        }
+        Returns: Json
+      }
       process_order_return_atomic: {
         Args: {
           p_actor: string
@@ -3533,6 +3557,10 @@ export type Database = {
       }
       process_refund_atomic: {
         Args: { p_actor: string; p_return_id: string }
+        Returns: Json
+      }
+      process_tiktok_order_atomic: {
+        Args: { p_actor: string; p_tiktok_order_id: string }
         Returns: Json
       }
       process_tiktok_settlement_atomic: {
@@ -3558,6 +3586,15 @@ export type Database = {
         }
         Returns: Json
       }
+      retur_piutang_atomic: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_faktur_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       save_hpp_bom_atomic: {
         Args: {
           p_actor: string
@@ -3566,6 +3603,36 @@ export type Database = {
           p_lines: Json
           p_price: number
           p_product_id: string
+        }
+        Returns: Json
+      }
+      save_hutang_atomic: {
+        Args: {
+          p_actor?: string
+          p_amount?: number
+          p_description?: string
+          p_due_date?: string
+          p_id?: string
+          p_invoice_date?: string
+          p_invoice_number?: string
+          p_mode: string
+          p_supplier_id?: string
+        }
+        Returns: Json
+      }
+      save_piutang_atomic: {
+        Args: {
+          p_actor?: string
+          p_amount?: number
+          p_channel?: string
+          p_customer_id?: string
+          p_fee_amount?: number
+          p_id?: string
+          p_invoice_date?: string
+          p_invoice_number?: string
+          p_mode: string
+          p_notes?: string
+          p_order_id?: string
         }
         Returns: Json
       }

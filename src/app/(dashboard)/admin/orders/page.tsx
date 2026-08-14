@@ -11,7 +11,6 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
-import { createSimpleJournal } from '@/utils/journal/create'
 import Pagination from '@/components/ui/Pagination'
 import MobileCards from '@/components/ui/MobileCards'
 import { formatRp } from '@/lib/utils'
@@ -273,42 +272,44 @@ export default function OrdersPage() {
 
     const dpAmt = Number(form.dp_amount) || 0
     const totalAmt = Number(form.total_amount) || 0
-    const paymentStatus = dpAmt >= totalAmt && totalAmt > 0 ? 'paid' : dpAmt > 0 ? 'partial' : 'pending'
 
-    // Generate nomor pesanan (RPC — sama seperti API route api/orders)
-    const { data: orderNum } = await supabase.rpc('generate_order_number')
-    const orderNumber = orderNum ?? null
-    if (!orderNumber) console.error('generate_order_number gagal — order_number null')
-
-    // Insert order
-    const { data: newOrder, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        order_number: orderNumber,
+    // SESI 52 (#13): konsolidasi ke POST /api/orders (server-side) + add_order_payment_atomic.
+    // Alasan: sebelumnya admin/orders insert `orders` langsung dari client + payments insert
+    // + createSimpleJournal ×2 (rollback manual di client) → jalur paralel dari POST /api/orders
+    // (2 sumber kebenaran, jurnal/status bisa divergen). Sekarang:
+    //   1. POST /api/orders  → buat order + jurnal order_created (idempotency per order)
+    //   2. DP > 0            → add_order_payment_atomic (payment row + jurnal payment_received
+    //      + orders dp/lunas/payment_status dalam SATU transaksi server)
+    const res = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         source: form.source,
         classification: form.classification,
-        customer_id: customerId,
         total_amount: totalAmt,
-        dp_amount: dpAmt,
-        lunas_amount: paymentStatus === 'paid' ? totalAmt - dpAmt : 0,
-        payment_status: paymentStatus,
-        notes: form.notes || null
+        // dp_amount sengaja TIDAK dikirim: add_order_payment_atomic di bawah yang
+        // mencatat DP (payment row + jurnal + dp/lunas/payment_status). Kalau DP
+        // ikut di-insert di order dulu, sisa tagihan sudah berkurang → RPC menolak.
+        customer_id: customerId,
+        notes: form.notes || undefined
       })
-      .select('id')
-      .single()
+    })
+    const resJson = await res.json().catch(() => ({ data: null, error: { message: 'Respons tidak valid dari server' } }))
 
-    if (orderError || !newOrder) {
+    if (!res.ok || !resJson.data) {
       // Rollback: delete orphaned customer if it was just created
       if (customerId && customerWasCreated) {
         const { error: rollbackErr } = await supabase.from('customers').delete().eq('id', customerId)
         if (rollbackErr) console.error('Rollback delete customer gagal:', rollbackErr)
       }
       setSaving(false)
-      toast('error', orderError?.message ?? 'Gagal membuat pesanan')
+      toast('error', resJson.error?.message ?? 'Gagal membuat pesanan')
       return
     }
+    const newOrder = resJson.data as { id: string }
+    let paymentWarning: string | null = null
 
-    // BUG-004 fix (Opsi B): auto-catat pembayaran ke tabel payments (jejak akuntansi).
+    // BUG-004 fix (Opsi B): auto-catat pembayaran via RPC atomic (jejak akuntansi).
     // Berlaku SEMUA source (offline/landing_page/marketplace) selama admin input DP > 0.
     // verified_by = admin yang membuat pesanan.
     // ATURAN: auto-record BUKAN approve — klik Approve oleh Finance di /finance/payments
@@ -317,82 +318,28 @@ export default function OrdersPage() {
       const {
         data: { user: adminUser }
       } = await supabase.auth.getUser()
-      const { error: payErr } = await supabase.from('payments').insert({
-        order_id: newOrder.id,
-        type: dpAmt >= totalAmt ? 'lunas' : 'dp',
-        amount: dpAmt >= totalAmt ? totalAmt : dpAmt,
-        date: new Date().toISOString().slice(0, 10),
-        verified_by: adminUser?.id ?? null,
-        verified_at: new Date().toISOString(),
-        notes: `Auto-catat ${dpAmt >= totalAmt ? 'lunas' : 'DP'} oleh Admin saat buat pesanan (source: ${form.source})`
+      const payType = dpAmt >= totalAmt ? 'lunas' : 'dp'
+      const dpRecorded = dpAmt >= totalAmt ? totalAmt : dpAmt
+      // SESI 52 (#13): add_order_payment_atomic — payment row + jurnal payment_received +
+      // dp_amount/lunas_amount/payment_status + order_logs SATU transaksi + idempotent
+      // (key sama dengan jalur lama admin_dp_auto agar tidak dobel-jurnal saat retry).
+      const { error: payErr } = await supabase.rpc('add_order_payment_atomic', {
+        p_order_id: newOrder.id,
+        p_type: payType,
+        p_amount: dpRecorded,
+        p_actor: adminUser?.id ?? null,
+        p_idempotency_key: `admin_dp_auto:${newOrder.id}`
       })
       if (payErr) {
         console.error('Auto-catat pembayaran gagal:', payErr)
-        toast('error', '⚠️ Order dibuat, tapi auto-payment gagal: ' + payErr.message)
-      }
-
-      // F-24 fix (2026-08-11): jurnal order_created + payment_received harus dibuat
-      // dari SEMUA jalur (sebelumnya cuma POST /api/orders yang berjurnal).
-      // BUG-060 fix (2026-08-13): auto-DP sebelumnya HANYA jurnal order_created →
-      // Kas tidak pernah masuk DP (overstated piutang). Sekarang payment_received
-      // ikut di-jurnal sesuai nominal yang dicatat (idempotent per order).
-      const dpRecorded = dpAmt >= totalAmt ? totalAmt : dpAmt
-      // 2026-08-14 (audit): jurnal gagal → ROLLBACK payment row (pola BUG-073)
-      // agar tidak ada "payment tanpa jurnal" (double-entry rusak). Jurnal
-      // order_created & payment_received keduanya ber-idempotency key per order.
-      let journalFailed = false
-      try {
-        await createSimpleJournal({
-          transaction_type: 'order_created',
-          reference_type: 'order',
-          reference_id: newOrder.id,
-          description: `Order baru ${orderNumber ?? ''} — ${form.customer_name.trim()}`,
-          amount: totalAmt,
-          idempotency_key: `order_created:${newOrder.id}`
-        })
-      } catch (jErr) {
-        console.error('Gagal buat jurnal order:', jErr)
-        journalFailed = true
-      }
-      try {
-        await createSimpleJournal({
-          transaction_type: 'payment_received',
-          reference_type: 'order',
-          reference_id: newOrder.id,
-          description: `DP/Lunas ${dpAmt >= totalAmt ? 'lunas' : 'DP'} auto-catat Admin (source: ${form.source}) — ${orderNumber ?? ''}`,
-          amount: dpRecorded,
-          idempotency_key: `admin_dp_auto:${newOrder.id}`
-        })
-      } catch (jErr) {
-        console.error('Gagal buat jurnal payment_received (auto-DP):', jErr)
-        journalFailed = true
-      }
-      if (journalFailed) {
-        // Rollback payment row agar tidak menggantung tanpa jurnal; order tetap ada.
-        await supabase.from('payments').delete().eq('order_id', newOrder.id).eq('type', dpAmt >= totalAmt ? 'lunas' : 'dp')
-        toast('error', 'Order dibuat, TAPI jurnal gagal — auto-payment dibatalkan. Periksa mapping akun lalu input pembayaran manual di /finance/payments.')
-      }
-    }
-    // Order TANPA DP — tetap harus jurnal order_created (piutang penuh)
-    else if (newOrder && totalAmt > 0) {
-      try {
-        await createSimpleJournal({
-          transaction_type: 'order_created',
-          reference_type: 'order',
-          reference_id: newOrder.id,
-          description: `Order baru ${orderNumber ?? ''} — ${form.customer_name.trim()}`,
-          amount: totalAmt,
-          idempotency_key: `order_created:${newOrder.id}`
-        })
-      } catch (jErr) {
-        console.error('Gagal buat jurnal order (tanpa DP):', jErr)
+        paymentWarning = '⚠️ Order dibuat, TAPI auto-payment gagal: ' + payErr.message
       }
     }
 
     setSaving(false)
     setShowForm(false)
     fetchOrders()
-    toast('success', 'Pesanan berhasil dibuat')
+    toast(paymentWarning ? 'error' : 'success', paymentWarning ?? 'Pesanan berhasil dibuat')
   }
 
   return (

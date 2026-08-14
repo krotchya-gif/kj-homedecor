@@ -1,6 +1,6 @@
 # Riwayat Perbaikan & Bug — KJ Homedecor
 
-> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-124)** + **audit modul finance** + **backlog**.
+> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-128)** + **audit modul finance** + **backlog**.
 > File ini menggabungkan `bug.md`, `todo.md`, `audit-finance.md`, dan bagian "Riwayat Perbaikan" README (dikonsolidasi 2026-08-13, sesi 37).
 >
 > Cara pakai: cari bug berdasarkan ID (tabel di bawah) → status & cara fix langsung terlihat di kolom "Cara Fix". Untuk konteks fase, lihat "Riwayat Perbaikan per Fase". Untuk temuan audit finance, lihat bagian "Audit Modul Finance".
@@ -22,6 +22,19 @@
 - **Owner "Tren Omzet 12 Bulan" kosong**: `loadTrend` mengelompokkan hanya tahun kalender `year-1` (2025) padahal live hanya punya paid order 2022 & 2026 → semua titik 0. Fix: **jendela 12 bulan berakhir di periode terpilih** (trailing 12 bulan).
 - Test `mobile-charts.spec` diperkuat: assert bar chart admin punya bar height > 0.
 - **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 38/38 (sekali run sempat flaky 5 gagal karena dev recompile lambat 11 menit — lolos penuh di run berikutnya).
+
+### 2026-08-15 — Sesi 52: Audit ulang menyeluruh (22 temuan, 3 wave) — Wave 1 & Wave 2 selesai
+- **Wave 1 — kebenaran angka (12 fix, semuanya ✅)**: finance/payments stat `neq('payment_status','cancelled')` (cancelled ikut terhitung); admin/customers `c.phone.includes` null-crash; kronologi-omzet (reset page via effect terpisah, filter cancelled/returned, boundary `T00:00:00`); performa-tag filter cancelled; umur-piutang select `invoice_number` + filter `invoice_date` (ganda 500); mutasi-kas label "Mutasi (Periode)" (web+PDF); owner trend deps `[period.year, period.month]`; pdf-brand font per-doc WeakSet (anti-font bocor antar dokumen); survey-pdf `getBrandRgb()`; use-order-detail payKeyRef reset saat modal tutup + qty return ≤0 ditolak; finance aging anchor kosong jangan '>90'.
+- **HIGH (dikonfirmasi live): constraint `piutang_status_check` & `hutang_status_check` hanya `('pending','paid','cancelled')`** — halaman faktur/hutang/process men-set `'partial'` → bayar/retur SEBAGIAN selalu gagal 23514 (pesan menyesatkan, data live bersih karena semua gagal). Fix: constraint diperluas ke `'partial'`; INSERT 'partial' terverifikasi live.
+- **Wave 2 — keamanan & konsolidasi metode final**:
+  - **RPC atomic baru (7)** — `pay_piutang_atomic`, `pay_hutang_atomic`, `retur_piutang_atomic`, `save_piutang_atomic`, `save_hutang_atomic` (create/update/delete), `process_tiktok_order_atomic`, `cancel_tiktok_order_atomic`. Semua SECURITY DEFINER + `actor_is_active_with_role` (session-bound) + `create_journal_atomic` dalam SATU transaksi. Client `finance/piutang/faktur`, `finance/hutang`, `finance/piutang/process` di-refactor ke RPC (hapus jalur insert/update langsung + createSimpleJournal + rollback manual = 2 sumber kebenaran). `admin/orders` create → `POST /api/orders` + `add_order_payment_atomic` (drop `dp_amount` dari body POST — RPC yang mengelola, kalau ikut di-insert sisa tagihan = 0 → RPC menolak).
+  - **Overload usang `add_order_payment_atomic` (4-arg & 6-arg) di-DROP di live** — PostgREST PGRST203 "could not choose best candidate" saat named args parsial. Final = 7-arg (dgn `p_date`).
+  - **PUT `/api/orders/[id]` role lock**: field non-status dibatasi per role — admin/owner/finance semua; gudang hanya `packed_at` (di-set saat ready→packed); lainnya ditolak (sebelumnya installer/penjahit bisa ubah courier/tracking/notes order mana pun = IDOR).
+  - **sync-to-main-orders → RPC TikTok** dengan BLOCK on error: `process_tiktok_order_atomic` (order + payment `verified_by NULL` + jurnal order_created idempotent + `order_items` HANYA saat order baru — `v_was_new`, sync ulang tidak duplikat) & `cancel_tiktok_order_atomic` (void payment + reversal jurnal + order_logs; perbaiki `SELECT ... INTO` 3 kolom→2 variabel yang menimpa nomor order dengan status).
+  - **Installer submitRevision → `PUT /api/install-bookings/[id]`** (RPC advance_install_booking_status + cascade order; sebelumnya update langsung + insert order_logs terpisah).
+  - **Housekeeping**: create-staff komentar eksplisit "owner by-design" (keputusan bisnis — jangan ditandai audit lagi); setup-accounts password min 8; rate limit consume-materials & notifications PATCH; seo upload-robots/sitemap cek `status='active'`.
+- **Wave 3 (pagination mobile, reset filter, dead code, upload/csv) = BELUM** — backlog.
+- **Verifikasi**: tsc + build + vitest 27/27 + **E2E chromium 38/38** (2 regresi ditemukan & diperbaiki: PGRST203 overload + gudang `packed_at` role lock) + live: constraint 'partial' OK, index idempotency `payments_idempotency_unique` & `journal_entries_idempotency_unique` ada, 7 RPC terpasang & grant authenticated. Riwayat: BUG-125 (constraint 'partial'), BUG-126 (overload PGRST203), BUG-127 (role lock IDOR PUT orders), BUG-128 (jalur paralel piutang/hutang/TikTok → RPC atomic).
 
 ### 2026-08-15 — Sesi 50: Chart recharts tidak render di mobile (lebar 0) — ganti ResponsiveContainer ke ChartBox terukur
 - **Gejala**: semua 8 grafik dashboard (admin 3, finance 2, owner 3) tidak muncul di viewport mobile — `ResponsiveContainer` recharts **v3.8.1** render SVG dengan lebar 0 (container 324px tapi svg 0px) → chart kosong. Terverifikasi via Playwright emulasi iPhone 12.
@@ -193,7 +206,7 @@
 
 ---
 
-## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-124)
+## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-128)
 
 > Semua bug sudah **Fixed** kecuali BUG-020 (bukan bug — false positive). Bagian detail Gejala/Akar per bug sudah diringkas ke kolom "Cara Fix".
 
@@ -321,6 +334,10 @@
 | BUG-122 | **Booking publik terbuka field internal** — policy `"Public can insert install_bookings" FOR INSERT WITH CHECK (true)`: anon bisa insert field internal (`order_id`, `customer_id`, `installer_id`, `status`, `source`) — spoof booking terkait order/installer | ✅ Fixed (2026-08-14) | Policy di-**DROP**; ganti RPC `create_public_booking` (SECURITY DEFINER, GRANT anon) yang hanya menerima field publik (nama/HP/alamat/tanggal/jam/type/notes) dan memaksa `status='pending'`, `source='website'`, installer/order/customer = NULL. `booking/page.tsx` pindah ke RPC. **Verifikasi**: advisories anon-executable hanya tinggal 2 fungsi publik yang memang disengaja |
 | BUG-123 | **Jalur operasional masih direct-write client (non-atomic / bakal gagal di RLS baru)** — (1) `finance/payments` bayar & refund multi-step client (jurnal yatim saat gagal di tengah); (2) `gudang/production` auto-steam direct `orders.update` (gudang tak punya izin UPDATE orders); (3) `gudang/qc` resolve retur direct write (RLS returns UPDATE = finance); (4) `admin/shipping` packed direct update (bypass API transition); (5) `surveyor` link survey direct update (RLS orders UPDATE = admin/owner); (6) order detail: schedule/items/link survey non-atomic; (7) owner/hpp BOM non-atomic | ✅ Fixed (2026-08-14) | RPC atomic baru: `process_refund_atomic`, `resolve_return_atomic` (gudang), `schedule_installation_atomic` (booking+orders+cascade packed→scheduled), `add/remove_order_item_atomic`, `save_hpp_bom_atomic`, `link_survey_atomic`. Jalur lain → `PUT /api/orders/[id]` (auto_transition gudang production→steam). Semua klien diarahkan; idempotency key payment per sesi modal; admin/orders rollback payment saat jurnal gagal. **Verifikasi**: E2E 37/37 + tsc + build + vitest 27/27 |
 | BUG-124 | **`order_logs` check constraint menolak aksi baru** — RPC atomic memakai aksi `item_added`, `item_removed`, `survey_linked`, `installation_scheduled`; live punya **2 constraint duplikat** (`chk_action` + `order_logs_action_check`) yang tidak mengizinkannya → semua transaksi RPC baru rollback (ketangkap E2E: item order tidak pernah muncul) | ✅ Fixed (2026-08-14) | Drop 2 constraint duplikat; buat 1 constraint `order_logs_action_check` dengan daftar lengkap + 4 aksi baru; sync `000_full_schema.sql`. **Verifikasi**: E2E pipeline kirim/pasang pass (item gorden tampil) |
+| BUG-125 | **Constraint `piutang_status_check`/`hutang_status_check` tidak punya `'partial'`** — halaman faktur/hutang/process meng-set status `'partial'` (bayar/retur sebagian) tapi live hanya `('pending','paid','cancelled')` → SEMUA bayar/retur sebagian gagal `23514` dgn pesan menyesatkan; data live bersih karena selalu gagal (hidden bug) | ✅ Fixed (2026-08-15) | Constraint diperluas ke `'partial'` (migration wave2 + sync schema file). **Verifikasi**: INSERT `status='partial'` live sukses; E2E finance (bayar hutang+piutang) pass |
+| BUG-126 | **Overload usang `add_order_payment_atomic` bikin PGRST203** — 3 varian live (4-arg, 6-arg, 7-arg); client panggil named-args parsial (tanpa `p_date`) → PostgREST "could not choose the best candidate function" → auto-payment admin/orders gagal (ketangkap E2E: toast "auto-payment gagal") | ✅ Fixed (2026-08-15) | DROP 2 overload lama; final = 7-arg (`p_date`). **Verifikasi**: E2E pipeline kirim/pasang pass (create order + auto-DP) |
+| BUG-127 | **PUT `/api/orders/[id]` bebas field non-status (IDOR)** — role operasional (installer/penjahit/surveyor) bisa ubah `courier/tracking_number/notes/installed_at` order mana pun; gudang perlu `packed_at` saat kemas | ✅ Fixed (2026-08-15) | Role lock per field: admin/owner/finance = semua; gudang = `packed_at`; lain = ditolak 403. Status tetap via role matrix. **Verifikasi**: E2E 38/38 (gudang kemas tetap jalan) |
+| BUG-128 | **Jalur paralel piutang/hutang & TikTok non-atomic** — faktur/hutang/process: insert/update langsung client + `createSimpleJournal` + rollback manual (2 sumber kebenaran, divergen saat 2 finance bersamaan); `sync-to-main-orders`: insert order+payment+jurnal multi-step dengan swallow error & duplikasi item saat repair; cancel TikTok hanya update status (payment/jurnal tidak di-void) | ✅ Fixed (2026-08-15) | 7 RPC atomic baru (pay/save/retur piutang-hutang + process/cancel TikTok) via `create_journal_atomic` + `actor_is_active_with_role`; client di-refactor; sync route BLOCK on error; item TikTok hanya saat order baru (`v_was_new`); cancel void payment + reversal jurnal. **Verifikasi**: E2E 38/38 + tsc + build + vitest 27/27 |
 
 ---
 
@@ -422,4 +439,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-15 (sesi 51) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-15 (sesi 52) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_

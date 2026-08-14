@@ -38,6 +38,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
+    // SESI 52 (audit): password minimum 8 karakter (konsisten dengan create-staff)
+    if (typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ error: 'Password minimal 8 karakter' }, { status: 400 })
+    }
+
     if (!['admin', 'owner'].includes(role)) {
       return NextResponse.json({ error: 'Role must be admin or owner' }, { status: 400 })
     }

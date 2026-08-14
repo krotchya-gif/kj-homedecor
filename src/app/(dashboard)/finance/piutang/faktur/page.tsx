@@ -3,15 +3,13 @@ import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Modal } from '@/components/ui/Modal'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
 import Pagination from '@/components/ui/Pagination'
-import { createSimpleJournal } from '@/utils/journal/create'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
-import { getAccountIdByCode } from '@/config/accounts'
 
 
 interface Piutang {
@@ -65,6 +63,9 @@ const [pageSize, setPageSize] = useState(10)
   const [payItem, setPayItem] = useState<Piutang | null>(null)
   const [payForm, setPayForm] = useState({ amount: '' })
   const [paying, setPaying] = useState(false)
+  // SESI 52 (#14): idempotency key dibuat saat modal dibuka — retry/submit ganda
+  // tidak bikin pembayaran + jurnal dobel (dicek server di pay_piutang_atomic).
+  const payKeyRef = useRef<string | null>(null)
 
   const supabase = createClient()
 
@@ -119,143 +120,62 @@ const [pageSize, setPageSize] = useState(10)
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    const payload = {
-      customer_id: form.customer_id || null,
-      channel: form.channel || null,
-      invoice_number: form.invoice_number || null,
-      invoice_date: form.invoice_date || null,
-      amount: Number(form.amount) || 0,
-      order_id: form.order_id || null,
-      notes: form.notes || null
-    }
-    if (editItem) {
-      // F-med fix: blokir edit kalau sudah dibayar/lunas/cancelled (pola hutang BUG-013)
-      const hasPayment = (editItem.paid_amount ?? 0) > 0 || (editItem.return_amount ?? 0) > 0
-      if (hasPayment || editItem.status === 'paid' || editItem.status === 'cancelled') {
-        setSaving(false)
-        toast('error', 'Faktur sudah dibayar/dibatalkan — tidak bisa diubah. Buat faktur baru jika perlu.')
-        return
-      }
-      // UPDATE optimistic
-      const prev = piutang
-      setPiutang((curr) => curr.map((x) => (x.id === editItem.id ? ({ ...x, ...payload } as Piutang) : x)))
-      const { error } = await supabase.from('piutang').update(payload).eq('id', editItem.id)
-      if (error) { setPiutang(prev); setSaving(false); toast('error', 'Gagal simpan: ' + error.message); return }
-      // F-med fix: amount berubah → update jurnal (delta penyesuaian Dr/Cr Piutang)
-      if (Number(payload.amount) !== Number(editItem.amount)) {
-        const delta = Number(payload.amount) - Number(editItem.amount)
-        try {
-          // Phase 3 (BUG-095): lookup akun by code (anti-drift), bukan hardcode UUID.
-          //   naik  → Dr Piutang Customer (1201) / Cr Penjualan (4101)
-          //   turun → Dr Penjualan (4101) / Cr Piutang Customer (1201)
-          const piutangId = await getAccountIdByCode(supabase, '1201')
-          const penjualanId = await getAccountIdByCode(supabase, '4101')
-          if (!piutangId || !penjualanId) {
-            throw new Error('Akun Piutang (1201) / Penjualan (4101) tidak ditemukan — cek /finance/accounts')
-          }
-          const { createSimpleJournal } = await import('@/utils/journal/create')
-          await createSimpleJournal({
-            transaction_type: 'order_created',
-            reference_type: 'piutang_adj',
-            reference_id: editItem.id,
-            description: `Penyesuaian faktur ${form.invoice_number ?? ''} (${delta > 0 ? 'naik' : 'turun'} Rp${Math.abs(delta).toLocaleString('id-ID')})`,
-            amount: Math.abs(delta),
-            debit_account_id: delta > 0 ? piutangId : penjualanId,
-            credit_account_id: delta > 0 ? penjualanId : piutangId,
-            idempotency_key: `piutang_adj:${editItem.id}:${crypto.randomUUID()}`
-          })
-        } catch (jErr) {
-          // Phase 3 (BUG-094): rollback PENUH — jurnal penyesuaian gagal → kembalikan
-          // piutang ke amount semula (sebelumnya hanya console.error → faktur naik/turun
-          // tanpa jurnal → buku besar bocor).
-          console.error('Gagal buat jurnal penyesuaian faktur:', jErr)
-          await supabase
-            .from('piutang')
-            .update({ amount: editItem.amount })
-            .eq('id', editItem.id)
-          setPiutang(prev)
-          setSaving(false)
-          setShowForm(false)
-          toast('error', 'Perubahan dibatalkan — jurnal penyesuaian tidak tersimpan. Periksa mapping akun.')
-          return
-        }
-      }
-    } else {
-        // 2026-08-12: cek duplikat invoice_number sebelum insert (error friendly,
-        // bukan 23505 mentah — unique index piutang_invoice_unique)
-        if (form.invoice_number?.trim()) {
-          const { data: dup } = await supabase
-            .from('piutang')
-            .select('id')
-            .eq('invoice_number', form.invoice_number.trim())
-            .maybeSingle()
-          if (dup) {
-            setSaving(false)
-            toast('error', `Nomor faktur "${form.invoice_number}" sudah dipakai.`)
-            return
-          }
-        }
-        // CREATE optimistic: id sementara dulu, diganti id asli dari server
-        const tempId = crypto.randomUUID()
-        const tempItem = { id: tempId, ...payload }
-        setPiutang((curr) => [tempItem as Piutang, ...curr])
-        const { data, error } = await supabase.from('piutang').insert(payload).select('id').single()
-        if (error) {
-          setPiutang((curr) => curr.filter((x) => x.id !== tempId))
-          setSaving(false)
-          toast('error', 'Gagal simpan: ' + error.message)
-          return
-        }
-        if (data?.id) {
-          setPiutang((curr) => curr.map((x) => (x.id === tempId ? { ...x, id: data.id } : x)))
-
-          // F-10 fix (2026-08-11): faktur piutang wajib jurnal Dr Piutang / Cr Penjualan
-          // (sebelumnya cuma insert tabel piutang → piutang tidak pernah masuk buku besar)
-          try {
-            await createSimpleJournal({
-              transaction_type: 'order_created',
-              reference_type: 'piutang',
-              reference_id: data.id,
-              description: `Faktur piutang ${form.invoice_number ?? ''} — ${form.amount}`,
-              amount: Number(form.amount) || 0,
-              idempotency_key: `piutang_created:${data.id}`
-            })
-          } catch (jErr) {
-            // Phase 3 (BUG-094): rollback PENUH — jurnal gagal → hapus row piutang yang baru
-            // di-insert (sebelumnya toast warning → faktur tanpa jurnal → ledger bocor).
-            console.error('Gagal buat jurnal faktur piutang:', jErr)
-            await supabase.from('piutang').delete().eq('id', data.id)
-            setPiutang((curr) => curr.filter((x) => x.id !== data.id))
-            setSaving(false)
-            setShowForm(false)
-            toast('error', 'Faktur dibatalkan — jurnal tidak tersimpan. Periksa mapping akun.')
-            return
-          }
-        }
-      }
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
       setSaving(false)
-      setShowForm(false)
-      toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
+    // SESI 52 (#14): CRUD piutang terpusat lewat save_piutang_atomic (SECURITY DEFINER) —
+    // insert/update/delete + jurnal Dr Piutang/Cr Penjualan (atau delta penyesuaian)
+    // dalam SATU transaksi server. Rollback otomatis bila jurnal gagal
+    // (menggantikan jalur client optimistic + createSimpleJournal yang bisa divergen).
+    const { error } = await supabase.rpc('save_piutang_atomic', {
+      p_mode: editItem ? 'update' : 'create',
+      p_id: editItem?.id ?? null,
+      p_customer_id: form.customer_id || null,
+      p_invoice_number: form.invoice_number || null,
+      p_invoice_date: form.invoice_date || null,
+      p_amount: Number(form.amount) || 0,
+      p_channel: form.channel || null,
+      p_order_id: form.order_id || null,
+      p_notes: form.notes || null,
+      p_actor: user.id
+    })
+    if (error) {
+      setSaving(false)
+      toast('error', 'Gagal simpan: ' + error.message)
+      return
+    }
+    setSaving(false)
+    setShowForm(false)
+    toast('success', editItem ? 'Berhasil diperbarui' : 'Berhasil ditambahkan')
+    fetchData()
   }
 
   async function handleDelete(id: string) {
-    // F-med fix: cek status dulu — faktur yang sudah dibayar tidak boleh dihapus
-    const { data: target } = await supabase
-      .from('piutang')
-      .select('paid_amount, return_amount, status')
-      .eq('id', id)
-      .single()
-    if (target && ((target.paid_amount ?? 0) > 0 || (target.return_amount ?? 0) > 0 || target.status === 'paid' || target.status === 'cancelled')) {
-      toast('error', 'Faktur sudah dibayar/dibatalkan — tidak bisa dihapus.')
+    if (!confirm('Yakin hapus?')) return
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
+      toast('error', 'Sesi login berakhir.')
       return
     }
-    if (!confirm('Yakin hapus?')) return
-      // Optimistic delete
-      const prev = piutang
-      setPiutang((curr) => curr.filter((x) => x.id !== id))
-      const { error } = await supabase.from('piutang').delete().eq('id', id)
-      if (error) { setPiutang(prev); toast('error', 'Gagal hapus: ' + error.message); return }
-      toast('success', 'Berhasil dihapus')
+    // SESI 52 (#14): hapus via RPC — menolak faktur sudah dibayar/dibatalkan di server
+    const { error } = await supabase.rpc('save_piutang_atomic', {
+      p_mode: 'delete',
+      p_id: id,
+      p_actor: user.id
+    })
+    if (error) {
+      toast('error', 'Gagal hapus: ' + error.message)
+      return
+    }
+    toast('success', 'Berhasil dihapus')
+    fetchData()
   }
 
   // BUG-014 fix (2026-08-11): bayar piutang faktur — update paid_amount + jurnal Dr Kas / Cr Piutang
@@ -264,66 +184,35 @@ const [pageSize, setPageSize] = useState(10)
     if (!payItem) return
     setPaying(true)
     const amount = Number(payForm.amount)
-    // F-11 fix: refetch FRESH (anti race 2 finance bayar bersamaan)
-    const { data: fresh } = await supabase
-      .from('piutang')
-      .select('id, amount, fee_amount, paid_amount, return_amount, status, invoice_number, customer:customers(name)')
-      .eq('id', payItem.id)
-      .single()
-    if (!fresh) {
-      setPaying(false)
-      toast('error', 'Faktur tidak ditemukan.')
-      return
-    }
-    const sisa = (fresh.amount ?? 0) - (fresh.paid_amount ?? 0) - (fresh.return_amount ?? 0) - (fresh.fee_amount ?? 0)
     if (!payForm.amount || isNaN(amount) || amount <= 0) {
       setPaying(false)
       toast('error', 'Nominal wajib diisi dan lebih dari 0.')
       return
     }
-    if (amount > sisa) {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
       setPaying(false)
-      toast('error', `Nominal melebihi sisa tagihan (${formatRp(sisa)}).`)
+      toast('error', 'Sesi login berakhir.')
       return
     }
-    const newPaid = (fresh.paid_amount ?? 0) + amount
-    const newSisa = (fresh.amount ?? 0) - newPaid - (fresh.return_amount ?? 0) - (fresh.fee_amount ?? 0)
-    const newStatus = newSisa <= 0 ? 'paid' : 'partial'
-
-    const { error: updErr } = await supabase
-      .from('piutang')
-      .update({ paid_amount: newPaid, status: newStatus })
-      .eq('id', payItem.id)
-      .eq('paid_amount', fresh.paid_amount)
-      .eq('return_amount', fresh.return_amount)
-    if (updErr) {
-      setPaying(false)
-      toast('error', 'Gagal simpan pembayaran (mungkin dibayar finance lain): ' + updErr.message)
-      return
+    if (!payKeyRef.current) {
+      payKeyRef.current = `piutang_paid:${payItem.id}:${crypto.randomUUID()}`
     }
-
-    try {
-      await createSimpleJournal({
-        transaction_type: 'piutang_received',
-        reference_type: 'piutang',
-        reference_id: payItem.id,
-        description: `Pembayaran piutang ${fresh.invoice_number ?? 'Faktur'} — ${(fresh.customer as { name?: string } | null)?.name ?? ''} Rp${amount.toLocaleString('id-ID')}`,
-        amount,
-        // F-11 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
-        idempotency_key: `piutang_paid:${payItem.id}:${crypto.randomUUID()}`
-      })
-    } catch (jErr) {
-      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal gagal → kembalikan
-      // piutang ke paid_amount/status semula (sebelumnya toast warning → ledger bocor).
-      console.error('Gagal buat jurnal terima piutang:', jErr)
-      await supabase
-        .from('piutang')
-        .update({ paid_amount: fresh.paid_amount ?? 0, status: fresh.status })
-        .eq('id', payItem.id)
+    // SESI 52 (#14): pay_piutang_atomic — validasi sisa + FOR UPDATE + update
+    // paid_amount/status + jurnal piutang_received dalam SATU transaksi server.
+    // Menghapus jalur client multi-step (fetch fresh → update → createSimpleJournal
+    // + rollback manual) yang bisa divergen saat 2 finance bayar bersamaan.
+    const { error: payErr } = await supabase.rpc('pay_piutang_atomic', {
+      p_faktur_id: payItem.id,
+      p_amount: amount,
+      p_actor: user.id,
+      p_idempotency_key: payKeyRef.current
+    })
+    if (payErr) {
       setPaying(false)
-      setShowPayModal(false)
-      toast('error',
-        'Pembayaran dibatalkan — jurnal tidak tersimpan. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      toast('error', 'Gagal catat pembayaran: ' + payErr.message)
       return
     }
 
@@ -331,6 +220,7 @@ const [pageSize, setPageSize] = useState(10)
     setShowPayModal(false)
     setPayForm({ amount: '' })
     setPayItem(null)
+    payKeyRef.current = null
     toast('success', `Pembayaran piutang ${formatRp(amount)} dicatat!`)
     fetchData()
   }
@@ -339,6 +229,7 @@ const [pageSize, setPageSize] = useState(10)
     const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
     setPayItem(p)
     setPayForm({ amount: String(sisa > 0 ? sisa : '') })
+    payKeyRef.current = null
     setShowPayModal(true)
   }
 
@@ -771,6 +662,7 @@ const [pageSize, setPageSize] = useState(10)
           setShowPayModal(false)
           setPayForm({ amount: '' })
           setPayItem(null)
+          payKeyRef.current = null
         }}
         maxWidth={420}
         padding="1.5rem"
@@ -812,6 +704,7 @@ const [pageSize, setPageSize] = useState(10)
                 setShowPayModal(false)
                 setPayForm({ amount: '' })
                 setPayItem(null)
+                payKeyRef.current = null
               }}
               style={{
                 flex: 1,

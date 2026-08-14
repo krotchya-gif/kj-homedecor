@@ -61,12 +61,14 @@ export function hexToRgb(hex: string): [number, number, number] {
 // ---- Font brand untuk jsPDF ----
 // jsPDF HANYA mendukung TrueType (header 0x00010000 / 'true', tabel glyf).
 // OTF (CFF) / WOFF / WOFF2 tidak didukung → fallback 'helvetica'.
-let fontRegistered = false
+// Sesi 52: register PER-DOKUMEN (WeakSet) — flag global membuat PDF ke-2+
+// dalam sesi yang sama kehilangan font (VFS jsPDF per-doc).
 let fontFailed = false
 export const BRAND_FONT_NAME = 'BrandFont'
+const registeredDocs = new WeakSet<jsPDF>()
 
 export async function registerBrandFont(doc: jsPDF, fontUrl: string | null): Promise<string> {
-  if (fontRegistered) return BRAND_FONT_NAME
+  if (registeredDocs.has(doc)) return BRAND_FONT_NAME
   if (fontFailed) return 'helvetica'
   if (!fontUrl) {
     fontFailed = true
@@ -89,7 +91,7 @@ export async function registerBrandFont(doc: jsPDF, fontUrl: string | null): Pro
     for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
     doc.addFileToVFS('brand-font.ttf', btoa(binary))
     doc.addFont('brand-font.ttf', BRAND_FONT_NAME, 'normal')
-    fontRegistered = true
+    registeredDocs.add(doc)
     return BRAND_FONT_NAME
   } catch {
     fontFailed = true

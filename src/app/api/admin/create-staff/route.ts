@@ -71,6 +71,9 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json({ error: 'Hanya Admin aktif yang dapat membuat akun staff' }, { status: 403 })
     }
+    // KEPUTUSAN BISNIS (sesi 52, audit #17): owner DIBOLEHKAN membuat akun staff —
+    // pemilik aktif terlibat langsung operasional. BUKAN oversight: enum role di atas
+    // sengaja menyertakan 'owner' agar audit berikutnya tidak menandai ini lagi.
 
     // Create auth user
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({

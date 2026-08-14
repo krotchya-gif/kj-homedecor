@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import MobileCards from '@/components/ui/MobileCards'
 
 import { useEffect, useState, useRef } from 'react'
@@ -101,7 +101,7 @@ export default function FinancePaymentsPage() {
       supabase
         .from('orders')
         .select('payment_status, total_amount, dp_amount, lunas_amount')
-        .neq('payment_status', 'cancelled'),
+        .neq('status', 'cancelled'),
       // F-61 fix: Total Piutang dari TABEL piutang (sumber utama)
       supabase
         .from('piutang')

@@ -22,8 +22,10 @@ export async function POST(req: NextRequest) {
       data: { user }
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
-    if (!requester || !['admin', 'owner'].includes(requester.role)) {
+    const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+    // SESI 52 (audit): cek status='active' — admin/owner dinonaktifkan tidak boleh
+    // menimpa sitemap publik (sebelumnya hanya cek role).
+    if (!requester || requester.status !== 'active' || !['admin', 'owner'].includes(requester.role)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 

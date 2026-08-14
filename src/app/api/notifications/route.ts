@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 /**
  * Notifikasi in-app (SRS Survey 13: notifikasi ke Admin/Owner saat survey baru).
@@ -34,6 +35,10 @@ export async function GET(_request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
+  // SESI 52 (audit): rate limit — PATCH berulang (mark-all-read spam) murah dieksekusi
+  if (checkRateLimit(getClientIp(request), 60, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const {
     data: { user }

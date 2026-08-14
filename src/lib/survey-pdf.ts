@@ -1,11 +1,8 @@
-import { jsPDF } from 'jspdf'
+﻿import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Survey } from '@/types'
-import { drawDocHeader, addPageNumbers } from '@/lib/report-pdf'
+import { drawDocHeader, addPageNumbers, getBrandRgb } from '@/lib/report-pdf'
 import { getBrandSettings } from '@/lib/pdf-brand'
-
-// Warna brand = warna logo KJ (#b37a60) — konsisten dengan semua PDF (sesi 46)
-const BRAND: [number, number, number] = [179, 122, 96]
 
 /**
  * PDF "FORM HASIL SURVEY GORDEN" (SRS section 12).
@@ -85,7 +82,7 @@ export async function generateSurveyPDF(survey: Survey) {
       ['Surveyor', survey.surveyor?.name || '-']
     ],
     theme: 'striped',
-    headStyles: { fillColor: BRAND },
+    headStyles: { fillColor: getBrandRgb() },
     columnStyles: { 0: { cellWidth: 45, fontStyle: 'bold' }, 1: { cellWidth: 125 } }
   })
 
@@ -125,7 +122,7 @@ export async function generateSurveyPDF(survey: Survey) {
         ['Catatan', room.notes || '-']
       ],
       theme: 'striped',
-      headStyles: { fillColor: BRAND },
+      headStyles: { fillColor: getBrandRgb() },
       columnStyles: { 0: { cellWidth: 45, fontStyle: 'bold' }, 1: { cellWidth: 125 } }
     })
     y = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 8
@@ -149,7 +146,6 @@ export async function generateSurveyPDF(survey: Survey) {
       const imgW = 55
       const imgH = 40
       let x = 20
-      const maxCols = Math.min(3, photoUrls.length)
       for (let pi = 0; pi < photoUrls.length; pi++) {
         const dataUrl = await toDataURL(photoUrls[pi])
         await addPhoto(doc, dataUrl, x, y + 3, imgW, imgH)
@@ -160,7 +156,6 @@ export async function generateSurveyPDF(survey: Survey) {
         }
       }
       y = Math.max(y, (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 8) + imgH + 6
-      void maxCols
     }
   }
 

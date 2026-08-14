@@ -94,7 +94,7 @@ export default function CustomersPage() {
   }
 
   const filtered = customers.filter(
-    (c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.phone.includes(search)
+    (c) => c.name.toLowerCase().includes(search.toLowerCase()) || (c.phone ?? '').includes(search)
   )
 
   async function handleSave(e: React.FormEvent) {

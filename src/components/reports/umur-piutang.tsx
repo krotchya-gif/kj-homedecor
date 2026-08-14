@@ -65,15 +65,15 @@ export default function UmurPiutangPage({ variant = 'finance' }: { variant?: 'fi
   async function fetchData() {
     setLoading(true)
     // F-61 fix: sumber utama piutang = TABEL piutang (faktur manual + settlement
-    // marketplace). Sebelumnya baca orders → faktur tanpa order tidak masuk &
-    // orders tanpa faktur ikut dihitung (2 angka beda antar laporan).
+    // marketplace). Sesi 52: select invoice_number (dipakai PDF) + filter
+    // invoice_date agar konsisten dengan aging & umur-hutang.
     const { data } = await supabase
       .from('piutang')
-      .select('id, created_at, invoice_date, amount, fee_amount, paid_amount, return_amount, status, customer:customers(name)')
+      .select('id, created_at, invoice_date, invoice_number, amount, fee_amount, paid_amount, return_amount, status, customer:customers(name)')
       .in('status', ['pending', 'partial'])
-      .gte('created_at', startDate)
-      .lte('created_at', endDate + 'T23:59:59')
-      .order('created_at', { ascending: false })
+      .gte('invoice_date', startDate)
+      .lte('invoice_date', endDate)
+      .order('invoice_date', { ascending: false })
     setOrders((data ?? []) as LooseRow[])
     setLoading(false)
   }

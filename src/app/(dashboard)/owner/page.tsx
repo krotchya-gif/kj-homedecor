@@ -282,7 +282,10 @@ export default function OwnerDashboard() {
       setTrendData(trend)
     }
     loadTrend()
-  }, [period.year])
+    // Sesi 52: deps termasuk period.month — ganti bulan di picker harus update tren
+    // (sebelumnya hanya [period.year] → window tetap bulan lama saat tahun sama)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period.year, period.month])
 
   function exportCSV() {
     const headers = ['Order ID', 'Tanggal', 'Platform', 'Status', 'Total', 'Pembayaran']

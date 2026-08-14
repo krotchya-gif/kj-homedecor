@@ -5,7 +5,6 @@ import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { getAccountIdByCode } from '@/config/accounts'
 import { RefreshCw, Undo2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { formatRp } from '@/lib/utils'
@@ -61,64 +60,37 @@ export default function ProcessReturPage() {
     if (!returItem) return
     setSaving(true)
     const amount = Number(returForm.amount)
-    const sisa = (returItem.amount ?? 0) - (returItem.paid_amount ?? 0) - (returItem.return_amount ?? 0)
     if (!returForm.amount || isNaN(amount) || amount <= 0) {
       setSaving(false)
       toast('error', 'Nominal retur wajib diisi dan lebih dari 0.')
       return
     }
-    if (amount > sisa) {
+    if (!returForm.reason.trim()) {
       setSaving(false)
-      toast('error', `Nominal retur melebihi sisa tagihan (${formatRp(sisa)}).`)
+      toast('error', 'Alasan retur wajib diisi.')
       return
     }
-    const newReturn = (returItem.return_amount ?? 0) + amount
-    const newSisa = (returItem.amount ?? 0) - (returItem.paid_amount ?? 0) - newReturn - (returItem.fee_amount ?? 0)
-    const newStatus = newSisa <= 0 ? 'paid' : returItem.status === 'paid' ? 'partial' : (returItem.status ?? 'pending')
-
-    const { error: updErr } = await supabase
-      .from('piutang')
-      .update({ return_amount: newReturn, status: newStatus })
-      .eq('id', returItem.id)
-      .eq('return_amount', returItem.return_amount ?? 0)
-    if (updErr) {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
       setSaving(false)
-      toast('error', 'Gagal simpan retur (mungkin diubah finance lain): ' + updErr.message)
+      toast('error', 'Sesi login berakhir.')
       return
     }
-
-    // F-14 fix: retur piutang wajib jurnal Dr Penjualan Retur / Cr Piutang Customer
-    // (barang diretur → tagihan dikurangi, uang belum tentu keluar).
-    try {
-      const { createSimpleJournal } = await import('@/utils/journal/create')
-      // Phase 3 (BUG-095): lookup Piutang Customer by code 1201 (anti-drift).
-      const piutangId = await getAccountIdByCode(supabase, '1201')
-      if (!piutangId) {
-        throw new Error('Akun Piutang Customer (1201) tidak ditemukan — cek /finance/accounts')
-      }
-      await createSimpleJournal({
-        transaction_type: 'sales_return',
-        reference_type: 'piutang_retur',
-        reference_id: returItem.id,
-        description: `Retur piutang ${returItem.invoice_number ?? 'Faktur'} — ${returItem.customer?.name ?? ''} Rp${amount.toLocaleString('id-ID')}`,
-        amount,
-        credit_account_id: piutangId, // Piutang Customer
-        idempotency_key: `piutang_retur:${returItem.id}:${crypto.randomUUID()}`
-      })
-    } catch (jErr) {
-      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal gagal → kembalikan
-      // piutang ke return_amount/status semula (sebelumnya toast warning → ledger bocor).
-      console.error('Gagal buat jurnal retur piutang:', jErr)
-      const prevStatus = returItem.status ?? (returItem.paid_amount ? 'partial' : 'pending')
-      await supabase
-        .from('piutang')
-        .update({ return_amount: returItem.return_amount ?? 0, status: prevStatus })
-        .eq('id', returItem.id)
+    // SESI 52 (#14): retur_piutang_atomic — validasi sisa + FOR UPDATE + update
+    // return_amount/status + jurnal sales_return dalam SATU transaksi server.
+    // Menggantikan jalur client multi-step (update → jurnal + rollback manual)
+    // yang bisa meninggalkan retur tanpa jurnal (ledger bocor).
+    const { error: retErr } = await supabase.rpc('retur_piutang_atomic', {
+      p_faktur_id: returItem.id,
+      p_amount: amount,
+      p_reason: returForm.reason.trim(),
+      p_actor: user.id
+    })
+    if (retErr) {
       setSaving(false)
-      setReturItem(null)
-      setReturForm({ amount: '', reason: '' })
-      toast('error',
-        'Retur dibatalkan — jurnal tidak tersimpan. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
+      toast('error', 'Gagal catat retur: ' + retErr.message)
       return
     }
 

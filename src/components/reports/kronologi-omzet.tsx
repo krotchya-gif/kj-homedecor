@@ -61,7 +61,8 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
   const supabase = createClient()
 
   // Phase 4 (BUG-098): ganti .limit(200) → pagination server-side (range + count exact).
-  // Sebelumnya laporan periode lama selalu terpotong di 200 order → angka omzet salah.
+  // Sesi 52: (a) reset page saat ganti periode; (b) exclude cancelled/returned dari omzet;
+  // (c) boundary hari pertama konsisten (T00:00:00 — bukan tengah malam UTC).
   async function fetchData() {
     setLoading(true)
     const from = page * PAGE_SIZE
@@ -69,7 +70,9 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
     const { data, count } = await supabase
       .from('orders')
       .select('id, order_number, created_at, total_amount, payment_status', { count: 'exact' })
-      .gte('created_at', startDate)
+      .neq('status', 'cancelled')
+      .neq('status', 'returned')
+      .gte('created_at', new Date(startDate + 'T00:00:00').toISOString())
       .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
       .order('created_at', { ascending: false })
       .range(from, to)
@@ -78,8 +81,14 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
     setLoading(false)
   }
 
+  // Reset ke halaman 1 saat periode berubah
+  useEffect(() => {
+    setPage(0)
+  }, [startDate, endDate])
+
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, page])
 
   async function downloadPDF() {
@@ -91,10 +100,13 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
 
     // Sesi 44: PDF ambil SEMUA data periode (bukan hanya halaman aktif yang
     // sedang dilihat di web) supaya total & daftarnya lengkap.
+    // Sesi 52: exclude cancelled/returned + boundary konsisten.
     const { data: allOrders } = await supabase
       .from('orders')
       .select('id, order_number, created_at, total_amount, payment_status')
-      .gte('created_at', startDate)
+      .neq('status', 'cancelled')
+      .neq('status', 'returned')
+      .gte('created_at', new Date(startDate + 'T00:00:00').toISOString())
       .lte('created_at', new Date(endDate + 'T23:59:59').toISOString())
       .order('created_at', { ascending: false })
 

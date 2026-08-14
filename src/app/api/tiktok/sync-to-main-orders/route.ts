@@ -3,14 +3,9 @@ import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
 
-interface TikTokLineItem {
-  sale_price?: number | string
-  original_price?: number | string
-  product_name?: string
-  product_id?: string
-  quantity?: number | string
-  sku_id?: string
-  sku_name?: string
+interface TikTokOrderRow {
+  tiktok_order_id: string
+  order_status?: string | null
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +33,7 @@ export async function POST(req: NextRequest) {
     // Ambil semua tiktok orders yg status PAID dan belum di-link ke main orders
     const { data: tiktokOrders, error: fetchErr } = await supabase
       .from('tiktok_shop_orders')
-      .select('*')
+      .select('tiktok_order_id')
       .eq('payment_status', 'PAID')
       .neq('order_status', 'CANCELLED')
 
@@ -51,156 +46,44 @@ export async function POST(req: NextRequest) {
     let created = 0
     let skipped = 0
 
-    // 2026-08-12: pastikan order TikTok tercatat payment + jurnal (F-13).
-    // Dipanggil saat order BARU dibuat DAN saat repair order existing tanpa pembukuan
-    // (crash di tengah proses sebelumnya). Idempoten via idempotency key jurnal.
-    // BUG-069 fix (2026-08-13, model akrual): jurnal `payment_received` DIHAPUS —
-    // kas masuk E-Wallet Tiktok dicatat SAAT SETTLEMENT (sync-finance/create-piutang),
-    // bukan saat order dibuat (TikTok masih menahan uang). Jalur order hanya mencatat
-    // REVENUE (order_created) + row `payments` untuk payment-gate pipeline.
-    // Guard idempotency pindah ke `tiktok_sync_order_created` (jurnal yang memang dibuat).
-    async function ensurePaymentAndJournal(orderId: string, to: { tiktok_order_id: string; total_amount?: number | string; buyer_name?: string | null }) {
-      const amountNum = Number(to.total_amount || 0)
-      if (amountNum <= 0) return
-      const { data: journaled } = await supabase
-        .from('journal_entries')
-        .select('id')
-        .eq('idempotency_key', `tiktok_sync_order_created:${orderId}`)
-        .maybeSingle()
-      if (journaled) return
-
-      const { error: payErr } = await supabase.from('payments').insert({
-        order_id: orderId,
-        type: 'lunas',
-        amount: amountNum,
-        date: new Date().toISOString(),
-        verified_by: null,
-        verified_at: new Date().toISOString(),
-        notes: `Auto-catat TikTok Shop (settlement platform) — ${to.tiktok_order_id}`
-      })
-      if (payErr) {
-        console.error('Gagal catat payment TikTok:', payErr)
-        return
-      }
-
-      try {
-        const { createSimpleJournal } = await import('@/utils/journal/create')
-        await createSimpleJournal({
-          transaction_type: 'order_created',
-          reference_type: 'order',
-          reference_id: orderId,
-          description: `Order TikTok ${to.tiktok_order_id} — ${to.buyer_name || 'Unknown'}`,
-          amount: amountNum,
-          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-          supabase,
-          idempotency_key: `tiktok_sync_order_created:${orderId}`
-        })
-      } catch (jErr) {
-        console.error('Gagal buat jurnal TikTok order:', jErr)
-      }
-    }
-
+    // SESI 52 (#15): konsolidasi ke RPC process_tiktok_order_atomic (SECURITY DEFINER).
+    // Satu transaksi server: buat/repair order + payment lunas (verified_by NULL,
+    // platform sudah verifikasi → auto-skip Cek Bayar) + jurnal order_created +
+    // order_items (hanya saat order BARU — sync ulang tidak menduplikat).
+    // Payment & jurnal idempotent per order → aman di-call berulang (repair crash).
     for (const to of tiktokOrders || []) {
-      // Cek apakah order_id_external udah ada di main orders
-      const { data: existing } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('order_id_external', to.tiktok_order_id)
-        .maybeSingle()
-
-      if (existing) {
-        skipped++
-        // Repair (2026-08-12): order sudah ada tapi belum dibukukan (crash sebelumnya) →
-        // buat payment + jurnal supaya tidak ada order 'paid' tanpa pembukuan.
-        await ensurePaymentAndJournal(existing.id, to)
-        continue
-      }
-
-      // Nomor order otomatis (ORD-YYYY-NNNN) — sebelumnya order TikTok order_number NULL
-      const { data: orderNum } = await supabase.rpc('generate_order_number')
-
-      const { error: insertErr } = await supabase.from('orders').insert({
-        order_number: orderNum ?? undefined,
-        order_id_external: to.tiktok_order_id,
-        source: 'tiktok',
-        customer_id: null,
-        classification: 'kirim',
-        // 2026-07-31 Opsi A: e-commerce auto-skip cek bayar — pembayaran platform sudah terverifikasi.
-        // Masuk langsung 'sorted' (siap sortir gudang), bukan lewat payment_ok.
-        status: to.order_status === 'COMPLETED' ? 'done' : 'sorted',
-        total_amount: Number(to.total_amount || 0),
-        dp_amount: 0,
-        lunas_amount: Number(to.total_amount || 0),
-        shipping_cost: Number(to.shipping_amount || 0),
-        payment_status: 'paid',
-        order_date: to.order_date || null,
-        notes: `TikTok Shop order — ${to.buyer_name || 'Unknown'}`,
-        shipping_address: to.shipping_address || null
+      const { data, error: rpcErr } = await supabase.rpc('process_tiktok_order_atomic', {
+        p_tiktok_order_id: to.tiktok_order_id,
+        p_actor: user.id
       })
-
-      // 2026-08-12: BLOCK (bukan `continue`) kalau insert order gagal — order tidak
-      // hilang diam-diam dari sync; caller bisa lihat error & retry.
-      if (insertErr) {
+      if (rpcErr) {
+        // 2026-08-12: BLOCK (bukan `continue`) kalau gagal — order tidak hilang
+        // diam-diam dari sync; caller bisa lihat error & retry.
         return NextResponse.json(
           {
-            error: `Gagal simpan order TikTok ${to.tiktok_order_id}: ${toClientError(insertErr)}`,
+            error: `Gagal proses order TikTok ${to.tiktok_order_id}: ${toClientError(rpcErr)}`,
             created,
             skipped
           },
           { status: 500 }
         )
       }
-
-      // Ambil id order yg baru dibuat untuk link order_items
-      const { data: newOrder } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('order_id_external', to.tiktok_order_id)
-        .maybeSingle()
-
-      if (!newOrder) {
-        console.error('Order inserted but id not found:', to.tiktok_order_id)
-        continue
-      }
-
-      await ensurePaymentAndJournal(newOrder.id, to)
-
-      // Sync line items dari TikTok ke order_items — root cause "item pesanan ga keluar":
-      // sebelumnya order dibuat TANPA order_items sama sekali.
-      const lineItems = (to.order_data as unknown as { line_items?: TikTokLineItem[] } | null)?.line_items ?? []
-      let itemCount = 0
-      for (const li of lineItems) {
-        const price = Number(li.sale_price ?? li.original_price ?? 0)
-        if (!li.product_name && !li.sku_name) continue
-        const { error: itemErr } = await supabase.from('order_items').insert({
-          order_id: newOrder.id,
-          product_id: null, // SKU TikTok tidak match produk lokal — tampil via custom_specs fallback
-          item_type: 'perabot',
-          qty: Number(li.quantity ?? 1),
-          price,
-          // Nama produk asli TikTok sebagai fallback render (kolom custom_specs tidak dipakai UI)
-          custom_specs: li.product_name || li.sku_name || null,
-          size: li.sku_name && li.sku_name !== li.product_name ? li.sku_name : null
-        })
-        if (itemErr) {
-          console.error('Failed to insert order_item:', itemErr, 'tiktok_order:', to.tiktok_order_id)
-          continue
-        }
-        itemCount++
-      }
-
-      created++
+      const result = (data ?? {}) as { was_new?: boolean }
+      if (result.was_new) created++
+      else skipped++
     }
 
     // F-13 fix: sinkronisasi PEMBATALAN — order TikTok yang di-CANCEL setelah
     // masuk main orders harus ikut dibatalkan (sebelumnya main order tetap
     // 'sorted'/'done' dengan payment_status 'paid' → produksi jalan sia-sia).
+    // SESI 52 (#15): pakai cancel_tiktok_order_atomic — void payment + reversal
+    // jurnal order_created + order_logs dalam satu transaksi server.
     let cancelled = 0
     const { data: cancelledOrders } = await supabase
       .from('tiktok_shop_orders')
-      .select('tiktok_order_id')
+      .select('tiktok_order_id, order_status')
       .eq('order_status', 'CANCELLED')
-    for (const co of cancelledOrders ?? []) {
+    for (const co of (cancelledOrders ?? []) as TikTokOrderRow[]) {
       const { data: mainOrder } = await supabase
         .from('orders')
         .select('id, status')
@@ -208,15 +91,25 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
       if (!mainOrder) continue
       if (mainOrder.status === 'cancelled') continue
-      const { error: cancelErr } = await supabase
-        .from('orders')
-        .update({ status: 'cancelled', payment_status: 'pending' })
-        .eq('id', mainOrder.id)
+      const { error: cancelErr } = await supabase.rpc('cancel_tiktok_order_atomic', {
+        p_order_id: mainOrder.id,
+        p_reason: 'Dibatalkan di TikTok Shop (sinkronisasi otomatis)',
+        p_actor: user.id
+      })
       if (cancelErr) {
         console.error('Gagal cancel main order TikTok:', cancelErr)
-      } else {
-        cancelled++
+        // BLOCK: reversal jurnal tidak boleh dilewati diam-diam
+        return NextResponse.json(
+          {
+            error: `Gagal batalkan order TikTok ${co.tiktok_order_id}: ${toClientError(cancelErr)}`,
+            created,
+            skipped,
+            cancelled
+          },
+          { status: 500 }
+        )
       }
+      cancelled++
     }
 
     return NextResponse.json({

@@ -196,11 +196,14 @@ export default function FinanceDashboard() {
   const needsVerificationPaid = needsVerification.filter((o) => o.payment_status === 'paid')
 
   // Piutang aging buckets (based on invoice_date/created_at)
+  // Sesi 52: piutang tanpa tanggal anchor tidak dimasukkan ke bucket '>90' (NaN)
   const now = new Date()
   const aging = { '<30': 0, '30-60': 0, '60-90': 0, '>90': 0 }
   piutang.forEach((p) => {
     const anchor = p.invoice_date ?? p.created_at ?? ''
+    if (!anchor) return // tanpa tanggal → lewati (tidak dianggap paling tua)
     const days = Math.floor((now.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24))
+    if (!Number.isFinite(days)) return
     const sisa = piutangSisa(p)
     if (days < 30) aging['<30'] += sisa
     else if (days < 60) aging['30-60'] += sisa
@@ -215,10 +218,12 @@ export default function FinanceDashboard() {
   ]
 
   // Sesi 45: piutang tertua (5 faktur terlama) — panel "Piutang Menua"
+  // Sesi 52: anchor kosong/Invalid → days dianggap 0 (bukan NaN → urutan rusak)
   const oldestPiutang = [...piutang]
     .map((p) => {
       const anchor = p.invoice_date ?? p.created_at ?? ''
-      const days = Math.max(0, Math.floor((now.getTime() - new Date(anchor).getTime()) / (1000 * 60 * 60 * 24)))
+      const t = anchor ? new Date(anchor).getTime() : NaN
+      const days = Number.isFinite(t) ? Math.max(0, Math.floor((now.getTime() - t) / (1000 * 60 * 60 * 24))) : 0
       return { ...p, sisa: piutangSisa(p), days, bucket: days < 30 ? '< 30' : days < 60 ? '30-60' : days < 90 ? '60-90' : '> 90' }
     })
     .sort((a, b) => b.days - a.days)

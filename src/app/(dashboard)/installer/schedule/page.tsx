@@ -142,26 +142,24 @@ export default function InstallerSchedulePage() {
       toast('info', 'Tambahkan alasan revisi minimal 1 kalimat.')
       return
     }
-    const { error: revErr } = await supabase
-      .from('install_bookings')
-      .update({
+    // SESI 52 (#16): submit revisi lewat PUT /api/install-bookings/[id] (server-side) —
+    // RPC advance_install_booking_status menangani status + cascade orders.status +
+    // order_logs. Sebelumnya update `install_bookings` langsung dari client
+    // (bypass role check & cascade order) + insert order_logs terpisah.
+    const res = await fetch(`/api/install-bookings/${revBooking.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         status: 'revision',
         revision_reason: revReason.trim(),
         revision_photos: revPhotos.length > 0 ? revPhotos : null
       })
-      .eq('id', revBooking.id)
-    if (revErr) { toast('error', 'Gagal submit revisi: ' + revErr.message); return }
-
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-    const { error: logErr } = await supabase.from('order_logs').insert({
-      order_id: revBooking.order_id,
-      action: 'install_revision',
-      notes: `Installer melaporkan masalah: ${revReason.trim()}`,
-      staff_id: user?.id ?? null
     })
-    if (logErr) { console.error('Gagal catat log revisi install:', logErr) }
+    const json = await res.json().catch(() => ({ error: { message: 'Respons tidak valid dari server' } }))
+    if (!res.ok) {
+      toast('error', 'Gagal submit revisi: ' + (json.error?.message ?? 'unknown error'))
+      return
+    }
 
     setShowRevision(false)
     setRevBooking(null)

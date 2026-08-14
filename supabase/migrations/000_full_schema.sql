@@ -3825,4 +3825,585 @@ REVOKE ALL ON FUNCTION public.process_tiktok_settlement_atomic(uuid, uuid) FROM 
 REVOKE ALL ON FUNCTION public.process_tiktok_settlement_atomic(uuid, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.process_tiktok_settlement_atomic(uuid, uuid) TO authenticated;
 
+-- ============================================================
+-- 090 (sesi 52, 2026-08-15): RPC atomic piutang/hutang + TikTok sync
+-- + constraint status 'partial' (drift live: constraint lama hanya
+--   pending/paid/cancelled — bayar/retur sebagian selalu 23514).
+-- ============================================================
+
+-- Constraint 'partial' — live memakai named constraint; file inline CHECK
+-- sudah mencakup 'partial' untuk fresh-create. Blok ini idempotent.
+ALTER TABLE public.piutang DROP CONSTRAINT IF EXISTS piutang_status_check;
+ALTER TABLE public.piutang ADD CONSTRAINT piutang_status_check CHECK (status IN ('pending','partial','paid','cancelled'));
+ALTER TABLE public.hutang DROP CONSTRAINT IF EXISTS hutang_status_check;
+ALTER TABLE public.hutang ADD CONSTRAINT hutang_status_check CHECK (status IN ('pending','partial','paid','cancelled'));
+
+-- RPC bayar piutang (metode final pengganti insert/update langsung dari client)
+CREATE OR REPLACE FUNCTION public.pay_piutang_atomic(p_faktur_id uuid, p_amount numeric, p_actor uuid, p_idempotency_key text DEFAULT NULL, p_notes text DEFAULT NULL)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_record public.piutang%ROWTYPE;
+  v_sisa numeric;
+  v_new_paid numeric;
+  v_new_status text;
+  v_key text;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_amount IS NULL OR p_amount <= 0 THEN RAISE EXCEPTION 'Nominal pembayaran harus lebih dari 0'; END IF;
+
+  SELECT * INTO v_record FROM public.piutang WHERE id = p_faktur_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Faktur piutang tidak ditemukan'; END IF;
+  IF v_record.status = 'paid' THEN RAISE EXCEPTION 'Faktur sudah lunas'; END IF;
+  IF v_record.status = 'cancelled' THEN RAISE EXCEPTION 'Faktur sudah dibatalkan'; END IF;
+
+  v_sisa := COALESCE(v_record.amount,0) - COALESCE(v_record.paid_amount,0) - COALESCE(v_record.return_amount,0) - COALESCE(v_record.fee_amount,0);
+  IF p_amount > v_sisa THEN
+    RAISE EXCEPTION 'Nominal melebihi sisa tagihan (Rp%)', v_sisa;
+  END IF;
+
+  v_new_paid := COALESCE(v_record.paid_amount,0) + p_amount;
+  v_new_status := CASE WHEN v_new_paid >= v_record.amount AND v_record.amount > 0 THEN 'paid' WHEN v_new_paid > 0 THEN 'partial' ELSE 'pending' END;
+
+  UPDATE public.piutang SET paid_amount = v_new_paid, status = v_new_status WHERE id = p_faktur_id;
+
+  SELECT debit_account_id, credit_account_id INTO v_mapping
+  FROM public.account_mappings WHERE transaction_type = 'piutang_received' AND is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping piutang_received belum dikonfigurasi';
+  END IF;
+  v_key := COALESCE(p_idempotency_key, 'piutang_paid:' || p_faktur_id::text || ':' || gen_random_uuid()::text);
+  PERFORM public.create_journal_atomic(
+    v_key, 'piutang', p_faktur_id,
+    'Pembayaran piutang ' || COALESCE(v_record.invoice_number, 'Faktur') || ' Rp' || p_amount || (CASE WHEN p_notes IS NOT NULL THEN ' - ' || p_notes ELSE '' END),
+    CURRENT_DATE, true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', p_amount, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', p_amount)
+    ),
+    p_actor
+  );
+
+  RETURN jsonb_build_object('faktur_id', p_faktur_id, 'paid_amount', v_new_paid, 'status', v_new_status);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.pay_piutang_atomic(uuid, numeric, uuid, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.pay_piutang_atomic(uuid, numeric, uuid, text, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.pay_piutang_atomic(uuid, numeric, uuid, text, text) TO authenticated;
+
+-- RPC bayar hutang
+CREATE OR REPLACE FUNCTION public.pay_hutang_atomic(p_hutang_id uuid, p_amount numeric, p_actor uuid, p_idempotency_key text DEFAULT NULL, p_notes text DEFAULT NULL)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_record public.hutang%ROWTYPE;
+  v_sisa numeric;
+  v_new_paid numeric;
+  v_new_status text;
+  v_key text;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_amount IS NULL OR p_amount <= 0 THEN RAISE EXCEPTION 'Nominal pembayaran harus lebih dari 0'; END IF;
+
+  SELECT * INTO v_record FROM public.hutang WHERE id = p_hutang_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Hutang tidak ditemukan'; END IF;
+  IF v_record.status = 'paid' THEN RAISE EXCEPTION 'Hutang sudah lunas'; END IF;
+  IF v_record.status = 'cancelled' THEN RAISE EXCEPTION 'Hutang sudah dibatalkan'; END IF;
+
+  v_sisa := COALESCE(v_record.amount,0) - COALESCE(v_record.paid_amount,0) - COALESCE(v_record.return_amount,0);
+  IF p_amount > v_sisa THEN
+    RAISE EXCEPTION 'Nominal melebihi sisa hutang (Rp%)', v_sisa;
+  END IF;
+
+  v_new_paid := COALESCE(v_record.paid_amount,0) + p_amount;
+  v_new_status := CASE WHEN v_new_paid >= v_record.amount AND v_record.amount > 0 THEN 'paid' WHEN v_new_paid > 0 THEN 'partial' ELSE 'pending' END;
+
+  UPDATE public.hutang
+  SET paid_amount = v_new_paid, status = v_new_status, paid_at = NOW(),
+      notes = COALESCE(p_notes, notes)
+  WHERE id = p_hutang_id;
+
+  SELECT debit_account_id, credit_account_id INTO v_mapping
+  FROM public.account_mappings WHERE transaction_type = 'hutang_paid' AND is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping hutang_paid belum dikonfigurasi';
+  END IF;
+  v_key := COALESCE(p_idempotency_key, 'hutang_paid:' || p_hutang_id::text || ':' || gen_random_uuid()::text);
+  PERFORM public.create_journal_atomic(
+    v_key, 'hutang', p_hutang_id,
+    'Pembayaran hutang ' || COALESCE(v_record.invoice_number, 'Invoice') || ' Rp' || p_amount,
+    CURRENT_DATE, true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', p_amount, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', p_amount)
+    ),
+    p_actor
+  );
+
+  RETURN jsonb_build_object('hutang_id', p_hutang_id, 'paid_amount', v_new_paid, 'status', v_new_status);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.pay_hutang_atomic(uuid, numeric, uuid, text, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.pay_hutang_atomic(uuid, numeric, uuid, text, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.pay_hutang_atomic(uuid, numeric, uuid, text, text) TO authenticated;
+
+-- RPC retur piutang (jalur finance/piutang/process)
+CREATE OR REPLACE FUNCTION public.retur_piutang_atomic(p_faktur_id uuid, p_amount numeric, p_reason text, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_record public.piutang%ROWTYPE;
+  v_sisa numeric;
+  v_new_return numeric;
+  v_new_status text;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_amount IS NULL OR p_amount <= 0 THEN RAISE EXCEPTION 'Nominal retur harus lebih dari 0'; END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN RAISE EXCEPTION 'Alasan retur wajib diisi'; END IF;
+
+  SELECT * INTO v_record FROM public.piutang WHERE id = p_faktur_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Faktur piutang tidak ditemukan'; END IF;
+  IF v_record.status = 'cancelled' THEN RAISE EXCEPTION 'Faktur sudah dibatalkan'; END IF;
+
+  v_sisa := COALESCE(v_record.amount,0) - COALESCE(v_record.paid_amount,0) - COALESCE(v_record.return_amount,0) - COALESCE(v_record.fee_amount,0);
+  IF p_amount > v_sisa THEN
+    RAISE EXCEPTION 'Nominal retur melebihi sisa tagihan (Rp%)', v_sisa;
+  END IF;
+
+  v_new_return := COALESCE(v_record.return_amount,0) + p_amount;
+  v_new_status := CASE WHEN v_new_return >= v_record.amount AND v_record.amount > 0 THEN 'paid' WHEN v_new_return > 0 THEN 'partial' ELSE 'pending' END;
+
+  UPDATE public.piutang
+  SET return_amount = v_new_return, status = v_new_status
+  WHERE id = p_faktur_id;
+
+  SELECT debit_account_id, credit_account_id INTO v_mapping
+  FROM public.account_mappings WHERE transaction_type = 'sales_return' AND is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping sales_return belum dikonfigurasi';
+  END IF;
+  PERFORM public.create_journal_atomic(
+    'piutang_retur:' || p_faktur_id::text || ':' || gen_random_uuid()::text,
+    'piutang', p_faktur_id,
+    'Retur piutang ' || COALESCE(v_record.invoice_number, 'Faktur') || ' Rp' || p_amount || ' - ' || p_reason,
+    CURRENT_DATE, true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', p_amount, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', p_amount)
+    ),
+    p_actor
+  );
+
+  RETURN jsonb_build_object('faktur_id', p_faktur_id, 'return_amount', v_new_return, 'status', v_new_status);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.retur_piutang_atomic(uuid, numeric, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.retur_piutang_atomic(uuid, numeric, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.retur_piutang_atomic(uuid, numeric, text, uuid) TO authenticated;
+
+-- RPC save piutang (create/update/delete — CRUD terpusat)
+CREATE OR REPLACE FUNCTION public.save_piutang_atomic(
+  p_mode text, p_id uuid DEFAULT NULL, p_customer_id uuid DEFAULT NULL, p_invoice_number text DEFAULT NULL,
+  p_invoice_date date DEFAULT CURRENT_DATE, p_amount numeric DEFAULT 0, p_fee_amount numeric DEFAULT 0,
+  p_channel text DEFAULT NULL, p_order_id uuid DEFAULT NULL, p_notes text DEFAULT NULL, p_actor uuid DEFAULT NULL
+)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_id uuid := p_id;
+  v_old_amount numeric := 0;
+  v_delta numeric := 0;
+  v_mapping record;
+  v_existing public.piutang%ROWTYPE;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_mode NOT IN ('create','update','delete') THEN RAISE EXCEPTION 'Mode tidak valid'; END IF;
+  IF p_mode <> 'delete' AND (p_amount IS NULL OR p_amount < 0) THEN RAISE EXCEPTION 'Nominal tidak valid'; END IF;
+  IF p_mode <> 'delete' AND (p_invoice_number IS NULL OR btrim(p_invoice_number) = '') THEN RAISE EXCEPTION 'Nomor faktur wajib diisi'; END IF;
+
+  IF p_mode = 'delete' THEN
+    SELECT * INTO v_existing FROM public.piutang WHERE id = v_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Faktur tidak ditemukan'; END IF;
+    IF COALESCE(v_existing.paid_amount,0) > 0 OR COALESCE(v_existing.return_amount,0) > 0
+       OR v_existing.status IN ('paid','cancelled') THEN
+      RAISE EXCEPTION 'Faktur sudah dibayar/dibatalkan - tidak bisa dihapus';
+    END IF;
+    DELETE FROM public.piutang WHERE id = v_id;
+    RETURN jsonb_build_object('id', v_id, 'mode', 'delete');
+  END IF;
+
+  SELECT * INTO v_existing FROM public.piutang
+  WHERE invoice_number = btrim(p_invoice_number) AND (p_id IS NULL OR id <> p_id) LIMIT 1;
+  IF v_existing.id IS NOT NULL THEN
+    RAISE EXCEPTION 'Nomor faktur "%" sudah dipakai', p_invoice_number;
+  END IF;
+
+  IF p_mode = 'update' THEN
+    SELECT * INTO v_existing FROM public.piutang WHERE id = v_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Faktur tidak ditemukan'; END IF;
+    IF COALESCE(v_existing.paid_amount,0) > 0 OR COALESCE(v_existing.return_amount,0) > 0
+       OR v_existing.status IN ('paid','cancelled') THEN
+      RAISE EXCEPTION 'Faktur sudah dibayar/dibatalkan - tidak bisa diubah. Buat faktur baru jika perlu.';
+    END IF;
+    v_old_amount := COALESCE(v_existing.amount, 0);
+    UPDATE public.piutang
+    SET customer_id = p_customer_id, invoice_number = btrim(p_invoice_number),
+        invoice_date = COALESCE(p_invoice_date, invoice_date), amount = p_amount,
+        fee_amount = COALESCE(p_fee_amount, fee_amount), channel = p_channel,
+        order_id = p_order_id, notes = p_notes
+    WHERE id = v_id;
+    v_delta := p_amount - v_old_amount;
+    IF abs(v_delta) > 0.01 THEN
+      SELECT debit_account_id, credit_account_id INTO v_mapping
+      FROM public.account_mappings WHERE transaction_type = 'order_created' AND is_active = true;
+      IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+        RAISE EXCEPTION 'Mapping order_created belum dikonfigurasi';
+      END IF;
+      PERFORM public.create_journal_atomic(
+        'piutang_adj:' || v_id::text,
+        'piutang_adj', v_id,
+        'Penyesuaian faktur ' || p_invoice_number || ' (' || CASE WHEN v_delta > 0 THEN 'naik' ELSE 'turun' END || ' Rp' || abs(v_delta) || ')',
+        CURRENT_DATE, true,
+        CASE WHEN v_delta > 0 THEN
+          jsonb_build_array(
+            jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', abs(v_delta), 'credit', 0),
+            jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', abs(v_delta)))
+        ELSE
+          jsonb_build_array(
+            jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', abs(v_delta), 'credit', 0),
+            jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', abs(v_delta)))
+        END,
+        p_actor
+      );
+    END IF;
+    RETURN jsonb_build_object('id', v_id, 'mode', 'update');
+  END IF;
+
+  INSERT INTO public.piutang (customer_id, invoice_number, invoice_date, amount, fee_amount, channel, order_id, notes, status)
+  VALUES (p_customer_id, btrim(p_invoice_number), COALESCE(p_invoice_date, CURRENT_DATE), p_amount,
+          COALESCE(p_fee_amount, 0), p_channel, p_order_id, p_notes, 'pending')
+  RETURNING id INTO v_id;
+
+  SELECT debit_account_id, credit_account_id INTO v_mapping
+  FROM public.account_mappings WHERE transaction_type = 'order_created' AND is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping order_created belum dikonfigurasi';
+  END IF;
+  PERFORM public.create_journal_atomic(
+    'piutang_created:' || v_id::text,
+    'piutang', v_id,
+    'Faktur piutang ' || p_invoice_number || ' - Rp' || p_amount,
+    COALESCE(p_invoice_date, CURRENT_DATE), true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', p_amount, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', p_amount)
+    ),
+    p_actor
+  );
+
+  RETURN jsonb_build_object('id', v_id, 'mode', 'create');
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.save_piutang_atomic(text, uuid, uuid, text, date, numeric, numeric, text, uuid, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.save_piutang_atomic(text, uuid, uuid, text, date, numeric, numeric, text, uuid, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.save_piutang_atomic(text, uuid, uuid, text, date, numeric, numeric, text, uuid, text, uuid) TO authenticated;
+
+-- RPC save hutang (create/update/delete)
+CREATE OR REPLACE FUNCTION public.save_hutang_atomic(
+  p_mode text, p_id uuid DEFAULT NULL, p_supplier_id uuid DEFAULT NULL, p_invoice_number text DEFAULT NULL,
+  p_invoice_date date DEFAULT CURRENT_DATE, p_due_date date DEFAULT NULL, p_amount numeric DEFAULT 0,
+  p_description text DEFAULT NULL, p_actor uuid DEFAULT NULL
+)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_id uuid := p_id;
+  v_old_amount numeric := 0;
+  v_delta numeric := 0;
+  v_mapping record;
+  v_existing public.hutang%ROWTYPE;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_mode NOT IN ('create','update','delete') THEN RAISE EXCEPTION 'Mode tidak valid'; END IF;
+  IF p_mode <> 'delete' AND (p_amount IS NULL OR p_amount < 0) THEN RAISE EXCEPTION 'Nominal tidak valid'; END IF;
+  IF p_mode <> 'delete' AND (p_invoice_number IS NULL OR btrim(p_invoice_number) = '') THEN RAISE EXCEPTION 'Nomor invoice wajib diisi'; END IF;
+
+  IF p_mode = 'delete' THEN
+    SELECT * INTO v_existing FROM public.hutang WHERE id = v_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Hutang tidak ditemukan'; END IF;
+    IF COALESCE(v_existing.paid_amount,0) > 0 OR COALESCE(v_existing.return_amount,0) > 0
+       OR v_existing.status IN ('paid','cancelled') THEN
+      RAISE EXCEPTION 'Hutang sudah dibayar/dibatalkan - tidak bisa dihapus';
+    END IF;
+    DELETE FROM public.hutang WHERE id = v_id;
+    RETURN jsonb_build_object('id', v_id, 'mode', 'delete');
+  END IF;
+
+  SELECT * INTO v_existing FROM public.hutang
+  WHERE invoice_number = btrim(p_invoice_number) AND (p_id IS NULL OR id <> p_id) LIMIT 1;
+  IF v_existing.id IS NOT NULL THEN
+    RAISE EXCEPTION 'Nomor invoice "%" sudah dipakai', p_invoice_number;
+  END IF;
+
+  IF p_mode = 'update' THEN
+    SELECT * INTO v_existing FROM public.hutang WHERE id = v_id FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'Hutang tidak ditemukan'; END IF;
+    IF COALESCE(v_existing.paid_amount,0) > 0 OR COALESCE(v_existing.return_amount,0) > 0
+       OR v_existing.status IN ('paid','cancelled') THEN
+      RAISE EXCEPTION 'Hutang sudah dibayar/dibatalkan - tidak bisa diubah';
+    END IF;
+    v_old_amount := COALESCE(v_existing.amount, 0);
+    UPDATE public.hutang
+    SET supplier_id = p_supplier_id, invoice_number = btrim(p_invoice_number),
+        invoice_date = COALESCE(p_invoice_date, invoice_date), due_date = p_due_date,
+        amount = p_amount, description = p_description
+    WHERE id = v_id;
+    v_delta := p_amount - v_old_amount;
+    IF abs(v_delta) > 0.01 THEN
+      SELECT debit_account_id, credit_account_id INTO v_mapping
+      FROM public.account_mappings WHERE transaction_type = 'purchase' AND is_active = true;
+      IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+        RAISE EXCEPTION 'Mapping purchase belum dikonfigurasi';
+      END IF;
+      PERFORM public.create_journal_atomic(
+        'hutang_adj:' || v_id::text,
+        'hutang_adj', v_id,
+        'Penyesuaian hutang ' || p_invoice_number || ' (' || CASE WHEN v_delta > 0 THEN 'naik' ELSE 'turun' END || ' Rp' || abs(v_delta) || ')',
+        CURRENT_DATE, true,
+        CASE WHEN v_delta > 0 THEN
+          jsonb_build_array(
+            jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', abs(v_delta), 'credit', 0),
+            jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', abs(v_delta)))
+        ELSE
+          jsonb_build_array(
+            jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', abs(v_delta), 'credit', 0),
+            jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', abs(v_delta)))
+        END,
+        p_actor
+      );
+    END IF;
+    RETURN jsonb_build_object('id', v_id, 'mode', 'update');
+  END IF;
+
+  INSERT INTO public.hutang (supplier_id, invoice_number, invoice_date, due_date, amount, description, status)
+  VALUES (p_supplier_id, btrim(p_invoice_number), COALESCE(p_invoice_date, CURRENT_DATE), p_due_date, p_amount, p_description, 'pending')
+  RETURNING id INTO v_id;
+
+  SELECT debit_account_id, credit_account_id INTO v_mapping
+  FROM public.account_mappings WHERE transaction_type = 'purchase' AND is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping purchase belum dikonfigurasi';
+  END IF;
+  PERFORM public.create_journal_atomic(
+    'hutang_created:' || v_id::text,
+    'hutang', v_id,
+    'Tagihan hutang ' || p_invoice_number || ' - Rp' || p_amount,
+    COALESCE(p_invoice_date, CURRENT_DATE), true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', p_amount, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', p_amount)
+    ),
+    p_actor
+  );
+
+  RETURN jsonb_build_object('id', v_id, 'mode', 'create');
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.save_hutang_atomic(text, uuid, uuid, text, date, date, numeric, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.save_hutang_atomic(text, uuid, uuid, text, date, date, numeric, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.save_hutang_atomic(text, uuid, uuid, text, date, date, numeric, text, uuid) TO authenticated;
+
+-- RPC proses order TikTok → main order (auto-paid, auto-sorted/done)
+CREATE OR REPLACE FUNCTION public.process_tiktok_order_atomic(p_tiktok_order_id text, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_tok record;
+  v_order_id uuid;
+  v_order_number text;
+  v_was_new boolean := false;
+  v_line jsonb;
+  v_price numeric;
+  v_qty int;
+  v_items int := 0;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+
+  SELECT * INTO v_tok FROM public.tiktok_shop_orders WHERE tiktok_order_id = p_tiktok_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order TikTok tidak ditemukan'; END IF;
+  IF v_tok.payment_status <> 'PAID' OR v_tok.order_status = 'CANCELLED' THEN
+    RAISE EXCEPTION 'Order TikTok belum PAID / sudah dibatalkan';
+  END IF;
+
+  SELECT id INTO v_order_id FROM public.orders WHERE order_id_external = p_tiktok_order_id;
+  IF v_order_id IS NULL THEN
+    v_was_new := true;
+    SELECT public.generate_order_number() INTO v_order_number;
+    IF v_order_number IS NULL THEN
+      v_order_number := 'ORD-' || to_char(now(), 'YYYY') || '-' || lpad(floor(random()*10000)::text, 4, '0');
+    END IF;
+    INSERT INTO public.orders (
+      order_number, order_id_external, source, customer_id, classification, status,
+      total_amount, dp_amount, lunas_amount, shipping_cost, payment_status, order_date, notes, shipping_address
+    ) VALUES (
+      v_order_number, p_tiktok_order_id, 'tiktok', NULL, 'kirim',
+      CASE WHEN v_tok.order_status = 'COMPLETED' THEN 'done' ELSE 'sorted' END,
+      COALESCE(v_tok.total_amount, 0), 0, COALESCE(v_tok.total_amount, 0),
+      COALESCE(v_tok.shipping_amount, 0), 'paid', v_tok.order_date,
+      'TikTok Shop order - ' || COALESCE(v_tok.buyer_name, 'Unknown'),
+      v_tok.shipping_address
+    ) RETURNING id INTO v_order_id;
+  END IF;
+
+  -- Payment lunas (platform): verified_by NULL — dibayar platform, bukan admin.
+  -- Marketplace otomatis PAID & auto-skip Cek Bayar (keputusan bisnis 2026-07-31).
+  INSERT INTO public.payments (order_id, type, amount, date, verified_by, verified_at, notes, idempotency_key)
+  VALUES (v_order_id, 'lunas', COALESCE(v_tok.total_amount, 0), CURRENT_DATE, NULL, NULL,
+    'Auto-catat TikTok Shop (settlement platform) - ' || p_tiktok_order_id,
+    'tiktok_sync_payment:' || p_tiktok_order_id)
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING;
+
+  -- Jurnal order_created (revenue) — idempotent per order
+  IF COALESCE(v_tok.total_amount, 0) > 0 AND NOT EXISTS (
+    SELECT 1 FROM public.journal_entries WHERE idempotency_key = 'tiktok_sync_order_created:' || v_order_id::text
+  ) THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'order_created' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+      RAISE EXCEPTION 'Mapping order_created belum dikonfigurasi';
+    END IF;
+    PERFORM public.create_journal_atomic(
+      'tiktok_sync_order_created:' || v_order_id::text,
+      'order', v_order_id,
+      'Order TikTok ' || p_tiktok_order_id || ' - ' || COALESCE(v_tok.buyer_name, 'Unknown'),
+      COALESCE(v_tok.order_date, CURRENT_DATE), true,
+      jsonb_build_array(
+        jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_tok.total_amount, 'credit', 0),
+        jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_tok.total_amount)
+      ),
+      p_actor
+    );
+  END IF;
+
+  -- Line items — HANYA saat order baru dibuat (v_was_new). Sync ulang (repair) tidak
+  -- boleh menduplikat order_items (idempotency jalur order TikTok).
+  IF v_was_new THEN
+    FOR v_line IN SELECT value FROM jsonb_array_elements(COALESCE(v_tok.order_data->'line_items', '[]'::jsonb))
+    LOOP
+      IF v_line->>'product_name' IS NULL AND v_line->>'sku_name' IS NULL THEN CONTINUE; END IF;
+      v_price := COALESCE((v_line->>'sale_price')::numeric, (v_line->>'original_price')::numeric, 0);
+      v_qty := COALESCE((v_line->>'quantity')::int, 1);
+      INSERT INTO public.order_items (order_id, product_id, item_type, qty, price, custom_specs, size)
+      VALUES (
+        v_order_id, NULL, 'perabot', v_qty, v_price,
+        v_line->>'product_name', NULLIF(v_line->>'sku_name', v_line->>'product_name')
+      );
+      v_items := v_items + 1;
+    END LOOP;
+  END IF;
+
+  RETURN jsonb_build_object('order_id', v_order_id, 'items', v_items, 'status', 'processed', 'was_new', v_was_new);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.process_tiktok_order_atomic(text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_tiktok_order_atomic(text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_tiktok_order_atomic(text, uuid) TO authenticated;
+
+-- RPC cancel order TikTok (reversal jurnal + void payment)
+CREATE OR REPLACE FUNCTION public.cancel_tiktok_order_atomic(p_order_id uuid, p_reason text, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_order_no text;
+  v_total numeric := 0;
+  v_status text;
+  v_has_journal boolean;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN RAISE EXCEPTION 'Alasan pembatalan wajib diisi'; END IF;
+
+  SELECT order_number, total_amount, status INTO v_order_no, v_total, v_status
+  FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+  IF v_status = 'cancelled' THEN RAISE EXCEPTION 'Order sudah dibatalkan'; END IF;
+
+  UPDATE public.payments
+  SET notes = 'VOIDED - TikTok order cancelled (' || p_reason || ') - ' || NOW(), voided_at = NOW()
+  WHERE order_id = p_order_id AND voided_at IS NULL;
+
+  UPDATE public.orders
+  SET status = 'cancelled', return_reason = p_reason, payment_status = 'pending',
+      dp_amount = 0, lunas_amount = 0
+  WHERE id = p_order_id;
+
+  SELECT EXISTS (SELECT 1 FROM public.journal_entries WHERE idempotency_key = 'tiktok_sync_order_created:' || p_order_id::text)
+  INTO v_has_journal;
+  IF v_has_journal AND v_total > 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'order_created' AND is_active = true;
+    IF v_mapping.debit_account_id IS NOT NULL AND v_mapping.credit_account_id IS NOT NULL THEN
+      PERFORM public.create_journal_atomic(
+        'cancel_tiktok_order_created:' || p_order_id::text,
+        'order_cancelled', p_order_id,
+        'Reversal order TikTok - ' || COALESCE(v_order_no, left(p_order_id::text, 8)) || ' dibatalkan',
+        CURRENT_DATE, true,
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_total, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_total)
+        ),
+        p_actor
+      );
+    END IF;
+  END IF;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'cancelled', 'Order TikTok dibatalkan secara atomic. Alasan: ' || p_reason, p_actor);
+
+  RETURN jsonb_build_object('order_id', p_order_id, 'cancelled', true);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.cancel_tiktok_order_atomic(uuid, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.cancel_tiktok_order_atomic(uuid, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.cancel_tiktok_order_atomic(uuid, text, uuid) TO authenticated;
+
 NOTIFY pgrst, 'reload schema';

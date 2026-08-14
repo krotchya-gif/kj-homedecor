@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { ORDER_STAGES_BY_CLASSIFICATION, getNextStageButtonLabel } from '@/lib/orders'
 import type { Order, OrderItem, Product, PreparationChecklistItem, OrderStatus } from '@/types'
-import { STATUS_LABELS } from '@/types'
 import type { Material } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { generateInvoicePDF, generatePackingListPDF, generateFakturPDF, generateSuratJalanPDF } from '@/lib/invoice'
@@ -131,6 +129,11 @@ export function useOrderDetail(id: string) {
   // Idempotency key per sesi submit: retry setelah timeout TIDAK membuat
   // pembayaran kedua (audit 2026-08-14). Direset saat sukses / modal ditutup.
   const payKeyRef = useRef<string | null>(null)
+  // Sesi 52: reset key setiap modal pembayaran DITUTUP — kalau user buka lagi
+  // dengan nominal berbeda, jangan dianggap idempotent dari submit sebelumnya.
+  useEffect(() => {
+    if (!showPaymentForm) payKeyRef.current = null
+  }, [showPaymentForm])
 
   const [checklist, setChecklist] = useState<PreparationChecklistItem[]>([])
   const [showItemForm, setShowItemForm] = useState(false)
@@ -355,6 +358,12 @@ export function useOrderDetail(id: string) {
       return
     }
     const refundAmt = Number(returnForm.refund_amount) || 0
+    // Sesi 52: qty <= 0/NaN ditolak (sebelumnya diam-diam jadi 1)
+    const returnQty = Number(returnForm.qty)
+    if (!Number.isFinite(returnQty) || returnQty <= 0) {
+      toast('error', 'Qty return harus lebih dari 0.')
+      return
+    }
 
     // Return diproses SATU transaksi di server (process_order_return_atomic):
     // stok produk + inventory_movements + returns + order_items + orders.status
@@ -364,7 +373,7 @@ export function useOrderDetail(id: string) {
       p_order_item_id: returnForm.item_id || null,
       p_reason: returnForm.reason,
       p_condition: returnForm.condition,
-      p_qty: Number(returnForm.qty) || 1,
+      p_qty: returnQty,
       p_refund_amount: refundAmt,
       p_actor: user.id
     })

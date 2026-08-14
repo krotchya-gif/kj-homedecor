@@ -60,8 +60,8 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
     const { data } = await supabase.from('cash_accounts').select('*, account:accounts(code, name)').order('bank_name')
     const cash = (data ?? []) as LooseRow[]
 
-    // F-33 fix: saldo LIVE dari journal_lines (bukan kolom balance yang sering basi).
-    // Saldo per akun kas = Σdebit − Σcredit baris jurnal akun tsb (normal debit).
+    // Sesi 52: kolom = MUTASI PERIODE (Σ debit−credit periode terfilter), bukan
+    // saldo aktual akun — label "Saldo" diganti "Mutasi (Periode)" di tabel/PDF.
     const accountIds = cash.map((c) => c.account_id).filter(Boolean) as string[]
     let lines: { account_id: string; debit: number; credit: number }[] = []
     if (accountIds.length > 0) {
@@ -92,12 +92,12 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
     const { doc, startY } = await createReportDoc({
       title: `Mutasi Kas & Bank${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
-      subtitle: 'Perubahan saldo kas dan bank'
+      subtitle: 'Mutasi kas & bank per periode (bukan saldo aktual)'
     })
 
     addReportTable(doc, {
       startY,
-      head: [['Kode', 'Bank', 'No. Rekening', 'Saldo']],
+      head: [['Kode', 'Bank', 'No. Rekening', 'Mutasi (Periode)']],
       body: cashAccounts.map((c) => [
         c.account?.code ?? '—',
         c.bank_name ?? '—',
@@ -123,7 +123,7 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
       <BackButton href={isOwner ? '/owner/laporan' : '/finance/laporan'} />
       <PageHeader
         title="Mutasi Kas & Bank"
-        subtitle={`Perubahan saldo kas dan bank${isOwner ? ' - Tampilan Owner (Read Only)' : ''}`}
+        subtitle={`Mutasi kas & bank per periode${isOwner ? ' - Tampilan Owner (Read Only)' : ''}`}
         action={<ReportPDFButton onClick={downloadPDF} label="Download PDF" />}
       />
 
@@ -148,7 +148,7 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
                 <th>Kode</th>
                 <th>Bank</th>
                 <th>No. Rekening</th>
-                <th style={{ textAlign: 'right' }}>Saldo</th>
+                <th style={{ textAlign: 'right' }}>Mutasi (Periode)</th>
               </tr>
             </thead>
             <tbody>

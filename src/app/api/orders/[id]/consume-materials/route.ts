@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 /**
  * POST /api/orders/[id]/consume-materials
@@ -18,6 +19,10 @@ import { toClientError } from '@/lib/api-errors'
  * Idempotent: kalau sudah pernah di-consume, return info tanpa re-process.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  // SESI 52 (audit): rate limit — konsumsi material mengurangi stok (write sensitif)
+  if (checkRateLimit(getClientIp(request), 60, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
 
