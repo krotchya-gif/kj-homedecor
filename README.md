@@ -242,4 +242,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-15 (sesi 48 — upload logo brand: web + PDF header/watermark) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 49 — header PDF: font brand 20pt + gap logo 6mm) · Dev server: `npm run dev` → http://localhost:3000_

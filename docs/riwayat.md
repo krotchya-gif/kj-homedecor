@@ -17,6 +17,11 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 49: Header PDF — font brand 20pt + gap logo 6mm; E2E timeout 240s
+- **Nama brand di header semua PDF naik ke 20pt** (sebelumnya 14pt — terlalu kecil dengan font custom) + **gap konsisten 6mm** antara logo dan nama brand (`drawLogo` kini mengembalikan lebar logo; `textX = 14 + logoW + 6` — otomatis menyesuaikan rasio logo apa pun).
+- **E2E timeout global 180s → 240s** (pipeline penuh + dev-mode recompile bisa melewati 180s → flaky timeout; pipeline-pasang & finance sempat timeout 1× tapi lolos saat dijalankan ulang — bukan bug kode).
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 37/37 + smoke PDF.
+
 ### 2026-08-15 — Sesi 48: Upload logo brand (web + PDF header/watermark)
 - Kolom `landing_settings.brand_logo_url` (default `/kjlogo.png`); **Admin → Landing Settings → Brand** kini punya **Upload Logo** (PNG/JPG/WEBP transparan ≤2MB via folder `banners`) + preview + URL manual + hapus.
 - **PDF** (`pdf-logo.ts` dinamis): header & watermark memakai `brand_logo_url` dari settings (fallback `/kjlogo.png`); cache per URL.

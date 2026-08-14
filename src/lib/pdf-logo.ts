@@ -46,15 +46,16 @@ export async function loadLogo(): Promise<{ dataUrl: string; ratio: number } | n
   }
 }
 
-/** Gambar logo di header (x, y = kiri atas; h = tinggi mm, lebar mengikuti rasio). */
-export async function drawLogo(doc: jsPDF, x: number, y: number, h: number): Promise<boolean> {
+/** Gambar logo di header (x, y = kiri atas; h = tinggi mm). Return lebar yang digambar (mm), 0 jika gagal. */
+export async function drawLogo(doc: jsPDF, x: number, y: number, h: number): Promise<number> {
   const logo = await loadLogo()
-  if (!logo) return false
+  if (!logo) return 0
   try {
-    doc.addImage(logo.dataUrl, 'PNG', x, y, h * logo.ratio, h)
-    return true
+    const w = h * logo.ratio
+    doc.addImage(logo.dataUrl, 'PNG', x, y, w, h)
+    return w
   } catch {
-    return false
+    return 0
   }
 }
 

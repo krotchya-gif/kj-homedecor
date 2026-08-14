@@ -44,12 +44,13 @@ export async function drawDocHeader(doc: jsPDF, opts: DocHeaderOptions): Promise
   const brandRgb = hexToRgb(activeBrand.color)
 
   const hasLogo = await drawLogo(doc, 14, 6, 11)
-  const textX = hasLogo ? 31 : 14
+  // Gap konsisten 6mm di belakang logo (berapa pun rasio logo-nya)
+  const textX = hasLogo > 0 ? 14 + hasLogo + 6 : 14
 
   // Nama brand — font custom kalau TTF tersedia, fallback helvetica
   const brandFont = await registerBrandFont(doc, activeBrand.fontUrl)
   doc.setFont(brandFont, 'normal')
-  doc.setFontSize(14)
+  doc.setFontSize(20)
   doc.setTextColor(31, 41, 55)
   doc.text(activeBrand.name, textX, 16)
   doc.setFont('helvetica', 'normal')

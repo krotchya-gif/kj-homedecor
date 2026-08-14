@@ -7,7 +7,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : 1,
   reporter: 'html',
-  timeout: 180_000,
+  // 240s: pipeline penuh (kirim/pasang) + dev-mode recompile bisa melewati 180s
+  timeout: 240_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL: 'http://localhost:3000',
