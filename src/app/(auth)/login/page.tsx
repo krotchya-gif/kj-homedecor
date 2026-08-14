@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { useBrandSettings } from '@/components/brand/BrandFontLoader'
 
 const ROLE_DASHBOARDS: Record<string, string> = {
   admin: '/admin',
@@ -19,6 +20,7 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 
 export default function LoginPage() {
   const router = useRouter()
+  const brand = useBrandSettings()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -97,7 +99,7 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card animate-fade-up">
         {/* Logo */}
-        <div className="auth-logo">KJ Homedecor</div>
+        <div className="auth-logo brand-font">{brand.name}</div>
         <p className="auth-tagline">Staff Portal — Masuk ke akun Anda</p>
 
         {/* Error */}

@@ -39,7 +39,8 @@
 | Role check di RPC | Helper `actor_is_active_with_role(p_actor, roles)` (session-bound, anti spoof) |
 | Role check di policy RLS | Helper `is_*_sd()` / `is_finance_role()` (SECURITY DEFINER — BUKAN subquery ke tabel sama) |
 | Sisa piutang | Helper `piutangSisa()` (`src/lib/ledger.ts`) |
-| PDF laporan (header, logo, watermark & nomor halaman) | Helper `src/lib/report-pdf.ts` (`createReportDoc` / `drawDocHeader` / `addReportTable` / `addPageNumbers`) + `src/lib/pdf-logo.ts` (logo KJ transparan + watermark tengah, brand **#b37a60**) — JANGAN buat header PDF sendiri per halaman (sesi 44/46: generator sempat beda-beda warna & tanpa logo) |
+| PDF laporan (header, logo, watermark & nomor halaman) | Helper `src/lib/report-pdf.ts` (`createReportDoc` / `drawDocHeader` / `addReportTable` / `addPageNumbers`) + `src/lib/pdf-logo.ts` (logo KJ transparan + watermark tengah) — JANGAN buat header PDF sendiri per halaman (sesi 44/46: generator sempat beda-beda warna & tanpa logo) |
+| Brand (nama/singkatan/warna/font) | `landing_settings` (key='hero') — diatur Admin → Landing Settings → Brand; dipakai web (`BrandFontLoader`) + semua PDF (`src/lib/pdf-brand.ts`); jsPDF hanya mendukung font **TTF** (OTF/WOFF fallback Helvetica) (sesi 47) |
 | Referensi schema | `supabase/migrations/000_full_schema.sql` (= live, dijaga selalu sinkron) |
 | Mapping akun jurnal | Tabel `account_mappings` via `createSimpleJournal` (jangan hardcode UUID akun) |
 

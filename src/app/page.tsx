@@ -15,6 +15,7 @@ import ProductCatalog from '@/components/landing/ProductCatalog'
 import ScrollNav from '@/components/landing/ScrollNav'
 import ScrollHero from '@/components/ScrollHero'
 import AnimatedCounter from '@/components/landing/AnimatedCounter'
+import BrandFontLoader from '@/components/brand/BrandFontLoader'
 
 const CATEGORY_COLORS = ['#DDC0B4', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626']
 
@@ -54,6 +55,9 @@ export default async function LandingPage() {
   const heroCtaLink = String(settingsMap.hero_cta_link ?? '#products')
   const whatsappNumber = String(settingsMap.whatsapp_number ?? '6281234567890')
   const whatsappMessage = String(settingsMap.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden')
+  // Sesi 47: brand dinamis (nama/warna/font) — diatur Admin → Landing Settings
+  const brandName = String(settingsMap.brand_name ?? 'KJ Homedecor')
+  const brandColor = String(settingsMap.brand_color ?? '#b37a60')
 
   // Social media & contact
   const instagram = String(settingsMap.instagram ?? '')
@@ -88,8 +92,10 @@ export default async function LandingPage() {
           --landing-accent: ${themeAccent};
           --landing-background: ${themeBackground};
           --landing-text: ${themeText};
+          --brand-color: ${brandColor};
         }
       `}</style>
+      <BrandFontLoader />
 
       <div className="landing-root" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* ===== NAVBAR ===== */}
@@ -588,7 +594,7 @@ export default async function LandingPage() {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <img
                     src="/kjlogo.png"
-                    alt="KJ Homedecor"
+                    alt={brandName}
                     style={{ height: '42px', width: 'auto' }}
                     suppressHydrationWarning
                   />
@@ -852,8 +858,8 @@ export default async function LandingPage() {
                 textAlign: 'center'
               }}
             >
-              <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.35)' }}>
-                © {new Date().getFullYear()} KJ Homedecor. All rights reserved.
+              <p style={{ fontSize: '0.8rem', color: brandColor }}>
+                © {new Date().getFullYear()} {brandName}. All rights reserved.
               </p>
             </div>
           </div>

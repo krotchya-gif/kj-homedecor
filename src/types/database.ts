@@ -843,6 +843,10 @@ export type Database = {
       landing_settings: {
         Row: {
           address: string | null
+          brand_color: string | null
+          brand_font_url: string | null
+          brand_name: string | null
+          brand_short: string | null
           categories_label: string | null
           categories_subtitle: string | null
           categories_title: string | null
@@ -904,6 +908,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          brand_color?: string | null
+          brand_font_url?: string | null
+          brand_name?: string | null
+          brand_short?: string | null
           categories_label?: string | null
           categories_subtitle?: string | null
           categories_title?: string | null
@@ -965,6 +973,10 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          brand_color?: string | null
+          brand_font_url?: string | null
+          brand_name?: string | null
+          brand_short?: string | null
           categories_label?: string | null
           categories_subtitle?: string | null
           categories_title?: string | null

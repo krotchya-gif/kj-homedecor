@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Survey } from '@/types'
 import { drawDocHeader, addPageNumbers } from '@/lib/report-pdf'
+import { getBrandSettings } from '@/lib/pdf-brand'
 
 // Warna brand = warna logo KJ (#b37a60) — konsisten dengan semua PDF (sesi 46)
 const BRAND: [number, number, number] = [179, 122, 96]
@@ -57,10 +58,11 @@ interface AutoTableDoc {
 export async function generateSurveyPDF(survey: Survey) {
   const doc = new jsPDF()
 
-  // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  // Header seragam (sesi 46-47): logo + nama brand dinamis + judul brand + meta
+  const brand = await getBrandSettings()
   await drawDocHeader(doc, {
     title: 'FORM HASIL SURVEY GORDEN',
-    meta: ['KJ Homedecor — hasil survey pelanggan'],
+    meta: [`${brand.name} — hasil survey pelanggan`],
     metaRight: [
       `No Survey: ${survey.survey_number ?? '-'}`,
       `Tanggal: ${survey.survey_date ?? '-'}`,
@@ -190,5 +192,6 @@ export async function generateSurveyPDF(survey: Survey) {
   doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, y + 24)
 
   await addPageNumbers(doc)
-  doc.save(`survey-${survey.survey_number ?? survey.id.slice(0, 8)}.pdf`)
+  const short = brand.short.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kj'
+  doc.save(`${short}-survey-${survey.survey_number ?? survey.id.slice(0, 8)}.pdf`)
 }

@@ -4,6 +4,7 @@ import { ThemeProvider } from 'next-themes'
 import SeoScripts from '@/components/SeoScripts'
 import Providers from '@/components/Providers'
 import FontLoader from '@/components/FontLoader'
+import BrandFontLoader from '@/components/brand/BrandFontLoader'
 import { createClient } from '@/utils/supabase/server'
 
 // Halaman statis Next.js di-cache CDN 1 tahun (s-maxage=31536000). Setelah
@@ -32,11 +33,13 @@ const DEFAULT_SEO = {
 // (fallback DEFAULT_SEO). ISR revalidate=60 menjaga metadata tetap segar.
 export async function generateMetadata(): Promise<Metadata> {
   let seo = DEFAULT_SEO
+  // Sesi 47: nama brand dinamis dari landing_settings (dipakai di title/meta).
+  let brandName = 'KJ Homedecor'
   try {
     const supabase = await createClient()
     const { data } = await supabase
       .from('landing_settings')
-      .select('seo_title, seo_description, seo_keywords, seo_og_image')
+      .select('seo_title, seo_description, seo_keywords, seo_og_image, brand_name')
       .eq('key', 'hero')
       .single()
     if (data) {
@@ -46,6 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
         keywords: data.seo_keywords || DEFAULT_SEO.keywords,
         ogImage: data.seo_og_image || DEFAULT_SEO.ogImage
       }
+      brandName = data.brand_name || brandName
     }
   } catch {
     seo = DEFAULT_SEO
@@ -59,7 +63,7 @@ export async function generateMetadata(): Promise<Metadata> {
     appleWebApp: {
       capable: true,
       statusBarStyle: 'default',
-      title: 'KJ Homedecor'
+      title: brandName
     },
     openGraph: {
       title: seo.title,
@@ -71,11 +75,24 @@ export async function generateMetadata(): Promise<Metadata> {
   return metadata
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Sesi 47: nama brand untuk meta apple-mobile-web-app-title
+  let brandName = 'KJ Homedecor'
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('landing_settings')
+      .select('brand_name')
+      .eq('key', 'hero')
+      .single()
+    if (data?.brand_name) brandName = data.brand_name
+  } catch {
+    /* default */
+  }
   return (
     <html lang="id" className="h-full" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
@@ -84,7 +101,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#cc7030" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="KJ Homedecor" />
+        <meta name="apple-mobile-web-app-title" content={brandName} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -98,6 +115,7 @@ export default function RootLayout({
           <Providers>
             <SeoScripts />
             <FontLoader />
+            <BrandFontLoader />
             {children}
           </Providers>
         </ThemeProvider>

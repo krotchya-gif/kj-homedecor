@@ -20,7 +20,8 @@ const FolderSchema = z.enum([
   'returns',
   'qc',
   'install',
-  'survey'
+  'survey',
+  'fonts'
 ])
 
 const ALLOWED_TYPES = {
@@ -34,7 +35,9 @@ const ALLOWED_TYPES = {
   returns: ['image/jpeg', 'image/png', 'image/webp'],
   qc: ['image/jpeg', 'image/png', 'image/webp'],
   install: ['image/jpeg', 'image/png', 'image/webp'],
-  survey: ['image/jpeg', 'image/png', 'image/webp']
+  survey: ['image/jpeg', 'image/png', 'image/webp'],
+  // Sesi 47: font brand (nama "KJ Homedecor" di PDF/web) — ttf/otf/woff/woff2
+  fonts: ['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/x-font-ttf', 'application/font-sfnt', 'application/vnd.ms-fontobject']
 }
 
 const MAX_SIZES = {
@@ -48,7 +51,8 @@ const MAX_SIZES = {
   returns: 2 * 1024 * 1024,
   qc: 2 * 1024 * 1024,
   install: 2 * 1024 * 1024,
-  survey: 5 * 1024 * 1024
+  survey: 5 * 1024 * 1024,
+  fonts: 5 * 1024 * 1024
 }
 
 // Role check per folder (Security fix 2026-08-12):
@@ -64,7 +68,8 @@ const FOLDER_ROLES: Record<string, string[]> = {
   returns: ['admin', 'owner', 'finance'],
   qc: ['admin', 'owner', 'gudang'],
   install: ['admin', 'owner', 'installer'],
-  survey: ['surveyor', 'admin', 'owner']
+  survey: ['surveyor', 'admin', 'owner'],
+  fonts: ['admin', 'owner']
 }
 
 export async function POST(request: NextRequest) {
@@ -115,7 +120,8 @@ export async function POST(request: NextRequest) {
     // Security fix (2026-08-11): validasi ganda —
     // (1) cek MIME dari client (spoofable),
     // (2) cek MAGIC BYTES file (bukti nyata).
-    if (!allowedTypes.includes(file.type)) {
+    // Folder 'fonts': MIME client sering kosong/octet-stream — validasi utama lewat magic bytes.
+    if (folder !== 'fonts' && !allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { data: null, error: { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` } },
         { status: 400 }
@@ -138,7 +144,14 @@ export async function POST(request: NextRequest) {
         ? buffer.length > 11 &&
           (((buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70)) || // mp4 ftyp (box size varies)
             (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3)) // webm
-        : buffer.length > 8 &&
+        : folder === 'fonts'
+          ? buffer.length > 3 &&
+            ((buffer[0] === 0x00 && buffer[1] === 0x01 && buffer[2] === 0x00 && buffer[3] === 0x00) || // TTF
+              (buffer[0] === 0x74 && buffer[1] === 0x72 && buffer[2] === 0x75 && buffer[3] === 0x65) || // TTF 'true'
+              (buffer[0] === 0x4f && buffer[1] === 0x54 && buffer[2] === 0x54 && buffer[3] === 0x4f) || // OTF 'OTTO'
+              (buffer[0] === 0x77 && buffer[1] === 0x4f && buffer[2] === 0x46 && buffer[3] === 0x46) || // WOFF 'wOFF'
+              (buffer[0] === 0x77 && buffer[1] === 0x4f && buffer[2] === 0x46 && buffer[3] === 0x32)) // WOFF2 'wOF2'
+          : buffer.length > 8 &&
           ((buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) || // jpeg
             (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) || // png
             (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) || // webp RIFF
@@ -159,6 +172,11 @@ export async function POST(request: NextRequest) {
       if (b.length > 3 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'application/pdf'
        if (b.length > 7 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4'
       if (b.length > 3 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return 'video/webm'
+      if (b.length > 3 && b[0] === 0x00 && b[1] === 0x01 && b[2] === 0x00 && b[3] === 0x00) return 'font/ttf'
+      if (b.length > 3 && b[0] === 0x74 && b[1] === 0x72 && b[2] === 0x75 && b[3] === 0x65) return 'font/ttf'
+      if (b.length > 3 && b[0] === 0x4f && b[1] === 0x54 && b[2] === 0x54 && b[3] === 0x4f) return 'font/otf'
+      if (b.length > 3 && b[0] === 0x77 && b[1] === 0x4f && b[2] === 0x46 && b[3] === 0x46) return 'font/woff'
+      if (b.length > 3 && b[0] === 0x77 && b[1] === 0x4f && b[2] === 0x46 && b[3] === 0x32) return 'font/woff2'
       return ''
     }
     const MIME_EXT: Record<string, string> = {
@@ -167,7 +185,11 @@ export async function POST(request: NextRequest) {
       'image/webp': 'webp',
       'application/pdf': 'pdf',
       'video/mp4': 'mp4',
-      'video/webm': 'webm'
+      'video/webm': 'webm',
+      'font/ttf': 'ttf',
+      'font/otf': 'otf',
+      'font/woff': 'woff',
+      'font/woff2': 'woff2'
     }
     const detectedMime = detectMime(buffer) || file.type
     if (!detectedMime || !allowedTypes.includes(detectedMime)) {

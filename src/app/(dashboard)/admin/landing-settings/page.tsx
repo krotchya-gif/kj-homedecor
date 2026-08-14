@@ -94,7 +94,12 @@ export default function AdminLandingSettingsPage() {
     theme_accent_color: '#f4a857',
     theme_background_color: '#FAF5EE',
     theme_text_color: '#2B2321',
-    theme_preset: 'default'
+    theme_preset: 'default',
+    // Brand (sesi 47) — nama, singkatan, warna & font dipakai web + semua PDF
+    brand_name: 'KJ Homedecor',
+    brand_short: 'KJ',
+    brand_color: '#b37a60',
+    brand_font_url: null as string | null
   })
   const [trustBadges, setTrustBadges] = useState<TrustBadge[]>([])
   const [heroImageUploading, setHeroImageUploading] = useState(false)
@@ -153,7 +158,12 @@ export default function AdminLandingSettingsPage() {
         theme_accent_color: data.theme_accent_color ?? '#f4a857',
         theme_background_color: data.theme_background_color ?? '#FAF5EE',
         theme_text_color: data.theme_text_color ?? '#2B2321',
-        theme_preset: data.theme_preset ?? 'default'
+        theme_preset: data.theme_preset ?? 'default',
+        // Brand (sesi 47)
+        brand_name: data.brand_name ?? 'KJ Homedecor',
+        brand_short: data.brand_short ?? 'KJ',
+        brand_color: data.brand_color ?? '#b37a60',
+        brand_font_url: data.brand_font_url ?? null
       })
       setTrustBadges(data.trust_badges ?? [])
     }
@@ -210,6 +220,11 @@ export default function AdminLandingSettingsPage() {
         theme_background_color: form.theme_background_color,
         theme_text_color: form.theme_text_color,
         theme_preset: form.theme_preset,
+        // Brand (sesi 47)
+        brand_name: form.brand_name,
+        brand_short: form.brand_short,
+        brand_color: form.brand_color,
+        brand_font_url: form.brand_font_url,
         updated_at: new Date().toISOString()
       })
       .eq('key', 'hero')
@@ -253,6 +268,23 @@ export default function AdminLandingSettingsPage() {
       toast('error', 'Gagal upload video hero')
     } finally {
       setHeroVideoUploading(false)
+    }
+  }
+
+  // Sesi 47: upload font brand (ttf/otf/woff/woff2 → folder 'fonts')
+  const [brandFontUploading, setBrandFontUploading] = useState(false)
+  async function handleBrandFontUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setBrandFontUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'fonts', { compress: false })
+      setForm((f) => ({ ...f, brand_font_url: result.url }))
+      toast('success', 'Font brand di-upload. Simpan pengaturan untuk menerapkan.')
+    } catch (err) {
+      toast('error', 'Gagal upload font: ' + (err instanceof Error ? err.message : 'unknown'))
+    } finally {
+      setBrandFontUploading(false)
     }
   }
 
@@ -738,6 +770,134 @@ export default function AdminLandingSettingsPage() {
               </div>
             </div>
           </div>
+          {/* Sesi 47: Brand — nama, singkatan, warna & font (dipakai web + semua PDF) */}
+          <div style={{ background: 'var(--surface)', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div
+              style={{
+                padding: '1rem 1.25rem',
+                borderBottom: '1px solid #e5e7eb',
+                background: 'var(--neutral-100)'
+              }}
+            >
+              <h2 style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--neutral-700)', margin: 0 }}>
+                🏷️ Brand
+              </h2>
+              <p style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', margin: '0.25rem 0 0' }}>
+                Nama & tampilan brand dipakai di website dan SEMUA PDF (laporan, invoice, faktur, surat jalan, packing list, survey).
+                Contoh singkatan: "Calysta Store" → "CS" dipakai di nama file & nomor dokumen.
+              </p>
+            </div>
+            <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+                  Nama Brand
+                </label>
+                <input
+                  type="text"
+                  value={form.brand_name}
+                  onChange={(e) => setForm((f) => ({ ...f, brand_name: e.target.value }))}
+                  placeholder="cth: KJ Homedecor"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+                  Singkatan Brand
+                </label>
+                <input
+                  type="text"
+                  value={form.brand_short}
+                  onChange={(e) => setForm((f) => ({ ...f, brand_short: e.target.value }))}
+                  placeholder="cth: KJ (untuk nama file & nomor dokumen)"
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              <ColorPicker
+                label="Warna Brand"
+                value={form.brand_color}
+                defaultValue="#b37a60"
+                onChange={(color) => setForm((f) => ({ ...f, brand_color: color }))}
+                description="Warna aksen di PDF (judul, tabel) & elemen brand website"
+              />
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>
+                  Font Brand
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    value={form.brand_font_url ?? ''}
+                    onChange={(e) => setForm((f) => ({ ...f, brand_font_url: e.target.value }))}
+                    placeholder="/bright-darling-sans.ttf"
+                    style={{
+                      flex: 1,
+                      minWidth: 220,
+                      padding: '0.625rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.82rem',
+                      outline: 'none',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      padding: '0.625rem 1rem',
+                      background: brandFontUploading ? 'var(--neutral-200)' : 'var(--neutral-100)',
+                      color: 'var(--neutral-700)',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.82rem',
+                      fontWeight: '600',
+                      cursor: brandFontUploading ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <input type="file" accept=".ttf,.otf,.woff,.woff2" onChange={handleBrandFontUpload} disabled={brandFontUploading} style={{ display: 'none' }} />
+                    {brandFontUploading ? 'Upload...' : '⬆ Upload Font'}
+                  </label>
+                  {form.brand_font_url && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, brand_font_url: null }))}
+                      style={{
+                        padding: '0.625rem 0.875rem',
+                        background: '#fef2f2',
+                        color: '#b91c1c',
+                        border: '1px solid #fecaca',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', margin: '0.375rem 0 0' }}>
+                  TTF/OTF/WOFF/WOFF2 (maks 5MB). PDF memakai font hanya jika format TTF (jsPDF tidak mendukung OTF/WOFF) — selain itu PDF fallback ke font standar.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Theme Preset */}
           <ThemePresetCard selectedPreset={form.theme_preset} onSelectPreset={handlePresetSelect} />
 

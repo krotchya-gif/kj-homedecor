@@ -1,7 +1,14 @@
-import { jsPDF } from 'jspdf'
+﻿import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Order, OrderItem, Customer , SurveyRoom } from '@/types'
-import { drawDocHeader, addPageNumbers, BRAND_FILL } from '@/lib/report-pdf'
+import { drawDocHeader, addPageNumbers, getBrandRgb } from '@/lib/report-pdf'
+import { getBrandSettings } from '@/lib/pdf-brand'
+
+// Kode brand untuk nama file & nomor dokumen (sesi 47): "KJ Homedecor" → "kj".
+async function brandCode(): Promise<string> {
+  const brand = await getBrandSettings()
+  return brand.short.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kj'
+}
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -49,7 +56,7 @@ export async function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   doc.text(`Payment: ${order.payment_status}`, 130, 67)
 
   // Line
-  doc.setDrawColor(...BRAND_FILL)
+  doc.setDrawColor(...getBrandRgb())
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -72,7 +79,7 @@ export async function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
     ],
     theme: 'striped',
-    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
+    headStyles: { fillColor: getBrandRgb(), textColor: 255 },
     footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 12 },
@@ -131,7 +138,7 @@ export async function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       y += 5
     })
     surveyEndY = y
-    doc.setDrawColor(...BRAND_FILL)
+    doc.setDrawColor(...getBrandRgb())
     doc.setLineWidth(0.3)
     doc.line(20, surveyEndY - 3, 190, surveyEndY - 3)
   }
@@ -154,7 +161,7 @@ export async function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   doc.text('Terima kasih atas kepercayaan Anda.', 20, finalY + 20)
 
   await addPageNumbers(doc)
-  doc.save(`kj-invoice-${orderNumber}.pdf`)
+  doc.save(`${await brandCode()}-invoice-${orderNumber}.pdf`)
 }
 
 interface PackingListData {
@@ -199,7 +206,7 @@ export async function generatePackingListPDF({ order, orderNumber, courier, wayb
     if (waybill) doc.text(`Resi: ${waybill}`, 130, 61)
   }
 
-  doc.setDrawColor(...BRAND_FILL)
+  doc.setDrawColor(...getBrandRgb())
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -217,7 +224,7 @@ export async function generatePackingListPDF({ order, orderNumber, courier, wayb
       item.ready ? '✅ Siap' : '⏳ Proses'
     ]),
     theme: 'striped',
-    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
+    headStyles: { fillColor: getBrandRgb(), textColor: 255 },
     columnStyles: {
       0: { cellWidth: 12 },
       1: { cellWidth: 65 },
@@ -242,11 +249,11 @@ export async function generatePackingListPDF({ order, orderNumber, courier, wayb
   doc.setFontSize(8)
   doc.setTextColor(120)
   doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, finalY + 15)
-  doc.setTextColor(...BRAND_FILL)
-  doc.text('KJ HOMEDECOR — Packing List', 130, finalY + 15)
+  doc.setTextColor(...getBrandRgb())
+  doc.text(`${(await getBrandSettings()).name.toUpperCase()} — Packing List`, 130, finalY + 15)
 
   await addPageNumbers(doc)
-  doc.save(`kj-packinglist-${orderNumber}.pdf`)
+  doc.save(`${await brandCode()}-packinglist-${orderNumber}.pdf`)
 }
 
 // ============ FAKTUR (Penjualan) ============
@@ -259,7 +266,7 @@ export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   await drawDocHeader(doc, {
     title: 'FAKTUR',
     meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com'],
-    metaRight: [`No: KJ-FAKTUR-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+    metaRight: [`No: ${(await getBrandSettings()).short.toUpperCase()}-FAKTUR-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
   })
 
   // Bill To
@@ -283,7 +290,7 @@ export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   doc.text(`Payment: ${order.payment_status}`, 130, 67)
 
   // Line
-  doc.setDrawColor(...BRAND_FILL)
+  doc.setDrawColor(...getBrandRgb())
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -306,7 +313,7 @@ export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
       ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
     ],
     theme: 'striped',
-    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
+    headStyles: { fillColor: getBrandRgb(), textColor: 255 },
     footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 12 },
@@ -340,7 +347,7 @@ export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   doc.text('Terima kasih atas kepercayaan Anda.', 20, y + 55)
 
   await addPageNumbers(doc)
-  doc.save(`kj-faktur-${orderNumber}.pdf`)
+  doc.save(`${await brandCode()}-faktur-${orderNumber}.pdf`)
 }
 
 // ============ SURAT JALAN ============
@@ -354,7 +361,7 @@ export async function generateSuratJalanPDF({ order, orderNumber, courier, waybi
   await drawDocHeader(doc, {
     title: 'SURAT JALAN',
     meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567'],
-    metaRight: [`No: KJ-SURATJALAN-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+    metaRight: [`No: ${(await getBrandSettings()).short.toUpperCase()}-SURATJALAN-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
   })
 
   // Recipient
@@ -378,7 +385,7 @@ export async function generateSuratJalanPDF({ order, orderNumber, courier, waybi
   doc.text(waybill ? `Resi: ${waybill}` : 'Resi: —', 130, 61)
   doc.text(`Tanggal Kirim: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 130, 67)
 
-  doc.setDrawColor(...BRAND_FILL)
+  doc.setDrawColor(...getBrandRgb())
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -395,7 +402,7 @@ export async function generateSuratJalanPDF({ order, orderNumber, courier, waybi
       item.ready ? 'Siap Kirim' : 'Proses'
     ]),
     theme: 'striped',
-    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
+    headStyles: { fillColor: getBrandRgb(), textColor: 255 },
     columnStyles: {
       0: { cellWidth: 12 },
       1: { cellWidth: 70 },
@@ -424,5 +431,5 @@ export async function generateSuratJalanPDF({ order, orderNumber, courier, waybi
   doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, y + 46)
 
   await addPageNumbers(doc)
-  doc.save(`kj-suratjalan-${orderNumber}.pdf`)
+  doc.save(`${await brandCode()}-suratjalan-${orderNumber}.pdf`)
 }

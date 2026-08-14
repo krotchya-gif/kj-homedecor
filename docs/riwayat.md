@@ -17,6 +17,13 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 47: Brand dinamis (nama, singkatan, warna, font) dari Admin → web + semua PDF
+- **Konsep** (permintaan user): nama brand bisa diubah & dipakai SEMUA tempat termasuk penamaan invoice — contoh "Calysta Store" → singkatan "CS" untuk nama file & nomor dokumen. Diatur di **Admin → Landing Settings → Brand** (kolom baru `landing_settings`: `brand_name`, `brand_short`, `brand_color`, `brand_font_url`; default KJ Homedecor / KJ / #b37a60 / `/bright-darling-sans.ttf`).
+- **Upload font baru**: folder `fonts` (ttf/otf/woff/woff2, ≤5MB, admin/owner) di `/api/upload` (magic bytes: TTF `00 01 00 00`/`true`, OTF `OTTO`, WOFF/WOFF2) + `scripts/upload.php` (**wajib di-copy ke hosting** — tambah `fonts` ke allowed_folders/folder_mimes/allowed_mimes/max_sizes).
+- **PDF (semua 18 generator, satu sumber)**: helper `src/lib/pdf-brand.ts` (`getBrandSettings` cache + `hexToRgb` + `registerBrandFont`); `report-pdf.ts` memakai nama/warna/font brand di header, tabel & footer. **Batasan jsPDF**: font dipakai hanya jika TTF (OTF/WOFF fallback Helvetica). Nama file dokumen & nomor faktur/surat jalan pakai singkatan brand (`cs-invoice-…`, `CS-FAKTUR-…`). Font brand default = `public/bright-darling-sans.ttf` (TrueType valid — glyph OK).
+- **Web**: nama brand di dashboard topnav, halaman login, alt logo & footer landing, meta `apple-mobile-web-app-title`; injeksi `@font-face` dinamis + CSS var `--brand-color` via `src/components/brand/BrandFontLoader.tsx` (`useBrandSettings` hook).
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 37/37 + smoke PDF (fallback brand/font/logo aman di Node).
+
 ### 2026-08-15 — Sesi 46: Logo + watermark di SEMUA PDF + penyatuan gaya (brand #b37a60)
 - **Logo KJ** (`public/kjlogo.png`, transparan) dipasang di semua PDF: header kiri atas (tinggi 11mm) di samping "KJ Homedecor" + **watermark logo transparan di tengah dokumen** (opacity 9%, semua halaman). Helper baru `src/lib/pdf-logo.ts` (`loadLogo` cache per sesi, `drawLogo`, `drawWatermark`) — fail-safe: logo gagal dimuat → PDF tetap jalan tanpa logo.
 - **Brand disesuaikan ke warna logo #b37a60** (179,122,96): judul, header tabel, garis aksen di semua PDF (sebelumnya #cc7030 / biru / coklat campur-campur).

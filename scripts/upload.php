@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 // ============================================================
 // Upload Handler — link.kjhomedecor.com
 // Menerima file dari Next.js API upload (/api/upload → proxy)
@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // Validasi folder (11 folder = sama dengan FolderSchema di Next.js route)
-$allowed_folders = ['products','banners','portfolio','evidence','documents','videos','order_progress','returns','qc','install','survey'];
+$allowed_folders = ['products','banners','portfolio','evidence','documents','videos','order_progress','returns','qc','install','survey','fonts'];
 $folder = isset($_POST['folder']) ? $_POST['folder'] : '';
 
 if (!in_array($folder, $allowed_folders)) {
@@ -51,6 +51,13 @@ $allowed_mimes = [
     'application/pdf' => ['pdf'],
     'video/mp4' => ['mp4'],
     'video/webm' => ['webm'],
+    'font/ttf' => ['ttf'],
+    'font/otf' => ['otf'],
+    'font/woff' => ['woff'],
+    'font/woff2' => ['woff2'],
+    'application/x-font-ttf' => ['ttf'],
+    'application/font-sfnt' => ['otf','ttf'],
+    'application/vnd.ms-fontobject' => ['otf','ttf'],
 ];
 
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -71,6 +78,7 @@ $folder_mimes = [
     'qc' => ['image/jpeg','image/png','image/webp'],
     'install' => ['image/jpeg','image/png','image/webp'],
     'survey' => ['image/jpeg','image/png','image/webp'],
+    'fonts' => ['font/ttf','font/otf','font/woff','font/woff2','application/x-font-ttf','application/font-sfnt','application/vnd.ms-fontobject'],
 ];
 
 if (!in_array($detected_mime, $folder_mimes[$folder], true)) {
@@ -105,6 +113,7 @@ $max_sizes = [
     'qc' => 2 * 1024 * 1024,
     'install' => 2 * 1024 * 1024,
     'survey' => 5 * 1024 * 1024,
+    'fonts' => 5 * 1024 * 1024,
 ];
 
 if ($file['size'] > $max_sizes[$folder]) {

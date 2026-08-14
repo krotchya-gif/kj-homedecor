@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import NotificationBell from '@/components/dashboard/NotificationBell'
 import { createClient } from '@/utils/supabase/client'
+import { useBrandSettings } from '@/components/brand/BrandFontLoader'
 import { flattenNav, ROLE_LABELS } from '@/config/nav'
 import {
   Dialog,
@@ -27,6 +28,7 @@ interface DashboardTopNavProps {
 export default function DashboardTopNav({ role, userName, onMenuClick }: DashboardTopNavProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const brand = useBrandSettings()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
@@ -59,9 +61,9 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
-        {/* Brand */}
+        {/* Brand (sesi 47: nama dinamis dari landing_settings) */}
         <a href="/" target="_blank" rel="noopener noreferrer" className="topnav-brand" suppressHydrationWarning>
-          KJ <span>Homedecor</span>
+          <span className="brand-font">{brand.name}</span>
         </a>
 
         {/* Right side: desktop toggle button */}

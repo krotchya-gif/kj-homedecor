@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { MessageCircle, Menu, X } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import { useTheme } from 'next-themes'
+import { useBrandSettings } from '@/components/brand/BrandFontLoader'
 
 interface ScrollNavProps {
   whatsappNumber: string
@@ -15,6 +16,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const brand = useBrandSettings()
   const { resolvedTheme } = useTheme()
   // Hydration fix: saat SSR, resolvedTheme = undefined → server selalu render
   // versi terang. Kalau client langsung pakai tema gelap (dari localStorage),
@@ -79,7 +81,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
         >
           <img
             src="/kjlogo.png"
-            alt="KJ Homedecor"
+            alt={brand.name}
             style={{ height: '38px', width: 'auto' }}
             suppressHydrationWarning
           />
