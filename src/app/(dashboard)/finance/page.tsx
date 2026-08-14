@@ -1,12 +1,13 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { DollarSign, BarChart3, WashingMachine, Loader2, TrendingUp, PieChart as PieChartIcon } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts'
 import { PageHeader } from '@/components/ui/PageHeader'
+import ChartBox from '@/components/ui/ChartBox'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
 import { SectionCard } from '@/components/ui/SectionCard'
@@ -284,7 +285,7 @@ export default function FinanceDashboard() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
           gap: '1.5rem',
           marginBottom: '1.5rem'
         }}
@@ -304,18 +305,20 @@ export default function FinanceDashboard() {
               Tidak ada data
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
-                />
-                <Tooltip formatter={(v) => formatRp(v as number)} />
-                <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartBox height={220}>
+              {(w) => (
+                <BarChart width={w} height={220} data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
+                  />
+                  <Tooltip formatter={(v) => formatRp(v as number)} />
+                  <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              )}
+            </ChartBox>
           )}
         </SectionCard>
 
@@ -334,25 +337,27 @@ export default function FinanceDashboard() {
               Tidak ada data
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={paymentStatusData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                  labelLine={false}
-                >
-                  {paymentStatusData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <ChartBox height={220}>
+              {(w) => (
+                <PieChart width={w} height={220}>
+                  <Pie
+                    data={paymentStatusData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {paymentStatusData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              )}
+            </ChartBox>
           )}
         </SectionCard>
       </div>

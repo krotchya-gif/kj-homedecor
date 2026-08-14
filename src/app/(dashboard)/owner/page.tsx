@@ -1,5 +1,6 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
+import ChartBox from '@/components/ui/ChartBox'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
@@ -22,7 +23,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
+  
   PieChart,
   Pie,
   Cell,
@@ -603,18 +604,20 @@ export default function OwnerDashboard() {
                   Tidak ada data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={barData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis
-                      tick={{ fontSize: 11 }}
-                      tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
-                    />
-                    <Tooltip formatter={(v) => formatRp(v as number)} />
-                    <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <ChartBox height={220}>
+                  {(w) => (
+                    <BarChart width={w} height={220} data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis
+                        tick={{ fontSize: 11 }}
+                        tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
+                      />
+                      <Tooltip formatter={(v) => formatRp(v as number)} />
+                      <Bar dataKey="revenue" fill="#cc7030" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  )}
+                </ChartBox>
               )}
             </div>
 
@@ -639,25 +642,27 @@ export default function OwnerDashboard() {
                   Tidak ada data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie
-                      data={barData}
-                      dataKey="orders"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ name, percent }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                      labelLine={false}
-                    >
-                      {barData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <ChartBox height={220}>
+                  {(w) => (
+                    <PieChart width={w} height={220}>
+                      <Pie
+                        data={barData}
+                        dataKey="orders"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        label={({ name, percent }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {barData.map((_, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  )}
+                </ChartBox>
               )}
             </div>
           </div>
@@ -692,18 +697,20 @@ export default function OwnerDashboard() {
                 Tidak ada data
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
-                  />
-                  <Tooltip formatter={(v) => formatRp(v as number)} />
-                  <Line type="monotone" dataKey="revenue" stroke="#cc7030" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <ChartBox height={220}>
+                {(w) => (
+                  <LineChart width={w} height={220} data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) => formatRp(v).replace('Rp ', '').replaceAll('.', '')}
+                    />
+                    <Tooltip formatter={(v) => formatRp(v as number)} />
+                    <Line type="monotone" dataKey="revenue" stroke="#cc7030" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                )}
+              </ChartBox>
             )}
           </div>
 

@@ -17,6 +17,13 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 50: Chart recharts tidak render di mobile (lebar 0) — ganti ResponsiveContainer ke ChartBox terukur
+- **Gejala**: semua 8 grafik dashboard (admin 3, finance 2, owner 3) tidak muncul di viewport mobile — `ResponsiveContainer` recharts **v3.8.1** render SVG dengan lebar 0 (container 324px tapi svg 0px) → chart kosong. Terverifikasi via Playwright emulasi iPhone 12.
+- **Fix**: komponen baru `src/components/ui/ChartBox.tsx` (`useContainerWidth` via ResizeObserver + fallback lebar window) — chart menerima **width eksplisit** (`width={w}`), tidak lagi bergantung pengukuran internal recharts. 8 blok chart diganti (admin/finance/owner).
+- **Bonus**: grid dashboard `minmax(350px,1fr)` → `minmax(min(100%,350px),1fr)` (tidak overflow di layar <350px).
+- **Test permanen baru**: `tests/e2e/mobile-charts.spec.ts` — emulasi iPhone 12 → /admin, /finance, /owner → assert svg render width > 100px.
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium **38/38** (37 + 1 mobile-charts; hasil emulasi: admin 3×324px, finance 2×324px, owner 342/342/332px — sebelumnya 0).
+
 ### 2026-08-15 — Sesi 49: Header PDF — font brand 20pt + gap logo 6mm; E2E timeout 240s
 - **Nama brand di header semua PDF naik ke 20pt** (sebelumnya 14pt — terlalu kecil dengan font custom) + **gap konsisten 6mm** antara logo dan nama brand (`drawLogo` kini mengembalikan lebar logo; `textX = 14 + logoW + 6` — otomatis menyesuaikan rasio logo apa pun).
 - **E2E timeout global 180s → 240s** (pipeline penuh + dev-mode recompile bisa melewati 180s → flaky timeout; pipeline-pasang & finance sempat timeout 1× tapi lolos saat dijalankan ulang — bukan bug kode).

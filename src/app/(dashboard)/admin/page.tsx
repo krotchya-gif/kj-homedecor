@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -31,10 +31,11 @@ import {
   AlertCircle,
   ClipboardList
 } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 import { Lightbox, LightboxGallery } from '@/components/ui/Lightbox'
 import { PageHeader } from '@/components/ui/PageHeader'
+import ChartBox from '@/components/ui/ChartBox'
 import { StatCard } from '@/components/ui/StatCard'
 import { MotionStagger } from '@/components/ui/Motion'
 import { SectionCard } from '@/components/ui/SectionCard'
@@ -522,7 +523,7 @@ export default function AdminDashboardPage() {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))',
               gap: '1.5rem',
               marginBottom: '1.5rem'
             }}
@@ -547,15 +548,17 @@ export default function AdminDashboardPage() {
                   Tidak ada data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={statusChartData}>
+                <ChartBox height={220}>
+                  {(w) => (
+                                  <BarChart width={w} height={220} data={statusChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Bar dataKey="count" fill="#cc7030" radius={[4, 4, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                )}
+                </ChartBox>
               )}
             </SectionCard>
 
@@ -578,8 +581,9 @@ export default function AdminDashboardPage() {
                   Tidak ada data
                 </div>
               ) : (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={revenueChartData}>
+                <ChartBox height={220}>
+                  {(w) => (
+                                  <BarChart width={w} height={220} data={revenueChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                     <YAxis
@@ -589,7 +593,8 @@ export default function AdminDashboardPage() {
                     <Tooltip formatter={(v) => formatRp(v as number)} />
                     <Bar dataKey="revenue" fill="#2563eb" radius={[4, 4, 0, 0]} />
                   </BarChart>
-                </ResponsiveContainer>
+                )}
+                </ChartBox>
               )}
             </SectionCard>
           </div>
@@ -613,15 +618,17 @@ export default function AdminDashboardPage() {
                 Tidak ada data
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={trendData}>
+              <ChartBox height={220}>
+                {(w) => (
+                                  <LineChart width={w} height={220} data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Line type="monotone" dataKey="count" stroke="#16a34a" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
-              </ResponsiveContainer>
+              )}
+                </ChartBox>
             )}
           </div>
         </>
