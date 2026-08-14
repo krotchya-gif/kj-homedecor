@@ -58,6 +58,9 @@ $allowed_mimes = [
     'application/x-font-ttf' => ['ttf'],
     'application/font-sfnt' => ['otf','ttf'],
     'application/vnd.ms-fontobject' => ['otf','ttf'],
+    // finfo di beberapa host mengembalikan octet-stream utk font kecil —
+    // keamanan dijaga magic bytes folder fonts (lihat blok di bawah).
+    'application/octet-stream' => ['ttf','otf','woff','woff2'],
 ];
 
 $finfo = finfo_open(FILEINFO_MIME_TYPE);
@@ -78,7 +81,9 @@ $folder_mimes = [
     'qc' => ['image/jpeg','image/png','image/webp'],
     'install' => ['image/jpeg','image/png','image/webp'],
     'survey' => ['image/jpeg','image/png','image/webp'],
-    'fonts' => ['font/ttf','font/otf','font/woff','font/woff2','application/x-font-ttf','application/font-sfnt','application/vnd.ms-fontobject'],
+    // fonts: finfo kadang mengembalikan octet-stream untuk font kecil/subset —
+    // keamanan tetap dijaga via validasi MAGIC BYTES font di bawah (folder fonts saja).
+    'fonts' => ['font/ttf','font/otf','font/woff','font/woff2','application/x-font-ttf','application/font-sfnt','application/vnd.ms-fontobject','font/sfnt','application/octet-stream'],
 ];
 
 if (!in_array($detected_mime, $folder_mimes[$folder], true)) {
@@ -94,7 +99,10 @@ foreach ($allowed_mimes as $mime => $exts) {
     if ($detected_mime === $mime) $valid_mime = true;
 }
 
-if (!$valid_ext || !$valid_mime) {
+// Folder 'fonts': TIDAK bergantung pada finfo (di beberapa host finfo mengembalikan
+// MIME generik/tak terduga untuk font kecil). Keamanan dijaga oleh validasi MAGIC
+// BYTES font di bawah — jadi cukup cek ekstensi saja.
+if (!$valid_ext || (!$valid_mime && $folder !== 'fonts')) {
     http_response_code(400);
     echo json_encode(['error' => 'Invalid file type']);
     exit;
@@ -148,6 +156,23 @@ if (isset($magic_bytes[$detected_mime])) {
         }
     }
     if (!$match) {
+        http_response_code(400);
+        echo json_encode(['error' => 'File content mismatch']);
+        exit;
+    }
+}
+
+// Fonts: validasi MAGIC BYTES (finfo di beberapa host mengembalikan octet-stream —
+// folder_mimes sudah longgar utk fonts, jadi di sini signature yang jadi penjaga).
+if ($folder === 'fonts') {
+    $sig = substr($header, 0, 4);
+    $font_ok =
+        $sig === "\x00\x01\x00\x00" || // TTF
+        $sig === 'true' ||             // TTF (Mac)
+        $sig === 'OTTO' ||             // OTF
+        $sig === 'wOFF' ||             // WOFF
+        $sig === 'wOF2';               // WOFF2
+    if (!$font_ok) {
         http_response_code(400);
         echo json_encode(['error' => 'File content mismatch']);
         exit;
