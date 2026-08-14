@@ -15,7 +15,7 @@
 
 # SATU SUMBER KEBENARAN — metode final terkunci, jangan buat jalur paralel
 
-> Pelajaran BUG-034/050/100 (sumber piutang ganda), BUG-123 (jalur operasional
+> Pelajaran BUG-034/050/100 (sumber piutang ganda), BUG-123/128 (jalur operasional
 > direct-write paralel di samping RPC atomic), dan sesi 42 (agent mengganti metode yang
 > sudah benar → harus di-fix ulang). Repo ini **sudah menetapkan metode final** untuk
 > setiap concern. Kalau metode A sudah dipakai → **tetap A**. Dilarang membuat metode
@@ -28,8 +28,11 @@
 | Jurnal (semua write uang) | RPC `create_journal_atomic` — idempotency key WAJIB, saldo kas di-update di transaksi yang sama |
 | Pembayaran order (DP/lunas) | RPC `add_order_payment_atomic` (bukan insert `payments` langsung dari client) |
 | Refund / return / cancel order | RPC `process_refund_atomic` / `process_order_return_atomic` / `cancel_order_atomic` |
+| Piutang (CRUD + bayar) | RPC `save_piutang_atomic` (create/update/delete) + `pay_piutang_atomic` (bayar, idempotency key) + `retur_piutang_atomic` (retur) — bukan insert/update `piutang` langsung dari client (sesi 52, BUG-128) |
+| Hutang (CRUD + bayar) | RPC `save_hutang_atomic` (create/update/delete) + `pay_hutang_atomic` (bayar, idempotency key) — bukan insert/update `hutang` langsung dari client (sesi 52, BUG-128) |
+| Proses / cancel order TikTok → main order | RPC `process_tiktok_order_atomic` / `cancel_tiktok_order_atomic` — BLOCK on error di `sync-to-main-orders`; order_items hanya saat order BARU (`v_was_new`); cancel = void payment + reversal jurnal (sesi 52, BUG-128) |
 | Verifikasi retur oleh Gudang | RPC `resolve_return_atomic` |
-| Transisi status order | `PUT /api/orders/[id]` (role matrix + transition check server-side) |
+| Transisi status order | `PUT /api/orders/[id]` (role matrix + transition check server-side; field NON-status per role: admin/owner/finance semua, gudang hanya `packed_at`) |
 | Tambah / hapus item order | RPC `add_order_item_atomic` / `remove_order_item_atomic` |
 | Jadwal pasang | RPC `schedule_installation_atomic` |
 | Link / unlink survey ke order | RPC `link_survey_atomic` |
@@ -41,6 +44,7 @@
 | Sisa piutang | Helper `piutangSisa()` (`src/lib/ledger.ts`) |
 | PDF laporan (header, logo, watermark & nomor halaman) | Helper `src/lib/report-pdf.ts` (`createReportDoc` / `drawDocHeader` / `addReportTable` / `addPageNumbers`) + `src/lib/pdf-logo.ts` (logo KJ transparan + watermark tengah) — JANGAN buat header PDF sendiri per halaman (sesi 44/46: generator sempat beda-beda warna & tanpa logo) |
 | Brand (nama/singkatan/warna/font/logo) | `landing_settings` (key='hero') — diatur Admin → Landing Settings → Brand; dipakai web (`BrandFontLoader` + `useBrandSettings`) + semua PDF (`src/lib/pdf-brand.ts` + `pdf-logo.ts`); jsPDF hanya mendukung font **TTF** (OTF/WOFF fallback Helvetica) (sesi 47-48) |
+| **Akses asset brand di web/PDF (font TTF & logo)** | **WAJIB lewat proxy `/api/brand-asset?kind=font|logo`** — CDN `link.kjhomedecor.com` tidak kirim CORS → fetch/@font-face langsung dari browser pasti diblokir (BUG-131). DILARANG fetch URL CDN langsung dari client (sesi 52) |
 | Referensi schema | `supabase/migrations/000_full_schema.sql` (= live, dijaga selalu sinkron) |
 | Mapping akun jurnal | Tabel `account_mappings` via `createSimpleJournal` (jangan hardcode UUID akun) |
 

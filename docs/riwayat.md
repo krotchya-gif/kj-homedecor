@@ -418,7 +418,7 @@ F-62 jurnal order warn saja · F-63 toast ganda · F-64 tanggal bebas backdate �
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **E2E suite (chromium)** | 🟠 High | ✅ `tests/e2e/` — **37/37 pass** (2026-08-15): login 8 role, security (penjahit redirect + API 403), pipeline kirim 9 tahap, pasang 10 tahap, finance, katalog/BOM, dsb. Jalankan: `npx playwright test --project=chromium` (butuh dev server / auth setup live) |
+| 1 | **E2E suite (chromium)** | 🟠 High | ✅ `tests/e2e/` — **38/38 pass** (2026-08-15): login 8 role, security (penjahit redirect + API 403), pipeline kirim 9 tahap, pasang 10 tahap, finance, katalog/BOM, mobile-charts (sesi 50), dsb. Jalankan: `npx playwright test --project=chromium` (butuh dev server / auth setup live) |
 | 2 | **Dual modal system** (`Modal` 36× vs `dialog` 3×) | ⏳ Ditunda | Keduanya jalan; konsolidasi = risiko regresi UI (nilai 0). `dialog` utk konfirmasi, `Modal` utk ringan |
 | 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` ✅ (42 file → import `lib/utils`). `STATUS_COLORS` ganda: yang di `gudang/production/page.tsx` & `finance/payments/page.tsx` = **dipakai**; yang di `src/lib/order-detail.ts` = **dead code** (jangan dipakai sebagai referensi warna status) |
 | 4 | **Unique `invoice_number` piutang non-tiktok** | 🟢 Low | ✅ migration 076 + cek duplikat di faktur page |
@@ -435,8 +435,9 @@ F-62 jurnal order warn saja · F-63 toast ganda · F-64 tanggal bebas backdate �
 Catatan yang masih berlaku:
 
 1. **Auto-transition produksi tanpa foto (disengaja)**: `production → steam` oleh **penjahit** (`penjahit/jobs`) dan **gudang** (`gudang/production`) memakai `auto_transition: true` di `PUT /api/orders/[id]` — meng-skip kewajiban foto stage `steam`. Role tetap di-gate (`production->steam` di role matrix); hanya kewajiban foto yang di-skip untuk transisi otomatis ini. Jangan hapus bypass foto ini tanpa persetujuan — alurnya akan macet di produksi (BUG-056 pernah terjadi).
-2. **Rollback manual client = sejarah**: operasi finansial yang punya RPC atomic (`create_journal_atomic`, `add_order_payment_atomic`, `process_refund_atomic`, `cancel_order_atomic`, `process_order_return_atomic`, `resolve_return_atomic`) TIDAK boleh ditulis ulang sebagai multi-step client + rollback manual (lihat BUG-073/094/123 dan `AGENTS.md` blok `single-source-of-truth-rules`).
+2. **Rollback manual client = sejarah**: operasi finansial yang punya RPC atomic (`create_journal_atomic`, `add_order_payment_atomic`, `pay_piutang_atomic`, `pay_hutang_atomic`, `retur_piutang_atomic`, `save_piutang_atomic`, `save_hutang_atomic`, `process_refund_atomic`, `cancel_order_atomic`, `process_order_return_atomic`, `resolve_return_atomic`, `process_tiktok_order_atomic`, `cancel_tiktok_order_atomic`) TIDAK boleh ditulis ulang sebagai multi-step client + rollback manual (lihat BUG-073/094/123/128 dan `AGENTS.md` blok `single-source-of-truth-rules`).
 3. **Constraint `order_logs.action`**: daftar aksi ada di `order_logs_action_check` (live) — aksi baru untuk log order WAJIB ditambahkan ke constraint (dan `000_full_schema.sql`) sebelum dipakai RPC/klien, kalau tidak transaksi rollback (BUG-124).
+4. **Brand asset CDN tanpa CORS (BUG-131)**: `link.kjhomedecor.com` tidak mengirim `Access-Control-Allow-Origin` → SEMUA pemakaian font/logo di web & PDF WAJIB lewat proxy **`/api/brand-asset?kind=font|logo`** (server-side fetch). JANGAN `fetch()` langsung ke URL CDN dari browser (pasti diblokir → fallback Inter/helvetica/logo hilang).
 
 ---
 
