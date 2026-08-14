@@ -4,7 +4,10 @@ import { toClientError } from '@/lib/api-errors'
 import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'
+// Normalisasi trailing slash: env NEXT_PUBLIC_BASE_URL sering di-set dengan trailing
+// slash (mis. https://kjhomedecor.com/) → concat mentah menghasilkan redirect_uri
+// double slash (//api/...) yang DITOLAK TikTok OAuth (exact-match) dengan Forbidden.
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com').replace(/\/+$/, '')
 
 // GET /api/tiktok/auth?code=xxx&state=nonce → OAuth callback from TikTok
 export async function GET(req: NextRequest) {
@@ -174,7 +177,7 @@ export async function POST(req: NextRequest) {
   await supabase.from('tiktok_shop_settings').update({ oauth_state: oauthState }).eq('id', data.id)
 
   // Build OAuth URL with required scopes
-  const redirectUri = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'}/api/tiktok/auth`
+  const redirectUri = `${BASE_URL}/api/tiktok/auth`
   const scope = ['seller.order.info', 'seller.finance.info', 'seller.authorization.info', 'seller.shop.info'].join(',')
   const oauthUrl = `https://auth.tiktok-shops.com/api/v2/oauth/authorize?app_key=${app_key}&state=${oauthState}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`
 

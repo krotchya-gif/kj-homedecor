@@ -3,7 +3,10 @@ import { createClient } from '@/utils/supabase/server'
 import crypto from 'crypto'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com'
+// Normalisasi trailing slash: env NEXT_PUBLIC_BASE_URL sering di-set dengan trailing
+// slash (mis. https://kjhomedecor.com/) → concat mentah menghasilkan redirect_uri
+// double slash (//api/...) yang DITOLAK TikTok OAuth (exact-match) dengan Forbidden.
+const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL || 'https://kjhomedecor.com').replace(/\/+$/, '')
 
 // POST /api/tiktok/auth/reauthorize — get OAuth URL for an existing shop
 export async function POST(req: NextRequest) {
