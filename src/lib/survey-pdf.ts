@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Survey } from '@/types'
+import { drawDocHeader, addPageNumbers } from '@/lib/report-pdf'
 
-const BRAND: [number, number, number] = [204, 112, 48]
+// Warna brand = warna logo KJ (#b37a60) — konsisten dengan semua PDF (sesi 46)
+const BRAND: [number, number, number] = [179, 122, 96]
 
 /**
  * PDF "FORM HASIL SURVEY GORDEN" (SRS section 12).
@@ -55,27 +57,21 @@ interface AutoTableDoc {
 export async function generateSurveyPDF(survey: Survey) {
   const doc = new jsPDF()
 
-  // Header
-  doc.setFillColor(...BRAND)
-  doc.rect(0, 0, 220, 30, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(16)
-  doc.setTextColor(255, 255, 255)
-  doc.text('KJ HOMEDECOR', 20, 13)
-  doc.setFontSize(12)
-  doc.text('FORM HASIL SURVEY GORDEN', 20, 21)
-
-  // Meta
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.setTextColor(51, 51, 51)
-  doc.text(`No Survey: ${survey.survey_number ?? '-'}`, 130, 13)
-  doc.text(`Tanggal: ${survey.survey_date ?? '-'}`, 130, 19)
-  doc.text(`Status: ${survey.status ?? '-'}`, 130, 25)
+  // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  await drawDocHeader(doc, {
+    title: 'FORM HASIL SURVEY GORDEN',
+    meta: ['KJ Homedecor — hasil survey pelanggan'],
+    metaRight: [
+      `No Survey: ${survey.survey_number ?? '-'}`,
+      `Tanggal: ${survey.survey_date ?? '-'}`,
+      `Status: ${survey.status ?? '-'}`
+    ]
+  })
 
   // Info client
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
+  doc.setTextColor(51, 51, 51)
   doc.text('INFORMASI CLIENT', 20, 42)
   autoTable(doc, {
     startY: 46,
@@ -127,7 +123,7 @@ export async function generateSurveyPDF(survey: Survey) {
         ['Catatan', room.notes || '-']
       ],
       theme: 'striped',
-      headStyles: { fillColor: [120, 90, 60] },
+      headStyles: { fillColor: BRAND },
       columnStyles: { 0: { cellWidth: 45, fontStyle: 'bold' }, 1: { cellWidth: 125 } }
     })
     y = (doc as unknown as AutoTableDoc).lastAutoTable.finalY + 8
@@ -193,5 +189,6 @@ export async function generateSurveyPDF(survey: Survey) {
   doc.setTextColor(120)
   doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, y + 24)
 
+  await addPageNumbers(doc)
   doc.save(`survey-${survey.survey_number ?? survey.id.slice(0, 8)}.pdf`)
 }

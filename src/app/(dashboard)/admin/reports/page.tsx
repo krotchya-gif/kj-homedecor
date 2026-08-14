@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -212,9 +212,9 @@ const [prodPageSize, setProdPageSize] = useState(10)
     URL.revokeObjectURL(url)
   }
 
-  function exportPDF() {
+  async function exportPDF() {
     const periodLabel = month === 0 ? `Tahun ${year}` : `${MONTHS[month - 1]} ${year}`
-    const { doc, startY } = createReportDoc({ title: 'Laporan Penjualan', period: periodLabel })
+    const { doc, startY } = await createReportDoc({ title: 'Laporan Penjualan', period: periodLabel })
     let y = startY
 
     // Ringkasan
@@ -282,7 +282,7 @@ const [prodPageSize, setProdPageSize] = useState(10)
       theme: 'striped'
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`kj-laporan-${year}-${month}.pdf`)
   }
 

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -59,8 +59,8 @@ export default function GudangReportsPage() {
   }
 
   
-  function exportPDF() {
-    const { doc, startY } = createReportDoc({
+  async function exportPDF() {
+    const { doc, startY } = await createReportDoc({
       title: 'Laporan Gudang',
       period: `${MONTHS[period.month - 1]} ${period.year}`,
       subtitle: filterType ? `Filter tipe: ${typeLabels[filterType] ?? filterType}` : undefined
@@ -113,7 +113,7 @@ export default function GudangReportsPage() {
       }
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`kj-gudang-${period.year}-${String(period.month).padStart(2, '0')}.pdf`)
   }
 

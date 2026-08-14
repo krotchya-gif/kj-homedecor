@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -94,8 +94,8 @@ export default function NeracaPage({ variant = 'finance' }: { variant?: 'finance
   // BUG-016 fix: ekuitas = akun ekuitas + laba berjalan (agar A = L + E)
   const totalEquity = equities.reduce((s, a) => s + (a.balance ?? 0), 0) + labaBerjalan
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Laporan Neraca${isOwner ? ' (Owner)' : ''}`,
       period: `${formatDateDisplay(startDate)} - ${formatDateDisplay(endDate)}`
     })
@@ -162,7 +162,7 @@ export default function NeracaPage({ variant = 'finance' }: { variant?: 'finance
     )
     doc.setTextColor(0, 0, 0)
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}neraca-${startDate}-${endDate}.pdf`)
   }
 

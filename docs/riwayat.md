@@ -17,6 +17,13 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-15 — Sesi 46: Logo + watermark di SEMUA PDF + penyatuan gaya (brand #b37a60)
+- **Logo KJ** (`public/kjlogo.png`, transparan) dipasang di semua PDF: header kiri atas (tinggi 11mm) di samping "KJ Homedecor" + **watermark logo transparan di tengah dokumen** (opacity 9%, semua halaman). Helper baru `src/lib/pdf-logo.ts` (`loadLogo` cache per sesi, `drawLogo`, `drawWatermark`) — fail-safe: logo gagal dimuat → PDF tetap jalan tanpa logo.
+- **Brand disesuaikan ke warna logo #b37a60** (179,122,96): judul, header tabel, garis aksen di semua PDF (sebelumnya #cc7030 / biru / coklat campur-campur).
+- **Penyatuan gaya PDF** (cek lintas generator): `invoice.ts` (Invoice/PackingList/Faktur/SuratJalan) & `survey-pdf.ts` kini memakai header standar `drawDocHeader` — **band oranye/biru dihapus** (gaya putih + judul brand seperti laporan), tabel seragam brand (hapus biru `[30,64,175]` & coklat `[120,90,60]`), + nomor halaman/watermark (`addPageNumbers`) yang sebelumnya tidak ada.
+- `createReportDoc` & `addPageNumbers` jadi **async** (logo dimuat dulu) — 13 generator laporan di-await.
+- **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 37/37 + smoke render PDF (multi-halaman, fallback logo aman di Node).
+
 ### 2026-08-15 — Sesi 45: Jurnal tampil langsung + widget dashboard overview (admin/finance/owner)
 - **Halaman Jurnal disederhanakan**: `/finance/journal` (sebelumnya hub dengan 1 kartu) kini **langsung menampilkan daftar jurnal** — tabel Tanggal · Deskripsi · Reference · Baris · Debit · Kredit, urut terbaru, **pagination 50 baris/halaman** (komponen `<Pagination>`), + tombol link ke "Laporan Daftar Jurnal (PDF)". `/finance/journal/auto` → redirect (bookmark lama aman). Label "input manual" yang keliru dihapus.
 - **Admin dashboard** + 2 widget: **Perlu Tindakan** (survey baru, order menunggu sortir, siap dikemas, booking pending — link langsung) & **Booking Pasang Terdekat** (5 booking `scheduled` terdekat; data `installBookings` sebelumnya di-fetch tapi tidak pernah dirender; query kini juga mencakup status `pending`).

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -88,8 +88,8 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
 
   const totalBalance = cashAccounts.reduce((s, c) => s + (c.balance ?? 0), 0)
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Mutasi Kas & Bank${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Perubahan saldo kas dan bank'
@@ -114,7 +114,7 @@ export default function MutasiKasPage({ variant = 'finance' }: { variant?: 'fina
       }
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}mutasi-kas-${startDate}-${endDate}.pdf`)
   }
 

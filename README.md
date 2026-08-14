@@ -242,4 +242,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-15 (sesi 45 — jurnal tampil langsung + widget dashboard admin/finance/owner) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 46 — logo + watermark di semua PDF, gaya seragam brand #b37a60) · Dev server: `npm run dev` → http://localhost:3000_

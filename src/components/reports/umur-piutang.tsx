@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -108,8 +108,8 @@ export default function UmurPiutangPage({ variant = 'finance' }: { variant?: 'fi
   const bucketData = Object.entries(buckets).map(([bucket, amount]) => ({ bucket, amount }))
   const totalUnpaid = Object.values(buckets).reduce((s, v) => s + v, 0)
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Umur Piutang${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Rincian sisa tagihan per pelanggan'
@@ -172,7 +172,7 @@ export default function UmurPiutangPage({ variant = 'finance' }: { variant?: 'fi
       }
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}umur-piutang-${startDate}-${endDate}.pdf`)
   }
 

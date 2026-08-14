@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { Order, OrderItem, Customer , SurveyRoom } from '@/types'
+import { drawDocHeader, addPageNumbers, BRAND_FILL } from '@/lib/report-pdf'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
@@ -17,29 +18,15 @@ interface InvoiceData {
   orderNumber: string
 }
 
-export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
+export async function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   const doc = new jsPDF()
 
-  // Header
-  doc.setFillColor(204, 112, 48)
-  doc.rect(0, 0, 220, 35, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.setTextColor(255, 255, 255)
-  doc.text('KJ HOMEDECOR', 20, 16)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.text('Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com', 20, 24)
-
-  // Invoice title
-  doc.setFontSize(13)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(51, 51, 51)
-  doc.text(`INVOICE`, 150, 16)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`No: ${orderNumber}`, 150, 23)
-  doc.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 150, 29)
+  // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  await drawDocHeader(doc, {
+    title: 'INVOICE',
+    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com'],
+    metaRight: [`No: ${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+  })
 
   // Bill To
   doc.setFontSize(10)
@@ -62,7 +49,7 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   doc.text(`Payment: ${order.payment_status}`, 130, 67)
 
   // Line
-  doc.setDrawColor(204, 112, 48)
+  doc.setDrawColor(...BRAND_FILL)
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -85,7 +72,7 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
     ],
     theme: 'striped',
-    headStyles: { fillColor: [204, 112, 48], textColor: 255 },
+    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
     footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 12 },
@@ -144,7 +131,7 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
       y += 5
     })
     surveyEndY = y
-    doc.setDrawColor(204, 112, 48)
+    doc.setDrawColor(...BRAND_FILL)
     doc.setLineWidth(0.3)
     doc.line(20, surveyEndY - 3, 190, surveyEndY - 3)
   }
@@ -166,6 +153,7 @@ export function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   doc.text('Pembayaran dianggap lunas setelah invoice ini dilunasi.', 20, finalY + 15)
   doc.text('Terima kasih atas kepercayaan Anda.', 20, finalY + 20)
 
+  await addPageNumbers(doc)
   doc.save(`kj-invoice-${orderNumber}.pdf`)
 }
 
@@ -179,29 +167,15 @@ interface PackingListData {
   waybill?: string
 }
 
-export function generatePackingListPDF({ order, orderNumber, courier, waybill }: PackingListData) {
+export async function generatePackingListPDF({ order, orderNumber, courier, waybill }: PackingListData) {
   const doc = new jsPDF()
 
-  // Header
-  doc.setFillColor(30, 64, 175)
-  doc.rect(0, 0, 220, 35, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.setTextColor(255, 255, 255)
-  doc.text('KJ HOMEDECOR', 20, 16)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.text('Jl. Contoh No.1, Jakarta | (021) 123-4567', 20, 24)
-
-  // Title
-  doc.setFontSize(14)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(30, 64, 175)
-  doc.text('PACKING LIST', 150, 16)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`No: ${orderNumber}`, 150, 23)
-  doc.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 150, 29)
+  // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  await drawDocHeader(doc, {
+    title: 'PACKING LIST',
+    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567'],
+    metaRight: [`No: ${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+  })
 
   // Recipient
   doc.setFontSize(10)
@@ -225,7 +199,7 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
     if (waybill) doc.text(`Resi: ${waybill}`, 130, 61)
   }
 
-  doc.setDrawColor(30, 64, 175)
+  doc.setDrawColor(...BRAND_FILL)
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -243,7 +217,7 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
       item.ready ? '✅ Siap' : '⏳ Proses'
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [30, 64, 175], textColor: 255 },
+    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
     columnStyles: {
       0: { cellWidth: 12 },
       1: { cellWidth: 65 },
@@ -268,37 +242,25 @@ export function generatePackingListPDF({ order, orderNumber, courier, waybill }:
   doc.setFontSize(8)
   doc.setTextColor(120)
   doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, finalY + 15)
+  doc.setTextColor(...BRAND_FILL)
   doc.text('KJ HOMEDECOR — Packing List', 130, finalY + 15)
 
+  await addPageNumbers(doc)
   doc.save(`kj-packinglist-${orderNumber}.pdf`)
 }
 
 // ============ FAKTUR (Penjualan) ============
 // Format faktur penjualan: kop brand, tabel item, DP/Sisa/TOTAL, blok tanda tangan.
 // Tanpa PPN (bisnis non-PKP). Nomor: KJ-FAKTUR-<orderNumber>.
-export function generateFakturPDF({ order, orderNumber }: InvoiceData) {
+export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   const doc = new jsPDF()
 
-  // Header
-  doc.setFillColor(204, 112, 48)
-  doc.rect(0, 0, 220, 35, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.setTextColor(255, 255, 255)
-  doc.text('KJ HOMEDECOR', 20, 16)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.text('Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com', 20, 24)
-
-  // Title
-  doc.setFontSize(13)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(51, 51, 51)
-  doc.text('FAKTUR', 150, 16)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`No: KJ-FAKTUR-${orderNumber}`, 150, 23)
-  doc.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 150, 29)
+  // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  await drawDocHeader(doc, {
+    title: 'FAKTUR',
+    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com'],
+    metaRight: [`No: KJ-FAKTUR-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+  })
 
   // Bill To
   doc.setFontSize(10)
@@ -321,7 +283,7 @@ export function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   doc.text(`Payment: ${order.payment_status}`, 130, 67)
 
   // Line
-  doc.setDrawColor(204, 112, 48)
+  doc.setDrawColor(...BRAND_FILL)
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -344,7 +306,7 @@ export function generateFakturPDF({ order, orderNumber }: InvoiceData) {
       ['', '', '', 'TOTAL:', fmt(order.total_amount ?? 0)]
     ],
     theme: 'striped',
-    headStyles: { fillColor: [204, 112, 48], textColor: 255 },
+    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
     footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold' },
     columnStyles: {
       0: { cellWidth: 12 },
@@ -377,6 +339,7 @@ export function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   doc.text('Pembayaran dianggap lunas setelah faktur ini dilunasi.', 20, y + 50)
   doc.text('Terima kasih atas kepercayaan Anda.', 20, y + 55)
 
+  await addPageNumbers(doc)
   doc.save(`kj-faktur-${orderNumber}.pdf`)
 }
 
@@ -384,29 +347,15 @@ export function generateFakturPDF({ order, orderNumber }: InvoiceData) {
 // Format surat jalan: kop biru, blok PENERIMA + PENGIRIMAN (kurir/resi),
 // tabel item, blok tanda tangan Diterima oleh / Pengirim Gudang.
 // Nomor: KJ-SURATJALAN-<orderNumber>.
-export function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: PackingListData) {
+export async function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: PackingListData) {
   const doc = new jsPDF()
 
-  // Header
-  doc.setFillColor(30, 64, 175)
-  doc.rect(0, 0, 220, 35, 'F')
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(18)
-  doc.setTextColor(255, 255, 255)
-  doc.text('KJ HOMEDECOR', 20, 16)
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.text('Jl. Contoh No.1, Jakarta | (021) 123-4567', 20, 24)
-
-  // Title
-  doc.setFontSize(14)
-  doc.setFont('helvetica', 'bold')
-  doc.setTextColor(30, 64, 175)
-  doc.text('SURAT JALAN', 150, 16)
-  doc.setFontSize(9)
-  doc.setFont('helvetica', 'normal')
-  doc.text(`No: KJ-SURATJALAN-${orderNumber}`, 150, 23)
-  doc.text(`Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 150, 29)
+  // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  await drawDocHeader(doc, {
+    title: 'SURAT JALAN',
+    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567'],
+    metaRight: [`No: KJ-SURATJALAN-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+  })
 
   // Recipient
   doc.setFontSize(10)
@@ -429,7 +378,7 @@ export function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: 
   doc.text(waybill ? `Resi: ${waybill}` : 'Resi: —', 130, 61)
   doc.text(`Tanggal Kirim: ${new Date(order.created_at).toLocaleDateString('id-ID')}`, 130, 67)
 
-  doc.setDrawColor(30, 64, 175)
+  doc.setDrawColor(...BRAND_FILL)
   doc.setLineWidth(0.5)
   doc.line(20, 75, 190, 75)
 
@@ -446,7 +395,7 @@ export function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: 
       item.ready ? 'Siap Kirim' : 'Proses'
     ]),
     theme: 'striped',
-    headStyles: { fillColor: [30, 64, 175], textColor: 255 },
+    headStyles: { fillColor: BRAND_FILL, textColor: 255 },
     columnStyles: {
       0: { cellWidth: 12 },
       1: { cellWidth: 70 },
@@ -474,5 +423,6 @@ export function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: 
   doc.setTextColor(120)
   doc.text(`Dicetak: ${new Date().toLocaleString('id-ID')}`, 20, y + 46)
 
+  await addPageNumbers(doc)
   doc.save(`kj-suratjalan-${orderNumber}.pdf`)
 }

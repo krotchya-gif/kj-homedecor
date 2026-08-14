@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -83,7 +83,7 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
   }, [startDate, endDate, page])
 
   async function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+    const { doc, startY } = await createReportDoc({
       title: `Kronologi Omzet${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Omzet penjualan per periode'
@@ -120,7 +120,7 @@ export default function KronologiOmzetPage({ variant = 'finance' }: { variant?: 
       }
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}kronologi-omzet-${startDate}-${endDate}.pdf`)
   }
 

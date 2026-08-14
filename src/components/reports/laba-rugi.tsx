@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -73,8 +73,8 @@ export default function LabaRugiPage({ variant = 'finance' }: { variant?: 'finan
   const totalExpense = expenses.reduce((s, a) => s + (a.balance ?? 0), 0)
   const profit = totalRevenue - totalExpense
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Laporan Laba Rugi${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Pendapatan dan biaya periode'
@@ -120,7 +120,7 @@ export default function LabaRugiPage({ variant = 'finance' }: { variant?: 'finan
     doc.text(profit >= 0 ? 'LABA PERIODE' : 'RUGI PERIODE', 20, y + 7)
     doc.text(formatRp(profit), 194 - doc.getTextWidth(formatRp(profit)) / 2, y + 13)
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}laba-rugi-${startDate}-${endDate}.pdf`)
   }
 

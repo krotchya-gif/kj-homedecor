@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -141,8 +141,8 @@ export default function FinanceReportsPage() {
 
   const totalLemburJam = periodLembur.reduce((s, l) => s + (l.jam ?? 0), 0)
 
-  function exportPDF() {
-    const { doc, startY } = createReportDoc({
+  async function exportPDF() {
+    const { doc, startY } = await createReportDoc({
       title: 'Laporan Keuangan',
       period: `${MONTHS[month]} ${year}`
     })
@@ -256,7 +256,7 @@ export default function FinanceReportsPage() {
       })
     }
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`kj-keuangan-${year}-${String(month + 1).padStart(2, '0')}.pdf`)
   }
 

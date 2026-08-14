@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -74,8 +74,8 @@ export default function NeracaSaldoPage({ variant = 'finance' }: { variant?: 'fi
   const totalDebit = accounts.filter((a) => isDebit(a.type ?? '')).reduce((s, a) => s + (a.balance ?? 0), 0)
   const totalCredit = accounts.filter((a) => isCredit(a.type ?? '')).reduce((s, a) => s + (a.balance ?? 0), 0)
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Neraca Saldo${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Daftar saldo akun (format debit-kredit)'
@@ -117,7 +117,7 @@ export default function NeracaSaldoPage({ variant = 'finance' }: { variant?: 'fi
     )
     doc.setTextColor(0, 0, 0)
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}neraca-saldo-${startDate}-${endDate}.pdf`)
   }
 

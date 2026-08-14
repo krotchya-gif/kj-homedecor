@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import type { JournalEntry, JournalLine } from '@/types'
 import { PageHeader } from '@/components/ui/PageHeader'
 
@@ -44,8 +44,8 @@ export default function DaftarJurnalPage({ variant = 'finance' }: { variant?: 'f
   const pageEntries = entries.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE)
   const goto = (n: number) => setPage(Math.min(Math.max(0, n), pageCount - 1))
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Daftar Jurnal${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Daftar jurnal per periode'
@@ -86,7 +86,7 @@ export default function DaftarJurnalPage({ variant = 'finance' }: { variant?: 'f
       }
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}daftar-jurnal-${startDate}-${endDate}.pdf`)
   }
 

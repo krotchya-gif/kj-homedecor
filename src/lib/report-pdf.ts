@@ -1,16 +1,67 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { AutoTableDoc } from '@/lib/pdf-types'
+import { drawLogo, drawWatermark } from '@/lib/pdf-logo'
 
 /**
- * Standar PDF laporan (sesi 44): header konsisten (nama perusahaan + judul +
- * periode + tanggal cetak), warna brand, dan nomor halaman di footer.
- * SEMUA generator PDF laporan wajib pakai helper ini — jangan buat header
- * sendiri-sendiri (single-source-of-truth, lihat AGENTS.md).
+ * Standar PDF laporan (sesi 44, disempurnakan sesi 46):
+ * header konsisten (logo + nama perusahaan + judul + periode + tanggal cetak),
+ * warna brand mengikuti warna logo KJ (#b37a60), dan nomor halaman + watermark
+ * logo transparan di tengah dokumen. SEMUA generator PDF wajib pakai helper ini —
+ * jangan buat header sendiri-sendiri (single-source-of-truth, lihat AGENTS.md).
  */
 
-/** Warna brand KJ Homedecor (#cc7030) untuk fillColor tabel. */
-export const BRAND_FILL: [number, number, number] = [204, 112, 48]
+/** Warna brand KJ Homedecor = warna logo (#b37a60) untuk fillColor tabel & aksen. */
+export const BRAND_FILL: [number, number, number] = [179, 122, 96]
+
+/** Warna aksen terang untuk baris foot tabel. */
+export const BRAND_FOOT_FILL: [number, number, number] = [249, 235, 229]
+export const BRAND_FOOT_TEXT: [number, number, number] = [133, 76, 55]
+
+export interface DocHeaderOptions {
+  title: string
+  /** Baris meta kiri (abu-abu, 9pt). */
+  meta?: string[]
+  /** Baris meta kanan (rata kanan). */
+  metaRight?: string[]
+}
+
+/**
+ * Header standar dokumen: logo kiri atas + "KJ Homedecor" + judul brand + meta.
+ * Dipakai oleh createReportDoc (laporan) dan invoice/surat jalan/faktur/packing
+ * list/survey agar SEMUA PDF seragam (sesi 46).
+ */
+export async function drawDocHeader(doc: jsPDF, opts: DocHeaderOptions): Promise<{ startY: number }> {
+  const hasLogo = await drawLogo(doc, 14, 6, 11)
+  const textX = hasLogo ? 31 : 14
+
+  // Nama perusahaan
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(14)
+  doc.setTextColor(31, 41, 55)
+  doc.text('KJ Homedecor', textX, 16)
+
+  // Judul dokumen
+  doc.setFontSize(13)
+  doc.setTextColor(BRAND_FILL[0], BRAND_FILL[1], BRAND_FILL[2])
+  doc.text(opts.title, 14, 24)
+
+  // Meta
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(107, 114, 128)
+  let y = 30
+  for (const m of opts.meta ?? []) {
+    doc.text(m, 14, y)
+    y += 5
+  }
+  ;(opts.metaRight ?? []).forEach((m, i) => {
+    doc.text(m, 196, 30 + i * 5, { align: 'right' })
+  })
+  doc.setTextColor(0, 0, 0)
+
+  return { startY: Math.max(y, 40) + 6 }
+}
 
 export interface ReportDocOptions {
   title: string
@@ -20,36 +71,22 @@ export interface ReportDocOptions {
   subtitle?: string
 }
 
-/** Buat dokumen PDF laporan dengan header standar. `startY` awal = setelah header. */
-export function createReportDoc({ title, period, subtitle }: ReportDocOptions): { doc: jsPDF; startY: number } {
+/** Buat dokumen PDF laporan dengan header standar (async — logo dimuat dulu). */
+export async function createReportDoc({ title, period, subtitle }: ReportDocOptions): Promise<{ doc: jsPDF; startY: number }> {
   const doc = new jsPDF()
-
-  // Nama perusahaan
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.setTextColor(31, 41, 55)
-  doc.text('KJ Homedecor', 14, 16)
-
-  // Judul laporan
-  doc.setFontSize(13)
-  doc.setTextColor(BRAND_FILL[0], BRAND_FILL[1], BRAND_FILL[2])
-  doc.text(title, 14, 24)
-
-  // Periode & tanggal cetak
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.setTextColor(107, 114, 128)
-  doc.text(`Periode: ${period}`, 14, 30)
-  if (subtitle) doc.text(subtitle, 14, 35)
-  const dicetak = `Dicetak: ${new Date().toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })}`
-  doc.text(dicetak, 14, subtitle ? 40 : 35)
-  doc.setTextColor(0, 0, 0)
-
-  return { doc, startY: subtitle ? 46 : 41 }
+  const { startY } = await drawDocHeader(doc, {
+    title,
+    meta: [
+      `Periode: ${period}`,
+      ...(subtitle ? [subtitle] : []),
+      `Dicetak: ${new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })}`
+    ]
+  })
+  return { doc, startY }
 }
 
 /** Render tabel laporan dengan gaya brand; return posisi Y terakhir. */
@@ -66,8 +103,8 @@ export function addReportTable(
       ...(opts.headStyles as object)
     },
     footStyles: {
-      fillColor: [255, 237, 213],
-      textColor: [154, 52, 18],
+      fillColor: BRAND_FOOT_FILL,
+      textColor: BRAND_FOOT_TEXT,
       fontStyle: 'bold',
       ...(opts.footStyles as object)
     }
@@ -75,8 +112,11 @@ export function addReportTable(
   return (doc as unknown as AutoTableDoc).lastAutoTable?.finalY ?? (opts.startY as number) ?? 20
 }
 
-/** Tambah nomor halaman + nama perusahaan di footer SEMUA halaman. Panggil SEBELUM doc.save(). */
-export function addPageNumbers(doc: jsPDF): void {
+/** Nomor halaman + nama perusahaan di footer + watermark logo di tengah SEMUA halaman. */
+export async function addPageNumbers(doc: jsPDF): Promise<void> {
+  // Watermark logo transparan di tengah dokumen (sesi 46)
+  await drawWatermark(doc)
+
   const pages = doc.getNumberOfPages()
   const width = doc.internal.pageSize.getWidth()
   const height = doc.internal.pageSize.getHeight()

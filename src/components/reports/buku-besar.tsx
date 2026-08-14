@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -88,8 +88,8 @@ export default function BukuBesarPage({ variant = 'finance' }: { variant?: 'fina
     setDetailLoading(false)
   }
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Buku Besar${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: filterActive ? `Filter akun: ${filtered.length} dari ${accounts.length} akun` : undefined
@@ -105,7 +105,7 @@ export default function BukuBesarPage({ variant = 'finance' }: { variant?: 'fina
       theme: 'striped'
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}buku-besar-${startDate}-${endDate}.pdf`)
   }
 

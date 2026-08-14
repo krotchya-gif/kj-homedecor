@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { PageHeader } from '@/components/ui/PageHeader'
 
 import { useEffect, useState } from 'react'
@@ -109,8 +109,8 @@ export default function PerformaTagPage({ variant = 'finance' }: { variant?: 'fi
   const grandTotal = tagData.reduce((s, d) => s + (d.total ?? 0), 0)
   const grandCount = tagData.reduce((s, d) => s + (d.count ?? 0), 0)
 
-  function downloadPDF() {
-    const { doc, startY } = createReportDoc({
+  async function downloadPDF() {
+    const { doc, startY } = await createReportDoc({
       title: `Performa Per Tag${isOwner ? ' (Owner)' : ''}`,
       period: `${startDate} s/d ${endDate}`,
       subtitle: 'Ringkasan laba rugi per tag/marketplace'
@@ -129,7 +129,7 @@ export default function PerformaTagPage({ variant = 'finance' }: { variant?: 'fi
       }
     })
 
-    addPageNumbers(doc)
+    await addPageNumbers(doc)
     doc.save(`${isOwner ? 'owner-' : ''}performa-tag-${startDate}-${endDate}.pdf`)
   }
 
