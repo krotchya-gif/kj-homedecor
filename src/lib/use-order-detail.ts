@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { ORDER_STAGES_BY_CLASSIFICATION, getNextStageButtonLabel } from '@/lib/orders'
@@ -10,9 +10,8 @@ import type { Material } from '@/types'
 import { uploadToLocal } from '@/lib/upload'
 import { generateInvoicePDF, generatePackingListPDF, generateFakturPDF, generateSuratJalanPDF } from '@/lib/invoice'
 import { useToast } from '@/components/ui/Toast'
-import { createSimpleJournal } from '@/utils/journal/create'
-import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, getOrderLogAction, DEFAULT_CHECKLIST } from '@/lib/order-detail'
-import type { ItemType, OrderLog, OrderPhoto, BomRow, MeterRow, SurveyCand } from '@/lib/order-detail'
+import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, DEFAULT_CHECKLIST } from '@/lib/order-detail'
+import type { ItemType, OrderLog, OrderPhoto, BomRow, SurveyCand } from '@/lib/order-detail'
 import { formatDateDDMMYYYY } from '@/lib/utils'
 
 export interface ItemFormState {
@@ -129,6 +128,9 @@ export function useOrderDetail(id: string) {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [paymentForm, setPaymentForm] = useState({ type: 'dp' as 'dp' | 'lunas', amount: '' })
   const [savingPayment, setSavingPayment] = useState(false)
+  // Idempotency key per sesi submit: retry setelah timeout TIDAK membuat
+  // pembayaran kedua (audit 2026-08-14). Direset saat sukses / modal ditutup.
+  const payKeyRef = useRef<string | null>(null)
 
   const [checklist, setChecklist] = useState<PreparationChecklistItem[]>([])
   const [showItemForm, setShowItemForm] = useState(false)
@@ -237,82 +239,28 @@ export function useOrderDetail(id: string) {
       return
     }
     setUpdating(true)
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-
-    const { error: updateErr } = await supabase.from('orders').update({ status: newStatus }).eq('id', id)
-    if (updateErr) {
-      toast('error', 'Gagal update status: ' + updateErr.message)
-      setUpdating(false)
-      return
-    }
-
-    const { error: logErr } = await supabase.from('order_logs').insert({
-      order_id: id,
-      action: getOrderLogAction(newStatus),
-      notes: `Status diubah oleh Admin dari "${STATUS_LABELS[order.status as keyof typeof STATUS_LABELS]}" → "${STATUS_LABELS[newStatus as keyof typeof STATUS_LABELS]}"`,
-      staff_id: user?.id ?? null
-    })
-    if (logErr) { console.error('Gagal catat log:', logErr) }
-
-    for (const url of photoUrls) {
-      const { error: photoErr } = await supabase.from('order_progress_photos').insert({
-        order_id: id,
-        stage: newStatus,
-        photo_url: url,
-        uploaded_by: user?.id ?? null
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, photo_urls: photoUrls })
       })
-      if (photoErr) { console.error('Gagal simpan foto progress:', photoErr) }
-    }
-
-    if (newStatus === 'production' && order.status === 'sorted') {
-      const { data: existingJob } = await supabase
-        .from('production_jobs')
-        .select('id')
-        .eq('order_id', id)
-        .in('status', ['waiting', 'in_progress'])
-        .maybeSingle()
-
-      if (!existingJob) {
-        const { data: orderItems } = await supabase
-          .from('order_items')
-          .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
-          .eq('order_id', id)
-        const totalMeterGorden = (orderItems ?? []).reduce(
-          (s: number, i: MeterRow) => s + Number(i.meter_gorden ?? i.meter ?? 0),
-          0
-        )
-        const totalMeterVitras = (orderItems ?? []).reduce((s: number, i: MeterRow) => s + Number(i.meter_vitras ?? 0), 0)
-        const totalMeterRoman = (orderItems ?? []).reduce((s: number, i: MeterRow) => s + Number(i.meter_roman ?? 0), 0)
-        const totalMeterKupuKupu = (orderItems ?? []).reduce(
-          (s: number, i: MeterRow) => s + Number(i.meter_kupu_kupu ?? 0),
-          0
-        )
-
-        const { error: jobErr } = await supabase.from('production_jobs').insert({
-          order_id: id,
-          meter_gorden: totalMeterGorden,
-          meter_vitras: totalMeterVitras,
-          meter_roman: totalMeterRoman,
-          meter_kupu_kupu: totalMeterKupuKupu,
-          status: 'waiting'
-        })
-
-        if (jobErr) {
-          toast('error', '⚠️ Order sudah di-update ke production, TAPI gagal membuat production_job: ' +
-              jobErr.message +
-              '\n\nGudang tidak akan melihat order ini di /gudang/production. Hubungi developer untuk fix data integrity.')
-        }
+      const json = await res.json().catch(() => null)
+      if (!res.ok) {
+        toast('error', json?.error?.message ?? `Gagal update status (HTTP ${res.status})`)
+        return
       }
-    }
 
-    setOrder((o) => (o ? { ...o, status: newStatus as Order['status'] } : o))
-    setUpdating(false)
-    setShowPhotoModal(false)
-    setProgressPhotos([])
-    setPendingStatus(null)
-    load()
+      setOrder((o) => (o ? { ...o, status: newStatus as Order['status'] } : o))
+      setShowPhotoModal(false)
+      setProgressPhotos([])
+      setPendingStatus(null)
+      load()
+    } catch (error) {
+      toast('error', error instanceof Error ? error.message : 'Gagal update status')
+    } finally {
+      setUpdating(false)
+    }
   }
 
   async function handleSchedule(e: React.FormEvent) {
@@ -326,53 +274,26 @@ export function useOrderDetail(id: string) {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-
-    let bookingId = orderBooking?.id ?? null
+    if (!user) {
+      setScheduling(false)
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
 
     try {
-      if (!bookingId) {
-        const customerAddr =
-          (order.customer as { address?: string } | null)?.address ?? 'Alamat belum di-set'
-        const { data: newBooking, error: insErr } = await supabase
-          .from('install_bookings')
-          .insert({
-            order_id: id,
-            type: 'pasang',
-            status: 'pending',
-            installer_id: scheduleForm.installer_id,
-            scheduled_date: scheduleForm.date,
-            scheduled_time: scheduleForm.time || null,
-            address: customerAddr,
-            notes: `Dijadwalkan dari detail pesanan oleh Admin — installer & tanggal dipilih langsung.`
-          })
-          .select('id')
-          .single()
-        if (insErr || !newBooking) throw new Error(insErr?.message ?? 'Gagal buat booking')
-        bookingId = newBooking.id
-      }
-
-      const res = await fetch(`/api/install-bookings/${bookingId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'scheduled',
-          installer_id: scheduleForm.installer_id,
-          scheduled_date: scheduleForm.date,
-          scheduled_time: scheduleForm.time || null
-        })
+      // Penjadwalan ATOMIC di server (schedule_installation_atomic): booking
+      // install + orders.scheduled_* + order_logs dalam SATU transaksi.
+      // Sebelumnya: insert booking + PUT booking + update orders terpisah →
+      // bisa beda data kalau salah satu gagal (temuan audit 2026-08-14).
+      const { data: schedData, error: schedErr } = await supabase.rpc('schedule_installation_atomic', {
+        p_order_id: id,
+        p_installer_id: scheduleForm.installer_id,
+        p_date: scheduleForm.date,
+        p_time: scheduleForm.time || null,
+        p_actor: user.id
       })
-      const json = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(json?.error?.message ?? `HTTP ${res.status}`)
-
-      const { error: schedErr } = await supabase
-        .from('orders')
-        .update({
-          scheduled_installation_date: scheduleForm.date,
-          scheduled_installation_time: scheduleForm.time || null
-        })
-        .eq('id', id)
-        .eq('status', 'scheduled')
-      if (schedErr) console.error('Gagal simpan jadwal di orders:', schedErr)
+      if (schedErr) throw new Error(schedErr.message)
+      void schedData
 
       const installerName = installers.find((i) => i.id === scheduleForm.installer_id)?.name ?? '—'
       setScheduling(false)
@@ -396,92 +317,24 @@ export function useOrderDetail(id: string) {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-    const { error: voidErr } = await supabase
-      .from('payments')
-      .update({ notes: `VOIDED — Order cancelled (${cancelReason}) - ${new Date().toISOString()}` })
-      .eq('order_id', id)
-    if (voidErr) { console.error('Gagal void payment:', voidErr) }
-    const { error: cancelErr } = await supabase
-      .from('orders')
-      .update({
-        status: 'cancelled',
-        return_reason: cancelReason,
-        dp_amount: 0,
-        lunas_amount: 0,
-        payment_status: 'pending'
-      })
-      .eq('id', id)
-    if (cancelErr) { toast('error', 'Gagal batalkan order: ' + cancelErr.message); return }
-
-    const totalPaid = (order.dp_amount ?? 0) + (order.lunas_amount ?? 0)
-    if ((order.total_amount ?? 0) > 0 || totalPaid > 0) {
-      try {
-        const { getAccountMapping } = await import('@/utils/journal/create')
-        const { createSimpleJournal } = await import('@/utils/journal/create')
-
-        const { data: orderJournals } = await supabase
-          .from('journal_entries')
-          .select('id')
-          .eq('reference_type', 'order')
-          .eq('reference_id', id)
-        const hasOrderJournal = (orderJournals?.length ?? 0) > 0
-
-        const { data: existingPayments } = await supabase.from('payments').select('id').eq('order_id', id)
-        const paymentKeys = [
-          ...(existingPayments ?? []).map((p) => `payment:${p.id}`),
-          `admin_dp_auto:${id}`,
-          `tiktok_sync_payment:${id}`
-        ]
-        const { data: payJournals } = await supabase
-          .from('journal_entries')
-          .select('id')
-          .in('idempotency_key', paymentKeys)
-        const hasPaymentJournal = (payJournals?.length ?? 0) > 0
-
-        if (hasOrderJournal) {
-          const revOrder = await getAccountMapping('order_created')
-          if (revOrder?.debit_account_id && revOrder?.credit_account_id) {
-            await createSimpleJournal({
-              transaction_type: 'order_created',
-              reference_type: 'order_cancelled',
-              reference_id: id,
-              description: `Reversal order_created — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan`,
-              amount: order.total_amount ?? 0,
-              debit_account_id: revOrder.credit_account_id,
-              credit_account_id: revOrder.debit_account_id,
-              idempotency_key: `cancel_order_created:${id}`
-            })
-          }
-        }
-
-        if (totalPaid > 0 && hasPaymentJournal) {
-          const revPay = await getAccountMapping('payment_received')
-          if (revPay?.debit_account_id && revPay?.credit_account_id) {
-            await createSimpleJournal({
-              transaction_type: 'payment_received',
-              reference_type: 'order_cancelled',
-              reference_id: id,
-              description: `Reversal pembayaran — order ${(order as { order_number?: string }).order_number ?? id.slice(0, 8)} dibatalkan (Rp${totalPaid.toLocaleString('id-ID')})`,
-              amount: totalPaid,
-              debit_account_id: revPay.credit_account_id,
-              credit_account_id: revPay.debit_account_id,
-              idempotency_key: `cancel_payment:${id}`
-            })
-          }
-        }
-      } catch (jErr) {
-        console.error('Gagal buat jurnal reversal cancel:', jErr)
-        toast('warning', 'Order dibatalkan, TAPI jurnal reversal GAGAL. Hubungi owner untuk fix pembukuan.')
-      }
+    if (!user) {
+      toast('error', 'Sesi login berakhir.')
+      return
     }
 
-    const { error: cancelLogErr } = await supabase.from('order_logs').insert({
-      order_id: id,
-      action: 'cancelled',
-      notes: `Order dibatalkan oleh Admin. Alasan: ${cancelReason}. Payment di-void.`,
-      staff_id: user?.id ?? null
+    // Batal order diproses SATU transaksi di server (cancel_order_atomic):
+    // void payment + orders.status/nominal + jurnal reversal + order_logs.
+    // Jika salah satu gagal, seluruhnya rollback (idempoten per order).
+    const { error: cancelErr } = await supabase.rpc('cancel_order_atomic', {
+      p_order_id: id,
+      p_reason: cancelReason,
+      p_actor: user.id
     })
-    if (cancelLogErr) { console.error('Gagal catat log cancel:', cancelLogErr) }
+    if (cancelErr) {
+      toast('error', 'Gagal batalkan order: ' + cancelErr.message)
+      return
+    }
+
     toast('success', 'Order berhasil dibatalkan.')
     setShowCancelForm(false)
     load()
@@ -490,85 +343,32 @@ export function useOrderDetail(id: string) {
   async function handleReturn(e: React.FormEvent) {
     e.preventDefault()
     if (!order) return
+    if (!returnForm.reason.trim()) {
+      toast('info', 'Alasan return wajib diisi.')
+      return
+    }
     const {
       data: { user }
     } = await supabase.auth.getUser()
+    if (!user) {
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
     const refundAmt = Number(returnForm.refund_amount) || 0
 
-    if (returnForm.condition === 'good') {
-      const { data: itemsToReturn } = returnForm.item_id
-        ? await supabase
-            .from('order_items')
-            .select('*, product:products(id,stock_toko)')
-            .eq('order_id', id)
-            .eq('id', returnForm.item_id)
-        : await supabase.from('order_items').select('*, product:products(id,stock_toko)').eq('order_id', id)
-      const items = itemsToReturn ?? []
-      if (items.length === 0) {
-        toast('info', 'Tidak ada item untuk diproses return.')
-        return
-      }
-      for (const item of items) {
-        if (item.product_id) {
-          const { error: movErr } = await supabase.from('inventory_movements').insert({
-            product_id: item.product_id,
-            type: 'return_in',
-            qty: item.qty ?? 1,
-            reason: `Return dari order ${id.slice(0, 8)} — kondisi bagus, masuk stock toko`,
-            created_by: user?.id ?? null
-          })
-          if (movErr) { toast('error', 'Gagal catat pergerakan stok return: ' + movErr.message); return }
-          const { error } = await supabase.rpc('increment_stock_toko', {
-            product_id: item.product_id,
-            amount: item.qty ?? 1
-          })
-          if (error) {
-            console.error('RPC increment_stock_toko gagal:', error)
-            const { error: fbErr } = await supabase
-              .from('products')
-              .update({ stock_toko: (item.product?.stock_toko ?? 0) + (item.qty ?? 1) })
-              .eq('id', item.product_id)
-            if (fbErr) { console.error('Fallback update stok juga gagal:', fbErr); toast('error', 'Gagal menambah stok return: ' + fbErr.message); return }
-          }
-        }
-      }
-    }
-
-    const { data: retData, error: retErr } = await supabase
-      .from('returns')
-      .insert({
-        order_id: id,
-        order_item_id: returnForm.item_id || null,
-        reason: returnForm.reason,
-        condition: returnForm.condition,
-        qty: Number(returnForm.qty) || 1,
-        refund_amount: refundAmt,
-        refund_status: refundAmt > 0 ? 'pending' : 'completed',
-        created_by: user?.id ?? null,
-        resolved_at: returnForm.condition === 'good' ? new Date().toISOString() : null
-      })
-      .select()
-      .single()
-    if (retErr) { toast('error', 'Gagal catat return: ' + retErr.message); return }
-
-    if (returnForm.item_id) {
-      const { error: itemErr } = await supabase
-        .from('order_items')
-        .update({ returned_at: new Date().toISOString(), return_reason: returnForm.reason })
-        .eq('id', returnForm.item_id)
-      if (itemErr) { toast('error', 'Gagal update item return: ' + itemErr.message); return }
-    }
-
-    const { error: orderErr } = await supabase.from('orders').update({ status: 'returned', return_reason: returnForm.reason }).eq('id', id)
-    if (orderErr) { toast('error', 'Gagal update status order: ' + orderErr.message); return }
-
-    const { error: retLogErr } = await supabase.from('order_logs').insert({
-      order_id: id,
-      action: 'return_initiated',
-      notes: `Return diproses oleh Admin. Kondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}. Alasan: ${returnForm.reason}. Refund: Rp${refundAmt.toLocaleString('id-ID')}`,
-      staff_id: user?.id ?? null
+    // Return diproses SATU transaksi di server (process_order_return_atomic):
+    // stok produk + inventory_movements + returns + order_items + orders.status
+    // + order_logs. Jika salah satu gagal, seluruhnya rollback (idempoten per return).
+    const { data: retData, error: retErr } = await supabase.rpc('process_order_return_atomic', {
+      p_order_id: id,
+      p_order_item_id: returnForm.item_id || null,
+      p_reason: returnForm.reason,
+      p_condition: returnForm.condition,
+      p_qty: Number(returnForm.qty) || 1,
+      p_refund_amount: refundAmt,
+      p_actor: user.id
     })
-    if (retLogErr) { console.error('Gagal catat log return:', retLogErr) }
+    if (retErr) { toast('error', 'Gagal proses return: ' + retErr.message); return }
 
     toast('success', `Return berhasil dicatat.\nKondisi: ${returnForm.condition === 'good' ? 'Bagus → masuk stock' : 'Rusak → dispose'}\nRefund: Rp${refundAmt.toLocaleString('id-ID')}`)
     setShowReturnForm(false)
@@ -627,17 +427,24 @@ export function useOrderDetail(id: string) {
       }
 
       const price = Number(itemForm.kg) * laundryRate
-      const { error: itemErr } = await supabase.from('order_items').insert({
-        order_id: id,
+      const payload = {
         product_id: null,
         item_type: 'laundry',
         linked_laundry_id: laund?.id ?? null,
         qty: 1,
         price,
         meter: Number(itemForm.meter_laundry) || null
+      }
+      // Item + hitung ulang total order ATOMIC di server (add_order_item_atomic)
+      const { error: rpcErr } = await supabase.rpc('add_order_item_atomic', {
+        p_order_id: id,
+        p_item: payload,
+        p_actor: user?.id ?? null
       })
-      if (itemErr) {
-        toast('error', 'Gagal tambah item laundry: ' + itemErr.message)
+      if (rpcErr) {
+        // Rollback laundry_orders kalau item gagal dicatat
+        if (laund?.id) await supabase.from('laundry_orders').delete().eq('id', laund.id)
+        toast('error', 'Gagal tambah item laundry: ' + rpcErr.message)
         setSavingItem(false)
         return
       }
@@ -650,8 +457,7 @@ export function useOrderDetail(id: string) {
         finalPrice = (prod?.price || 0) * meter
       }
 
-      const { error: itemErr } = await supabase.from('order_items').insert({
-        order_id: id,
+      const payload = {
         product_id: itemForm.product_id || null,
         item_type: itemType,
         qty: Number(itemForm.qty),
@@ -669,35 +475,21 @@ export function useOrderDetail(id: string) {
         dimension_l: itemType === 'perabot' ? (itemForm.dimension_l ? Number(itemForm.dimension_l) : null) : null,
         dimension_t: itemType === 'perabot' ? (itemForm.dimension_t ? Number(itemForm.dimension_t) : null) : null,
         weight: itemType === 'perabot' ? (itemForm.weight ? Number(itemForm.weight) : null) : null
+      }
+      // Item + hitung ulang total order ATOMIC di server (add_order_item_atomic)
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      const { error: rpcErr } = await supabase.rpc('add_order_item_atomic', {
+        p_order_id: id,
+        p_item: payload,
+        p_actor: user?.id ?? null
       })
-      if (itemErr) {
-        toast('error', 'Gagal tambah item: ' + itemErr.message)
+      if (rpcErr) {
+        toast('error', 'Gagal tambah item: ' + rpcErr.message)
         setSavingItem(false)
         return
       }
-    }
-
-    const { data: newItems, error: totalErr } = await supabase
-      .from('order_items')
-      .select('price,qty')
-      .eq('order_id', id)
-    if (totalErr) {
-      toast('error', 'Item tersimpan, tapi gagal hitung ulang total: ' + totalErr.message)
-      load()
-      setSavingItem(false)
-      setShowItemForm(false)
-      resetForm()
-      return
-    }
-    const total = (newItems ?? []).reduce((s, i) => s + i.price * i.qty, 0)
-    const { error: updateErr } = await supabase.from('orders').update({ total_amount: total }).eq('id', id)
-    if (updateErr) {
-      toast('error', 'Item tersimpan, tapi gagal update total order: ' + updateErr.message)
-      load()
-      setSavingItem(false)
-      setShowItemForm(false)
-      resetForm()
-      return
     }
 
     setSavingItem(false)
@@ -722,7 +514,16 @@ export function useOrderDetail(id: string) {
   }
 
   async function linkSurvey(surveyId: string) {
-    const { error } = await supabase.from('orders').update({ survey_id: surveyId }).eq('id', id)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    // Link survey via RPC server (RLS orders UPDATE = admin/owner; RPC ikut
+    // audit trail order_logs) — bukan direct update client (temuan audit 2026-08-14)
+    const { error } = await supabase.rpc('link_survey_atomic', {
+      p_order_id: id,
+      p_survey_id: surveyId,
+      p_actor: user?.id ?? null
+    })
     if (error) {
       toast('error', 'Gagal link survey: ' + error.message)
       return
@@ -733,7 +534,14 @@ export function useOrderDetail(id: string) {
 
   async function unlinkSurvey() {
     if (!confirm('Lepas survey dari order ini?')) return
-    const { error } = await supabase.from('orders').update({ survey_id: null }).eq('id', id)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const { error } = await supabase.rpc('link_survey_atomic', {
+      p_order_id: id,
+      p_survey_id: null,
+      p_actor: user?.id ?? null
+    })
     if (error) {
       toast('error', 'Gagal lepas survey: ' + error.message)
       return
@@ -743,16 +551,16 @@ export function useOrderDetail(id: string) {
 
   async function removeItem(itemId: string) {
     if (!confirm('Hapus item ini?')) return
-    const { error } = await supabase.from('order_items').delete().eq('id', itemId)
-    if (error) { toast('error', 'Gagal hapus item: ' + error.message); return }
-    const { data: remaining, error: totalErr } = await supabase
-      .from('order_items')
-      .select('price,qty')
-      .eq('order_id', id)
-    if (totalErr) { console.error('Gagal hitung ulang total:', totalErr) }
-    const newTotal = (remaining ?? []).reduce((s, i) => s + i.price * i.qty, 0)
-    const { error: updErr } = await supabase.from('orders').update({ total_amount: newTotal }).eq('id', id)
-    if (updErr) { console.error('Gagal update total_amount:', updErr) }
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    // Hapus item + hitung ulang total ATOMIC di server (remove_order_item_atomic)
+    const { error: rpcErr } = await supabase.rpc('remove_order_item_atomic', {
+      p_order_id: id,
+      p_item_id: itemId,
+      p_actor: user?.id ?? null
+    })
+    if (rpcErr) { toast('error', 'Gagal hapus item: ' + rpcErr.message); return }
     load()
   }
 
@@ -768,88 +576,44 @@ export function useOrderDetail(id: string) {
       toast('warning', 'Jumlah pembayaran wajib diisi.')
       return
     }
-    setSavingPayment(true)
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
     const amount = Number(paymentForm.amount)
     if (amount <= 0) {
-      setSavingPayment(false)
       toast('error', 'Nominal pembayaran harus lebih dari 0.')
       return
     }
-    const { data: fresh } = await supabase
-      .from('orders')
-      .select('id, total_amount, dp_amount, lunas_amount, payment_status')
-      .eq('id', id)
-      .single()
-    if (!fresh) {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
       setSavingPayment(false)
-      toast('error', 'Order tidak ditemukan.')
+      toast('error', 'Sesi login berakhir.')
       return
     }
-    const sisaTagihan = (fresh.total_amount ?? 0) - (fresh.dp_amount ?? 0) - (fresh.lunas_amount ?? 0)
-    if (amount > sisaTagihan) {
-      setSavingPayment(false)
-      toast('error', `Nominal pembayaran melebihi sisa tagihan (Rp ${sisaTagihan.toLocaleString('id-ID')}).`)
-      return
-    }
-    const { data: paymentRow, error: payErr } = await supabase
-      .from('payments')
-      .insert({
-        order_id: id,
-        type: paymentForm.type,
-        amount,
-        verified_by: user?.id ?? null,
-        verified_at: new Date().toISOString()
-      })
-      .select('id')
-      .single()
-    if (payErr) { setSavingPayment(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
-
-    try {
-      await createSimpleJournal({
-        transaction_type: 'payment_received',
-        reference_type: 'order',
-        reference_id: id,
-        description: `Pembayaran ${paymentForm.type === 'dp' ? 'DP' : 'Lunas'} Rp${amount.toLocaleString('id-ID')} oleh Admin`,
-        amount,
-        idempotency_key: paymentRow?.id ? `payment:${paymentRow.id}` : undefined
-      })
-    } catch (jErr) {
-      console.error('Gagal buat jurnal pembayaran admin:', jErr)
-      toast('warning', 'Pembayaran tercatat, TAPI jurnal GAGAL. Periksa mapping akun.')
+    setSavingPayment(true)
+    if (!payKeyRef.current) {
+      payKeyRef.current = `payment_submit:${id}:${crypto.randomUUID()}`
     }
 
-    const newDp = paymentForm.type === 'dp' ? fresh.dp_amount + amount : fresh.dp_amount
-    const newLunas = paymentForm.type === 'lunas' ? fresh.lunas_amount + amount : fresh.lunas_amount
-    const paidSum = newDp + newLunas
-    const newPaid =
-      paidSum >= (fresh.total_amount ?? 0) && fresh.total_amount > 0 ? 'paid' : paidSum > 0 ? 'partial' : 'pending'
-    const { error: ordErr } = await supabase
-      .from('orders')
-      .update({
-        dp_amount: newDp,
-        lunas_amount: newLunas,
-        payment_status: newPaid
-      })
-      .eq('id', id)
-      .eq('dp_amount', fresh.dp_amount)
-      .eq('lunas_amount', fresh.lunas_amount)
-    if (ordErr) {
-      await supabase.from('payments').delete().eq('id', paymentRow?.id ?? '')
-      setSavingPayment(false)
-      toast('error', 'Gagal update status pembayaran (mungkin dibayar admin lain). Row payment di-rollback: ' + ordErr.message)
-      return
-    }
-    const { error: payLogErr } = await supabase.from('order_logs').insert({
-      order_id: id,
-      action: 'payment_added',
-      notes: `Pembayaran ${paymentForm.type === 'dp' ? 'DP' : 'Lunas'} Rp${amount.toLocaleString('id-ID')} oleh Admin.`,
-      staff_id: user?.id ?? null
+    // Pembayaran diproses SATU transaksi di server (add_order_payment_atomic):
+    // validasi sisa tagihan + insert payments + jurnal payment_received + orders
+    // dp/lunas/payment_status + order_logs. Gagal di tengah → seluruhnya rollback
+    // (termasuk row payment), anti double-pay via FOR UPDATE + guard nilai +
+    // idempotency key (retry setelah timeout tidak mencatat dua kali).
+    const { data: payData, error: payErr } = await supabase.rpc('add_order_payment_atomic', {
+      p_order_id: id,
+      p_type: paymentForm.type,
+      p_amount: amount,
+      p_actor: user.id,
+      p_idempotency_key: payKeyRef.current
     })
-    if (payLogErr) { console.error('Gagal catat log pembayaran:', payLogErr) }
+    if (payErr) {
+      setSavingPayment(false)
+      toast('error', 'Gagal catat pembayaran: ' + payErr.message)
+      return
+    }
+
     toast('success', 'Pembayaran berhasil dicatat.')
+    payKeyRef.current = null
     setShowPaymentForm(false)
     setPaymentForm({ type: 'dp', amount: '' })
     setSavingPayment(false)

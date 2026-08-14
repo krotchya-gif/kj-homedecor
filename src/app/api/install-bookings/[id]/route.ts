@@ -1,6 +1,7 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 // Security fix (2026-08-12): whitelist field yang boleh di-update lewat API.
 // Mencegah mass-assignment (mis. installer mengubah installer_id/scheduled_date/order_id).
@@ -20,6 +21,9 @@ const ALLOWED_UPDATE_FIELDS = [
 ] as const
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(request), 120, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
 
@@ -63,6 +67,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(request), 60, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
   const body = await request.json()
@@ -85,6 +92,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!isAdmin && !isInstaller) {
     return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
   }
+
+  const db = createServiceClient()
+  const allowedFields = isInstaller
+    ? ['actual_date', 'revision_reason', 'revision_photos']
+    : ALLOWED_UPDATE_FIELDS
 
   if (isInstaller) {
     const { data: booking } = await supabase
@@ -109,7 +121,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Panggil RPC — handles status update + orders.status cascade + order_logs insert
-    const { data: rpcResult, error: rpcErr } = await supabase.rpc('advance_install_booking_status', {
+    const { data: rpcResult, error: rpcErr } = await db.rpc('advance_install_booking_status', {
       p_booking_id: id,
       p_new_status: body.status,
       p_staff_id: user.id
@@ -127,13 +139,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // HANYA field yang masuk whitelist (anti mass-assignment)
     const otherFields: Record<string, unknown> = {}
     for (const key of Object.keys(body)) {
-      if ((ALLOWED_UPDATE_FIELDS as readonly string[]).includes(key)) {
+      if ((allowedFields as readonly string[]).includes(key)) {
         otherFields[key] = body[key]
       }
     }
 
     if (Object.keys(otherFields).length > 0) {
-      const { error: updateErr } = await supabase.from('install_bookings').update(otherFields).eq('id', id)
+      const { error: updateErr } = await db.from('install_bookings').update(otherFields).eq('id', id)
       if (updateErr) {
         console.warn('Failed to update other install_bookings fields:', updateErr)
       }
@@ -156,14 +168,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   //    HANYA field whitelist (anti mass-assignment)
   const safeBody: Record<string, unknown> = {}
   for (const key of Object.keys(body)) {
-    if ((ALLOWED_UPDATE_FIELDS as readonly string[]).includes(key)) {
+    if ((allowedFields as readonly string[]).includes(key)) {
       safeBody[key] = body[key]
     }
   }
   if (Object.keys(safeBody).length === 0) {
     return NextResponse.json({ data: null, error: { message: 'Tidak ada field yang valid untuk di-update' } }, { status: 400 })
   }
-  const { data, error } = await supabase.from('install_bookings').update(safeBody).eq('id', id).select().single()
+  const { data, error } = await db.from('install_bookings').update(safeBody).eq('id', id).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data, error: null })
 }

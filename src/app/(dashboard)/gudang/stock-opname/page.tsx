@@ -51,6 +51,17 @@ export default function StockOpnamePage() {
   const [notes, setNotes] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [counts, setCounts] = useState<Record<string, string>>({})
+  // Detail sesi yang dibuka (menampilkan rincian per material)
+  const [detailOpen, setDetailOpen] = useState<Set<string>>(new Set())
+
+  function toggleDetail(id: string) {
+    setDetailOpen((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function fetchAll() {
     const [matRes, sesRes] = await Promise.all([
@@ -177,7 +188,7 @@ export default function StockOpnamePage() {
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.25rem' }}>
         <button className="btn-primary" onClick={() => setSessionOpen((v) => !v)}>
-          <Plus size={16} /> {sessionOpen ? 'Tutup Form' : 'Buat Sesi Baru'}
+          <Plus size={16} /> {sessionOpen ? 'Tutup Form' : 'Buat Sesi Stock Opname'}
         </button>
       </div>
 
@@ -290,6 +301,40 @@ export default function StockOpnamePage() {
                       {totalDiff.toLocaleString('id-ID')} unit
                     </span>
                   </div>
+                  <button
+                    onClick={() => toggleDetail(s.id)}
+                    style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#cc7030', fontWeight: 600, cursor: 'pointer', padding: '0 0 0.5rem' }}
+                  >
+                    {detailOpen.has(s.id) ? '▲ Tutup Detail' : '▼ Lihat Detail'}
+                  </button>
+                  {detailOpen.has(s.id) && (
+                    <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden', marginBottom: '0.5rem' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                        <thead>
+                          <tr style={{ background: 'var(--neutral-50)' }}>
+                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left' }}>Material</th>
+                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>Sistem</th>
+                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>Hitung</th>
+                            <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>Selisih</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(s.items ?? []).map((i, idx) => (
+                            <tr key={`${s.id}-${idx}`} style={{ borderTop: '1px solid var(--neutral-100)' }}>
+                              <td style={{ padding: '0.4rem 0.6rem' }}>
+                                {i.material?.name ?? '—'} <span style={{ color: 'var(--neutral-400)' }}>({i.material?.unit ?? ''})</span>
+                              </td>
+                              <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{Number(i.system_qty ?? 0)}</td>
+                              <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{Number(i.counted_qty ?? 0)}</td>
+                              <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600, color: Number(i.difference) === 0 ? 'var(--neutral-400)' : '#cc7030' }}>
+                                {Number(i.difference) > 0 ? `+${i.difference}` : String(Number(i.difference ?? 0))}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                   {s.status === 'open' && (
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button
@@ -333,6 +378,26 @@ export default function StockOpnamePage() {
                 <span className="mobile-card-label">Material</span>
                 <span className="mobile-card-value">{(s.items ?? []).length}</span>
               </div>
+              <button
+                onClick={() => toggleDetail(s.id)}
+                style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#cc7030', fontWeight: 600, cursor: 'pointer', padding: '0.25rem 0', textAlign: 'left' }}
+              >
+                {detailOpen.has(s.id) ? '▲ Tutup Detail' : '▼ Lihat Detail'}
+              </button>
+              {detailOpen.has(s.id) && (
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden', margin: '0.25rem 0 0.5rem' }}>
+                  {(s.items ?? []).map((i, idx) => (
+                    <div key={`${s.id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0.6rem', borderTop: idx === 0 ? 'none' : '1px solid var(--neutral-100)', fontSize: '0.75rem' }}>
+                      <span style={{ color: 'var(--neutral-700)' }}>
+                        {i.material?.name ?? '—'} <span style={{ color: 'var(--neutral-400)' }}>({i.material?.unit ?? ''})</span>
+                      </span>
+                      <span style={{ fontWeight: 600, color: Number(i.difference) === 0 ? 'var(--neutral-400)' : '#cc7030' }}>
+                        {Number(i.system_qty ?? 0)} → {Number(i.counted_qty ?? 0)} ({Number(i.difference) > 0 ? `+${i.difference}` : String(Number(i.difference ?? 0))})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {s.status === 'open' && (
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                   <button className="btn-primary" style={{ fontSize: '0.8rem' }} onClick={() => submitSession(s.id)} title="Kirim hasil hitung stok ke Finance untuk diverifikasi">

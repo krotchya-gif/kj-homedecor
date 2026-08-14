@@ -1,12 +1,11 @@
 'use client'
 import MobileCards from '@/components/ui/MobileCards'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, DollarSign, Search, Lock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/types'
 import type { Order, Customer } from '@/types'
-import { createSimpleJournal } from '@/utils/journal/create'
 import { useToast } from '@/components/ui/Toast'
 import Pagination from '@/components/ui/Pagination'
 import { TableSkeleton } from '@/components/ui/skeleton'
@@ -30,13 +29,6 @@ const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
   paid: { bg: '#d1fae5', text: '#065f46' }
 }
 
-
-interface VerifiedPayment {
-  verified_by: string
-  verified_at: string
-  amount: number
-  type: string
-}
 
 interface ReturnRow {
   id: string
@@ -137,23 +129,18 @@ export default function FinancePaymentsPage() {
     load()
   }, [currentPage])
 
-  async function getVerifiedPayment(orderId: string): Promise<VerifiedPayment | null> {
-    const { data } = await supabase
-      .from('payments')
-      .select('verified_by, verified_at, amount, type')
-      .eq('order_id', orderId)
-      .not('verified_by', 'is', null)
-      .order('verified_at', { ascending: false })
-      .limit(1)
-      .single()
-    return data ?? null
-  }
-
   const filtered = orders.filter((o) => {
     const matchFilter = !filter || o.payment_status === filter
     const matchSearch = !search || (o.customer?.name ?? '').toLowerCase().includes(search.toLowerCase())
     return matchFilter && matchSearch
   })
+
+  // Idempotency key per sesi modal: retry setelah timeout tidak mencatat dua kali.
+  const payKeyRef = useRef<string | null>(null)
+  function closePayModal() {
+    payKeyRef.current = null
+    setSelected(null)
+  }
 
   async function handlePay(e: React.FormEvent) {
     e.preventDefault()
@@ -166,111 +153,47 @@ export default function FinancePaymentsPage() {
       toast('error', 'Nominal pembayaran wajib diisi dan lebih dari 0.')
       return
     }
-    // F-48 fix: refetch order fresh (hindari stale state / race saat 2 finance bayar)
-    const { data: fresh } = await supabase
-      .from('orders')
-      .select('id, total_amount, dp_amount, lunas_amount')
-      .eq('id', selected.id)
-      .single()
-    if (!fresh) {
-      setSaving(false)
-      toast('error', 'Order tidak ditemukan.')
-      return
-    }
-    const sisaTagihan = (fresh.total_amount ?? 0) - (fresh.dp_amount ?? 0) - (fresh.lunas_amount ?? 0)
-    if (amount > sisaTagihan) {
-      setSaving(false)
-      toast('error', `Nominal melebihi sisa tagihan (Rp ${sisaTagihan.toLocaleString('id-ID')}).`)
-      return
-    }
-    const now = new Date().toISOString()
-    // F-64 fix: tanggal pembayaran tidak boleh di masa depan
+    // F-64 fix: tanggal pembayaran tidak boleh di masa depan (juga dicek server)
     const todayStr = new Date().toISOString().slice(0, 10)
     if (payForm.date > todayStr) {
       setSaving(false)
       toast('error', 'Tanggal pembayaran tidak boleh di masa depan.')
       return
     }
-    const { data: paymentRow, error: payErr } = await supabase
-      .from('payments')
-      .insert({
-        order_id: selected.id,
-        type: payForm.type,
-        amount,
-        date: payForm.date,
-        verified_by: currentUser?.id ?? null,
-        verified_at: now
-      })
-      .select('id')
-      .single()
-    if (payErr) { setSaving(false); toast('error', 'Gagal catat pembayaran: ' + payErr.message); return }
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) {
+      setSaving(false)
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
+    if (!payKeyRef.current) {
+      payKeyRef.current = `finance_pay:${selected.id}:${crypto.randomUUID()}`
+    }
 
-    // Auto-create journal entry for payment
-    try {
-      await createSimpleJournal({
-        transaction_type: 'payment_received',
-        reference_type: 'order',
-        reference_id: selected.id,
-        description: `${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} dari order ${selected.order_number ?? selected.id.slice(0, 8)} — ${selected.customer?.name ?? ''}`,
-        amount,
-        entry_date: payForm.date,
-        // F-12 fix: debit ke akun kas yang DIPILIH (default mapping Kas)
-        debit_account_id: payForm.cash_account_id || undefined,
-        // F-54 fix: idempotent per pembayaran — retry tidak bikin jurnal ganda
-        idempotency_key: paymentRow?.id ? `payment:${paymentRow.id}` : undefined
-      })
-    } catch (e) {
-      // BUG-073 fix (2026-08-13): jurnal gagal = rollback PENUH — hapus payment row
-      // yang baru di-insert agar tidak ada "payment tanpa jurnal" (double-entry rusak).
-      // Sebelumnya hanya toast warning & payment row menggantung → buku besar bocor.
-      const errMsg = e instanceof Error ? e.message : String(e)
-      console.error('Failed to create journal entry:', errMsg)
-      if (paymentRow?.id) {
-        await supabase.from('payments').delete().eq('id', paymentRow.id)
-      }
-      setSaving(false)
-      toast('error',
-        'Gagal mencatat pembayaran (journal entry gagal). Transaksi dibatalkan.\n\n' +
-          'Error: ' +
-          errMsg +
-          '\n\n' +
-          'Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
-      return
-    }
-    const { error: logErr } = await supabase.from('order_logs').insert({
-      order_id: selected.id,
-      action: 'payment_input',
-      notes: `Input ${payForm.type === 'dp' ? 'DP' : 'Pelunasan'} Rp${amount.toLocaleString('id-ID')} oleh ${currentUser?.name ?? 'Finance'}`,
-      staff_id: currentUser?.id
+    // Pembayaran ATOMIC di server (add_order_payment_atomic): validasi sisa +
+    // insert payments + jurnal payment_received + orders dp/lunas/payment_status
+    // + order_logs dalam SATU transaksi. Rollback penuh jika salah satu gagal
+    // (menggantikan jalur multi-step client yang bisa meninggalkan jurnal yatim).
+    // Idempotency key + FOR UPDATE mencegah double-pay saat retry/2 finance.
+    const { error: payErr } = await supabase.rpc('add_order_payment_atomic', {
+      p_order_id: selected.id,
+      p_type: payForm.type,
+      p_amount: amount,
+      p_actor: user.id,
+      p_idempotency_key: payKeyRef.current,
+      p_debit_account_id: payForm.cash_account_id || null,
+      p_date: payForm.date
     })
-    if (logErr) { console.error('Gagal catat log pembayaran:', logErr) }
-    // F-48 fix: pakai nilai FRESH (bukan selected yang basi)
-    const newDp = payForm.type === 'dp' ? fresh.dp_amount + amount : fresh.dp_amount
-    const newLunas = payForm.type === 'lunas' ? fresh.lunas_amount + amount : fresh.lunas_amount
-    const total = fresh.total_amount
-    const paidSum = newDp + newLunas
-    const newPayStatus = paidSum >= total && total > 0 ? 'paid' : paidSum > 0 ? 'partial' : 'pending'
-    const { error: ordErr } = await supabase
-      .from('orders')
-      .update({
-        dp_amount: newDp,
-        lunas_amount: newLunas,
-        payment_status: newPayStatus
-      })
-      .eq('id', selected.id)
-      .eq('dp_amount', fresh.dp_amount)
-      .eq('lunas_amount', fresh.lunas_amount)
-    if (ordErr) {
-      // BUG-073 fix (2026-08-13): update order gagal (biasanya race — finance lain
-      // bayar duluan) → rollback payment row yang baru di-insert (mirror handleRefund).
-      if (paymentRow?.id) {
-        await supabase.from('payments').delete().eq('id', paymentRow.id)
-      }
+    if (payErr) {
       setSaving(false)
-      toast('error', 'Gagal update order (mungkin sudah dibayar finance lain). Pembayaran dibatalkan: ' + ordErr.message)
+      toast('error', 'Gagal catat pembayaran: ' + payErr.message)
       return
     }
+
     setSaving(false)
+    payKeyRef.current = null
     setSelected(null)
     setPayForm({
       type: 'dp',
@@ -319,22 +242,16 @@ export default function FinancePaymentsPage() {
 
     if (freshOrder.status === 'new') {
       // new -> payment_ok (Finance verify pembayaran masuk, lanjut Gudang sortir)
-      const { error: step1Err } = await supabase
-        .from('orders')
-        .update({ status: 'payment_ok' })
-        .eq('id', freshOrder.id)
-        .eq('status', 'new')
-      if (step1Err) {
-        toast('error', 'Gagal update ke Cek Bayar: ' + step1Err.message)
+      const stepRes = await fetch(`/api/orders/${freshOrder.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'payment_ok' })
+      })
+      const stepJson = await stepRes.json().catch(() => null)
+      if (!stepRes.ok) {
+        toast('error', 'Gagal update ke Cek Bayar: ' + (stepJson?.error?.message ?? `HTTP ${stepRes.status}`))
         return
       }
-      const { error: logErr } = await supabase.from('order_logs').insert({
-        order_id: freshOrder.id,
-        action: 'payment_verified',
-        notes: `Payment verified oleh ${currentUser?.name ?? 'Finance'} — pembayaran (DP/lunas) sudah masuk Rp${paidSum.toLocaleString('id-ID')}. Status: Baru → Cek Bayar. Lanjut Gudang sortir.`,
-        staff_id: currentUser?.id
-      })
-      if (logErr) { console.error('Gagal catat log verify:', logErr) }
       toast(
         'success',
         belumLunas
@@ -400,118 +317,27 @@ export default function FinancePaymentsPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
-
-    // BUG-012 fix (2026-08-11):
-    // - Guard idempotensi: return yang sudah selesai tidak boleh diproses ulang
-    // - Guard nominal: refund tidak boleh melebihi yang sudah dibayar
-    // - Jurnal reversal (refund_issued) + kurangi dp/lunas order
-    const { data: ret, error: retErr } = await supabase
-      .from('returns')
-      .select('refund_status')
-      .eq('id', returnRecord.id)
-      .maybeSingle()
-    if (retErr || !ret) {
+    if (!user) {
       setProcessingRefund(null)
-      toast('error', 'Gagal memuat data return.')
-      return
-    }
-    if (ret.refund_status === 'completed') {
-      setProcessingRefund(null)
-      toast('warning', 'Refund sudah diproses sebelumnya (idempotent).')
+      toast('error', 'Sesi login berakhir.')
       return
     }
 
-    const { data: freshOrder } = await supabase
-      .from('orders')
-      .select('id, total_amount, dp_amount, lunas_amount, payment_status')
-      .eq('id', returnRecord.order_id)
-      .single()
-    const paidBefore = (freshOrder?.dp_amount ?? 0) + (freshOrder?.lunas_amount ?? 0)
-    if (refundAmount > paidBefore) {
-      setProcessingRefund(null)
-      toast('error', `Refund (${fmt(refundAmount)}) melebihi yang sudah dibayar (${fmt(paidBefore)}).`)
-      return
-    }
-
-    // 1) Catat refund di tabel payments — F-11 fix: idempotency key = return id
-    // (kalau klik ganda, insert kedua gagal UNIQUE di jurnal / guard di atas sudah blokir)
-    const { data: refundRow, error: refundErr } = await supabase
-      .from('payments')
-      .insert({
-        order_id: returnRecord.order_id,
-        type: 'refund',
-        amount: refundAmount,
-        date: new Date().toISOString(),
-        verified_by: user?.id ?? null,
-        verified_at: new Date().toISOString(),
-        notes: `Refund untuk return: ${returnRecord.reason}`
-      })
-      .select('id')
-      .single()
-    if (refundErr) { setProcessingRefund(null); toast('error', 'Gagal catat refund: ' + refundErr.message); return }
-
-    // 2) Jurnal reversal — F-9 fix: Dr Penjualan Retur / Cr Kas (kurangi omzet),
-    // BUKAN refund_issued (Dr Piutang/Cr Kas) yang menciptakan piutang baru.
-    try {
-      await createSimpleJournal({
-        transaction_type: 'sales_return',
-        reference_type: 'return',
-        reference_id: returnRecord.id,
-        description: `Refund Rp${fmt(refundAmount)} untuk return order ${returnRecord.order_id.slice(0, 8)}`,
-        amount: refundAmount,
-        idempotency_key: refundRow?.id ? `refund:${refundRow.id}` : undefined
-      })
-    } catch (e) {
-      // Phase 3 (BUG-094): rollback PENUH (pola BUG-073) — jurnal reversal gagal →
-      // hapus payment refund & batalkan proses (sebelumnya hanya toast warning →
-      // refund tercatat tanpa jurnal → ledger bocor). Return tetap di status awal.
-      console.error('Gagal buat jurnal refund:', e)
-      await supabase.from('payments').delete().eq('id', refundRow?.id ?? '')
-      setProcessingRefund(null)
-      toast('error',
-        'Refund dibatalkan — jurnal reversal gagal. Periksa mapping akun di /finance/accounts/mapping lalu coba lagi.')
-      return
-    }
-
-    // 3) Kurangi dp/lunas order (lunas dulu, baru dp) + hitung ulang payment_status
-    // F-11 fix: optimistic guard (race 2 finance) + rollback refund row kalau gagal
-    let newLunas = freshOrder?.lunas_amount ?? 0
-    let newDp = freshOrder?.dp_amount ?? 0
-    let sisaRefund = refundAmount
-    const fromLunas = Math.min(newLunas, sisaRefund)
-    newLunas -= fromLunas
-    sisaRefund -= fromLunas
-    newDp = Math.max(0, newDp - sisaRefund)
-    const paidNow = newDp + newLunas
-    const newPayStatus = paidNow >= (freshOrder?.total_amount ?? 0) && (freshOrder?.total_amount ?? 0) > 0 ? 'paid' : paidNow > 0 ? 'partial' : 'pending'
-    const { error: ordErr } = await supabase
-      .from('orders')
-      .update({ dp_amount: newDp, lunas_amount: newLunas, payment_status: newPayStatus })
-      .eq('id', returnRecord.order_id)
-      .eq('dp_amount', freshOrder?.dp_amount ?? 0)
-      .eq('lunas_amount', freshOrder?.lunas_amount ?? 0)
-    if (ordErr) {
-      await supabase.from('payments').delete().eq('id', refundRow?.id ?? '')
-      setProcessingRefund(null)
-      toast('error', 'Refund dibatalkan — order berubah bersamaan oleh proses lain: ' + ordErr.message)
-      return
-    }
-
-    // 4) Tandai return selesai (RLS diperbaiki di migration 063 — is_finance_role)
-    const { error: retUpdErr } = await supabase.from('returns').update({ refund_status: 'completed' }).eq('id', returnRecord.id)
-    if (retUpdErr) {
-      setProcessingRefund(null)
-      toast('error', 'Refund & jurnal tersimpan, tapi gagal update status return: ' + retUpdErr.message)
-      return
-    }
-
-    const { error: refundLogErr } = await supabase.from('order_logs').insert({
-      order_id: returnRecord.order_id,
-      action: 'refund_issued',
-      notes: `Refund Rp${fmt(refundAmount)} diproses oleh Finance. Alasan return: ${returnRecord.reason}`,
-      staff_id: user?.id ?? null
+    // Refund ATOMIC di server (process_refund_atomic): payment refund + jurnal
+    // sales_return + orders dp/lunas/payment_status + returns.refund_status +
+    // order_logs dalam SATU transaksi. Idempotent (guard refund_status +
+    // idempotency key) — menggantikan alur multi-step client yang bisa
+    // meninggalkan jurnal/payment yatim (temuan audit 2026-08-14).
+    const { error: refundErr } = await supabase.rpc('process_refund_atomic', {
+      p_return_id: returnRecord.id,
+      p_actor: user.id
     })
-    if (refundLogErr) { console.error('Gagal catat log refund:', refundLogErr) }
+    if (refundErr) {
+      setProcessingRefund(null)
+      toast('error', 'Gagal proses refund: ' + refundErr.message)
+      return
+    }
+
     setProcessingRefund(null)
     toast('success', `Refund ${fmt(refundAmount)} berhasil diproses!`)
     load()
@@ -1010,7 +836,7 @@ export default function FinancePaymentsPage() {
         </>
       )}
 
-      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth={440} padding="2rem" zIndex={200}>
+      <Modal open={!!selected} onClose={closePayModal} maxWidth={440} padding="2rem" zIndex={200}>
         {selected && (
           <>
             <h2
@@ -1205,7 +1031,7 @@ export default function FinancePaymentsPage() {
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button
                   type="button"
-                  onClick={() => setSelected(null)}
+                  onClick={closePayModal}
                   style={{
                     flex: 1,
                     padding: '0.75rem',

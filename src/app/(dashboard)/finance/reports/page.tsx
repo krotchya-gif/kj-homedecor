@@ -102,6 +102,8 @@ export default function FinanceReportsPage() {
     const src = String(o.source ?? 'unknown')
     bySource[src] = (bySource[src] ?? 0) + 1
   })
+  // Lebar bar proporsional (persen) agar TIDAK melebihi card saat jumlah pesanan besar.
+  const maxSourceCount = Math.max(1, ...Object.values(bySource))
 
   // Pengupahan penjahit
   interface PenjahitMap {
@@ -294,36 +296,51 @@ export default function FinanceReportsPage() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(340px, 100%), 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
         {/* Platform breakdown */}
-        <div className="form-section">
+        <div className="form-section" style={{ minWidth: 0, overflow: 'hidden' }}>
           <div className="form-section-title">📊 Breakdown per Platform</div>
           {Object.keys(bySource).length === 0 ? (
             <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem' }}>Tidak ada pesanan di periode ini</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', minWidth: 0 }}>
               {Object.entries(bySource)
                 .sort((a, b) => b[1] - a[1])
                 .map(([src, count]) => (
-                  <div key={src} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: '500', textTransform: 'capitalize' }}>{src}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div key={src} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', minWidth: 0 }}>
+                    <span style={{ fontSize: '0.875rem', fontWeight: '500', textTransform: 'capitalize', flexShrink: 0 }}>{src}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, justifyContent: 'flex-end', minWidth: 0 }}>
                       <div
                         style={{
+                          width: 140,
+                          maxWidth: '100%',
                           height: 8,
-                          width: Math.max(count * 20, 8),
-                          background: '#cc7030',
+                          background: 'var(--neutral-100)',
                           borderRadius: '999px',
-                          opacity: 0.7
+                          overflow: 'hidden',
+                          flexShrink: 1,
+                          minWidth: 24
                         }}
-                      />
+                      >
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${(count / maxSourceCount) * 100}%`,
+                            background: '#cc7030',
+                            borderRadius: '999px',
+                            opacity: 0.7
+                          }}
+                        />
+                      </div>
                       <span
                         style={{
                           background: 'var(--neutral-100)',
                           padding: '0.2rem 0.625rem',
                           borderRadius: '999px',
                           fontSize: '0.78rem',
-                          fontWeight: '600'
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
                         }}
                       >
                         {count} pesanan
@@ -336,7 +353,7 @@ export default function FinanceReportsPage() {
         </div>
 
         {/* Lembur summary */}
-        <div className="form-section">
+        <div className="form-section" style={{ minWidth: 0, overflow: 'hidden' }}>
           <div className="form-section-title">⏱️ Lembur Bulan Ini</div>
           {periodLembur.length === 0 ? (
             <p style={{ color: 'var(--neutral-400)', fontSize: '0.85rem' }}>Tidak ada catatan lembur</p>

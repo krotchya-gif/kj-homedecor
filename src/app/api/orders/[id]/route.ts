@@ -1,6 +1,8 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
+import { isPhotoRequired } from '@/lib/orders'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 // Pipeline: branching untuk kirim (delivery) vs pasang (delivery + installation)
 // 2026-07-31: payment_ok dipindah ke depan (new → payment_ok) — finance approve pembayaran
@@ -32,7 +34,8 @@ const ROLE_STATUS_PERMISSIONS: Record<string, string[]> = {
   finance: ['new->payment_ok'],
   admin: ['packed->scheduled'], // admin bisa input jadwal pasang
   // 2026-07-31: gudang pegang payment_ok→sorted (sortir setelah approve) + ready→packed (packing setelah Siap)
-  gudang: ['payment_ok->sorted', 'production->steam', 'steam->production', 'ready->packed'],
+  gudang: ['payment_ok->sorted', 'production->steam', 'steam->production', 'steam->ready', 'ready->packed'],
+  penjahit: ['production->steam'],
   installer: ['packed->shipped', 'scheduled->installing', 'installing->done']
 }
 
@@ -56,6 +59,9 @@ function isStatusTransitionAllowed(fromStatus: string, toStatus: string, userRol
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(request), 120, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
   const {
@@ -71,7 +77,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return NextResponse.json({ data: null, error: { message: 'Forbidden' } }, { status: 403 })
   }
 
-  const { data, error } = await supabase
+  const db = createServiceClient()
+
+  const { data, error } = await db
     .from('orders')
     .select('*, customer:customers(*), order_items(*, product:products(name))')
     .eq('id', id)
@@ -82,6 +90,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(request), 60, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
 
@@ -91,17 +102,19 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!user) return NextResponse.json({ data: null, error: { message: 'Unauthorized' } }, { status: 401 })
 
   // Get requester role — F-21 fix: lookup gagal → DENY (bukan fail-open ke 'admin')
-  const { data: requester } = await supabase.from('users').select('role').eq('id', user.id).single()
-  if (!requester) {
+  const { data: requester } = await supabase.from('users').select('role, status').eq('id', user.id).single()
+  if (!requester || requester.status !== 'active') {
     return NextResponse.json({ data: null, error: { message: 'User profile tidak ditemukan' } }, { status: 403 })
   }
 
   const userRole = requester.role ?? ''
   const body = await request.json()
+  const db = createServiceClient()
+  let previousStatus: string | null = null
 
   // Validate status transition if status is being changed
   if (body.status) {
-    const { data: current } = await supabase
+      const { data: current } = await db
       .from('orders')
       .select(
         'status, payment_status, total_amount, dp_amount, lunas_amount, classification, customer_id, scheduled_installation_date'
@@ -112,11 +125,18 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!current) {
       return NextResponse.json({ data: null, error: { message: 'Order not found' } }, { status: 404 })
     }
+    previousStatus = current.status
 
     // WAJIB: foto bukti pengerjaan harus di-upload (accountability)
     // photoUrls bisa dikirim via body.photo_urls atau body.progress_photos
     const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
-    if (photoEvidence.length === 0) {
+    // Auto-transition produksi (production→steam) tanpa foto: penjahit (sistem
+    // auto-advance saat job selesai) DAN gudang (auto-transition saat job
+    // produksi selesai di /gudang/production). Keduanya tetap role-gated di
+    // ROLE_STATUS_PERMISSIONS ('production->steam').
+    const isAutoProductionTransition =
+      body.auto_transition === true && current.status === 'production' && body.status === 'steam' && (userRole === 'penjahit' || userRole === 'gudang')
+    if (isPhotoRequired(body.status) && photoEvidence.length === 0 && !isAutoProductionTransition) {
       return NextResponse.json(
         {
           data: null,
@@ -186,7 +206,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // sorted → production: create production_job (server-side, idempotent)
     // Cek dulu apakah sudah ada production_job aktif untuk order ini (idempotency)
     if (body.status === 'production' && current.status === 'sorted') {
-      const { data: existingJob } = await supabase
+      const { data: existingJob } = await db
         .from('production_jobs')
         .select('id')
         .eq('order_id', id)
@@ -195,7 +215,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       if (!existingJob) {
         // Hitung total meter dari order_items
-        const { data: orderItems } = await supabase
+        const { data: orderItems } = await db
           .from('order_items')
           .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
           .eq('order_id', id)
@@ -210,7 +230,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           0
         )
 
-        const { error: jobErr } = await supabase.from('production_jobs').insert({
+        const { error: jobErr } = await db.from('production_jobs').insert({
           order_id: id,
           meter_gorden: totalMeterGorden,
           meter_vitras: totalMeterVitras,
@@ -231,7 +251,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Steam revision re-queue: when moving steam → production, create a new production_job
     if (body.status === 'production' && current.status === 'steam') {
       // Look up the failed steam_job to find the original production_job
-      const { data: latestSteamJob } = await supabase
+      const { data: latestSteamJob } = await db
         .from('steam_jobs')
         .select('id, production_job_id, fail_reason')
         .eq('order_id', id)
@@ -242,7 +262,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
       let originalPenjahitId: string | null = null
       if (latestSteamJob?.production_job_id) {
-        const { data: origJob } = await supabase
+        const { data: origJob } = await db
           .from('production_jobs')
           .select('penjahit_id')
           .eq('id', latestSteamJob.production_job_id)
@@ -251,7 +271,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
 
       // Calculate revision round
-      const { data: priorRevisions } = await supabase
+      const { data: priorRevisions } = await db
         .from('production_jobs')
         .select('revision_round')
         .eq('order_id', id)
@@ -260,7 +280,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       const nextRound = (priorRevisions?.[0]?.revision_round ?? -1) + 1
 
       // Create new production_job for re-do
-      const { data: newJob, error: newJobErr } = await supabase
+      const { data: newJob, error: newJobErr } = await db
         .from('production_jobs')
         .insert({
           order_id: id,
@@ -284,7 +304,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       const {
         data: { user: authUser }
       } = await supabase.auth.getUser()
-      await supabase.from('order_logs').insert({
+      await db.from('order_logs').insert({
         order_id: id,
         action: 'steam_revision_requeue',
         notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${latestSteamJob?.fail_reason ?? 'n/a'}. Job revisi: ${newJob.id.slice(0, 8)}`,
@@ -309,7 +329,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       }
 
       // Cek apakah sudah ada install_bookings row aktif
-      const { data: existingBooking } = await supabase
+      const { data: existingBooking } = await db
         .from('install_bookings')
         .select('id')
         .eq('order_id', id)
@@ -321,7 +341,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         // Get customer address (untuk default install_bookings.address)
         let defaultAddress = 'Alamat belum di-set'
         if (current.customer_id) {
-          const { data: customer } = await supabase
+            const { data: customer } = await db
             .from('customers')
             .select('address')
             .eq('id', current.customer_id)
@@ -330,7 +350,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         }
 
         // Insert install_bookings dengan status='pending'
-        const { data: newBooking, error: bookingErr } = await supabase
+        const { data: newBooking, error: bookingErr } = await db
           .from('install_bookings')
           .insert({
             order_id: id,
@@ -356,7 +376,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         const {
           data: { user: authUserBooking }
         } = await supabase.auth.getUser()
-        await supabase.from('order_logs').insert({
+        await db.from('order_logs').insert({
           order_id: id,
           action: 'install_started',
           notes: `Order masuk stage 'scheduled' → install_bookings auto-created (id: ${newBooking.id.slice(0, 8)}, status: pending). Admin perlu assign installer + tanggal.`,
@@ -384,13 +404,39 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (k in body) updateData[k] = body[k]
   }
 
-  const { data, error } = await supabase.from('orders').update(updateData).eq('id', id).select().single()
+  const { data, error } = await db.from('orders').update(updateData).eq('id', id).select().single()
   if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
+
+  if (body.status && previousStatus) {
+    const logAction: Record<string, string> = {
+      payment_ok: 'payment_verified',
+      sorted: 'sorted',
+      production: 'production_started',
+      steam: 'steam_qc_pass',
+      ready: 'qc_pass',
+      packed: 'packed',
+      shipped: 'shipped',
+      scheduled: 'install_started',
+      installing: 'install_started',
+      done: 'done',
+      cancelled: 'cancelled'
+    }
+    const isSpecialRevision = previousStatus === 'steam' && body.status === 'production'
+    const isSpecialSchedule = previousStatus === 'packed' && body.status === 'scheduled'
+    if (!isSpecialRevision && !isSpecialSchedule) {
+      await db.from('order_logs').insert({
+        order_id: id,
+        action: logAction[body.status] ?? 'status_changed',
+        notes: `Status order: ${previousStatus} → ${body.status}`,
+        staff_id: user.id
+      })
+    }
+  }
 
   // Simpan foto bukti ke order_progress_photos (bukan kolom orders)
   const photoEvidence: string[] = body.photo_urls ?? body.progress_photos ?? []
   for (const url of photoEvidence) {
-    const { error: photoErr } = await supabase.from('order_progress_photos').insert({
+    const { error: photoErr } = await db.from('order_progress_photos').insert({
       order_id: id,
       stage: body.status ?? 'progress',
       photo_url: url,
@@ -403,6 +449,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(request), 30, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
   const {
@@ -425,16 +474,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     )
   }
   const userRole = requester.role
+  const db = createServiceClient()
 
   // Log the deletion for audit trail before deleting
-  await supabase.from('order_logs').insert({
+  await db.from('order_logs').insert({
     order_id: id,
     action: 'order_deleted',
     notes: `Order dihapus oleh ${userRole} (${user.id})`,
     staff_id: user.id
   })
 
-  const { error } = await supabase.from('orders').delete().eq('id', id)
+  const { error } = await db.from('orders').delete().eq('id', id)
   if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
   return NextResponse.json({ data: { deleted: true }, error: null })
 }

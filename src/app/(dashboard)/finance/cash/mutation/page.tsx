@@ -77,7 +77,8 @@ export default function CashMutationPage() {
     // F-20 fix: saldo awal periode = saldo AKTUAL akun − total delta transaksi window.
     // cash_accounts.balance sudah live (di-update create_journal_atomic per transaksi),
     // jadi balance + delta window = double count (overstate).
-    // Dengan ini baris TERAKHIR selalu = balance aktual.
+    // Saldo dihitung dari transaksi TERLAMA → TERBARU (ascending dari query),
+    // sehingga baris TERBARU (paling atas setelah di-reverse) selalu = balance aktual.
     const totalDelta = journals.reduce((s, j) => s + Number(j.debit ?? 0) - Number(j.credit ?? 0), 0)
     const openingBalance = (cashAcc?.balance ?? 0) - totalDelta
     const result: (JournalLine & { entry?: JournalEntry | null; runningBalance?: number })[] = []
@@ -91,7 +92,8 @@ export default function CashMutationPage() {
         runningBalance: openingBalance + balance
       })
     })
-    return result
+    // Tampilkan TERBARU → TERLAMA (running balance tetap benar per baris).
+    return result.reverse()
   }, [journals, cashAcc])
 
   return (

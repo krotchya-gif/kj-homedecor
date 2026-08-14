@@ -154,9 +154,6 @@ export default function GudangQCPage() {
   async function handlePack(orderId: string) {
     if (packingId) return
     setPackingId(orderId)
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
     const now = new Date().toISOString()
 
     // F-16 fix: payment gate sebelum packing — order harus LUNAS (payment_status='paid').
@@ -172,24 +169,17 @@ export default function GudangQCPage() {
       return
     }
 
-    const { error: packErr } = await supabase
-      .from('orders')
-      .update({ status: 'packed', packed_at: now, packed_by: user?.id ?? null })
-      .eq('id', orderId)
-      .eq('status', 'ready')
-    if (packErr) {
+    const packRes = await fetch(`/api/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'packed', packed_at: now })
+    })
+    const packJson = await packRes.json().catch(() => null)
+    if (!packRes.ok) {
       setPackingId(null)
-      toast('error', 'Gagal mengemas order: ' + packErr.message)
+      toast('error', 'Gagal mengemas order: ' + (packJson?.error?.message ?? `HTTP ${packRes.status}`))
       return
     }
-
-    const { error: logErr } = await supabase.from('order_logs').insert({
-      order_id: orderId,
-      action: 'packed',
-      notes: 'Order dikemas oleh Gudang (Siap → Dikemas)',
-      staff_id: user?.id ?? null
-    })
-    if (logErr) { console.error('Gagal catat log packed:', logErr) }
 
     setPackingId(null)
     toast('success', '📦 Order dikemas! Status → Dikemas. Installer/Admin lanjut ke pengiriman/pasang.')
@@ -203,101 +193,28 @@ export default function GudangQCPage() {
     const {
       data: { user }
     } = await supabase.auth.getUser()
+    if (!user) {
+      setSaving(false)
+      toast('error', 'Sesi login berakhir.')
+      return
+    }
 
-    const isGood = returForm.condition === 'good'
-
-    // Update return record — final condition determined by Gudang
-    const { error: retUpdErr } = await supabase
-      .from('returns')
-      .update({
-        condition: returForm.condition,
-        notes: returForm.notes || null,
-        photo_evidence: returForm.photos.length > 0 ? returForm.photos : null,
-        resolved_at: new Date().toISOString()
-      })
-      .eq('id', selectedReturn.id)
-    if (retUpdErr) { setSaving(false); toast('error', 'Gagal update return: ' + retUpdErr.message); return }
-
-    // If good → stock in, if damaged → dispose
-    if (isGood) {
-      // Stock return into inventory - only the specific item from returns table
-      const { data: itemsToReturn } = selectedReturn.order_item_id
-        ? await supabase
-            .from('order_items')
-            .select('*, product:products(id,stock_toko)')
-            .eq('order_id', selectedReturn.order_id)
-            .eq('id', selectedReturn.order_item_id)
-        : await supabase
-            .from('order_items')
-            .select('*, product:products(id,stock_toko)')
-            .eq('order_id', selectedReturn.order_id)
-      for (const item of itemsToReturn ?? []) {
-        if (item.product_id) {
-          const { error: movErr } = await supabase.from('inventory_movements').insert({
-            product_id: item.product_id,
-            type: 'return_in',
-            qty: item.qty ?? 1,
-            reason: `Return confirmed GOOD oleh Gudang — order ${selectedReturn.order_id.slice(0, 8)}`,
-            created_by: user?.id ?? null
-          })
-          if (movErr) { setSaving(false); toast('error', 'Gagal catat stok masuk return: ' + movErr.message); return }
-          // increment stock_toko
-          const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', item.product_id).single()
-          if (prod) {
-            const { error: prodErr } = await supabase
-              .from('products')
-              .update({ stock_toko: (prod.stock_toko ?? 0) + (item.qty ?? 1) })
-              .eq('id', item.product_id)
-            if (prodErr) { setSaving(false); toast('error', 'Stok tercatat, tapi gagal update stok produk: ' + prodErr.message); return }
-          }
-        }
-      }
-      const { error: stockLogErr } = await supabase.from('order_logs').insert({
-        order_id: selectedReturn.order_id,
-        action: 'return_stock_in',
-        notes: `Return confirmed GOOD oleh Gudang — stock masuk ke toko. Foto: ${returForm.photos.length} bukti.`,
-        staff_id: user?.id ?? null
-      })
-      if (stockLogErr) { console.error('Gagal catat log return stock:', stockLogErr) }
-    } else {
-      // For damaged dispose, we need to know which product - use order_item_id from returns
-      const { data: returnItem } = await supabase
-        .from('returns')
-        .select('order_item_id, qty')
-        .eq('id', selectedReturn.id)
-        .single()
-      if (returnItem?.order_item_id) {
-        const { data: item } = await supabase
-          .from('order_items')
-          .select('product_id, qty')
-          .eq('id', returnItem.order_item_id)
-          .single()
-        if (item?.product_id) {
-          const { error: disposeErr } = await supabase.from('inventory_movements').insert({
-            product_id: item.product_id,
-            type: 'dispose',
-            qty: item.qty ?? 1,
-            reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
-            created_by: user?.id ?? null
-          })
-          if (disposeErr) { setSaving(false); toast('error', 'Gagal catat disposal: ' + disposeErr.message); return }
-        }
-      } else {
-        const { error: disposeErr } = await supabase.from('inventory_movements').insert({
-          type: 'dispose',
-          qty: selectedReturn.qty ?? 1,
-          reason: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}`,
-          created_by: user?.id ?? null
-        })
-        if (disposeErr) { setSaving(false); toast('error', 'Gagal catat disposal: ' + disposeErr.message); return }
-      }
-      const { error: disposeLogErr } = await supabase.from('order_logs').insert({
-        order_id: selectedReturn.order_id,
-        action: 'return_disposed',
-        notes: `Return confirmed DAMAGED oleh Gudang — disposed. Alasan return: ${selectedReturn.reason}.`,
-        staff_id: user?.id ?? null
-      })
-      if (disposeLogErr) { console.error('Gagal catat log disposal:', disposeLogErr) }
+    // Verifikasi retur ATOMIC di server (resolve_return_atomic): update returns +
+    // stok masuk (good) / disposal (damaged) + inventory_movements + order_logs
+    // dalam SATU transaksi. RLS returns UPDATE hanya finance → jalur gudang lama
+    // (direct client write) akan gagal; RPC SECURITY DEFINER dengan role-gate
+    // gudang/admin/owner menggantikannya (temuan audit 2026-08-14).
+    const { error: rpcErr } = await supabase.rpc('resolve_return_atomic', {
+      p_return_id: selectedReturn.id,
+      p_condition: returForm.condition,
+      p_notes: returForm.notes || null,
+      p_photos: returForm.photos,
+      p_actor: user.id
+    })
+    if (rpcErr) {
+      setSaving(false)
+      toast('error', 'Gagal verifikasi return: ' + rpcErr.message)
+      return
     }
 
     setSaving(false)

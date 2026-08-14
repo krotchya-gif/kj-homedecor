@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- KJ Homedecor — Full Schema (Konsolidasi 001–058)
 -- ============================================================
 -- Dibuat untuk migrasi ke akun Supabase baru.
@@ -149,13 +149,13 @@ CREATE TABLE IF NOT EXISTS public.orders (
 );
 
 -- VIEW order_totals (live — agregasi DP/lunas per order; sync schema file = live)
--- 087: security_invoker = true (bukan SECURITY DEFINER)
+-- 088 (audit 2026-08-14): payment yang di-void (voided_at IS NOT NULL) TIDAK dihitung.
 CREATE OR REPLACE VIEW public.order_totals AS
   SELECT o.id,
     o.status,
     o.total_amount,
-    COALESCE(sum(p.amount) FILTER (WHERE p.type = 'dp'::text), 0::numeric) AS total_dp,
-    COALESCE(sum(p.amount) FILTER (WHERE p.type = 'lunas'::text), 0::numeric) AS total_lunas
+    COALESCE(sum(p.amount) FILTER (WHERE p.type = 'dp'::text AND p.voided_at IS NULL), 0::numeric) AS total_dp,
+    COALESCE(sum(p.amount) FILTER (WHERE p.type = 'lunas'::text AND p.voided_at IS NULL), 0::numeric) AS total_lunas
   FROM orders o
   LEFT JOIN payments p ON p.order_id = o.id
   GROUP BY o.id;
@@ -171,7 +171,8 @@ CREATE TABLE IF NOT EXISTS public.order_logs (
     'qc_pass','qc_fail','ready','packed','shipped','installed','done',
     'return_initiated','return_stock_in','return_disposed','cancelled',
     'penjahit_assigned','install_started','install_done','install_revision',
-    'steam_qc_pass','steam_revision_requeue','order_deleted','status_changed'
+    'steam_qc_pass','steam_revision_requeue','order_deleted','status_changed',
+    'item_added','item_removed','survey_linked','installation_scheduled'
   )),
   description TEXT,
   notes       TEXT,
@@ -360,8 +361,13 @@ CREATE TABLE IF NOT EXISTS public.payments (
   verified_by       UUID REFERENCES public.users(id),
   verified_at       TIMESTAMPTZ,
   notes             TEXT,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- 088 (audit 2026-08-14): idempotency per payment (anti double-pay retry) +
+  -- flag void untuk cancel (jangan andalkan parsing notes).
+  idempotency_key   TEXT,
+  voided_at         TIMESTAMPTZ
 );
+CREATE UNIQUE INDEX IF NOT EXISTS payments_idempotency_unique ON public.payments (idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 -- RETURNS
 CREATE TABLE IF NOT EXISTS public.returns (
@@ -765,6 +771,9 @@ CREATE TABLE IF NOT EXISTS public.cash_accounts (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- 088 (audit 2026-08-14): satu cash_account per account_id — jurnal tidak boleh
+-- meng-update dua baris kas untuk akun yang sama.
+CREATE UNIQUE INDEX IF NOT EXISTS cash_accounts_account_id_key ON public.cash_accounts (account_id);
 
 -- 077 fix: seed E Wallet Tiktok (1104) — saldo settlement marketplace TikTok di-track
 -- oleh create_journal_atomic (cocokkan account_id dengan baris jurnal).
@@ -845,14 +854,16 @@ CREATE INDEX IF NOT EXISTS idx_order_logs_action ON public.order_logs(action);
 -- Production jobs
 CREATE INDEX IF NOT EXISTS idx_production_jobs_order_id ON public.production_jobs(order_id);
 CREATE INDEX IF NOT EXISTS idx_production_jobs_penjahit_id ON public.production_jobs(penjahit_id);
+CREATE INDEX IF NOT EXISTS idx_production_jobs_revision_of ON public.production_jobs(revision_of);
 
 -- Production reports
--- (idx_production_reports_job_id di-drop 087 — tak terpakai)
+CREATE INDEX IF NOT EXISTS idx_production_reports_job_id ON public.production_reports(production_job_id);
 
 -- Inventory movements
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_id ON public.inventory_movements(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_order_id ON public.inventory_movements(order_id) WHERE order_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_material_id ON public.inventory_movements(material_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_production_job_id ON public.inventory_movements(production_job_id);
 
 -- Materials / purchasing (087: index FK hot)
 CREATE INDEX IF NOT EXISTS idx_materials_supplier_id ON public.materials(supplier_id);
@@ -867,6 +878,18 @@ CREATE INDEX IF NOT EXISTS idx_returns_status ON public.returns(refund_status);
 
 -- QC records
 CREATE INDEX IF NOT EXISTS idx_qc_records_order_id ON public.qc_records(order_id);
+CREATE INDEX IF NOT EXISTS idx_qc_records_order_item_id ON public.qc_records(order_item_id);
+CREATE INDEX IF NOT EXISTS idx_qc_records_checked_by ON public.qc_records(checked_by);
+
+-- Material price history
+CREATE INDEX IF NOT EXISTS idx_material_price_history_material_id ON public.material_price_history(material_id);
+CREATE INDEX IF NOT EXISTS idx_material_price_history_supplier_id ON public.material_price_history(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_material_price_history_changed_by ON public.material_price_history(changed_by);
+
+-- Order logs
+CREATE INDEX IF NOT EXISTS idx_order_logs_order_id ON public.order_logs(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_logs_staff_id ON public.order_logs(staff_id);
+CREATE INDEX IF NOT EXISTS idx_order_logs_created_by ON public.order_logs(created_by);
 
 -- Customers
 CREATE INDEX IF NOT EXISTS idx_customers_phone ON public.customers(phone);
@@ -881,21 +904,46 @@ CREATE INDEX IF NOT EXISTS idx_install_bookings_status ON public.install_booking
 CREATE INDEX IF NOT EXISTS idx_install_bookings_scheduled_date ON public.install_bookings(scheduled_date);
 CREATE INDEX IF NOT EXISTS idx_install_bookings_type ON public.install_bookings(type);
 CREATE INDEX IF NOT EXISTS idx_install_bookings_created_at ON public.install_bookings(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_install_bookings_order_id ON public.install_bookings(order_id);
+CREATE INDEX IF NOT EXISTS idx_install_bookings_customer_id ON public.install_bookings(customer_id);
+CREATE INDEX IF NOT EXISTS idx_install_bookings_installer_id ON public.install_bookings(installer_id);
 
 -- Steam jobs
 CREATE INDEX IF NOT EXISTS idx_steam_jobs_order_id ON public.steam_jobs(order_id);
 CREATE INDEX IF NOT EXISTS idx_steam_jobs_status ON public.steam_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_steam_jobs_production_job_id ON public.steam_jobs(production_job_id);
+CREATE INDEX IF NOT EXISTS idx_steam_jobs_laundry_id ON public.steam_jobs(laundry_id);
 
 -- Laundry
 CREATE INDEX IF NOT EXISTS idx_laundry_orders_status ON public.laundry_orders(status);
 CREATE INDEX IF NOT EXISTS idx_laundry_orders_assigned_to ON public.laundry_orders(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_laundry_orders_received_at ON public.laundry_orders(received_at);
+CREATE INDEX IF NOT EXISTS idx_laundry_orders_created_by ON public.laundry_orders(created_by);
 CREATE INDEX IF NOT EXISTS idx_laundry_payroll_staff_id ON public.laundry_payroll(staff_id);
 CREATE INDEX IF NOT EXISTS idx_laundry_payroll_period ON public.laundry_payroll(period_year, period_month);
 
 -- Order progress photos
 CREATE INDEX IF NOT EXISTS idx_order_progress_photos_order_id ON public.order_progress_photos(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_progress_photos_stage ON public.order_progress_photos(stage);
+
+-- Order foreign keys and accounting references
+CREATE INDEX IF NOT EXISTS idx_orders_installed_by ON public.orders(installed_by);
+CREATE INDEX IF NOT EXISTS idx_orders_packed_by ON public.orders(packed_by);
+CREATE INDEX IF NOT EXISTS idx_orders_shipped_by ON public.orders(shipped_by);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_created_by ON public.journal_entries(created_by);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_account_id ON public.journal_entries(account_id);
+CREATE INDEX IF NOT EXISTS idx_journal_entries_cash_account_id ON public.journal_entries(cash_account_id);
+CREATE INDEX IF NOT EXISTS idx_piutang_created_by ON public.piutang(created_by);
+CREATE INDEX IF NOT EXISTS idx_piutang_customer_id ON public.piutang(customer_id);
+CREATE INDEX IF NOT EXISTS idx_piutang_order_id ON public.piutang(order_id);
+CREATE INDEX IF NOT EXISTS idx_hutang_created_by ON public.hutang(created_by);
+CREATE INDEX IF NOT EXISTS idx_hutang_supplier_id ON public.hutang(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_production_reports_penjahit_id ON public.production_reports(penjahit_id);
+CREATE INDEX IF NOT EXISTS idx_survey_rooms_survey_id ON public.survey_rooms(survey_id);
+CREATE INDEX IF NOT EXISTS idx_survey_room_photos_room_id ON public.survey_room_photos(room_id);
+CREATE INDEX IF NOT EXISTS idx_survey_logs_survey_id ON public.survey_logs(survey_id);
+CREATE INDEX IF NOT EXISTS idx_survey_logs_user_id ON public.survey_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_tiktok_statements_piutang_id ON public.tiktok_shop_statements(piutang_id);
 
 -- Material price history
 CREATE INDEX IF NOT EXISTS idx_mph_material_recorded ON public.material_price_history(material_id, recorded_at DESC);
@@ -1175,8 +1223,8 @@ CREATE POLICY "Authenticated staff full access" ON public.users
   FOR ALL USING (auth.role() = 'authenticated');
 -- 078 fix (BUG-059): customers/materials/suppliers/orders tidak lagi permissive.
 -- SELECT semua staff aktif; tulis admin/owner (orders: INSERT finance/admin/owner).
-CREATE POLICY "All staff read customers" ON public.customers
-  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Operations read customers" ON public.customers
+  FOR SELECT TO authenticated USING (public.can_view_customer_data_sd(customers.id));
 CREATE POLICY "Admin manage customers" ON public.customers
   FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 CREATE POLICY "All staff read materials" ON public.materials
@@ -1187,12 +1235,23 @@ CREATE POLICY "All staff read suppliers" ON public.suppliers
   FOR SELECT USING (public.is_staff_active_sd());
 CREATE POLICY "Admin manage suppliers" ON public.suppliers
   FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
-CREATE POLICY "All staff read orders" ON public.orders
-  FOR SELECT USING (public.is_staff_active_sd());
+CREATE POLICY "Operations read orders" ON public.orders
+  FOR SELECT TO authenticated USING (
+    public.is_finance_role()
+    OR public.is_gudang_role_sd()
+    OR EXISTS (
+      SELECT 1 FROM public.production_jobs pj
+      WHERE pj.order_id = orders.id AND pj.penjahit_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1 FROM public.install_bookings ib
+      WHERE ib.order_id = orders.id AND ib.installer_id = auth.uid()
+    )
+  );
 CREATE POLICY "Finance admin owner insert orders" ON public.orders
   FOR INSERT WITH CHECK (public.is_finance_role());
-CREATE POLICY "All staff update orders" ON public.orders
-  FOR UPDATE USING (public.is_staff_active_sd()) WITH CHECK (public.is_staff_active_sd());
+CREATE POLICY "Admin owner update orders" ON public.orders
+  FOR UPDATE TO authenticated USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 CREATE POLICY "Admin owner delete orders" ON public.orders
   FOR DELETE USING (public.is_admin_or_owner_sd());
 CREATE POLICY "Authenticated staff access" ON public.order_items
@@ -1211,8 +1270,8 @@ CREATE POLICY "Authenticated staff access" ON public.purchase_orders
   FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated staff access" ON public.install_checklists
   FOR ALL USING (auth.role() = 'authenticated');
-CREATE POLICY "Authenticated staff access" ON public.payments
-  FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Finance manage payments" ON public.payments
+  FOR ALL TO authenticated USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 CREATE POLICY "Authenticated staff access" ON public.lembur_records
   FOR ALL USING (auth.role() = 'authenticated');
 CREATE POLICY "Authenticated staff access" ON public.qc_records
@@ -1266,18 +1325,36 @@ CREATE POLICY "Authenticated users can view returns" ON public.returns
 CREATE POLICY "Authenticated users can insert returns" ON public.returns
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- Install bookings: public insert + select (website booking) + staff access
-CREATE POLICY "Public can insert install_bookings" ON public.install_bookings
-  FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public can read install_bookings" ON public.install_bookings
-  FOR SELECT USING (true);
--- 078 fix (BUG-059): ganti FOR ALL authenticated → SELECT staff, UPDATE installer, manage admin/owner
-CREATE POLICY "All staff read install_bookings" ON public.install_bookings
-  FOR SELECT USING (public.is_staff_active_sd());
+-- Install bookings: public booking via RPC create_public_booking (INSERT policy
+-- publik DROP di 088 — field internal tidak bisa di-spoof) + staff access
+-- 088: public insert langsung dihapus; booking publik lewat RPC SECURITY DEFINER
+-- yang memaksa status/source/installer/order/customer.
+CREATE OR REPLACE FUNCTION public.get_public_booking_slots(p_from date DEFAULT CURRENT_DATE, p_to date DEFAULT (CURRENT_DATE + 365))
+RETURNS TABLE(scheduled_date date, scheduled_time time)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT ib.scheduled_date, ib.scheduled_time
+  FROM public.install_bookings ib
+  WHERE ib.status IN ('pending', 'scheduled')
+    AND ib.scheduled_date IS NOT NULL
+    AND ib.scheduled_date BETWEEN p_from AND p_to
+  ORDER BY ib.scheduled_date, ib.scheduled_time;
+$$;
+REVOKE ALL ON FUNCTION public.get_public_booking_slots(date, date) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_public_booking_slots(date, date) TO anon, authenticated;
+-- 078 fix: public hanya boleh insert booking; slot publik dibaca lewat RPC terbatas.
+-- Staff hanya membaca booking operasional yang memang dibutuhkan.
+CREATE POLICY "Operations read install_bookings" ON public.install_bookings
+  FOR SELECT TO authenticated USING (
+    public.is_finance_role()
+    OR public.is_gudang_role_sd()
+    OR (public.is_installer_sd() AND installer_id = auth.uid())
+  );
 CREATE POLICY "Admin manage install_bookings" ON public.install_bookings
   FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
-CREATE POLICY "Installer update install_bookings" ON public.install_bookings
-  FOR UPDATE USING (public.is_installer_sd()) WITH CHECK (public.is_installer_sd());
 
 -- Order preparation checklists: authenticated full access (kondisi live)
 CREATE POLICY "Authenticated users can manage own checklist" ON public.order_preparation_checklists
@@ -1787,6 +1864,144 @@ REVOKE ALL ON FUNCTION public.is_installer_sd() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.is_installer_sd() FROM anon;
 GRANT EXECUTE ON FUNCTION public.is_installer_sd() TO authenticated;
 
+CREATE OR REPLACE FUNCTION public.is_gudang_role_sd()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND status = 'active' AND role = 'gudang'
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_gudang_role_sd() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.is_gudang_role_sd() FROM anon;
+GRANT EXECUTE ON FUNCTION public.is_gudang_role_sd() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.can_view_customer_data_sd(p_customer_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    public.is_finance_role()
+    OR public.is_gudang_role_sd()
+    OR EXISTS (
+      SELECT 1
+      FROM public.orders o
+      JOIN public.production_jobs pj ON pj.order_id = o.id
+      WHERE o.customer_id = p_customer_id AND pj.penjahit_id = auth.uid()
+    )
+    OR EXISTS (
+      SELECT 1
+      FROM public.orders o
+      JOIN public.install_bookings ib ON ib.order_id = o.id
+      WHERE o.customer_id = p_customer_id AND ib.installer_id = auth.uid()
+    );
+$$;
+REVOKE ALL ON FUNCTION public.can_view_customer_data_sd(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_view_customer_data_sd(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.can_view_customer_data_sd(uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.receive_purchase_order_atomic(p_po_id uuid, p_received_by uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_status text;
+  v_material_id uuid;
+  v_qty numeric;
+  v_new_stock numeric;
+BEGIN
+  -- 088: role check dari SESSION (anti spoof p_received_by)
+  IF NOT public.actor_is_active_with_role(p_received_by, ARRAY['gudang', 'admin', 'owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner aktif';
+  END IF;
+  SELECT po.status, pr.material_id, pr.qty
+  INTO v_status, v_material_id, v_qty
+  FROM public.purchase_orders po
+  LEFT JOIN public.purchase_requests pr ON pr.id = po.pr_id
+  WHERE po.id = p_po_id
+  FOR UPDATE OF po;
+  IF NOT FOUND THEN RAISE EXCEPTION 'PO tidak ditemukan'; END IF;
+  IF v_status <> 'delivered' THEN RAISE EXCEPTION 'PO harus berstatus delivered (sekarang: %)', v_status; END IF;
+  IF v_material_id IS NULL OR COALESCE(v_qty, 0) <= 0 THEN RAISE EXCEPTION 'PO tidak memiliki material/qty valid'; END IF;
+  UPDATE public.materials SET stock_gudang = COALESCE(stock_gudang, 0) + v_qty
+  WHERE id = v_material_id RETURNING stock_gudang INTO v_new_stock;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Material PO tidak ditemukan'; END IF;
+  UPDATE public.purchase_orders SET status = 'received', received_at = NOW() WHERE id = p_po_id;
+  INSERT INTO public.inventory_movements (material_id, type, qty, to_location, reason, created_by, new_stock)
+  VALUES (v_material_id, 'in', v_qty, 'gudang', 'PO delivery confirmed by Gudang — PO ' || left(p_po_id::text, 8), p_received_by, v_new_stock);
+  RETURN jsonb_build_object('id', p_po_id, 'status', 'received', 'material_id', v_material_id, 'qty', v_qty, 'new_stock', v_new_stock);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.receive_purchase_order_atomic(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.receive_purchase_order_atomic(uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.receive_purchase_order_atomic(uuid, uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.update_survey_atomic(p_survey_id uuid, p_actor_id uuid, p_patch jsonb, p_rooms jsonb DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_surveyor_id uuid;
+  v_room jsonb;
+  v_photo jsonb;
+  v_room_id uuid;
+  v_idx integer := 0;
+BEGIN
+  -- 088: role check dari SESSION (p_actor_id = auth.uid(); service_role untuk server)
+  IF NOT public.actor_is_active_with_role(p_actor_id, ARRAY['admin', 'owner', 'surveyor']) THEN
+    RAISE EXCEPTION 'Forbidden: staff tidak aktif';
+  END IF;
+  SELECT surveyor_id INTO v_surveyor_id FROM public.surveys WHERE id = p_survey_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Survey tidak ditemukan'; END IF;
+  IF NOT public.actor_is_active_with_role(p_actor_id, ARRAY['admin', 'owner']) THEN
+    IF v_surveyor_id IS DISTINCT FROM p_actor_id THEN
+      RAISE EXCEPTION 'Forbidden: bukan pemilik survey';
+    END IF;
+  END IF;
+  UPDATE public.surveys
+  SET client_name = CASE WHEN p_patch ? 'client_name' THEN p_patch->>'client_name' ELSE client_name END,
+      client_address = CASE WHEN p_patch ? 'client_address' THEN p_patch->>'client_address' ELSE client_address END,
+      survey_date = CASE WHEN p_patch ? 'survey_date' THEN (p_patch->>'survey_date')::date ELSE survey_date END,
+      status = CASE WHEN p_patch ? 'status' THEN p_patch->>'status' ELSE status END,
+      gps_lat = CASE WHEN p_patch ? 'gps_lat' AND p_patch->>'gps_lat' IS NOT NULL THEN (p_patch->>'gps_lat')::numeric ELSE gps_lat END,
+      gps_lng = CASE WHEN p_patch ? 'gps_lng' AND p_patch->>'gps_lng' IS NOT NULL THEN (p_patch->>'gps_lng')::numeric ELSE gps_lng END,
+      notes = CASE WHEN p_patch ? 'notes' THEN p_patch->>'notes' ELSE notes END,
+      signature = CASE WHEN p_patch ? 'signature' THEN p_patch->>'signature' ELSE signature END,
+      signature_name = CASE WHEN p_patch ? 'signature_name' THEN p_patch->>'signature_name' ELSE signature_name END,
+      updated_at = NOW()
+  WHERE id = p_survey_id;
+  IF p_rooms IS NOT NULL THEN
+    DELETE FROM public.survey_rooms WHERE survey_id = p_survey_id;
+    FOR v_room IN SELECT value FROM jsonb_array_elements(p_rooms)
+    LOOP
+      INSERT INTO public.survey_rooms (survey_id, room_name, width_cm, height_cm, model_gorden, fabric_name, fabric_photo, vitras_name, vitras_photo, rel_gorden, rel_vitras, hook, notes, sort_order)
+      VALUES (p_survey_id, COALESCE(v_room->>'room_name', ''), NULLIF(v_room->>'width_cm', '')::numeric, NULLIF(v_room->>'height_cm', '')::numeric, v_room->>'model_gorden', v_room->>'fabric_name', v_room->>'fabric_photo', v_room->>'vitras_name', v_room->>'vitras_photo', v_room->>'rel_gorden', v_room->>'rel_vitras', v_room->>'hook', v_room->>'notes', COALESCE((v_room->>'sort_order')::integer, v_idx))
+      RETURNING id INTO v_room_id;
+      FOR v_photo IN SELECT value FROM jsonb_array_elements(COALESCE(v_room->'photos', '[]'::jsonb))
+      LOOP
+        INSERT INTO public.survey_room_photos (room_id, url, sort_order) VALUES (v_room_id, v_photo->>'url', COALESCE((v_photo->>'sort_order')::integer, 0));
+      END LOOP;
+      v_idx := v_idx + 1;
+    END LOOP;
+  END IF;
+  RETURN jsonb_build_object('id', p_survey_id, 'updated', true);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.update_survey_atomic(uuid, uuid, jsonb, jsonb) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.update_survey_atomic(uuid, uuid, jsonb, jsonb) FROM anon;
+GRANT EXECUTE ON FUNCTION public.update_survey_atomic(uuid, uuid, jsonb, jsonb) TO authenticated;
+
 -- ---------- 10.6 Fungsi lain final ----------
 CREATE OR REPLACE FUNCTION public.generate_survey_number()
 RETURNS TEXT
@@ -1801,7 +2016,8 @@ AS $$
 $$;
 
 -- RPC jurnal atomik (064/066 — nama FINAL create_journal_atomic)
--- isi body mengikuti migration 066 (role check + idempotency + update saldo kas)
+-- 088 (audit 2026-08-14): idempotency key WAJIB + created_by terikat session
+-- + validasi line eksplisit + race-safe ON CONFLICT.
 CREATE OR REPLACE FUNCTION public.create_journal_atomic(
   p_idempotency_key TEXT,
   p_reference_type TEXT,
@@ -1822,31 +2038,38 @@ DECLARE
   v_total_debit NUMERIC := 0;
   v_total_credit NUMERIC := 0;
   v_line RECORD;
-  v_duplicate UUID;
+  v_debit NUMERIC;
+  v_credit NUMERIC;
   v_result JSONB;
 BEGIN
   IF NOT public.is_finance_role() AND auth.jwt() ->> 'role' <> 'service_role' THEN
     RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner';
   END IF;
+  -- 088: idempotency key WAJIB — retry/klik ganda tidak boleh bikin jurnal ganda
+  IF p_idempotency_key IS NULL OR btrim(p_idempotency_key) = '' THEN
+    RAISE EXCEPTION 'idempotency_key wajib diisi untuk jurnal (anti dobel)';
+  END IF;
+  -- 088: created_by tidak bisa dipalsukan — untuk session user selalu auth.uid()
+  IF auth.jwt() ->> 'role' <> 'service_role' THEN
+    p_created_by := auth.uid();
+  END IF;
   IF p_lines IS NULL OR jsonb_array_length(p_lines) = 0 THEN
     RAISE EXCEPTION 'Minimal 1 baris jurnal';
-  END IF;
-  IF p_idempotency_key IS NOT NULL THEN
-    SELECT id INTO v_duplicate FROM public.journal_entries WHERE idempotency_key = p_idempotency_key;
-    IF v_duplicate IS NOT NULL THEN
-      SELECT jsonb_build_object('id', id, 'idempotent', true, 'entry_date', entry_date, 'description', description)
-        INTO v_result FROM public.journal_entries WHERE id = v_duplicate;
-      RETURN v_result;
-    END IF;
   END IF;
   FOR v_line IN SELECT * FROM jsonb_to_recordset(p_lines) AS x(account_id UUID, debit NUMERIC, credit NUMERIC)
   LOOP
     IF v_line.account_id IS NULL THEN RAISE EXCEPTION 'account_id wajib di setiap baris'; END IF;
-    IF (v_line.debit > 0) = (v_line.credit > 0) THEN
+    v_debit := COALESCE(v_line.debit, 0);
+    v_credit := COALESCE(v_line.credit, 0);
+    -- 088: validasi eksplisit (three-valued logic sebelumnya membiarkan NULL lolos)
+    IF v_debit < 0 OR v_credit < 0 THEN
+      RAISE EXCEPTION 'Nominal debit/credit tidak boleh negatif';
+    END IF;
+    IF (v_debit > 0 AND v_credit > 0) OR (v_debit = 0 AND v_credit = 0) THEN
       RAISE EXCEPTION 'Setiap baris harus punya tepat satu sisi (debit ATAU credit)';
     END IF;
-    v_total_debit := v_total_debit + COALESCE(v_line.debit, 0);
-    v_total_credit := v_total_credit + COALESCE(v_line.credit, 0);
+    v_total_debit := v_total_debit + v_debit;
+    v_total_credit := v_total_credit + v_credit;
   END LOOP;
   IF ABS(v_total_debit - v_total_credit) > 0.01 THEN
     RAISE EXCEPTION 'Journal tidak balance - debit %, credit %', v_total_debit, v_total_credit;
@@ -1855,7 +2078,14 @@ BEGIN
     total_debit, total_credit, is_auto, created_by, idempotency_key)
   VALUES (p_entry_date, p_description, p_reference_type, p_reference_id,
     v_total_debit, v_total_credit, COALESCE(p_is_auto, false), p_created_by, p_idempotency_key)
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING
   RETURNING id INTO v_entry_id;
+  IF v_entry_id IS NULL THEN
+    SELECT jsonb_build_object('id', id, 'idempotent', true,
+      'entry_date', entry_date, 'description', description)
+      INTO v_result FROM public.journal_entries WHERE idempotency_key = p_idempotency_key;
+    RETURN v_result;
+  END IF;
   INSERT INTO public.journal_lines (entry_id, account_id, debit, credit, description)
   SELECT v_entry_id, (x.record).account_id, COALESCE((x.record).debit, 0),
     COALESCE((x.record).credit, 0), COALESCE((x.record).description, NULL)
@@ -2068,7 +2298,8 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) FROM anon;
-GRANT EXECUTE ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) TO authenticated;
+REVOKE ALL ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) TO service_role;
 
 -- Versi FINAL RPC stock & pipeline dengan role check (067)
 CREATE OR REPLACE FUNCTION public.increment_stock_toko(product_id UUID, amount NUMERIC)
@@ -2110,7 +2341,288 @@ REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM anon;
 GRANT EXECUTE ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) TO authenticated;
 
--- advance_install_booking_status FINAL (067: role check + search_path; body 061)
+CREATE OR REPLACE FUNCTION public.adjust_stock_atomic(p_target_type text, p_item_id uuid, p_location text, p_direction text, p_qty numeric, p_reason text, p_notes text, p_actor uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE v_new_stock numeric; v_type text;
+BEGIN
+  -- 088: role check dari SESSION (anti spoof p_actor)
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['gudang','admin','owner']) THEN RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner aktif'; END IF;
+  IF p_target_type NOT IN ('material','produk') OR p_location NOT IN ('gudang','toko') OR p_direction NOT IN ('add','reduce') THEN RAISE EXCEPTION 'Parameter adjustment stok tidak valid'; END IF;
+  IF p_target_type = 'produk' AND p_location <> 'toko' THEN RAISE EXCEPTION 'Produk jadi hanya memiliki stok toko'; END IF;
+  IF p_qty IS NULL OR p_qty <= 0 THEN RAISE EXCEPTION 'Qty harus lebih besar dari 0'; END IF;
+  v_type := CASE WHEN p_direction = 'add' THEN 'in' ELSE 'out' END;
+  IF p_target_type = 'material' AND p_location = 'gudang' THEN
+    UPDATE public.materials SET stock_gudang = CASE WHEN p_direction = 'add' THEN COALESCE(stock_gudang,0)+p_qty ELSE GREATEST(COALESCE(stock_gudang,0)-p_qty,0) END WHERE id=p_item_id RETURNING stock_gudang INTO v_new_stock;
+  ELSIF p_target_type = 'material' THEN
+    UPDATE public.materials SET stock_toko = CASE WHEN p_direction = 'add' THEN COALESCE(stock_toko,0)+p_qty ELSE GREATEST(COALESCE(stock_toko,0)-p_qty,0) END WHERE id=p_item_id RETURNING stock_toko INTO v_new_stock;
+  ELSE
+    UPDATE public.products SET stock_toko = CASE WHEN p_direction = 'add' THEN COALESCE(stock_toko,0)+p_qty ELSE GREATEST(COALESCE(stock_toko,0)-p_qty,0) END WHERE id=p_item_id RETURNING stock_toko INTO v_new_stock;
+  END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Item stok tidak ditemukan'; END IF;
+  INSERT INTO public.inventory_movements (material_id, product_id, type, qty, from_location, to_location, reason, notes, new_stock, created_by)
+  VALUES (CASE WHEN p_target_type='material' THEN p_item_id ELSE NULL END, CASE WHEN p_target_type='produk' THEN p_item_id ELSE NULL END, v_type, p_qty, CASE WHEN p_direction='reduce' THEN p_location ELSE NULL END, CASE WHEN p_direction='add' THEN p_location ELSE NULL END, COALESCE(p_reason,'Adjustment'), p_notes, v_new_stock, p_actor);
+  RETURN jsonb_build_object('target_type',p_target_type,'item_id',p_item_id,'location',p_location,'direction',p_direction,'qty',p_qty,'new_stock',v_new_stock);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.adjust_stock_atomic(text, uuid, text, text, numeric, text, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.adjust_stock_atomic(text, uuid, text, text, numeric, text, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.adjust_stock_atomic(text, uuid, text, text, numeric, text, text, uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.process_order_return_atomic(p_order_id uuid, p_order_item_id uuid, p_reason text, p_condition text, p_qty numeric, p_refund_amount numeric, p_actor uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_item record;
+  v_return_id uuid;
+  v_refund numeric := GREATEST(COALESCE(p_refund_amount, 0), 0);
+  v_qty numeric := GREATEST(COALESCE(p_qty, 1), 1);
+  v_count integer := 0;
+  v_status text;
+BEGIN
+  -- 088: role check dari SESSION (anti spoof p_actor)
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN RAISE EXCEPTION 'Alasan return wajib diisi'; END IF;
+  IF p_condition NOT IN ('good','damaged') THEN RAISE EXCEPTION 'Kondisi return tidak valid'; END IF;
+  -- 088: qty negatif/0 ditolak (sebelumnya diam-diam dipaksa jadi 1)
+  IF p_qty IS NOT NULL AND p_qty <= 0 THEN RAISE EXCEPTION 'Qty return harus lebih dari 0'; END IF;
+  IF p_refund_amount IS NOT NULL AND p_refund_amount < 0 THEN RAISE EXCEPTION 'Refund tidak boleh negatif'; END IF;
+  SELECT status INTO v_status FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+  -- 088: idempotency bisnis — order yang sudah diretur tidak boleh diproses ulang
+  IF v_status = 'returned' THEN RAISE EXCEPTION 'Order sudah pernah diretur'; END IF;
+  -- 088: order_item_id harus milik order ini
+  IF p_order_item_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.order_items WHERE id = p_order_item_id AND order_id = p_order_id
+  ) THEN
+    RAISE EXCEPTION 'Item tidak ditemukan pada order ini';
+  END IF;
+  IF p_condition = 'good' THEN
+    FOR v_item IN
+      SELECT oi.id, oi.product_id, oi.qty, p.stock_toko
+      FROM public.order_items oi
+      LEFT JOIN public.products p ON p.id = oi.product_id
+      WHERE oi.order_id = p_order_id
+        AND (p_order_item_id IS NULL OR oi.id = p_order_item_id)
+        AND oi.product_id IS NOT NULL
+      FOR UPDATE OF oi
+    LOOP
+      UPDATE public.products
+      SET stock_toko = COALESCE(stock_toko, 0) + LEAST(v_qty, COALESCE(v_item.qty, 1))
+      WHERE id = v_item.product_id;
+      INSERT INTO public.inventory_movements (product_id, type, qty, to_location, reason, created_by, new_stock)
+      SELECT v_item.product_id, 'return_in', LEAST(v_qty, COALESCE(v_item.qty, 1)), 'toko',
+        'Return dari order ' || left(p_order_id::text, 8) || ' — kondisi bagus', p_actor, stock_toko
+      FROM public.products WHERE id = v_item.product_id;
+      v_count := v_count + 1;
+    END LOOP;
+  END IF;
+  INSERT INTO public.returns (order_id, order_item_id, reason, condition, qty, refund_amount, refund_status, created_by, resolved_at)
+  VALUES (p_order_id, p_order_item_id, p_reason, p_condition, v_qty, v_refund, CASE WHEN v_refund > 0 THEN 'pending' ELSE 'completed' END, p_actor, CASE WHEN p_condition = 'good' THEN NOW() ELSE NULL END)
+  RETURNING id INTO v_return_id;
+  IF p_order_item_id IS NOT NULL THEN
+    UPDATE public.order_items SET returned_at = NOW(), return_reason = p_reason WHERE id = p_order_item_id AND order_id = p_order_id;
+  END IF;
+  UPDATE public.orders SET status = 'returned', return_reason = p_reason WHERE id = p_order_id;
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'return_initiated', 'Return diproses secara atomic. Kondisi: ' || p_condition, p_actor);
+  RETURN jsonb_build_object('return_id', v_return_id, 'order_id', p_order_id, 'stock_items', v_count, 'refund_amount', v_refund);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.process_order_return_atomic(uuid, uuid, text, text, numeric, numeric, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_order_return_atomic(uuid, uuid, text, text, numeric, numeric, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_order_return_atomic(uuid, uuid, text, text, numeric, numeric, uuid) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.cancel_order_atomic(p_order_id uuid, p_reason text, p_actor uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_total numeric := 0;
+  v_dp numeric := 0;
+  v_lunas numeric := 0;
+  v_status text;
+  v_order_no text;
+  v_total_paid numeric;
+  v_has_order_journal boolean;
+  v_has_payment_journal boolean;
+  v_mapping record;
+  v_payment_ids uuid[];
+BEGIN
+  -- 088: role check dari SESSION (anti spoof p_actor)
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN RAISE EXCEPTION 'Alasan pembatalan wajib diisi'; END IF;
+  SELECT total_amount, dp_amount, lunas_amount, status, order_number
+  INTO v_total, v_dp, v_lunas, v_status, v_order_no
+  FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+  -- 088: idempotency bisnis — order yang sudah batal tidak boleh diproses ulang
+  IF v_status = 'cancelled' THEN RAISE EXCEPTION 'Order sudah dibatalkan sebelumnya'; END IF;
+  v_total_paid := v_dp + v_lunas;
+  -- 088: voided_at flag (jangan andalkan parsing notes)
+  UPDATE public.payments
+  SET notes = 'VOIDED — Order cancelled (' || p_reason || ') - ' || NOW(),
+      voided_at = NOW()
+  WHERE order_id = p_order_id;
+  UPDATE public.orders
+  SET status = 'cancelled', return_reason = p_reason, dp_amount = 0, lunas_amount = 0, payment_status = 'pending'
+  WHERE id = p_order_id;
+  SELECT EXISTS (
+    SELECT 1 FROM public.journal_entries
+    WHERE reference_type = 'order' AND reference_id = p_order_id
+  ) INTO v_has_order_journal;
+  IF v_has_order_journal AND v_total > 0 THEN
+    SELECT am.debit_account_id, am.credit_account_id INTO v_mapping
+    FROM public.account_mappings am
+    WHERE am.transaction_type = 'order_created' AND am.is_active = true;
+    IF v_mapping.debit_account_id IS NOT NULL AND v_mapping.credit_account_id IS NOT NULL THEN
+      PERFORM public.create_journal_atomic(
+        'cancel_order_created:' || p_order_id::text, 'order_cancelled', p_order_id,
+        'Reversal order_created — order ' || COALESCE(v_order_no, left(p_order_id::text, 8)) || ' dibatalkan',
+        CURRENT_DATE, true,
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_total, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_total)
+        ),
+        p_actor
+      );
+    END IF;
+  END IF;
+  IF v_total_paid > 0 THEN
+    SELECT ARRAY(SELECT id FROM public.payments WHERE order_id = p_order_id) INTO v_payment_ids;
+    SELECT EXISTS (
+      SELECT 1 FROM public.journal_entries
+      WHERE idempotency_key = ANY (
+        ARRAY(SELECT 'payment:' || id::text FROM unnest(v_payment_ids) AS t(id))
+        || ARRAY['admin_dp_auto:' || p_order_id::text, 'tiktok_sync_payment:' || p_order_id::text]
+      )
+    ) INTO v_has_payment_journal;
+    IF v_has_payment_journal THEN
+      SELECT am.debit_account_id, am.credit_account_id INTO v_mapping
+      FROM public.account_mappings am
+      WHERE am.transaction_type = 'payment_received' AND am.is_active = true;
+      IF v_mapping.debit_account_id IS NOT NULL AND v_mapping.credit_account_id IS NOT NULL THEN
+        PERFORM public.create_journal_atomic(
+          'cancel_payment:' || p_order_id::text, 'order_cancelled', p_order_id,
+          'Reversal pembayaran — order ' || COALESCE(v_order_no, left(p_order_id::text, 8)) || ' dibatalkan (Rp' || v_total_paid || ')',
+          CURRENT_DATE, true,
+          jsonb_build_array(
+            jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_total_paid, 'credit', 0),
+            jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_total_paid)
+          ),
+          p_actor
+        );
+      END IF;
+    END IF;
+  END IF;
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'cancelled', 'Order dibatalkan secara atomic. Alasan: ' || p_reason || '. Payment di-void & jurnal reversal dibuat.', p_actor);
+  RETURN jsonb_build_object('order_id', p_order_id, 'cancelled', true, 'reversed_amount', v_total_paid);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.add_order_payment_atomic(p_order_id uuid, p_type text, p_amount numeric, p_actor uuid, p_idempotency_key text DEFAULT NULL, p_debit_account_id uuid DEFAULT NULL, p_date date DEFAULT CURRENT_DATE)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_total numeric := 0;
+  v_dp numeric := 0;
+  v_lunas numeric := 0;
+  v_status text;
+  v_sisa numeric;
+  v_payment_id uuid;
+  v_new_dp numeric;
+  v_new_lunas numeric;
+  v_paid_sum numeric;
+  v_new_status text;
+  v_mapping record;
+  v_payment_type text := lower(p_type);
+BEGIN
+  -- 088: role check dari SESSION (anti spoof p_actor)
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF v_payment_type NOT IN ('dp','lunas') THEN RAISE EXCEPTION 'Tipe pembayaran tidak valid'; END IF;
+  IF p_amount IS NULL OR p_amount <= 0 THEN RAISE EXCEPTION 'Nominal pembayaran harus lebih dari 0'; END IF;
+  IF p_date > CURRENT_DATE THEN RAISE EXCEPTION 'Tanggal pembayaran tidak boleh di masa depan'; END IF;
+  IF p_debit_account_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.accounts WHERE id = p_debit_account_id AND is_cash_account = true) THEN
+    RAISE EXCEPTION 'Akun kas tujuan tidak valid';
+  END IF;
+  SELECT total_amount, dp_amount, lunas_amount, status
+  INTO v_total, v_dp, v_lunas, v_status
+  FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+  -- 088: guard status — order batal/diretur tidak boleh menerima pembayaran baru
+  IF v_status IN ('cancelled','returned') THEN
+    RAISE EXCEPTION 'Tidak bisa mencatat pembayaran pada order berstatus %', v_status;
+  END IF;
+  -- 088: idempotency — retry (timeout lalu submit ulang) tidak bikin payment dobel
+  IF p_idempotency_key IS NOT NULL THEN
+    SELECT id INTO v_payment_id
+    FROM public.payments
+    WHERE idempotency_key = p_idempotency_key AND order_id = p_order_id;
+    IF v_payment_id IS NOT NULL THEN
+      RETURN jsonb_build_object('payment_id', v_payment_id, 'order_id', p_order_id, 'idempotent', true);
+    END IF;
+  END IF;
+  v_sisa := v_total - v_dp - v_lunas;
+  IF p_amount > v_sisa THEN RAISE EXCEPTION 'Nominal pembayaran melebihi sisa tagihan (Rp%)', v_sisa; END IF;
+  INSERT INTO public.payments (order_id, type, amount, date, verified_by, verified_at, idempotency_key)
+  VALUES (p_order_id, v_payment_type, p_amount, p_date, p_actor, NOW(), p_idempotency_key)
+  RETURNING id INTO v_payment_id;
+  SELECT am.debit_account_id, am.credit_account_id INTO v_mapping
+  FROM public.account_mappings am
+  WHERE am.transaction_type = 'payment_received' AND am.is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping akun payment_received belum dikonfigurasi';
+  END IF;
+  PERFORM public.create_journal_atomic(
+    'payment:' || v_payment_id::text, 'order', p_order_id,
+    'Pembayaran ' || CASE WHEN v_payment_type = 'dp' THEN 'DP' ELSE 'Lunas' END || ' Rp' || p_amount || ' dicatat',
+    p_date, true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', COALESCE(p_debit_account_id, v_mapping.debit_account_id), 'debit', p_amount, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', p_amount)
+    ),
+    p_actor
+  );
+  v_new_dp := v_dp + CASE WHEN v_payment_type = 'dp' THEN p_amount ELSE 0 END;
+  v_new_lunas := v_lunas + CASE WHEN v_payment_type = 'lunas' THEN p_amount ELSE 0 END;
+  v_paid_sum := v_new_dp + v_new_lunas;
+  v_new_status := CASE WHEN v_paid_sum >= v_total AND v_total > 0 THEN 'paid' WHEN v_paid_sum > 0 THEN 'partial' ELSE 'pending' END;
+  UPDATE public.orders
+  SET dp_amount = v_new_dp, lunas_amount = v_new_lunas, payment_status = v_new_status
+  WHERE id = p_order_id AND dp_amount = v_dp AND lunas_amount = v_lunas;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order sudah diubah oleh orang lain — silakan muat ulang'; END IF;
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'payment_added', 'Pembayaran ' || CASE WHEN v_payment_type = 'dp' THEN 'DP' ELSE 'Lunas' END || ' Rp' || p_amount || ' dicatat secara atomic.', p_actor);
+  RETURN jsonb_build_object('payment_id', v_payment_id, 'order_id', p_order_id, 'dp_amount', v_new_dp, 'lunas_amount', v_new_lunas, 'payment_status', v_new_status);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cancel_order_atomic(uuid, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.cancel_order_atomic(uuid, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.cancel_order_atomic(uuid, text, uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date) FROM anon;
+GRANT EXECUTE ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date) TO authenticated;
+
+-- advance_install_booking_status FINAL (067: role check + search_path; 088: p_staff_id terikat session)
 CREATE OR REPLACE FUNCTION public.advance_install_booking_status(
   p_booking_id UUID,
   p_new_status TEXT,
@@ -2128,6 +2640,11 @@ DECLARE
   v_is_admin BOOLEAN;
   v_is_owner_installer BOOLEAN;
 BEGIN
+  -- 088 (audit 2026-08-14): p_staff_id tidak bisa dipalsukan — untuk session
+  -- user (bukan service_role) paksa = auth.uid().
+  IF auth.jwt() ->> 'role' <> 'service_role' THEN
+    p_staff_id := auth.uid();
+  END IF;
   SELECT EXISTS (SELECT 1 FROM public.users
     WHERE id = COALESCE(p_staff_id, auth.uid()) AND status = 'active' AND role IN ('admin','owner')) INTO v_is_admin;
   IF NOT v_is_admin THEN
@@ -2240,16 +2757,14 @@ CREATE POLICY "All staff read users" ON public.users
 CREATE POLICY "Admin manage users" ON public.users
   FOR ALL USING (public.is_admin_or_owner_sd()) WITH CHECK (public.is_admin_or_owner_sd());
 
--- payments / journal_entries / journal_lines: SELECT staff, WRITE finance
+-- payments / journal_entries / journal_lines: finance roles only for payment data
 DROP POLICY IF EXISTS "Authenticated staff full access" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated staff (full) access" ON public.payments;
 DROP POLICY IF EXISTS "Authenticated staff access" ON public.payments;
 DROP POLICY IF EXISTS "All staff read payments" ON public.payments;
 DROP POLICY IF EXISTS "Finance can manage payments" ON public.payments;
-CREATE POLICY "All staff read payments" ON public.payments
-  FOR SELECT USING (auth.role() = 'authenticated');
-CREATE POLICY "Finance can manage payments" ON public.payments
-  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+CREATE POLICY "Finance manage payments" ON public.payments
+  FOR ALL TO authenticated USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
 
 DROP POLICY IF EXISTS "Authenticated users can manage journals" ON public.journal_entries;
 DROP POLICY IF EXISTS "Authenticated staff full access" ON public.journal_entries;
@@ -2579,7 +3094,7 @@ GRANT EXECUTE ON FUNCTION public.approve_stock_opname TO authenticated;
 -- ============================================================
 -- 11. NOTIFY: Refresh PostgREST schema cache
 -- ============================================================
-NOTIFY pgrst, 'reload schema';
+
 
 -- ============================================================
 -- SELESAI
@@ -2592,3 +3107,485 @@ NOTIFY pgrst, 'reload schema';
 -- - Migration 057 dynamic FK fix di-skip — ON DELETE SET NULL sudah di-handle di CREATE TABLE
 -- - Migration 058 (SECURITY DEFINER audit) di-skip — dokumentasi saja
 -- ============================================================
+
+-- ============================================================
+-- 088 (audit 2026-08-14): sync fix actor-binding + idempotency
+-- (kondisi live — diverifikasi via pg_get_functiondef)
+-- ============================================================
+
+-- Helper role + session binding (anti spoof p_actor di RPC atomic)
+CREATE OR REPLACE FUNCTION public.actor_is_active_with_role(p_actor uuid, p_roles text[])
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $
+BEGIN
+  -- service_role (server route): actor dikirim server setelah autentikasi sendiri.
+  IF auth.jwt() ->> 'role' = 'service_role' THEN
+    RETURN EXISTS (SELECT 1 FROM public.users WHERE id = p_actor AND status = 'active' AND role = ANY (p_roles));
+  END IF;
+  -- authenticated: p_actor WAJIB auth.uid() — cegah spoof actor.
+  IF p_actor IS DISTINCT FROM auth.uid() THEN
+    RETURN false;
+  END IF;
+  RETURN EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role = ANY (p_roles));
+END;
+$;
+REVOKE ALL ON FUNCTION public.actor_is_active_with_role(uuid, text[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.actor_is_active_with_role(uuid, text[]) FROM anon;
+GRANT EXECUTE ON FUNCTION public.actor_is_active_with_role(uuid, text[]) TO authenticated;
+
+-- process_refund_atomic (P1): payment refund + jurnal sales_return + orders + returns
+CREATE OR REPLACE FUNCTION public.process_refund_atomic(p_return_id uuid, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_refund numeric;
+  v_status text;
+  v_order_id uuid;
+  v_reason text;
+  v_total numeric;
+  v_dp numeric;
+  v_lunas numeric;
+  v_paid_before numeric;
+  v_from_lunas numeric;
+  v_sisa_refund numeric;
+  v_paid_now numeric;
+  v_new_status text;
+  v_mapping record;
+  v_payment_id uuid;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+
+  SELECT r.refund_amount, r.refund_status, r.order_id, r.reason,
+         o.total_amount, o.dp_amount, o.lunas_amount
+  INTO v_refund, v_status, v_order_id, v_reason,
+       v_total, v_dp, v_lunas
+  FROM public.returns r
+  JOIN public.orders o ON o.id = r.order_id
+  WHERE r.id = p_return_id
+  FOR UPDATE OF r, o;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Return tidak ditemukan'; END IF;
+
+  IF v_status = 'completed' THEN
+    RAISE EXCEPTION 'Refund sudah diproses sebelumnya (idempotent)';
+  END IF;
+  IF v_refund IS NULL OR v_refund <= 0 THEN
+    RAISE EXCEPTION 'Tidak ada jumlah refund untuk diproses';
+  END IF;
+
+  v_paid_before := v_dp + v_lunas;
+  IF v_refund > v_paid_before THEN
+    RAISE EXCEPTION 'Refund (Rp%) melebihi yang sudah dibayar (Rp%)', v_refund, v_paid_before;
+  END IF;
+
+  INSERT INTO public.payments (order_id, type, amount, date, verified_by, verified_at, notes, idempotency_key)
+  VALUES (v_order_id, 'refund', v_refund, CURRENT_DATE, p_actor, NOW(),
+    'Refund untuk return: ' || COALESCE(v_reason, ''),
+    'refund_payment:' || p_return_id::text)
+  RETURNING id INTO v_payment_id;
+
+  SELECT am.debit_account_id, am.credit_account_id INTO v_mapping
+  FROM public.account_mappings am
+  WHERE am.transaction_type = 'sales_return' AND am.is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping akun sales_return belum dikonfigurasi';
+  END IF;
+  PERFORM public.create_journal_atomic(
+    'refund:' || p_return_id::text,
+    'return',
+    p_return_id,
+    'Refund Rp' || v_refund || ' untuk return order ' || left(v_order_id::text, 8),
+    CURRENT_DATE,
+    true,
+    jsonb_build_array(
+      jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_refund, 'credit', 0),
+      jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_refund)
+    ),
+    p_actor
+  );
+
+  v_from_lunas := LEAST(v_lunas, v_refund);
+  v_sisa_refund := v_refund - v_from_lunas;
+  v_lunas := v_lunas - v_from_lunas;
+  v_dp := GREATEST(0, v_dp - v_sisa_refund);
+  v_paid_now := v_dp + v_lunas;
+  v_new_status := CASE WHEN v_paid_now >= v_total AND v_total > 0 THEN 'paid' WHEN v_paid_now > 0 THEN 'partial' ELSE 'pending' END;
+
+  UPDATE public.orders
+  SET dp_amount = v_dp, lunas_amount = v_lunas, payment_status = v_new_status
+  WHERE id = v_order_id;
+
+  UPDATE public.returns SET refund_status = 'completed', approved_by = p_actor WHERE id = p_return_id;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (v_order_id, 'refund_issued', 'Refund Rp' || v_refund || ' diproses secara atomic. Alasan return: ' || COALESCE(v_reason, ''), p_actor);
+
+  RETURN jsonb_build_object('payment_id', v_payment_id, 'return_id', p_return_id, 'refund_amount', v_refund, 'payment_status', v_new_status);
+END;
+$;
+REVOKE ALL ON FUNCTION public.process_refund_atomic(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_refund_atomic(uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_refund_atomic(uuid, uuid) TO authenticated;
+
+-- schedule_installation_atomic (P1): booking + orders dalam satu transaksi
+-- 088 fix (E2E): order masih 'packed' saat modal dibuka; transisi packed→scheduled
+-- terjadi di sini via cascade booking (tombol "Lanjut: Jadwalkan Pasang").
+CREATE OR REPLACE FUNCTION public.schedule_installation_atomic(p_order_id uuid, p_installer_id uuid, p_date date, p_time time without time zone, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_status text;
+  v_classification text;
+  v_customer_id uuid;
+  v_address text;
+  v_booking_id uuid;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+  IF p_date IS NULL THEN RAISE EXCEPTION 'Tanggal wajib diisi'; END IF;
+  IF p_installer_id IS NULL THEN RAISE EXCEPTION 'Installer wajib dipilih'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = p_installer_id AND role = 'installer' AND status = 'active') THEN
+    RAISE EXCEPTION 'Installer tidak valid';
+  END IF;
+
+  SELECT status, classification, customer_id INTO v_status, v_classification, v_customer_id
+  FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+
+  IF v_classification <> 'pasang' THEN
+    RAISE EXCEPTION 'Hanya order classification pasang yang bisa dijadwalkan';
+  END IF;
+  IF v_status NOT IN ('packed','scheduled') THEN
+    RAISE EXCEPTION 'Order harus berstatus packed/scheduled untuk penjadwalan (sekarang: %)', v_status;
+  END IF;
+
+  IF v_customer_id IS NOT NULL THEN
+    SELECT address INTO v_address FROM public.customers WHERE id = v_customer_id;
+  END IF;
+
+  SELECT id INTO v_booking_id
+  FROM public.install_bookings
+  WHERE order_id = p_order_id AND type = 'pasang' AND status IN ('pending','scheduled','in_progress')
+  ORDER BY created_at DESC LIMIT 1;
+
+  IF v_booking_id IS NULL THEN
+    INSERT INTO public.install_bookings (order_id, type, status, installer_id, scheduled_date, scheduled_time, address, notes)
+    VALUES (p_order_id, 'pasang', 'scheduled', p_installer_id, p_date, p_time,
+      COALESCE(v_address, 'Alamat belum di-set'),
+      'Dijadwalkan secara atomic dari detail pesanan.')
+    RETURNING id INTO v_booking_id;
+  ELSE
+    UPDATE public.install_bookings
+    SET status = 'scheduled', installer_id = p_installer_id, scheduled_date = p_date, scheduled_time = p_time
+    WHERE id = v_booking_id;
+  END IF;
+
+  UPDATE public.orders
+  SET status = 'scheduled',
+      scheduled_installation_date = p_date,
+      scheduled_installation_time = p_time
+  WHERE id = p_order_id;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'installation_scheduled', 'Instalasi dijadwalkan: ' || p_date::text || (CASE WHEN p_time IS NOT NULL THEN ' ' || p_time::text ELSE '' END) || '. Installer dipilih dari detail pesanan.', p_actor);
+
+  RETURN jsonb_build_object('booking_id', v_booking_id, 'order_id', p_order_id, 'scheduled_date', p_date, 'scheduled_time', p_time);
+END;
+$;
+REVOKE ALL ON FUNCTION public.schedule_installation_atomic(uuid, uuid, date, time without time zone, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.schedule_installation_atomic(uuid, uuid, date, time without time zone, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.schedule_installation_atomic(uuid, uuid, date, time without time zone, uuid) TO authenticated;
+-- add_order_item_atomic (P1): insert item + hitung ulang total + log
+CREATE OR REPLACE FUNCTION public.add_order_item_atomic(p_order_id uuid, p_item jsonb, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_item_id uuid;
+  v_total numeric;
+  v_item_type text;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.orders WHERE id = p_order_id FOR UPDATE) THEN
+    RAISE EXCEPTION 'Order tidak ditemukan';
+  END IF;
+  v_item_type := p_item->>'item_type';
+  IF v_item_type IS NULL OR btrim(v_item_type) = '' THEN RAISE EXCEPTION 'Jenis item wajib diisi'; END IF;
+  IF (p_item->>'qty') IS NULL OR ((p_item->>'qty')::numeric) <= 0 THEN RAISE EXCEPTION 'Qty harus lebih dari 0'; END IF;
+  IF (p_item->>'price') IS NULL OR ((p_item->>'price')::numeric) < 0 THEN RAISE EXCEPTION 'Harga tidak valid'; END IF;
+
+  INSERT INTO public.order_items (
+    order_id, product_id, item_type, qty, price, size, custom_specs,
+    meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter,
+    poni_lurus, poni_gel, style_type, smokring_color, variant_color, variant_size,
+    dimension_p, dimension_l, dimension_t, weight, linked_laundry_id
+  ) VALUES (
+    p_order_id,
+    NULLIF(p_item->>'product_id', '')::uuid,
+    v_item_type,
+    ((p_item->>'qty')::numeric)::integer,
+    (p_item->>'price')::numeric,
+    NULLIF(p_item->>'size', ''),
+    NULLIF(p_item->>'custom_specs', ''),
+    COALESCE((p_item->>'meter_gorden')::numeric, 0),
+    COALESCE((p_item->>'meter_vitras')::numeric, 0),
+    COALESCE((p_item->>'meter_roman')::numeric, 0),
+    COALESCE((p_item->>'meter_kupu_kupu')::numeric, 0),
+    NULLIF(p_item->>'meter', '')::numeric,
+    COALESCE((p_item->>'poni_lurus')::boolean, false),
+    COALESCE((p_item->>'poni_gel')::boolean, false),
+    NULLIF(p_item->>'style_type', ''),
+    NULLIF(p_item->>'smokring_color', ''),
+    NULLIF(p_item->>'variant_color', ''),
+    NULLIF(p_item->>'variant_size', ''),
+    NULLIF(p_item->>'dimension_p', '')::numeric,
+    NULLIF(p_item->>'dimension_l', '')::numeric,
+    NULLIF(p_item->>'dimension_t', '')::numeric,
+    NULLIF(p_item->>'weight', '')::numeric,
+    NULLIF(p_item->>'linked_laundry_id', '')::uuid
+  ) RETURNING id INTO v_item_id;
+
+  SELECT COALESCE(SUM(price * qty), 0) INTO v_total FROM public.order_items WHERE order_id = p_order_id;
+  UPDATE public.orders SET total_amount = v_total WHERE id = p_order_id;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'item_added', 'Item ' || v_item_type || ' ditambahkan secara atomic. Total baru: Rp' || v_total, p_actor);
+
+  RETURN jsonb_build_object('item_id', v_item_id, 'order_id', p_order_id, 'total_amount', v_total);
+END;
+$;
+REVOKE ALL ON FUNCTION public.add_order_item_atomic(uuid, jsonb, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.add_order_item_atomic(uuid, jsonb, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.add_order_item_atomic(uuid, jsonb, uuid) TO authenticated;
+
+-- remove_order_item_atomic (P1): hapus item + hitung ulang total + log
+CREATE OR REPLACE FUNCTION public.remove_order_item_atomic(p_order_id uuid, p_item_id uuid, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_total numeric;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+
+  DELETE FROM public.order_items WHERE id = p_item_id AND order_id = p_order_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Item tidak ditemukan pada order ini'; END IF;
+
+  SELECT COALESCE(SUM(price * qty), 0) INTO v_total FROM public.order_items WHERE order_id = p_order_id;
+  UPDATE public.orders SET total_amount = v_total WHERE id = p_order_id;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'item_removed', 'Item dihapus secara atomic. Total baru: Rp' || v_total, p_actor);
+
+  RETURN jsonb_build_object('order_id', p_order_id, 'total_amount', v_total);
+END;
+$;
+REVOKE ALL ON FUNCTION public.remove_order_item_atomic(uuid, uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.remove_order_item_atomic(uuid, uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.remove_order_item_atomic(uuid, uuid, uuid) TO authenticated;
+
+-- save_hpp_bom_atomic (P1): BOM + HPP + harga jual dalam satu transaksi
+CREATE OR REPLACE FUNCTION public.save_hpp_bom_atomic(p_product_id uuid, p_lines jsonb, p_hpp_calculated numeric, p_hpp_manual numeric, p_price numeric, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_line record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.products WHERE id = p_product_id FOR UPDATE) THEN
+    RAISE EXCEPTION 'Produk tidak ditemukan';
+  END IF;
+  IF p_hpp_calculated < 0 OR p_price < 0 THEN RAISE EXCEPTION 'HPP/harga tidak valid'; END IF;
+  IF p_hpp_manual IS NOT NULL AND p_hpp_manual < 0 THEN RAISE EXCEPTION 'HPP manual tidak valid'; END IF;
+
+  DELETE FROM public.bom WHERE product_id = p_product_id;
+  IF p_lines IS NOT NULL AND jsonb_array_length(p_lines) > 0 THEN
+    FOR v_line IN SELECT * FROM jsonb_to_recordset(p_lines) AS x(material_id UUID, qty_per_unit NUMERIC)
+    LOOP
+      IF v_line.material_id IS NULL OR COALESCE(v_line.qty_per_unit, 0) <= 0 THEN
+        RAISE EXCEPTION 'Baris BOM tidak valid (material/qty wajib)';
+      END IF;
+      INSERT INTO public.bom (product_id, material_id, qty_per_unit)
+      VALUES (p_product_id, v_line.material_id, v_line.qty_per_unit);
+    END LOOP;
+  END IF;
+
+  UPDATE public.products
+  SET hpp_calculated = p_hpp_calculated,
+      hpp_manual = p_hpp_manual,
+      price = p_price
+  WHERE id = p_product_id;
+
+  RETURN jsonb_build_object('product_id', p_product_id, 'lines', COALESCE(jsonb_array_length(p_lines), 0), 'price', p_price);
+END;
+$;
+REVOKE ALL ON FUNCTION public.save_hpp_bom_atomic(uuid, jsonb, numeric, numeric, numeric, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.save_hpp_bom_atomic(uuid, jsonb, numeric, numeric, numeric, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.save_hpp_bom_atomic(uuid, jsonb, numeric, numeric, numeric, uuid) TO authenticated;
+
+-- link_survey_atomic (P0): link/unlink survey (RLS orders UPDATE = admin/owner)
+CREATE OR REPLACE FUNCTION public.link_survey_atomic(p_order_id uuid, p_survey_id uuid, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
+  END IF;
+  IF p_survey_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.surveys WHERE id = p_survey_id) THEN
+    RAISE EXCEPTION 'Survey tidak ditemukan';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.orders WHERE id = p_order_id) THEN
+    RAISE EXCEPTION 'Order tidak ditemukan';
+  END IF;
+
+  UPDATE public.orders SET survey_id = p_survey_id WHERE id = p_order_id;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'survey_linked', CASE WHEN p_survey_id IS NULL THEN 'Survey dilepas dari order.' ELSE 'Survey di-link ke order.' END, p_actor);
+
+  RETURN jsonb_build_object('order_id', p_order_id, 'survey_id', p_survey_id);
+END;
+$;
+REVOKE ALL ON FUNCTION public.link_survey_atomic(uuid, uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.link_survey_atomic(uuid, uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.link_survey_atomic(uuid, uuid, uuid) TO authenticated;
+
+-- resolve_return_atomic (P0): verifikasi retur oleh Gudang (RLS returns UPDATE = finance)
+CREATE OR REPLACE FUNCTION public.resolve_return_atomic(p_return_id uuid, p_condition text, p_notes text, p_photos jsonb, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_return record;
+  v_item record;
+  v_product_id uuid;
+  v_count integer := 0;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['gudang','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner aktif';
+  END IF;
+  IF p_condition NOT IN ('good','damaged') THEN RAISE EXCEPTION 'Kondisi return tidak valid'; END IF;
+  IF p_photos IS NULL OR jsonb_array_length(p_photos) < 2 THEN
+    RAISE EXCEPTION 'Wajib upload minimal 2 foto dokumentasi';
+  END IF;
+
+  SELECT * INTO v_return FROM public.returns WHERE id = p_return_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Return tidak ditemukan'; END IF;
+  IF v_return.resolved_at IS NOT NULL THEN
+    RAISE EXCEPTION 'Return sudah diverifikasi sebelumnya';
+  END IF;
+
+  UPDATE public.returns
+  SET condition = p_condition,
+      notes = p_notes,
+      photo_evidence = p_photos,
+      resolved_at = NOW()
+  WHERE id = p_return_id;
+
+  IF p_condition = 'good' THEN
+    FOR v_item IN
+      SELECT oi.id, oi.product_id, oi.qty, p.stock_toko
+      FROM public.order_items oi
+      LEFT JOIN public.products p ON p.id = oi.product_id
+      WHERE oi.order_id = v_return.order_id
+        AND (v_return.order_item_id IS NULL OR oi.id = v_return.order_item_id)
+        AND oi.product_id IS NOT NULL
+      FOR UPDATE OF oi
+    LOOP
+      UPDATE public.products
+      SET stock_toko = COALESCE(stock_toko, 0) + LEAST(COALESCE(v_return.qty, 1), COALESCE(v_item.qty, 1))
+      WHERE id = v_item.product_id;
+      INSERT INTO public.inventory_movements (product_id, type, qty, to_location, reason, created_by, new_stock)
+      SELECT v_item.product_id, 'return_in', LEAST(COALESCE(v_return.qty, 1), COALESCE(v_item.qty, 1)), 'toko',
+        'Return disetujui GUDANG (kondisi bagus) — order ' || left(v_return.order_id::text, 8), p_actor, stock_toko
+      FROM public.products WHERE id = v_item.product_id;
+      v_count := v_count + 1;
+    END LOOP;
+    INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+    VALUES (v_return.order_id, 'return_stock_in', 'Return dikonfirmasi BAGUS oleh Gudang — stok masuk toko.', p_actor);
+  ELSE
+    IF v_return.order_item_id IS NOT NULL THEN
+      SELECT product_id INTO v_product_id FROM public.order_items
+      WHERE id = v_return.order_item_id AND order_id = v_return.order_id;
+      IF v_product_id IS NOT NULL THEN
+        INSERT INTO public.inventory_movements (product_id, type, qty, reason, created_by)
+        VALUES (v_product_id, 'dispose', COALESCE(v_return.qty, 1),
+          'Return dikonfirmasi RUSAK oleh Gudang — disposed. Alasan: ' || COALESCE(v_return.reason, ''), p_actor);
+      END IF;
+    END IF;
+    INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+    VALUES (v_return.order_id, 'return_disposed', 'Return dikonfirmasi RUSAK oleh Gudang — barang di-dispose.', p_actor);
+  END IF;
+
+  RETURN jsonb_build_object('return_id', p_return_id, 'condition', p_condition, 'stock_items', v_count);
+END;
+$;
+REVOKE ALL ON FUNCTION public.resolve_return_atomic(uuid, text, text, jsonb, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.resolve_return_atomic(uuid, text, text, jsonb, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.resolve_return_atomic(uuid, text, text, jsonb, uuid) TO authenticated;
+
+-- create_public_booking (P0): pengganti policy INSERT publik yang di-drop
+CREATE OR REPLACE FUNCTION public.create_public_booking(p_customer_name text, p_customer_phone text, p_address text, p_scheduled_date date, p_scheduled_time time without time zone, p_type text DEFAULT 'pasang'::text, p_notes text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $
+DECLARE
+  v_id uuid;
+BEGIN
+  IF btrim(COALESCE(p_customer_name, '')) = '' THEN RAISE EXCEPTION 'Nama wajib diisi'; END IF;
+  IF btrim(COALESCE(p_customer_phone, '')) = '' OR length(btrim(p_customer_phone)) < 8 THEN
+    RAISE EXCEPTION 'No. HP tidak valid';
+  END IF;
+  IF p_scheduled_date IS NULL OR p_scheduled_date < CURRENT_DATE THEN
+    RAISE EXCEPTION 'Tanggal kunjungan tidak valid';
+  END IF;
+  IF p_type NOT IN ('pasang','survey') THEN RAISE EXCEPTION 'Tipe booking tidak valid'; END IF;
+
+  -- HANYA field publik yang diterima — field internal dipaksa server.
+  INSERT INTO public.install_bookings (
+    customer_name, customer_phone, address, scheduled_date, scheduled_time,
+    type, notes, status, source, installer_id, order_id, customer_id
+  ) VALUES (
+    btrim(p_customer_name), btrim(p_customer_phone), p_address, p_scheduled_date, p_scheduled_time,
+    p_type, p_notes, 'pending', 'website', NULL, NULL, NULL
+  ) RETURNING id INTO v_id;
+
+  RETURN jsonb_build_object('id', v_id, 'status', 'pending');
+END;
+$;
+REVOKE ALL ON FUNCTION public.create_public_booking(text, text, text, date, time without time zone, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.create_public_booking(text, text, text, date, time without time zone, text, text) TO anon, authenticated;
+
+NOTIFY pgrst, 'reload schema';

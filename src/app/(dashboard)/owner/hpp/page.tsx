@@ -141,26 +141,22 @@ export default function HPPPage() {
         return
       }
     }
-    // Delete old BOM for this product
-    const { error: delErr } = await supabase.from('bom').delete().eq('product_id', selectedProduct.id)
-    if (delErr) { toast('error', 'Gagal hapus BOM lama: ' + delErr.message); return }
-    // Insert new lines
-    if (lines.length > 0) {
-      const { error: insErr } = await supabase
-        .from('bom')
-        .insert(lines.map((l) => ({ product_id: selectedProduct.id, material_id: l.material_id, qty_per_unit: l.qty })))
-      if (insErr) { toast('error', 'Gagal simpan BOM: ' + insErr.message); return }
-    }
-    // Update product: hpp_calculated (auto), hpp_manual (if manual mode), price
-    const { error: prodErr } = await supabase
-      .from('products')
-      .update({
-        hpp_calculated: Math.round(autoHpp),
-        hpp_manual: mode === 'manual' ? Math.round(manualHpp) : null,
-        price: Math.round(hargaJual)
-      })
-      .eq('id', selectedProduct.id)
-    if (prodErr) { toast('error', 'BOM tersimpan, tapi gagal update harga: ' + prodErr.message); return }
+    // BOM + HPP + harga jual ATOMIC di server (save_hpp_bom_atomic): delete BOM
+    // lama + insert baris baru + update products dalam SATU transaksi.
+    // Sebelumnya: delete → insert → update terpisah; gagal di tengah = BOM
+    // hilang sebagian / harga tidak berubah (temuan audit 2026-08-14).
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    const { error: saveErr } = await supabase.rpc('save_hpp_bom_atomic', {
+      p_product_id: selectedProduct.id,
+      p_lines: lines.map((l) => ({ material_id: l.material_id, qty_per_unit: l.qty })),
+      p_hpp_calculated: Math.round(autoHpp),
+      p_hpp_manual: mode === 'manual' ? Math.round(manualHpp) : null,
+      p_price: Math.round(hargaJual),
+      p_actor: user?.id ?? null
+    })
+    if (saveErr) { toast('error', 'Gagal simpan BOM/HPP: ' + saveErr.message); return }
     toast('success', `BOM disimpan & harga jual produk diupdate ke ${fmt(Math.round(hargaJual))}`)
     load()
   }

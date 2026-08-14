@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { X } from 'lucide-react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -47,9 +47,18 @@ interface SurveyLogRow {
 export default function SurveyDetailPage() {
   const { toast } = useToast()
   const params = useParams<{ id: string }>()
+  const pathname = usePathname()
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  const basePath = pathname.startsWith('/admin/surveys')
+    ? '/admin'
+    : pathname.startsWith('/owner/surveys')
+      ? '/owner'
+      : '/surveyor'
+  const surveyListPath = basePath === '/surveyor' ? '/surveyor/history' : `${basePath}/surveys`
+  const surveyDetailPath = basePath === '/surveyor' ? `/surveyor/survey/${params.id}` : `${basePath}/surveys/${params.id}`
+  const surveyEditPath = basePath === '/surveyor' ? `/surveyor/survey/${params.id}/edit` : `${basePath}/surveys/${params.id}/edit`
   const [survey, setSurvey] = useState<Survey | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -71,9 +80,9 @@ export default function SurveyDetailPage() {
   useEffect(() => {
     if (searchParams.get('saved') === '1') {
       toast('success', 'Survey tersimpan. Hasilnya sudah bisa dilihat Admin & Owner.')
-      router.replace(`/surveyor/survey/${params.id}`)
+      router.replace(`${surveyDetailPath}`)
     }
-  }, [searchParams, params.id, router, toast])
+  }, [searchParams, surveyDetailPath, router, toast])
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -128,7 +137,7 @@ export default function SurveyDetailPage() {
     }
     // Pindah ke riwayat + toast muncul di halaman tujuan (?deleted=1) — toast TIDAK
     // dipanggil di sini karena navigasi langsung unmount halaman ini (toast hilang)
-    router.push('/surveyor/history?deleted=1')
+    router.push(`${surveyListPath}?deleted=1`)
   }
 
   async function handleCopy() {
@@ -170,7 +179,16 @@ export default function SurveyDetailPage() {
   async function handleLinkOrder(orderId: string) {
     if (!survey) return
     setLinkingId(orderId)
-    const { error } = await supabase.from('orders').update({ survey_id: survey.id }).eq('id', orderId)
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    // RLS orders UPDATE = admin/owner → jalur client lama akan gagal. Pakai
+    // RPC link_survey_atomic (role-gate admin/owner + audit trail order_logs).
+    const { error } = await supabase.rpc('link_survey_atomic', {
+      p_order_id: orderId,
+      p_survey_id: survey.id,
+      p_actor: user?.id ?? null
+    })
     setLinkingId(null)
     if (error) {
       toast('error', 'Gagal link ke order: ' + error.message)
@@ -185,7 +203,7 @@ export default function SurveyDetailPage() {
   if (error || !survey) {
     return (
       <div>
-        <BackButton href="/surveyor/history" />
+        <BackButton href={surveyListPath} />
         <PageHeader title="Detail Survey" subtitle={error || 'Tidak ditemukan'} />
       </div>
     )
@@ -196,7 +214,7 @@ export default function SurveyDetailPage() {
 
   return (
     <div>
-      <BackButton href="/surveyor/history" />
+      <BackButton href={surveyListPath} />
       <PageHeader
         title={survey.survey_number ?? 'Survey'}
         subtitle={`${survey.client_name}${survey.client_address ? ' — ' + survey.client_address : ''}`}
@@ -277,7 +295,7 @@ export default function SurveyDetailPage() {
         )}
         {canEdit && (
           <>
-            <Link href={`/surveyor/survey/${survey.id}/edit`} style={actionBtn('#7c3aed')}>
+            <Link href={surveyEditPath} style={actionBtn('#7c3aed')}>
               ✏️ Edit
             </Link>
             <button onClick={handleDelete} style={actionBtn('#dc2626')}>

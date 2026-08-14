@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Menu } from 'lucide-react'
 import DashboardTopNav from '@/components/dashboard/DashboardTopNav'
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar'
@@ -16,6 +16,17 @@ export default function DashboardLayoutClient({
   userName: string
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // BUG-119 (Opsi C): HANYA SATU instance NotificationBell yang boleh ter-mount.
+  // Desktop → bell fixed di kanan atas. Mobile → bell di footer drawer (DashboardTopNav),
+  // jadi bell desktop TIDAK dirender saat mobile (tidak ada 2 subscribe channel).
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   return (
     <div className="dashboard-layout" style={{ flexDirection: 'column' }}>
@@ -31,10 +42,12 @@ export default function DashboardLayoutClient({
         <Menu size={20} />
       </button>
 
-      {/* Desktop notification bell — top right (mobile pakai drawer di TopNav) */}
-      <div style={{ position: 'fixed', top: 10, right: 16, zIndex: 300 }} className="desktop-notif-bell">
-        <NotificationBell />
-      </div>
+      {/* Desktop notification bell — hanya dirender non-mobile; di mobile bell ada di drawer */}
+      {!isMobile && (
+        <div style={{ position: 'fixed', top: 10, right: 16, zIndex: 300 }} className="desktop-notif-bell">
+          <NotificationBell />
+        </div>
+      )}
 
       {/* Desktop slide-out sidebar */}
       <DashboardSidebar role={role} userName={userName} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />

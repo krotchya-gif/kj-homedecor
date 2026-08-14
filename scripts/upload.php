@@ -57,6 +57,28 @@ $finfo = finfo_open(FILEINFO_MIME_TYPE);
 $detected_mime = finfo_file($finfo, $file['tmp_name']);
 finfo_close($finfo);
 
+// Folder policy must match the Next.js proxy: document/video content must not
+// be stored in image-only folders even when the client spoofs its MIME header.
+$folder_mimes = [
+    'products' => ['image/jpeg','image/png','image/webp'],
+    'banners' => ['image/jpeg','image/png','image/webp'],
+    'portfolio' => ['image/jpeg','image/png','image/webp'],
+    'evidence' => ['image/jpeg','image/png','image/webp','application/pdf'],
+    'documents' => ['image/jpeg','image/png','image/webp','application/pdf'],
+    'videos' => ['video/mp4','video/webm'],
+    'order_progress' => ['image/jpeg','image/png','image/webp'],
+    'returns' => ['image/jpeg','image/png','image/webp'],
+    'qc' => ['image/jpeg','image/png','image/webp'],
+    'install' => ['image/jpeg','image/png','image/webp'],
+    'survey' => ['image/jpeg','image/png','image/webp'],
+];
+
+if (!in_array($detected_mime, $folder_mimes[$folder], true)) {
+    http_response_code(400);
+    echo json_encode(['error' => 'File type is not allowed in this folder']);
+    exit;
+}
+
 $valid_ext = false;
 $valid_mime = false;
 foreach ($allowed_mimes as $mime => $exts) {
@@ -106,8 +128,11 @@ $header = fread($fp, 16);
 fclose($fp);
 
 if (isset($magic_bytes[$detected_mime])) {
-    $match = false;
-    foreach ($magic_bytes[$detected_mime] as $magic) {
+    // MP4's first box size is variable; `ftyp` is the stable signature.
+    $match = $detected_mime === 'video/mp4'
+        ? substr($header, 4, 4) === 'ftyp'
+        : false;
+    if ($detected_mime !== 'video/mp4') foreach ($magic_bytes[$detected_mime] as $magic) {
         if (strpos($header, $magic) === 0) {
             $match = true;
             break;

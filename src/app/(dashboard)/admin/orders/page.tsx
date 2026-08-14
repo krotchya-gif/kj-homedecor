@@ -135,29 +135,26 @@ export default function OrdersPage() {
     setLoading(true)
     const term = search.trim()
 
-    // BUG-079 fix: pakai RPC search_orders (filter search+status+kategori di SQL).
-    // Sebelumnya query.or() dengan kolom relasi (customer.name) → PostgREST error
-    // diam-diam → UI search kosong. RPC menyelesaikan OR antar kolom orders +
-    // EXISTS customer.name + status + kategori, return { rows, total }.
-    const { data, error } = await supabase.rpc('search_orders', {
-      p_term: term,
-      p_status: filterStatus,
-      p_category: filterCategory || null,
-      p_limit: PAGE_SIZE,
-      p_offset: (currentPage - 1) * PAGE_SIZE
+    const params = new URLSearchParams({
+      search: term,
+      status: filterStatus,
+      category: filterCategory,
+      limit: String(PAGE_SIZE),
+      offset: String((currentPage - 1) * PAGE_SIZE)
     })
+    const response = await fetch(`/api/orders?${params}`)
+    const json = await response.json().catch(() => null)
 
-    if (error) {
-      console.error('search_orders gagal:', error)
+    if (!response.ok) {
+      console.error('Search orders gagal:', json)
       setOrders([])
       setTotalCount(0)
       setLoading(false)
       return
     }
 
-    const result = (data ?? {}) as { rows?: unknown[]; total?: number }
-    setOrders((result.rows as Order[]) ?? [])
-    setTotalCount(result.total ?? 0)
+    setOrders((json?.data as Order[]) ?? [])
+    setTotalCount(json?.total ?? json?.data?.length ?? 0)
     setLoading(false)
   }
 
@@ -340,17 +337,22 @@ export default function OrdersPage() {
       // Kas tidak pernah masuk DP (overstated piutang). Sekarang payment_received
       // ikut di-jurnal sesuai nominal yang dicatat (idempotent per order).
       const dpRecorded = dpAmt >= totalAmt ? totalAmt : dpAmt
+      // 2026-08-14 (audit): jurnal gagal → ROLLBACK payment row (pola BUG-073)
+      // agar tidak ada "payment tanpa jurnal" (double-entry rusak). Jurnal
+      // order_created & payment_received keduanya ber-idempotency key per order.
+      let journalFailed = false
       try {
         await createSimpleJournal({
           transaction_type: 'order_created',
           reference_type: 'order',
           reference_id: newOrder.id,
           description: `Order baru ${orderNumber ?? ''} — ${form.customer_name.trim()}`,
-          amount: totalAmt
+          amount: totalAmt,
+          idempotency_key: `order_created:${newOrder.id}`
         })
       } catch (jErr) {
         console.error('Gagal buat jurnal order:', jErr)
-        toast('warning', 'Order dibuat, TAPI jurnal GAGAL. Periksa mapping akun.')
+        journalFailed = true
       }
       try {
         await createSimpleJournal({
@@ -363,6 +365,12 @@ export default function OrdersPage() {
         })
       } catch (jErr) {
         console.error('Gagal buat jurnal payment_received (auto-DP):', jErr)
+        journalFailed = true
+      }
+      if (journalFailed) {
+        // Rollback payment row agar tidak menggantung tanpa jurnal; order tetap ada.
+        await supabase.from('payments').delete().eq('order_id', newOrder.id).eq('type', dpAmt >= totalAmt ? 'lunas' : 'dp')
+        toast('error', 'Order dibuat, TAPI jurnal gagal — auto-payment dibatalkan. Periksa mapping akun lalu input pembayaran manual di /finance/payments.')
       }
     }
     // Order TANPA DP — tetap harus jurnal order_created (piutang penuh)
@@ -373,7 +381,8 @@ export default function OrdersPage() {
           reference_type: 'order',
           reference_id: newOrder.id,
           description: `Order baru ${orderNumber ?? ''} — ${form.customer_name.trim()}`,
-          amount: totalAmt
+          amount: totalAmt,
+          idempotency_key: `order_created:${newOrder.id}`
         })
       } catch (jErr) {
         console.error('Gagal buat jurnal order (tanpa DP):', jErr)

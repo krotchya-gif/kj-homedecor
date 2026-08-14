@@ -31,11 +31,11 @@ export async function requireRole(
 ) {
   const { data: userData } = await supabase
     .from('users')
-    .select('role')
+    .select('role, status')
     .eq('id', user.id)
     .single()
 
-  if (!userData || !allowedRoles.includes(userData.role as Role)) {
+  if (!userData || userData.status !== 'active' || !allowedRoles.includes(userData.role as Role)) {
     return {
       error: NextResponse.json({ error: 'Forbidden: insufficient permissions' }, { status: 403 }),
       userData: null,

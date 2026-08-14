@@ -1,9 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 // GET — list POs that are delivered (status = 'delivered') and not yet confirmed received by Gudang
-export async function GET() {
+export async function GET(request: Request) {
+  if (checkRateLimit(getClientIp(request), 120, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   // Security fix (2026-08-12): GET wajib login + role gudang/admin/owner
   // (sebelumnya tanpa auth sama sekali → data PO + supplier bocor ke siapa pun)
@@ -28,6 +32,9 @@ export async function GET() {
 
 // POST — Gudang confirms receipt of a delivered PO → status becomes 'received' + stock_gudang increment
 export async function POST(request: Request) {
+  if (checkRateLimit(getClientIp(request), 30, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const body = await request.json()
   const { po_id } = body
@@ -44,60 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: { message: 'Forbidden' } }, { status: 403 })
   }
 
-  // Get current PO with PR info
-  const { data: currentPO, error: fetchErr } = await supabase
-    .from('purchase_orders')
-    .select('*, pr:purchase_requests(material_id, qty, material:materials(name))')
-    .eq('id', po_id)
-    .single()
-
-  if (fetchErr || !currentPO) {
-    return NextResponse.json({ error: { message: 'PO not found' } }, { status: 404 })
+  const { data, error } = await supabase.rpc('receive_purchase_order_atomic', {
+    p_po_id: po_id,
+    p_received_by: user.id
+  })
+  if (error) {
+    const message = toClientError(error)
+    const status = error.message?.includes('tidak ditemukan') ? 404 : 400
+    return NextResponse.json({ error: { message } }, { status })
   }
 
-  if (currentPO.status !== 'delivered') {
-    return NextResponse.json(
-      { error: { message: `PO status is '${currentPO.status}', must be 'delivered' first` } },
-      { status: 400 }
-    )
-  }
-
-  // Update PO status to received
-  const { error: updateErr } = await supabase
-    .from('purchase_orders')
-    .update({ status: 'received', received_at: new Date().toISOString() })
-    .eq('id', po_id)
-
-  if (updateErr) return NextResponse.json({ error: { message: toClientError(updateErr) } }, { status: 500 })
-
-  // Increment stock_gudang for the material
-  const pr = currentPO.pr as unknown as { qty?: number; material_id?: string; material?: { name?: string; unit?: string } | null } | null
-  if (pr?.material_id) {
-    const materialQty = Number(pr.qty)
-    if (!isNaN(materialQty) && materialQty > 0) {
-      try {
-        await supabase.rpc('increment_stock_gudang', { material_id: pr.material_id, amount: materialQty })
-      } catch {
-        // Fallback direct update
-        const { data: mat } = await supabase.from('materials').select('stock_gudang').eq('id', pr.material_id).single()
-        if (mat) {
-          await supabase
-            .from('materials')
-            .update({ stock_gudang: (mat.stock_gudang ?? 0) + materialQty })
-            .eq('id', pr.material_id)
-        }
-      }
-      // Record inventory movement
-      await supabase.from('inventory_movements').insert({
-        material_id: pr.material_id,
-        type: 'in',
-        qty: materialQty,
-        to_location: 'gudang',
-        reason: `PO delivery confirmed by Gudang — PO ${po_id.slice(0, 8)}`,
-        created_by: user?.id ?? null
-      })
-    }
-  }
-
-  return NextResponse.json({ data: { id: po_id, status: 'received' }, error: null })
+  return NextResponse.json({ data, error: null })
 }

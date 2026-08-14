@@ -224,12 +224,19 @@ export default function GudangProductionPage() {
         })
         if (steamErr) console.error('Gagal auto-create steam job (gudang):', steamErr)
       }
-      const { error: orderErr } = await supabase
-        .from('orders')
-        .update({ status: 'steam' })
-        .eq('id', job.order_id)
-        .eq('status', 'production')
-      if (orderErr) console.error('Gagal auto-transition order ke steam (gudang):', orderErr)
+      // 2026-08-14 (audit): transisi order production→steam lewat API route
+      // (server-side transition check + log), BUKAN direct update — RLS orders
+      // UPDATE hanya admin/owner, direct update gudang akan gagal. auto_transition
+      // = true → foto bukti tidak wajib untuk transisi otomatis ini (pola penjahit).
+      const steamRes = await fetch(`/api/orders/${job.order_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'steam', auto_transition: true })
+      })
+      const steamJson = await steamRes.json().catch(() => null)
+      if (!steamRes.ok) {
+        console.error('Gagal auto-transition order ke steam (gudang):', steamJson?.error?.message ?? `HTTP ${steamRes.status}`)
+      }
     }
 
     toast('success', status === 'in_progress' ? 'Job produksi dimulai' : 'Job produksi selesai')

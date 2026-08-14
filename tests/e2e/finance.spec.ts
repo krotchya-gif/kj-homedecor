@@ -38,11 +38,24 @@ test.describe.serial('Finance menyeluruh', () => {
     const finCtx = await browser.newContext({ storageState: path.join(AUTH, 'finance.json') })
     const fin = await finCtx.newPage()
 
-    // 1. Kas & Bank
+    // 0. Buat akun COA kas/bank UNIK dulu — 088: cash_accounts.account_id UNIQUE,
+    //    akun COA yang sudah dipetakan tidak lagi ditawarkan di modal tambah kas/bank.
+    const coaCode = `11${Date.now().toString().slice(-6)}`
+    const coaName = `Kas Simulasi ${ts}`
+    await gotoDashboard(fin, '/finance/accounts/accounts')
+    await fin.getByRole('button', { name: /tambah akun/i }).click()
+    const coaModal = fin.locator('.modal-panel').last()
+    await coaModal.getByPlaceholder('1-1100').fill(coaCode)
+    await coaModal.getByPlaceholder('Nama lengkap akun').fill(coaName)
+    await coaModal.locator('input[type="checkbox"]').check()
+    await coaModal.getByRole('button', { name: /simpan/i }).click()
+    await expectToast(fin, /berhasil ditambahkan/i)
+
+    // 1. Kas & Bank — pilih akun COA yang barusan dibuat
     await gotoDashboard(fin, '/finance/cash')
     await fin.getByRole('button', { name: /tambah kas\/bank/i }).click()
     const kasModal = fin.locator('.modal-panel').last()
-    await kasModal.locator('select').first().selectOption({ index: 1 })
+    await kasModal.locator('select').first().selectOption({ label: `${coaCode} - ${coaName}` })
     await kasModal.getByPlaceholder('BCA, Mandiri, BRI, dll').fill(bankName)
     await kasModal.getByRole('button', { name: /simpan/i }).click()
     await expectToast(fin, /berhasil ditambahkan/i)

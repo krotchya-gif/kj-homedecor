@@ -20,7 +20,7 @@ interface Notif {
  * muncul langsung tanpa refresh. RLS `notifications_own` (user_id = auth.uid())
  * menjaga hanya notif milik sendiri yang diterima.
  */
-export default function NotificationBell() {
+export default function NotificationBell({ dropUp = false }: { dropUp?: boolean }) {
   const router = useRouter()
   const [items, setItems] = useState<Notif[]>([])
   const [unread, setUnread] = useState(0)
@@ -152,8 +152,10 @@ export default function NotificationBell() {
           style={{
             position: 'absolute',
             right: 0,
-            top: 'calc(100% + 6px)',
+            top: dropUp ? 'auto' : 'calc(100% + 6px)',
+            bottom: dropUp ? 'calc(100% + 6px)' : 'auto',
             width: 320,
+            maxWidth: '80vw',
             maxHeight: 420,
             overflowY: 'auto',
             background: 'var(--surface, #fff)',

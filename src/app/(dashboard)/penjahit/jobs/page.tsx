@@ -163,13 +163,17 @@ export default function PenjahitJobsPage() {
         status: 'pending'
       })
       if (steamErr) { console.error('Gagal auto-create steam job:', steamErr) }
-      // Auto-transition order status from production to steam — dengan guard
-      const { error: orderErr } = await supabase
-        .from('orders')
-        .update({ status: 'steam' })
-        .eq('id', jobData.order_id)
-        .eq('status', 'production')
-      if (orderErr) { console.error('Gagal auto-transition order ke steam:', orderErr) }
+      // Auto-transition order lewat API server-side. Jalur auto ini tidak upload
+      // foto karena foto QC steam diunggah Gudang pada tahap berikutnya.
+      const orderRes = await fetch(`/api/orders/${jobData.order_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'steam', auto_transition: true })
+      })
+      if (!orderRes.ok) {
+        const orderJson = await orderRes.json().catch(() => null)
+        console.error('Gagal auto-transition order ke steam:', orderJson)
+      }
     }
 
     setSaving(null)

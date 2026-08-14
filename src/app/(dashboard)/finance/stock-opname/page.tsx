@@ -2,7 +2,7 @@
 import MobileCards from '@/components/ui/MobileCards'
 import { PageHeader } from '@/components/ui/PageHeader'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { CheckCircle2, Loader2, ClipboardList } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
@@ -37,6 +37,16 @@ export default function FinanceStockOpnamePage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [approving, setApproving] = useState<string | null>(null)
+  const [detailOpen, setDetailOpen] = useState<Set<string>>(new Set())
+
+  function toggleDetail(id: string) {
+    setDetailOpen((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function fetchAll() {
     const { data } = await supabase
@@ -99,7 +109,8 @@ export default function FinanceStockOpnamePage() {
               {sessions.map((s) => {
                 const totalDiff = (s.items ?? []).reduce((a, i) => a + Number(i.difference || 0), 0)
                 return (
-                  <tr key={s.id}>
+                  <Fragment key={s.id}>
+                  <tr>
                     <td style={{ fontSize: '0.8rem' }}>{new Date(s.created_at).toLocaleString('id-ID')}</td>
                     <td>
                       <span
@@ -121,15 +132,56 @@ export default function FinanceStockOpnamePage() {
                       {totalDiff.toLocaleString('id-ID')} unit
                     </td>
                     <td>
-                      {s.status === 'submitted' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => toggleDetail(s.id)}
+                          style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#cc7030', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          {detailOpen.has(s.id) ? '▲ Tutup' : '▼ Detail'}
+                        </button>
+                        {s.status === 'submitted' ? (
                 <button className="btn-primary" style={{ fontSize: '0.8rem' }} disabled={approving === s.id} onClick={() => approve(s.id)} title="Terapkan selisih stok ke gudang (permanen)">
                   {approving === s.id ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle2 size={14} />} Approve
                 </button>
-                      ) : (
-                        <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>-</span>
-                      )}
+                        ) : (
+                          <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>-</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
+                  {detailOpen.has(s.id) && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '0 1rem 1rem', background: 'var(--neutral-50)' }}>
+                        <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                            <thead>
+                              <tr style={{ background: '#fff' }}>
+                                <th style={{ padding: '0.4rem 0.6rem', textAlign: 'left' }}>Material</th>
+                                <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>Sistem</th>
+                                <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>Hitung</th>
+                                <th style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>Selisih</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(s.items ?? []).map((i, idx) => (
+                                <tr key={`${s.id}-${idx}`} style={{ borderTop: '1px solid var(--neutral-100)', background: '#fff' }}>
+                                  <td style={{ padding: '0.4rem 0.6rem' }}>
+                                    {i.material?.name ?? '—'} <span style={{ color: 'var(--neutral-400)' }}>({i.material?.unit ?? ''})</span>
+                                  </td>
+                                  <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{Number(i.system_qty ?? 0)}</td>
+                                  <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right' }}>{Number(i.counted_qty ?? 0)}</td>
+                                  <td style={{ padding: '0.4rem 0.6rem', textAlign: 'right', fontWeight: 600, color: Number(i.difference) === 0 ? 'var(--neutral-400)' : '#cc7030' }}>
+                                    {Number(i.difference) > 0 ? `+${i.difference}` : String(Number(i.difference ?? 0))}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 )
               })}
             </tbody>
@@ -155,6 +207,26 @@ export default function FinanceStockOpnamePage() {
                 <span className="mobile-card-label">Total Selisih</span>
                 <span className="mobile-card-value">{(s.items ?? []).reduce((a, i) => a + Number(i.difference || 0), 0).toLocaleString('id-ID')} unit</span>
               </div>
+              <button
+                onClick={() => toggleDetail(s.id)}
+                style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#cc7030', fontWeight: 600, cursor: 'pointer', padding: '0.25rem 0', textAlign: 'left' }}
+              >
+                {detailOpen.has(s.id) ? '▲ Tutup Detail' : '▼ Lihat Detail'}
+              </button>
+              {detailOpen.has(s.id) && (
+                <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', overflow: 'hidden', margin: '0.25rem 0 0.5rem' }}>
+                  {(s.items ?? []).map((i, idx) => (
+                    <div key={`${s.id}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.4rem 0.6rem', borderTop: idx === 0 ? 'none' : '1px solid var(--neutral-100)', fontSize: '0.75rem' }}>
+                      <span style={{ color: 'var(--neutral-700)' }}>
+                        {i.material?.name ?? '—'} <span style={{ color: 'var(--neutral-400)' }}>({i.material?.unit ?? ''})</span>
+                      </span>
+                      <span style={{ fontWeight: 600, color: Number(i.difference) === 0 ? 'var(--neutral-400)' : '#cc7030' }}>
+                        {Number(i.system_qty ?? 0)} → {Number(i.counted_qty ?? 0)} ({Number(i.difference) > 0 ? `+${i.difference}` : String(Number(i.difference ?? 0))})
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {s.status === 'submitted' && (
                 <button className="btn-primary" style={{ fontSize: '0.8rem', marginTop: '0.5rem' }} disabled={approving === s.id} onClick={() => approve(s.id)} title="Terapkan selisih stok ke gudang (permanen)">
                   Approve

@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
 
     const isAllowedMagic =
       folder === 'videos'
-        ? buffer.length > 12 &&
-          ((buffer[0] === 0x00 && buffer[1] === 0x00 && buffer[2] === 0x00 && buffer[3] === 0x18) || // mp4 ftyp
+        ? buffer.length > 11 &&
+          (((buffer[4] === 0x66 && buffer[5] === 0x74 && buffer[6] === 0x79 && buffer[7] === 0x70)) || // mp4 ftyp (box size varies)
             (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3)) // webm
         : buffer.length > 8 &&
           ((buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) || // jpeg
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
       if (b.length > 7 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'image/png'
       if (b.length > 11 && b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'image/webp'
       if (b.length > 3 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'application/pdf'
-      if (b.length > 11 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4'
+       if (b.length > 7 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'video/mp4'
       if (b.length > 3 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return 'video/webm'
       return ''
     }
@@ -170,6 +170,12 @@ export async function POST(request: NextRequest) {
       'video/webm': 'webm'
     }
     const detectedMime = detectMime(buffer) || file.type
+    if (!detectedMime || !allowedTypes.includes(detectedMime)) {
+      return NextResponse.json(
+        { data: null, error: { message: 'Konten file tidak sesuai folder yang dipilih' } },
+        { status: 400 }
+      )
+    }
     const ext = MIME_EXT[detectedMime] || file.name.split('.').pop() || 'jpg'
     const timestamp = Date.now()
     const random = Math.random().toString(36).substring(2, 8)

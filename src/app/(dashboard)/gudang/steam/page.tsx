@@ -186,26 +186,17 @@ export default function GudangSteamPage() {
     })
     if (logErr) { console.error('Gagal catat log steam pass:', logErr) }
 
-    // BUG-001 fix (2026-08-11): Steam QC Pass → auto-advance orders.status ke 'ready'.
-    // Sebelumnya manual di order detail (yang hanya bisa owner — gudang tidak akses /admin).
-    // Foto bukti yang barusan di-upload sudah tersimpan sebagai evidence stage 'steam' —
-    // TIDAK perlu upload ulang. Guard eq('status','steam') = idempoten.
-    const { error: orderErr } = await supabase
-      .from('orders')
-      .update({ status: 'ready' })
-      .eq('id', job.order_id)
-      .eq('status', 'steam')
-    if (orderErr) {
-      console.error('Gagal auto-advance order ke ready:', orderErr)
-      toast('error', 'Steam QC Pass tersimpan, TAPI gagal majukan order ke Siap: ' + orderErr.message)
-    } else {
-      const { error: readyLogErr } = await supabase.from('order_logs').insert({
-        order_id: job.order_id,
-        action: 'qc_pass',
-        notes: `Steam/QC Passed oleh Gudang → order otomatis Siap`,
-        staff_id: user?.id ?? null
-      })
-      if (readyLogErr) { console.error('Gagal catat log auto-ready:', readyLogErr) }
+    // Status transition sekarang lewat API server-side agar role/transition tetap konsisten.
+    // Foto stage steam sudah tersimpan di atas; ready bukan stage foto wajib.
+    const orderRes = await fetch(`/api/orders/${job.order_id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'ready' })
+    })
+    const orderJson = await orderRes.json().catch(() => null)
+    if (!orderRes.ok) {
+      console.error('Gagal auto-advance order ke ready:', orderJson)
+      toast('error', 'Steam QC tersimpan, TAPI order gagal maju ke Siap: ' + (orderJson?.error?.message ?? `HTTP ${orderRes.status}`))
     }
 
     setPassSaving(false)
@@ -251,65 +242,18 @@ export default function GudangSteamPage() {
       .eq('id', steamJobId)
     if (jobFailErr) { setFailSaving(false); toast('error', 'Gagal update steam job: ' + jobFailErr.message); return }
 
-    // 2. Get original production_job to preserve penjahit_id
-    let originalPenjahitId: string | null = null
-    if (showFailModal.production_job_id) {
-      const { data: origJob } = await supabase
-        .from('production_jobs')
-        .select('penjahit_id')
-        .eq('id', showFailModal.production_job_id)
-        .single()
-      originalPenjahitId = origJob?.penjahit_id ?? null
-    }
-
-    // 3. Calculate revision round for this order (MAX + 1)
-    const { data: priorRevisions } = await supabase
-      .from('production_jobs')
-      .select('revision_round')
-      .eq('order_id', orderId)
-      .order('revision_round', { ascending: false })
-      .limit(1)
-    const nextRound = (priorRevisions?.[0]?.revision_round ?? -1) + 1
-
-    // 4. INSERT new production_job for re-do
-    const { data: newJob, error: newJobErr } = await supabase
-      .from('production_jobs')
-      .insert({
-        order_id: orderId,
-        penjahit_id: originalPenjahitId,
-        status: 'waiting',
-        revision_of: showFailModal.production_job_id ?? null,
-        revision_round: nextRound,
-        revision_reason: failReasonText
-      })
-      .select('id')
-      .single()
-
-    if (newJobErr) {
-      console.error('Failed to create revision production_job:', newJobErr)
-      toast('error', 'Gagal membuat job revisi: ' + newJobErr.message)
+    // Re-queue + production_job revisi ditangani API secara idempoten.
+    const reorderRes = await fetch(`/api/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'production', photo_urls: [steamFailPhoto] })
+    })
+    const reorderJson = await reorderRes.json().catch(() => null)
+    if (!reorderRes.ok) {
       setFailSaving(false)
+      toast('error', 'Gagal re-queue order: ' + (reorderJson?.error?.message ?? `HTTP ${reorderRes.status}`))
       return
     }
-
-    // 5. Update order status back to 'production' (re-queue ke Penjahit)
-    // F-17 fix: guard status 'steam' — cegah regresi kalau order sudah maju
-    // (double tab / aksi basi) ke ready/packed oleh jalur lain.
-    const { error: reorderErr } = await supabase
-      .from('orders')
-      .update({ status: 'production' })
-      .eq('id', orderId)
-      .eq('status', 'steam')
-    if (reorderErr) { setFailSaving(false); toast('error', 'Job revisi dibuat, tapi gagal re-queue order: ' + reorderErr.message); return }
-
-    // 6. Log the revision re-queue
-    const { error: revLogErr } = await supabase.from('order_logs').insert({
-      order_id: orderId,
-      action: 'steam_revision_requeue',
-      notes: `Steam QC Fail → re-queue ke Penjahit (round ${nextRound}). Alasan: ${failReasonText}. Job revisi: ${newJob.id.slice(0, 8)}`,
-      staff_id: user?.id ?? null
-    })
-    if (revLogErr) { console.error('Gagal catat log revisi:', revLogErr) }
 
     setFailSaving(false)
     setShowFailModal(null)

@@ -43,15 +43,15 @@ export default function BookingPage() {
 
   useEffect(() => {
     async function fetchOccupied() {
-      const { data } = await supabase
-        .from('install_bookings')
-        .select('scheduled_date, scheduled_time')
-        .in('status', ['pending', 'scheduled'])
+      const { data } = await supabase.rpc('get_public_booking_slots', {
+        p_from: new Date().toISOString().slice(0, 10),
+        p_to: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      })
 
       if (data) {
         const dates = new Set<string>()
         const slots = new Set<string>()
-        data.forEach((b) => {
+        ;(data as { scheduled_date?: string | null; scheduled_time?: string | null }[]).forEach((b) => {
           if (b.scheduled_date) dates.add(b.scheduled_date)
           if (b.scheduled_date && b.scheduled_time) slots.add(`${b.scheduled_date} ${b.scheduled_time}`)
         })
@@ -80,16 +80,17 @@ export default function BookingPage() {
     setError('')
 
     try {
-      const { error: insertError } = await supabase.from('install_bookings').insert({
-        customer_name: form.name,
-        customer_phone: form.phone,
-        address: form.service_type === 'survey' ? null : form.address,
-        scheduled_date: form.date || null,
-        scheduled_time: form.time || null,
-        type: form.service_type,
-        notes: form.notes,
-        status: 'pending',
-        source: 'website'
+      // Booking publik via RPC create_public_booking — policy INSERT publik
+      // sudah DROP (audit 2026-08-14). RPC hanya menerima field publik dan
+      // memaksa status='pending', source='website', installer/order/customer NULL.
+      const { error: insertError } = await supabase.rpc('create_public_booking', {
+        p_customer_name: form.name,
+        p_customer_phone: form.phone,
+        p_address: form.service_type === 'survey' ? null : form.address,
+        p_scheduled_date: form.date || null,
+        p_scheduled_time: form.time || null,
+        p_type: form.service_type,
+        p_notes: form.notes
       })
 
       if (insertError) {

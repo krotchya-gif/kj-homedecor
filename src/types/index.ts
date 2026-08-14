@@ -131,7 +131,7 @@ export interface Order {
   order_number?: string // human-readable: ORD-2026-0001
   order_id_external?: string
   source: OrderSource
-  customer_id: string
+  customer_id: string | null
   classification: OrderClassification
   status: OrderStatus
   total_amount: number
@@ -150,6 +150,10 @@ export interface Order {
   installed_at?: string
   installed_by?: string
   scheduled_installation_date?: string // untuk alur pasang (input jadwal)
+  scheduled_installation_time?: string | null
+  estimated_completion?: string | null
+  admin_notes?: string | null
+  returned_at?: string | null
   created_at: string
   customer?: Customer
   order_items?: OrderItem[]
@@ -203,7 +207,7 @@ export interface Survey {
 export interface OrderItem {
   id: string
   order_id: string
-  product_id: string
+  product_id: string | null
   item_type?: 'gorden' | 'perabot' | 'laundry'
   linked_laundry_id?: string
   qty: number
@@ -211,13 +215,17 @@ export interface OrderItem {
   size?: string
   custom_specs?: string
   meter_gorden?: number
+  meter_vitras?: number
   meter_roman?: number
+  meter_kupu_kupu?: number
   poni_lurus?: boolean
   poni_gel?: boolean
   // New unified meter + style for vitras/kupu-kupu
   meter?: number
   style_type?: string
   smokring_color?: string
+  return_reason?: string | null
+  returned_at?: string | null
   // Perabot variants
   variant_size?: string
   variant_color?: string

@@ -24,10 +24,10 @@ export async function proxy(request: NextRequest) {
 
   // Logged in → don't show login page
   if (user && pathname === '/login') {
-    const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data: staffData } = await supabase.from('users').select('role, status').eq('id', user.id).single()
 
     // F-21 fix: user tanpa profil users → DENY ke login (bukan fail-open ke 'admin')
-    if (!staffData?.role) {
+    if (!staffData?.role || staffData.status !== 'active') {
       await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login', request.url))
     }
@@ -44,15 +44,15 @@ export async function proxy(request: NextRequest) {
       owner: '/owner'
     }
 
-    return NextResponse.redirect(new URL(dashboards[role] ?? '/admin', request.url))
+    return NextResponse.redirect(new URL(dashboards[role] ?? '/login', request.url))
   }
 
   // Role-based access control for dashboard routes
   if (user && isDashboardRoute) {
-    const { data: staffData } = await supabase.from('users').select('role').eq('id', user.id).single()
+    const { data: staffData } = await supabase.from('users').select('role, status').eq('id', user.id).single()
 
     // F-21 fix: deny (bukan default 'admin')
-    if (!staffData?.role) {
+    if (!staffData?.role || staffData.status !== 'active') {
       await supabase.auth.signOut()
       return NextResponse.redirect(new URL('/login', request.url))
     }

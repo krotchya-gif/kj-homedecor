@@ -136,58 +136,32 @@ export default function GudangStockPage() {
     return list.filter((it) => it.name.toLowerCase().includes(searchVal.toLowerCase()))
   }
 
+  async function adjustStock(target: 'material' | 'produk', itemId: string, location: 'gudang' | 'toko', direction: 'add' | 'reduce', qty: number, reason: string, notes?: string) {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    if (!user) throw new Error('Sesi login berakhir')
+    const { error } = await supabase.rpc('adjust_stock_atomic', {
+      p_target_type: target,
+      p_item_id: itemId,
+      p_location: location,
+      p_direction: direction,
+      p_qty: qty,
+      p_reason: reason,
+      p_notes: notes || null,
+      p_actor: user.id
+    })
+    if (error) throw new Error(error.message)
+  }
+
   async function handleMutasiSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!mutasiItem || !mutasiQty) return
     setSavingMutasi(true)
     const qty = Number(mutasiQty)
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
     const reason = mutasiReason || 'Restock'
     try {
-      if (mutasiTarget === 'material') {
-        const field = mutasiLocation === 'gudang' ? 'stock_gudang' : 'stock_toko'
-        const { data: mat } = await supabase
-          .from('materials')
-          .select('stock_gudang, stock_toko')
-          .eq('id', mutasiItem)
-          .single()
-        const matAny = (mat ?? {}) as { stock_gudang: number; stock_toko: number }
-        const { error: matUpdErr } = await supabase
-          .from('materials')
-          .update({ [field]: (matAny?.[field] ?? 0) + qty })
-          .eq('id', mutasiItem)
-        if (matUpdErr) { toast('error', 'Gagal update stok material: ' + matUpdErr.message); return }
-        const { error: movErr } = await supabase.from('inventory_movements').insert({
-          material_id: mutasiItem,
-          type: 'in',
-          qty,
-          to_location: mutasiLocation,
-          reason,
-          notes: mutasiNotes || null,
-          created_by: user?.id ?? null
-        })
-        if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
-      } else {
-        const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', mutasiItem).single()
-        const prodAny = (prod ?? {}) as { stock_toko: number }
-        const { error: prodUpdErr } = await supabase
-          .from('products')
-          .update({ stock_toko: (prodAny?.stock_toko ?? 0) + qty })
-          .eq('id', mutasiItem)
-        if (prodUpdErr) { toast('error', 'Gagal update stok produk: ' + prodUpdErr.message); return }
-        const { error: movErr } = await supabase.from('inventory_movements').insert({
-          product_id: mutasiItem,
-          type: 'in',
-          qty,
-          to_location: 'toko',
-          reason,
-          notes: mutasiNotes || null,
-          created_by: user?.id ?? null
-        })
-        if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
-      }
+      await adjustStock(mutasiTarget, mutasiItem, mutasiTarget === 'material' ? mutasiLocation : 'toko', 'add', qty, reason, mutasiNotes)
       setMutasiSuccess(true)
       setTimeout(() => setMutasiSuccess(false), 2500)
       setMutasiQty('')
@@ -195,6 +169,8 @@ export default function GudangStockPage() {
       setMutasiNotes('')
       setMutasiItem('')
       setMutasiSearch('')
+    } catch (error) {
+      toast('error', 'Gagal simpan stok: ' + (error instanceof Error ? error.message : String(error)))
     } finally {
       setSavingMutasi(false)
     }
@@ -207,53 +183,13 @@ export default function GudangStockPage() {
     location?: 'gudang' | 'toko'
   ) {
     const qty = 1
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
     const reason = direction === 'add' ? 'Quick Add' : 'Quick Reduce'
-    if (target === 'material') {
-      const field = (location ?? 'gudang') === 'gudang' ? 'stock_gudang' : 'stock_toko'
-      const { data: mat } = await supabase
-        .from('materials')
-        .select('stock_gudang, stock_toko')
-        .eq('id', itemId)
-        .single()
-      const matAny = (mat ?? {}) as { stock_gudang: number; stock_toko: number }
-      const newVal = direction === 'add' ? (matAny?.[field] ?? 0) + qty : Math.max(0, (matAny?.[field] ?? 0) - qty)
-      const { error: matUpdErr } = await supabase
-        .from('materials')
-        .update({ [field]: newVal })
-        .eq('id', itemId)
-      if (matUpdErr) { toast('error', 'Gagal adjust stok material: ' + matUpdErr.message); return }
-      const { error: movErr } = await supabase.from('inventory_movements').insert({
-        material_id: itemId,
-        type: direction === 'add' ? 'in' : 'out',
-        qty,
-        from_location: direction === 'reduce' ? (location ?? 'gudang') : null,
-        to_location: direction === 'add' ? (location ?? 'gudang') : null,
-        reason,
-        created_by: user?.id ?? null
-      })
-      if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
-    } else {
-      const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', itemId).single()
-      const prodAny = (prod ?? {}) as { stock_toko: number }
-      const newVal =
-        direction === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
-      const { error: prodUpdErr } = await supabase.from('products').update({ stock_toko: newVal }).eq('id', itemId)
-      if (prodUpdErr) { toast('error', 'Gagal adjust stok produk: ' + prodUpdErr.message); return }
-      const { error: movErr } = await supabase.from('inventory_movements').insert({
-        product_id: itemId,
-        type: direction === 'add' ? 'in' : 'out',
-        qty,
-        from_location: direction === 'reduce' ? 'toko' : null,
-        to_location: direction === 'add' ? 'toko' : null,
-        reason,
-        created_by: user?.id ?? null
-      })
-      if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
+    try {
+      await adjustStock(target, itemId, target === 'material' ? (location ?? 'gudang') : 'toko', direction, qty, reason)
+      await load()
+    } catch (error) {
+      toast('error', 'Gagal adjust stok: ' + (error instanceof Error ? error.message : String(error)))
     }
-    load()
   }
 
   function openEditModal(item: Material | Product, target: 'material' | 'produk') {
@@ -271,57 +207,13 @@ export default function GudangStockPage() {
     if (!editItem || !editQty) return
     setSavingEdit(true)
     const qty = Math.abs(Number(editQty))
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
     const reason = editReason || (editMode === 'add' ? 'Adjustment' : 'Reduction')
     try {
-      if (editTarget === 'material') {
-        const field = editLocation === 'gudang' ? 'stock_gudang' : 'stock_toko'
-        const { data: mat } = await supabase
-          .from('materials')
-          .select('stock_gudang, stock_toko')
-          .eq('id', editItem.id)
-          .single()
-        const matAny = (mat ?? {}) as { stock_gudang: number; stock_toko: number }
-        const newVal = editMode === 'add' ? (matAny?.[field] ?? 0) + qty : Math.max(0, (matAny?.[field] ?? 0) - qty)
-        const { error: matUpdErr } = await supabase
-          .from('materials')
-          .update({ [field]: newVal })
-          .eq('id', editItem.id)
-        if (matUpdErr) { toast('error', 'Gagal update stok material: ' + matUpdErr.message); return }
-        const { error: movErr } = await supabase.from('inventory_movements').insert({
-          material_id: editItem.id,
-          type: editMode === 'add' ? 'in' : 'out',
-          qty,
-          from_location: editMode === 'reduce' ? editLocation : null,
-          to_location: editMode === 'add' ? editLocation : null,
-          reason,
-          notes: editNotes || null,
-          created_by: user?.id ?? null
-        })
-        if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('info', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
-      } else {
-        const { data: prod } = await supabase.from('products').select('stock_toko').eq('id', editItem.id).single()
-        const prodAny = (prod ?? {}) as { stock_toko: number }
-        const newVal =
-          editMode === 'add' ? (prodAny?.stock_toko ?? 0) + qty : Math.max(0, (prodAny?.stock_toko ?? 0) - qty)
-        const { error: prodUpdErr } = await supabase.from('products').update({ stock_toko: newVal }).eq('id', editItem.id)
-        if (prodUpdErr) { toast('error', 'Gagal update stok produk: ' + prodUpdErr.message); return }
-        const { error: movErr } = await supabase.from('inventory_movements').insert({
-          product_id: editItem.id,
-          type: editMode === 'add' ? 'in' : 'out',
-          qty,
-          from_location: editMode === 'reduce' ? 'toko' : null,
-          to_location: editMode === 'add' ? 'toko' : null,
-          reason,
-          notes: editNotes || null,
-          created_by: user?.id ?? null
-        })
-        if (movErr) { console.error('Gagal catat mutasi:', movErr); toast('success', '⚠️ Stok ter-update, tapi mutasi tidak tercatat: ' + movErr.message) }
-      }
+      await adjustStock(editTarget, editItem.id, editTarget === 'material' ? editLocation : 'toko', editMode, qty, reason, editNotes)
       setEditItem(null)
-      load()
+      await load()
+    } catch (error) {
+      toast('error', 'Gagal edit stok: ' + (error instanceof Error ? error.message : String(error)))
     } finally {
       setSavingEdit(false)
     }
@@ -1113,6 +1005,20 @@ export default function GudangStockPage() {
               </table>
             )}
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil((editTarget === 'material' ? totalCount : totalCountProd) / PAGE_SIZE))}
+            onPageChange={setCurrentPage}
+            pageSize={PAGE_SIZE}
+            onPageSizeChange={(s) => {
+              setPageSize(s)
+              setCurrentPage(1)
+            }}
+            totalItems={editTarget === 'material' ? totalCount : totalCountProd}
+            startIndex={(currentPage - 1) * PAGE_SIZE + 1}
+            endIndex={Math.min(currentPage * PAGE_SIZE, editTarget === 'material' ? totalCount : totalCountProd)}
+          />
         </div>
       )}
 

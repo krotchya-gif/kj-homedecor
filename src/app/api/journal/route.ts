@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 const JournalLineSchema = z.object({
   account_id: z.string().uuid('account_id tidak valid'),
@@ -33,6 +34,9 @@ const CreateJournalSchema = z
  * - Role check + is_auto selalu server-side (client tidak bisa spoof)
  */
 export async function POST(request: Request) {
+  if (checkRateLimit(getClientIp(request), 60, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const {
     data: { user }
@@ -110,6 +114,9 @@ export async function POST(request: Request) {
  * GET - list recent journal entries
  */
 export async function GET(request: Request) {
+  if (checkRateLimit(getClientIp(request), 120, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const {
     data: { user }

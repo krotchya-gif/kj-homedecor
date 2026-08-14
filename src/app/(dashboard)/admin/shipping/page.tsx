@@ -77,36 +77,18 @@ export default function AdminShippingPage() {
   }
 
   async function handleMarkPacked(orderId: string) {
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-    // F-16 fix: payment gate + guard status — order harus 'ready' & lunas.
-    const { data: orderRow } = await supabase
-      .from('orders')
-      .select('payment_status')
-      .eq('id', orderId)
-      .single()
-    if (!orderRow || orderRow.payment_status !== 'paid') {
-      toast('warning', '⚠️ Payment gate: order belum lunas. Finance harus approve/input pelunasan dulu.')
-      return
-    }
-    const { error: packErr } = await supabase
-      .from('orders')
-      .update({ status: 'packed', packed_at: new Date().toISOString(), packed_by: user?.id ?? null })
-      .eq('id', orderId)
-      .eq('status', 'ready')
-    if (packErr) {
-      // 23514 = check violation (status bukan 'ready') atau error lain
-      toast('error', 'Gagal mark packed (pastikan order status "Siap"): ' + packErr.message)
-      return
-    }
-    const { error: logErr } = await supabase.from('order_logs').insert({
-      order_id: orderId,
-      action: 'packed',
-      notes: 'Marked as packed from shipping page',
-      staff_id: user?.id ?? null
+    // 2026-08-14 (audit): pakai API route /api/orders/[id] — server-side
+    // transition check + payment gate + order_logs (bukan direct update client).
+    const packRes = await fetch(`/api/orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'packed', packed_at: new Date().toISOString() })
     })
-    if (logErr) { console.error('Gagal catat log packed:', logErr) }
+    const packJson = await packRes.json().catch(() => null)
+    if (!packRes.ok) {
+      toast('error', 'Gagal mark packed: ' + (packJson?.error?.message ?? `HTTP ${packRes.status}`))
+      return
+    }
     // Optimistic update
     setOrders((curr) => curr.map((o) => (o.id === orderId ? { ...o, status: 'packed', packed_at: new Date().toISOString() } : o)))
     toast('success', 'Order ditandai Dikemas (packed)')

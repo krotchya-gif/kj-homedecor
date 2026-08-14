@@ -2,13 +2,14 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { logSurveyActivity } from '@/lib/survey-log'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 // Security fix (2026-08-11): tambah ownership check — surveyor hanya bisa
 // akses survey milik sendiri; admin/owner boleh semua.
 
 async function canAccess(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, surveyId: string): Promise<{ ok: boolean; role?: string; error?: NextResponse }> {
-  const { data: me } = await supabase.from('users').select('role').eq('id', userId).single()
-  if (!me) return { ok: false, error: NextResponse.json({ error: { message: 'Staff tidak ditemukan' } }, { status: 403 }) }
+  const { data: me } = await supabase.from('users').select('role, status').eq('id', userId).single()
+  if (!me || me.status !== 'active') return { ok: false, error: NextResponse.json({ error: { message: 'Staff tidak aktif atau tidak ditemukan' } }, { status: 403 }) }
   if (['admin', 'owner'].includes(me.role)) return { ok: true, role: me.role }
 
   const { data: survey } = await supabase.from('surveys').select('surveyor_id').eq('id', surveyId).single()
@@ -20,6 +21,9 @@ async function canAccess(supabase: Awaited<ReturnType<typeof createClient>>, use
 
 /** GET /api/surveys/[id] — detail survey (rooms + photos + surveyor) */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(_request), 120, 60_000).blocked) {
+    return NextResponse.json({ error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
   const {
@@ -45,6 +49,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
  * Body: { client_name?, client_address?, survey_date?, status?, gps_lat?, gps_lng?, notes?, rooms? }
  */
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(request), 60, 60_000).blocked) {
+    return NextResponse.json({ error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
   const {
@@ -61,53 +68,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   for (const k of ['client_name', 'client_address', 'survey_date', 'status', 'gps_lat', 'gps_lng', 'notes', 'signature', 'signature_name']) {
     if (k in body) patch[k] = body[k]
   }
-  if (Object.keys(patch).length > 0) {
-    const { error: uErr } = await supabase.from('surveys').update(patch).eq('id', id)
-    if (uErr) return NextResponse.json({ error: { message: 'Gagal update survey: ' + toClientError(uErr) } }, { status: 500 })
-  }
-
-  if (Array.isArray(body.rooms)) {
-    // replace rooms + photos
-    const { error: delErr } = await supabase.from('survey_rooms').delete().eq('survey_id', id)
-    if (delErr) {
-      return NextResponse.json({ error: { message: 'Gagal hapus ruangan lama: ' + toClientError(delErr) } }, { status: 500 })
-    }
-    for (let i = 0; i < body.rooms.length; i++) {
-      const r = body.rooms[i]
-      const { data: room, error: rErr } = await supabase
-        .from('survey_rooms')
-        .insert({
-          survey_id: id,
-          room_name: r.room_name,
-          width_cm: r.width_cm ?? null,
-          height_cm: r.height_cm ?? null,
-          model_gorden: r.model_gorden ?? null,
-          fabric_name: r.fabric_name ?? null,
-          fabric_photo: r.fabric_photo ?? null,
-          vitras_name: r.vitras_name ?? null,
-          vitras_photo: r.vitras_photo ?? null,
-          rel_gorden: r.rel_gorden ?? null,
-          rel_vitras: r.rel_vitras ?? null,
-          hook: r.hook ?? null,
-          notes: r.notes ?? null,
-          sort_order: r.sort_order ?? i
-        })
-        .select()
-        .single()
-      if (rErr) {
-        return NextResponse.json({ error: { message: `Gagal simpan ruangan ${i + 1}: ${toClientError(rErr)}` } }, { status: 500 })
-      }
-      for (const p of r.photos ?? []) {
-        const { error: pErr } = await supabase.from('survey_room_photos').insert({
-          room_id: room.id,
-          url: p.url,
-          sort_order: p.sort_order ?? 0
-        })
-        if (pErr) {
-          return NextResponse.json({ error: { message: `Gagal simpan foto ruangan ${i + 1}: ${toClientError(pErr)}` } }, { status: 500 })
-        }
-      }
-    }
+  const { error: updateErr } = await supabase.rpc('update_survey_atomic', {
+    p_survey_id: id,
+    p_actor_id: user.id,
+    p_patch: patch,
+    p_rooms: Array.isArray(body.rooms) ? body.rooms : null
+  })
+  if (updateErr) {
+    return NextResponse.json({ error: { message: 'Gagal update survey: ' + toClientError(updateErr) } }, { status: 500 })
   }
 
   const { data, error } = await supabase
@@ -129,6 +97,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 /** DELETE /api/surveys/[id] — hapus survey (rooms/photos cascade) */
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (checkRateLimit(getClientIp(_request), 30, 60_000).blocked) {
+    return NextResponse.json({ error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const { id } = await params
   const supabase = await createClient()
   const {

@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { logSurveyActivity } from '@/lib/survey-log'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 interface RoomPayload {
   id?: string
@@ -42,9 +43,9 @@ async function getCurrentUserRole(supabase: SupabaseClient) {
     data: { user }
   } = await supabase.auth.getUser()
   if (!user) return null
-  const { data } = await supabase.from('users').select('role').eq('id', user.id).single()
+  const { data } = await supabase.from('users').select('role, status').eq('id', user.id).single()
   // Security fix (2026-08-12): user tanpa profil users = role null → DENY (bukan fail-open 'admin')
-  return { user, role: (data?.role as string | undefined) ?? null }
+  return { user, role: data?.status === 'active' ? ((data?.role as string | undefined) ?? null) : null }
 }
 
 /**
@@ -52,6 +53,9 @@ async function getCurrentUserRole(supabase: SupabaseClient) {
  * surveyor_id SELALU dari auth (server), tidak bisa di-spoof dari body.
  */
 export async function POST(request: Request) {
+  if (checkRateLimit(getClientIp(request), 30, 60_000).blocked) {
+    return NextResponse.json({ error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const auth = await getCurrentUserRole(supabase)
   if (!auth) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })
@@ -159,6 +163,9 @@ async function insertRooms(supabase: SupabaseClient, surveyId: string, rooms: Ro
  * Role gate: surveyor hanya survey milik sendiri (RLS juga enforce).
  */
 export async function GET(request: Request) {
+  if (checkRateLimit(getClientIp(request), 120, 60_000).blocked) {
+    return NextResponse.json({ error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const auth = await getCurrentUserRole(supabase)
   if (!auth) return NextResponse.json({ error: { message: 'Unauthorized' } }, { status: 401 })

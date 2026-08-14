@@ -309,7 +309,12 @@ const [pageSize, setPageSize] = useState(10)
               }}
             >
               <option value="">— Pilih Akun —</option>
-              {accounts.map((a) => (
+              {/* 088 (audit 2026-08-14): akun COA yang SUDAH dipetakan ke kas/bank
+                  tidak ditawarkan saat TAMBAH (UNIQUE cash_accounts.account_id).
+                  Saat EDIT, akun milik baris ini tetap tersedia. */}
+              {(accounts ?? []).filter(
+                (a) => editItem || !(cashAccounts ?? []).some((c) => c.account_id === a.id)
+              ).map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.code} - {a.name}
                 </option>

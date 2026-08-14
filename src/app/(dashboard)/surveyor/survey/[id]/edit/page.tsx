@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { useToast } from '@/components/ui/Toast'
@@ -11,8 +11,16 @@ import type { Survey } from '@/types'
 
 export default function SurveyEditPage() {
   const params = useParams<{ id: string }>()
+  const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const basePath = pathname.startsWith('/admin/surveys')
+    ? '/admin'
+    : pathname.startsWith('/owner/surveys')
+      ? '/owner'
+      : '/surveyor'
+  const surveyListPath = basePath === '/surveyor' ? '/surveyor/history' : `${basePath}/surveys`
+  const surveyDetailPath = basePath === '/surveyor' ? `/surveyor/survey/${params.id}` : `${basePath}/surveys/${params.id}`
   const [survey, setSurvey] = useState<Survey | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -40,7 +48,7 @@ export default function SurveyEditPage() {
   if (error || !survey) {
     return (
       <div>
-        <BackButton href="/surveyor/history" />
+        <BackButton href={surveyListPath} />
         <PageHeader title="Edit Survey" subtitle={error || 'Tidak ditemukan'} />
       </div>
     )
@@ -48,9 +56,12 @@ export default function SurveyEditPage() {
 
   return (
     <div>
-      <BackButton href={`/surveyor/survey/${survey.id}`} />
+       <BackButton href={surveyDetailPath} />
       <PageHeader title={`Edit Survey ${survey.survey_number ?? ''}`} subtitle={survey.client_name} />
-      <SurveyForm initial={survey} onSaved={(id) => router.push(`/surveyor/survey/${id}?saved=1`)} />
+       <SurveyForm
+         initial={survey}
+         onSaved={(id) => router.push(`${basePath === '/surveyor' ? `/surveyor/survey/${id}` : `${basePath}/surveys/${id}`}?saved=1`)}
+       />
     </div>
   )
 }

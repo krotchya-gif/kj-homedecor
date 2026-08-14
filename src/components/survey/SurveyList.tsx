@@ -208,10 +208,10 @@ export default function SurveyList({ basePath, showStats }: Props) {
                   </span>
                 </div>
                 <div className="mobile-card-actions">
-                  <Link href={`/surveyor/survey/${r.id}`} style={{ background: 'var(--neutral-100)', color: '#374151', textDecoration: 'none' }}>
+                   <Link href={`${basePath}/surveys/${r.id}`} style={{ background: 'var(--neutral-100)', color: '#374151', textDecoration: 'none' }}>
                     Lihat
                   </Link>
-                  <Link href={`/surveyor/survey/${r.id}/edit`} style={{ background: '#f3e8ff', color: '#7c3aed', textDecoration: 'none' }}>
+                   <Link href={`${basePath}/surveys/${r.id}/edit`} style={{ background: '#f3e8ff', color: '#7c3aed', textDecoration: 'none' }}>
                     Edit
                   </Link>
                   <button onClick={() => copyRow(r)} style={{ background: 'var(--neutral-100)', color: '#374151', border: 'none', cursor: 'pointer' }}>
@@ -271,10 +271,10 @@ export default function SurveyList({ basePath, showStats }: Props) {
                     </span>
                   </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <Link href={`/surveyor/survey/${r.id}`} style={miniBtn('#374151')}>
+                     <Link href={`${basePath}/surveys/${r.id}`} style={miniBtn('#374151')}>
                       Lihat
                     </Link>{' '}
-                    <Link href={`/surveyor/survey/${r.id}/edit`} style={miniBtn('#7c3aed')}>
+                     <Link href={`${basePath}/surveys/${r.id}/edit`} style={miniBtn('#7c3aed')}>
                       Edit
                     </Link>{' '}
                     <button onClick={() => copyRow(r)} style={miniBtn('#374151')}>

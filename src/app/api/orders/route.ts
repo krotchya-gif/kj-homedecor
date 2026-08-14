@@ -1,8 +1,9 @@
-﻿import { createClient } from '@/utils/supabase/server'
+﻿import { createClient, createServiceClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createSimpleJournal } from '@/utils/journal/create'
 import { z } from 'zod'
+import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 const OrderSourceSchema = z.enum(['shopee', 'tokopedia', 'tiktok', 'offline', 'landing_page'])
 const OrderClassificationSchema = z.enum(['kirim', 'pasang'])
@@ -17,6 +18,9 @@ const CreateOrderSchema = z.object({
 })
 
 export async function GET(request: Request) {
+  if (checkRateLimit(getClientIp(request), 120, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const {
     data: { user }
@@ -32,21 +36,46 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const source = searchParams.get('source')
+  const term = searchParams.get('search')?.trim() ?? ''
+  const category = searchParams.get('category') || null
+  const limitRaw = Number(searchParams.get('limit') ?? 200)
+  const offsetRaw = Number(searchParams.get('offset') ?? 0)
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 200) : 200
+  const offset = Number.isFinite(offsetRaw) && offsetRaw >= 0 ? offsetRaw : 0
+
+  if (term || category) {
+    // Search RPC is no longer callable directly by authenticated clients.
+    // The route performs the role gate above, then invokes it with service role.
+    const db = createServiceClient()
+    const { data, error } = await db.rpc('search_orders', {
+      p_term: term,
+      p_status: status ?? '',
+      p_category: category,
+      p_limit: limit,
+      p_offset: offset
+    })
+    if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
+    const result = (data ?? {}) as { rows?: unknown[]; total?: number }
+    return NextResponse.json({ data: result.rows ?? [], total: result.total ?? 0, error: null })
+  }
 
   let query = supabase
     .from('orders')
-    .select('*, customer:customers(name, phone, address), order_items(count)')
+    .select('*, customer:customers(name, phone, address), order_items(count)', { count: 'exact' })
     .order('created_at', { ascending: false })
 
   if (status) query = query.eq('status', status)
   if (source) query = query.eq('source', source)
 
-  const { data, error } = await query
+  const { data, error, count } = await query.range(offset, offset + limit - 1)
   if (error) return NextResponse.json({ data: null, error: { message: toClientError(error) } }, { status: 500 })
-  return NextResponse.json({ data, error: null })
+  return NextResponse.json({ data, total: count ?? data?.length ?? 0, error: null })
 }
 
 export async function POST(request: Request) {
+  if (checkRateLimit(getClientIp(request), 30, 60_000).blocked) {
+    return NextResponse.json({ data: null, error: { message: 'Too many requests' } }, { status: 429 })
+  }
   const supabase = await createClient()
   const {
     data: { user }

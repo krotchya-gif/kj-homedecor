@@ -1,13 +1,31 @@
 # Riwayat Perbaikan & Bug — KJ Homedecor
 
-> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-119)** + **audit modul finance** + **backlog**.
+> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-124)** + **audit modul finance** + **backlog**.
 > File ini menggabungkan `bug.md`, `todo.md`, `audit-finance.md`, dan bagian "Riwayat Perbaikan" README (dikonsolidasi 2026-08-13, sesi 37).
 >
 > Cara pakai: cari bug berdasarkan ID (tabel di bawah) → status & cara fix langsung terlihat di kolom "Cara Fix". Untuk konteks fase, lihat "Riwayat Perbaikan per Fase". Untuk temuan audit finance, lihat bagian "Audit Modul Finance".
 
+## 📖 Cara Membaca Dokumen Ini (WAJIB dibaca agent sebelum kerja)
+
+1. **Status**: `✅ Fixed` = selesai & terverifikasi (tsc/build/vitest/E2E sesuai konteks) · `❌` = bukan bug (false positive) · `⏳` = ditunda. Jangan anggap bug sudah mati kalau status tidak ✅.
+2. **Metode final terkunci**: setiap concern punya SATU metode final (daftar di `AGENTS.md` blok `single-source-of-truth-rules`). Entri lama yang memakai pola berbeda (mis. rollback manual client) = **sejarah — jangan dihidupkan kembali**; kerjakan lewat metode final yang ada.
+3. **Format entri baru (wajib ikuti)**: `BUG-<ID> | gejala singkat + lokasi (file:baris) | status + tanggal | METODE + ALASAN + bukti verifikasi`. Tulis ambigu = agent berikutnya salah mengambil keputusan.
+4. **Analisis TIDAK boleh dari migration lama** (`001`–`062`) atau dari ingatan — cek live via Supabase MCP dulu (`supabase_execute_sql` / `supabase_list_tables`), lihat aturan `AGENTS.md`.
+5. **Sebelum menulis fix baru**: cek tabel BUG — kalau bug mirip sudah dicatat, **verifikasi ulang**, jangan fix 2× dengan metode beda.
+
 ---
 
 ## 1. Riwayat Perbaikan per Fase
+
+### 2026-08-14 — Sesi 42: Audit ulang keamanan + atomicitas (BUG-120 s/d BUG-123)
+- **Temuan audit ulang** (setelah Phase 1-8): klaim "semua money-write sudah atomic & tidak dari browser" ternyata tidak benar. Empat kelas masalah: (1) **RPC atomic percaya `p_actor` dari client** → spoofing role (user biasa kirim uuid admin → lolos role check); (2) retry/timeout bisa **double-pay / dobel jurnal** (belum ada idempotency key di payments; return bisa diproses ulang → stok dobel); (3) policy publik `install_bookings` `WITH CHECK (true)` → anon bisa mengisi field internal (installer_id/order_id/status/source); (4) jalur gudang/shipping/finance/survey masih direct-write client (non-atomic; sebagian pasti gagal di RLS baru karena role operasional tak punya izin UPDATE).
+- **P0 — anti spoof**: helper `actor_is_active_with_role(p_actor, roles)` (SECURITY DEFINER, session-bound) dipakai SEMUA RPC atomic (`add_order_payment_atomic`, `cancel_order_atomic`, `process_order_return_atomic`, `adjust_stock_atomic`, `receive_purchase_order_atomic`, `update_survey_atomic`, `create_journal_atomic`, `advance_install_booking_status`). Role check dari `auth.uid()`, bukan dari parameter; `service_role` tetap boleh kirim actor (jalur server route yang sudah autentikasi sendiri).
+- **P0 — idempotency & guard**: `payments.idempotency_key` (UNIQUE) + return idempotent saat retry; guard status `cancelled/returned` di payment; guard `already-returned`/`already-cancelled`; `payments.voided_at` (flag, bukan parsing notes); `create_journal_atomic` → idempotency key WAJIB + `ON CONFLICT` race-safe + `created_by` terikat session + validasi line eksplisit (tolak negatif/dua sisi/0-0).
+- **P0 — booking publik**: drop policy `"Public can insert install_bookings"` → RPC `create_public_booking` (hanya field publik; status/source/installer/order/customer dipaksa server).
+- **P1 — RPC atomic baru**: `process_refund_atomic` (payment refund + jurnal sales_return + orders + returns dalam 1 transaksi), `schedule_installation_atomic` (booking + orders + cascade status), `add_order_item_atomic` / `remove_order_item_atomic` (item + hitung ulang total + log), `save_hpp_bom_atomic` (BOM + HPP + harga), `link_survey_atomic`, `resolve_return_atomic` (verifikasi retur oleh gudang — RLS returns UPDATE = finance).
+- **P1 — klien diseragamkan**: finance/payments (bayar & refund) → RPC; booking publik → RPC; gudang/qc retur → RPC; gudang/production auto-steam → API route (`auto_transition` diperluas utk gudang); admin/shipping packed → API route; order detail (schedule/item/link survey) → RPC + idempotency key per sesi modal; surveyor link → RPC; owner/hpp → RPC; admin/orders → rollback payment saat jurnal gagal (pola BUG-073).
+- **P2 — schema**: UNIQUE `cash_accounts.account_id` (anti double-update saldo); `order_totals` tidak menghitung payment void (`voided_at IS NULL`); `order_totals` security_invoker; REVOKE anon dari semua RPC atomik (sisa anon-executable hanya `create_public_booking` & `get_public_booking_slots` yang memang publik); regenerasi `src/types/database.ts`; sync `000_full_schema.sql` = live.
+- **Verifikasi**: tsc + build + vitest 27/27; E2E chromium **37/37 pass** (3 kegagalan awal di-fix: constraint `order_logs` aksi baru, guard schedule saat order `packed`, UNIQUE akun COA → UI filter + E2E buat akun sendiri); advisories: ERROR `security_definer_view` hilang.
 
 ### 2026-08-13 — Sesi 41: Fix realtime double-subscribe di mobile (BUG-119)
 - **BUG-119**: error `cannot add postgres_changes callbacks after subscribe()` saat buka sidebar di mobile — NotificationBell di-mount 2× (fixed + drawer) di client singleton. Fix Opsi C: bell hanya di `DashboardLayoutClient`; posisi mobile `top:64px`; drawer tanpa bell.
@@ -115,7 +133,7 @@
 
 ---
 
-## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-119)
+## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-124)
 
 > Semua bug sudah **Fixed** kecuali BUG-020 (bukan bug — false positive). Bagian detail Gejala/Akar per bug sudah diringkas ke kolom "Cara Fix".
 
@@ -193,7 +211,7 @@
 | BUG-070 | **Order TikTok AWAITING_SHIPMENT tak masuk main orders** | ✅ Fixed | `payment_status` dari field payment TikTok, fallback COMPLETED/DELIVERED→PAID |
 | BUG-071 | **Steam rework macet** (steam_job stale tak diganti) | ✅ Fixed | Guard cari `.eq('status','pending')` |
 | BUG-072 | **Hutang delete tanpa guard paid** | ✅ Fixed | Tolak hapus paid/cancelled/paid_amount>0/return_amount>0 |
-| BUG-073 | **Finance pay race / tanpa rollback** | ✅ Fixed | `handlePay`: jurnal gagal → hapus payment row (rollback penuh); `ordErr` → hapus row |
+| BUG-073 | **Finance pay race / tanpa rollback** | ✅ Fixed · **sejarah** (superseded BUG-123) | `handlePay`: jurnal gagal → hapus payment row (rollback penuh); `ordErr` → hapus row. **CATATAN**: pola manual ini TIDAK dipakai lagi — jalur sudah pindah ke RPC `add_order_payment_atomic` (transaksi atomic). Jangan menulis ulang rollback manual di client |
 | BUG-074 | **Dropdown/select tidak ikut tema dark** | ✅ Fixed | CSS global `select` + `var(--surface)/var(--input-border)` di 8 titik |
 | BUG-075 | **Tampilan tanggal mentah YYYY-MM-DD** | ✅ Fixed | Helper `formatDateDDMMYYYY()` di 16 file |
 | BUG-078 | **Landing theme preset & konten tidak berubah** | ✅ Fixed | Merge kolom terpisah (utama) + value JSON (fallback) |
@@ -212,7 +230,7 @@
 | BUG-091 | **Rate limit hanya 1/33 route** | ✅ Fixed (Phase 2) | `checkRateLimit` di 9 route sensitif |
 | BUG-092 | **`create-staff` lemah** (status, password min 6, enumeration, role laundry absen) | ✅ Fixed (Phase 2) | Cek active; password min 8; error redaksi; role laundry lengkap |
 | BUG-093 | **TikTok OAuth `state` = shop id (predictable)** | ✅ Fixed (Phase 2, migration 084) | Nonce random single-use di kolom `oauth_state` |
-| BUG-094 | **Asimetri rollback jurnal finansial** (sebagian hanya toast warning) | ✅ Fixed (Phase 3) | Seragamkan pola BUG-073 di SEMUA jalur (refund/hutang/piutang/payroll/aset) |
+| BUG-094 | **Asimetri rollback jurnal finansial** (sebagian hanya toast warning) | ✅ Fixed (Phase 3) · **sejarah** (superseded BUG-123) | Seragamkan pola BUG-073 di SEMUA jalur (refund/hutang/piutang/payroll/aset). **CATATAN**: pola manual ini TIDAK dipakai lagi — jalur sudah pindah ke RPC atomic (`process_refund_atomic` dll). Jangan menulis ulang |
 | BUG-095 | **Hardcoded UUID akun + double-count saldo** di `accounts/accounts` | ✅ Fixed (Phase 3) | `getAccountIdByCode` (lookup by code) + `fetchAccountBalances` (satu sumber) |
 | BUG-096 | **PO paid tanpa jurnal di `owner/suppliers`** | ✅ Fixed (Phase 3) | `updatePOStatus('paid')` → jurnal `hutang_paid` idempotent + rollback |
 | BUG-097 | **`markAsPaid` payroll tanpa idempotency_key** | ✅ Fixed (Phase 3) | `laundry_payroll_paid:<id>` + rollback penuh |
@@ -238,6 +256,11 @@
 | BUG-117 | **Upload file salah tempat** — commit `f133189` memindahkan `/api/upload` dari file lokal (disk) ke **Supabase Storage bucket `kj-uploads`** (blob `.blob`, kuota free 5GB tidak cukup utk foto progres 2MB × 7 progres × banyak order). Padahal plan benar = upload ke **`link.kjhomedecor.com/upload.php`** (subdomain → `public_html/link/uploads/{folder}/`, satu akun Hostinger, file asli, persistent saat redeploy — 143 gambar produk sudah di sana sejak migrasi 0046bda) | ✅ Fixed (2026-08-13) | `/api/upload` → proxy ke const `CDN_UPLOAD_URL = 'https://link.kjhomedecor.com/upload.php'` (pertahankan semua validasi: auth/role/MIME/magic bytes/size/rate limit); hapus `SUPABASE_SERVICE_ROLE_KEY` & `BUCKET` dari route. Siapkan `scripts/upload.php` (tambah folder `survey` + magic video) utk dicopy ke Hostinger. 189 foto testing di storage TIDAK dimigrasi (keputusan user — data uji) |
 | BUG-118 | **Upload pipeline foto gagal 400 setelah pindah CDN** — `browser-image-compression` menghasilkan **Blob** (name `blob`) → route hitung `ext = file.name.split('.').pop()` = `"blob"` → filename `xxx.blob` → CDN `upload.php` tolak ekstensi tak dikenal → `400 Invalid file type`. Produk (tanpa kompresi, nama asli `xxx.jpg`) tetap jalan; pipeline wajib foto (kompresi) gagal | ✅ Fixed (2026-08-13) | Ekstensi file kini dari **deteksi magic bytes** (`detectMime` → jpg/png/webp/pdf/mp4/webm), fallback `file.type`, bukan `file.name`. Terverifikasi: file PNG name `blob` → `xxx.png` → CDN HTTP 200. tsc + build + vitest 27/27 |
 | BUG-119 | **Error realtime di mobile saat buka sidebar** — `NotificationBell` di-mount 2× di client singleton (`createBrowserClient` cache): bell fixed `DashboardLayoutClient:36` + bell di mobile drawer `DashboardTopNav:120`. Saat buka drawer, instance ke-2 subscribe channel `notifications-realtime` yang sama → `cannot add postgres_changes callbacks after subscribe()` | ✅ Fixed (2026-08-13) | **Opsi C**: hapus bell dari drawer mobile (drawer tetap ThemeToggle + Logout); bell desktop (satu-satunya) di mobile turun ke `top:64px; right:12px` (media query 768) agar tidak menimpa hamburger. Satu instance → tidak ada bentrok channel. tsc + build + vitest 27/27 |
+| BUG-120 | **RPC atomic percaya `p_actor` dari client** — semua RPC baru (payment/cancel/return/stock/PO/survey/journal) validasi role via `WHERE id = p_actor`; user authenticated bisa kirim `p_actor` = uuid admin/owner/finance → lolos role check (spoofing). `advance_install_booking_status` punya pola sama (`p_staff_id`). `create_journal_atomic.p_created_by` juga bisa dipalsukan | ✅ Fixed (2026-08-14) | Helper `actor_is_active_with_role()` (SECURITY DEFINER): `service_role` → role check dari param (jalur server); authenticated → `p_actor` **wajib** `auth.uid()`. Semua RPC di atas + `create_journal_atomic` (created_by = auth.uid()) dipatch. **Verifikasi**: build + E2E 37/37 |
+| BUG-121 | **Retry/timeout bisa double-pay & dobel jurnal** — (1) `add_order_payment_atomic` tanpa idempotency key: submit ulang setelah timeout mencatat payment kedua (sisa tagihan masih cukup utk DP parsial); (2) `process_order_return_atomic` tanpa guard: return diproses 2× → stok produk masuk 2×; (3) `cancel_order_atomic` bisa dijalankan ulang (jurnal reversal memang idempotent, tapi log/void diulang); (4) `create_journal_atomic` menerima key NULL → retry bikin jurnal baru + pre-check race (bukan ON CONFLICT) | ✅ Fixed (2026-08-14) | `payments.idempotency_key` (UNIQUE, retry → return idempotent); guard `already-returned` (status), `already-cancelled`, status `cancelled/returned` ditolak utk payment; `payments.voided_at` di cancel; `create_journal_atomic`: key WAJIB + `ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING`. Client: key per sesi modal (`useRef`, reset saat sukses) di order-detail & finance/payments. **Verifikasi**: E2E pipeline kirim/pasang 9-10 tahap pass |
+| BUG-122 | **Booking publik terbuka field internal** — policy `"Public can insert install_bookings" FOR INSERT WITH CHECK (true)`: anon bisa insert field internal (`order_id`, `customer_id`, `installer_id`, `status`, `source`) — spoof booking terkait order/installer | ✅ Fixed (2026-08-14) | Policy di-**DROP**; ganti RPC `create_public_booking` (SECURITY DEFINER, GRANT anon) yang hanya menerima field publik (nama/HP/alamat/tanggal/jam/type/notes) dan memaksa `status='pending'`, `source='website'`, installer/order/customer = NULL. `booking/page.tsx` pindah ke RPC. **Verifikasi**: advisories anon-executable hanya tinggal 2 fungsi publik yang memang disengaja |
+| BUG-123 | **Jalur operasional masih direct-write client (non-atomic / bakal gagal di RLS baru)** — (1) `finance/payments` bayar & refund multi-step client (jurnal yatim saat gagal di tengah); (2) `gudang/production` auto-steam direct `orders.update` (gudang tak punya izin UPDATE orders); (3) `gudang/qc` resolve retur direct write (RLS returns UPDATE = finance); (4) `admin/shipping` packed direct update (bypass API transition); (5) `surveyor` link survey direct update (RLS orders UPDATE = admin/owner); (6) order detail: schedule/items/link survey non-atomic; (7) owner/hpp BOM non-atomic | ✅ Fixed (2026-08-14) | RPC atomic baru: `process_refund_atomic`, `resolve_return_atomic` (gudang), `schedule_installation_atomic` (booking+orders+cascade packed→scheduled), `add/remove_order_item_atomic`, `save_hpp_bom_atomic`, `link_survey_atomic`. Jalur lain → `PUT /api/orders/[id]` (auto_transition gudang production→steam). Semua klien diarahkan; idempotency key payment per sesi modal; admin/orders rollback payment saat jurnal gagal. **Verifikasi**: E2E 37/37 + tsc + build + vitest 27/27 |
+| BUG-124 | **`order_logs` check constraint menolak aksi baru** — RPC atomic memakai aksi `item_added`, `item_removed`, `survey_linked`, `installation_scheduled`; live punya **2 constraint duplikat** (`chk_action` + `order_logs_action_check`) yang tidak mengizinkannya → semua transaksi RPC baru rollback (ketangkap E2E: item order tidak pernah muncul) | ✅ Fixed (2026-08-14) | Drop 2 constraint duplikat; buat 1 constraint `order_logs_action_check` dengan daftar lengkap + 4 aksi baru; sync `000_full_schema.sql`. **Verifikasi**: E2E pipeline kirim/pasang pass (item gorden tampil) |
 
 ---
 
@@ -308,18 +331,25 @@ F-62 jurnal order warn saja · F-63 toast ganda · F-64 tanggal bebas backdate �
 
 | # | Item | Priority | Catatan |
 |---|---|---|---|
-| 1 | **Smoke test E2E di browser** | 🟠 High | ✅ `tests/e2e/smoke.spec.ts` — 15/15 pass: login 8 role, security (penjahit redirect + API 403), halaman kunci. Jalankan: `npx playwright test --project=chromium` |
+| 1 | **E2E suite (chromium)** | 🟠 High | ✅ `tests/e2e/` — **37/37 pass** (2026-08-14): login 8 role, security (penjahit redirect + API 403), pipeline kirim 9 tahap, pasang 10 tahap, finance, katalog/BOM, dsb. Jalankan: `npx playwright test --project=chromium` (butuh dev server / auth setup live) |
 | 2 | **Dual modal system** (`Modal` 36× vs `dialog` 3×) | ⏳ Ditunda | Keduanya jalan; konsolidasi = risiko regresi UI (nilai 0). `dialog` utk konfirmasi, `Modal` utk ringan |
-| 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` ✅ (42 file → import `lib/utils`). `STATUS_COLORS`/`LooseRow` sengaja dipertahankan (3 skema beda / method-call) |
+| 3 | **Duplikasi kecil** | 🟢 Low | `formatRp` ✅ (42 file → import `lib/utils`). `STATUS_COLORS` ganda: yang di `gudang/production/page.tsx` & `finance/payments/page.tsx` = **dipakai**; yang di `src/lib/order-detail.ts` = **dead code** (jangan dipakai sebagai referensi warna status) |
 | 4 | **Unique `invoice_number` piutang non-tiktok** | 🟢 Low | ✅ migration 076 + cek duplikat di faktur page |
 
 ---
 
 ## 6. Catatan Tambahan (bukan bug, tapi terkait)
 
-1. **Penjahit bypass API**: `penjahit/jobs/page.tsx` langsung update `orders.status='steam'` dari client (auto-transition) — tidak lewat API role check. Sengaja (auto), tapi tidak ada audit role.
-2. **Installer bypass**: `installer/checklist/page.tsx` langsung update `install_bookings.status='done'` dari client.
-3. **Gate foto**: `admin/orders/[id]` mewajibkan upload foto untuk **semua** transisi (bukan hanya stage wajib foto), sehingga owner upload ulang bukti yang sudah ada.
+> ⚠️ **Diperbarui 2026-08-14 (sesi 42)** — 3 catatan lama di bawah ini **SUDAH TIDAK BERLAKU** dan sengaja dihapus agar tidak menyesatkan agent:
+> 1. ~~"Penjahit bypass API langsung update orders.status"~~ → **SALAH**: `penjahit/jobs/page.tsx` kini lewat `PUT /api/orders/[id]` dengan `auto_transition: true` (role check server-side; tanpa ini penjahit gagal karena RLS orders UPDATE = admin/owner).
+> 2. ~~"Installer bypass langsung update install_bookings"~~ → **SALAH**: `installer/checklist/page.tsx` kini lewat `PUT /api/install-bookings/[id]` (server-side role/ownership check).
+> 3. ~~"Gate foto untuk semua transisi"~~ → **SALAH**: sudah sejak Phase 2/3 hanya stage `PHOTO_REQUIRED_STAGES` (sorted/steam/shipped/scheduled) yang wajib foto; transisi lain tidak wajib.
+
+Catatan yang masih berlaku:
+
+1. **Auto-transition produksi tanpa foto (disengaja)**: `production → steam` oleh **penjahit** (`penjahit/jobs`) dan **gudang** (`gudang/production`) memakai `auto_transition: true` di `PUT /api/orders/[id]` — meng-skip kewajiban foto stage `steam`. Role tetap di-gate (`production->steam` di role matrix); hanya kewajiban foto yang di-skip untuk transisi otomatis ini. Jangan hapus bypass foto ini tanpa persetujuan — alurnya akan macet di produksi (BUG-056 pernah terjadi).
+2. **Rollback manual client = sejarah**: operasi finansial yang punya RPC atomic (`create_journal_atomic`, `add_order_payment_atomic`, `process_refund_atomic`, `cancel_order_atomic`, `process_order_return_atomic`, `resolve_return_atomic`) TIDAK boleh ditulis ulang sebagai multi-step client + rollback manual (lihat BUG-073/094/123 dan `AGENTS.md` blok `single-source-of-truth-rules`).
+3. **Constraint `order_logs.action`**: daftar aksi ada di `order_logs_action_check` (live) — aksi baru untuk log order WAJIB ditambahkan ke constraint (dan `000_full_schema.sql`) sebelum dipakai RPC/klien, kalau tidak transaksi rollback (BUG-124).
 
 ---
 
@@ -332,4 +362,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-13 (sesi 41) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-14 (sesi 42) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_

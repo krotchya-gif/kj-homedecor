@@ -2011,12 +2011,50 @@ select option {
   .topnav {
     display: flex;
   }
-  /* Notifikasi: tetap satu instance (bell desktop). Di mobile turun di bawah topnav
-     agar tidak menimpa hamburger — drawer mobile TIDAK punya bell lagi (Opsi C, BUG-119). */
-  .desktop-notif-bell {
-    top: 64px;
-    right: 12px;
-  }
+  /* Notifikasi: satu instance (BUG-119 Opsi C) — di mobile bell dirender di footer
+     drawer (DashboardTopNav), jadi bell desktop TIDAK di-render sama sekali. */
+}
+
+/* ========== SHARED BUTTONS ========== */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #cc7030;
+  color: #fff;
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #b5621f;
+  box-shadow: 0 4px 12px rgba(204, 112, 48, 0.25);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dark .btn-primary {
+  background: #cc7030;
+  color: #fff;
+}
+
+.dark .btn-primary:hover:not(:disabled) {
+  background: #b5621f;
 }
 
 /* ========== TABLE ========== */
