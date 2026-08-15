@@ -2727,6 +2727,137 @@ export type Database = {
           },
         ]
       }
+      shopee_shop_orders: {
+        Row: {
+          buyer_name: string | null
+          buyer_phone: string | null
+          commission_fee: number | null
+          created_at: string | null
+          currency: string | null
+          escrow_amount: number | null
+          escrow_release_time: string | null
+          id: string
+          is_synced: boolean | null
+          order_data: Json | null
+          order_sn: string
+          order_status: string | null
+          payment_status: string | null
+          piutang_id: string | null
+          service_fee: number | null
+          shipping_address: string | null
+          shipping_amount: number | null
+          synced_at: string | null
+          total_amount: number | null
+          transaction_fee: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          commission_fee?: number | null
+          created_at?: string | null
+          currency?: string | null
+          escrow_amount?: number | null
+          escrow_release_time?: string | null
+          id?: string
+          is_synced?: boolean | null
+          order_data?: Json | null
+          order_sn: string
+          order_status?: string | null
+          payment_status?: string | null
+          piutang_id?: string | null
+          service_fee?: number | null
+          shipping_address?: string | null
+          shipping_amount?: number | null
+          synced_at?: string | null
+          total_amount?: number | null
+          transaction_fee?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_name?: string | null
+          buyer_phone?: string | null
+          commission_fee?: number | null
+          created_at?: string | null
+          currency?: string | null
+          escrow_amount?: number | null
+          escrow_release_time?: string | null
+          id?: string
+          is_synced?: boolean | null
+          order_data?: Json | null
+          order_sn?: string
+          order_status?: string | null
+          payment_status?: string | null
+          piutang_id?: string | null
+          service_fee?: number | null
+          shipping_address?: string | null
+          shipping_amount?: number | null
+          synced_at?: string | null
+          total_amount?: number | null
+          transaction_fee?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopee_shop_orders_piutang_id_fkey"
+            columns: ["piutang_id"]
+            isOneToOne: false
+            referencedRelation: "piutang"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopee_shop_settings: {
+        Row: {
+          access_token: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          oauth_state: string | null
+          partner_id: string
+          partner_key: string
+          refresh_token: string | null
+          seller_name: string | null
+          shop_id: string | null
+          shop_name: string | null
+          shop_region: string | null
+          token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          oauth_state?: string | null
+          partner_id: string
+          partner_key: string
+          refresh_token?: string | null
+          seller_name?: string | null
+          shop_id?: string | null
+          shop_name?: string | null
+          shop_region?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          oauth_state?: string | null
+          partner_id?: string
+          partner_key?: string
+          refresh_token?: string | null
+          seller_name?: string | null
+          shop_id?: string | null
+          shop_name?: string | null
+          shop_region?: string | null
+          token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       steam_jobs: {
         Row: {
           checked_by: string | null
@@ -3401,39 +3532,18 @@ export type Database = {
         Args: { p_actor: string; p_item: Json; p_order_id: string }
         Returns: Json
       }
-      add_order_payment_atomic:
-        | {
-            Args: {
-              p_actor: string
-              p_amount: number
-              p_order_id: string
-              p_type: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_actor: string
-              p_amount: number
-              p_debit_account_id?: string
-              p_idempotency_key?: string
-              p_order_id: string
-              p_type: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_actor: string
-              p_amount: number
-              p_date?: string
-              p_debit_account_id?: string
-              p_idempotency_key?: string
-              p_order_id: string
-              p_type: string
-            }
-            Returns: Json
-          }
+      add_order_payment_atomic: {
+        Args: {
+          p_actor: string
+          p_amount: number
+          p_date?: string
+          p_debit_account_id?: string
+          p_idempotency_key?: string
+          p_order_id: string
+          p_type: string
+        }
+        Returns: Json
+      }
       adjust_stock_atomic: {
         Args: {
           p_actor: string
@@ -3457,6 +3567,10 @@ export type Database = {
         Returns: boolean
       }
       cancel_order_atomic: {
+        Args: { p_actor: string; p_order_id: string; p_reason: string }
+        Returns: Json
+      }
+      cancel_shopee_order_atomic: {
         Args: { p_actor: string; p_order_id: string; p_reason: string }
         Returns: Json
       }
@@ -3557,6 +3671,14 @@ export type Database = {
       }
       process_refund_atomic: {
         Args: { p_actor: string; p_return_id: string }
+        Returns: Json
+      }
+      process_shopee_escrow_atomic: {
+        Args: { p_actor: string; p_order_sn: string }
+        Returns: Json
+      }
+      process_shopee_order_atomic: {
+        Args: { p_actor: string; p_order_sn: string }
         Returns: Json
       }
       process_tiktok_order_atomic: {

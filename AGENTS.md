@@ -31,6 +31,8 @@
 | Piutang (CRUD + bayar) | RPC `save_piutang_atomic` (create/update/delete) + `pay_piutang_atomic` (bayar, idempotency key) + `retur_piutang_atomic` (retur) — bukan insert/update `piutang` langsung dari client (sesi 52, BUG-128) |
 | Hutang (CRUD + bayar) | RPC `save_hutang_atomic` (create/update/delete) + `pay_hutang_atomic` (bayar, idempotency key) — bukan insert/update `hutang` langsung dari client (sesi 52, BUG-128) |
 | Proses / cancel order TikTok → main order | RPC `process_tiktok_order_atomic` / `cancel_tiktok_order_atomic` — BLOCK on error di `sync-to-main-orders`; order_items hanya saat order BARU (`v_was_new`); cancel = void payment + reversal jurnal (sesi 52, BUG-128) |
+| Proses / cancel order Shopee → main order | RPC `process_shopee_order_atomic` / `cancel_shopee_order_atomic` + `process_shopee_escrow_atomic` (settlement escrow per order: Dr E Wallet Shopee/Cr Piutang + fee per kategori) — mirror TikTok, idempotent, BLOCK on error (sesi 53, BUG-132) |
+| API Shopee (OAuth, order, escrow, webhook) | SDK `@congminh1254/shopee-sdk` (wrap `src/lib/shopee.ts` + `SupabaseTokenStorage`) — JANGAN tulis signing HMAC manual; token di `shopee_shop_settings` |
 | Verifikasi retur oleh Gudang | RPC `resolve_return_atomic` |
 | Transisi status order | `PUT /api/orders/[id]` (role matrix + transition check server-side; field NON-status per role: admin/owner/finance semua, gudang hanya `packed_at`) |
 | Tambah / hapus item order | RPC `add_order_item_atomic` / `remove_order_item_atomic` |

@@ -2140,7 +2140,7 @@ DECLARE
     'production_reports','laundry_orders','laundry_payroll','laundry_records',
     'lembur_records','purchase_requests','purchase_orders','inventory_movements',
     'stock_opname_sessions','journal_entries','hutang','piutang','assets',
-    'tiktok_shop_orders','tiktok_shop_statements','material_price_history',
+    'tiktok_shop_orders','tiktok_shop_statements','shopee_shop_orders','material_price_history',
     'low_stock_alerts','notifications',
     'order_items','order_logs','order_material_consumption',
     'order_preparation_checklists','order_progress_photos',
@@ -4405,5 +4405,359 @@ $function$;
 REVOKE ALL ON FUNCTION public.cancel_tiktok_order_atomic(uuid, text, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.cancel_tiktok_order_atomic(uuid, text, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.cancel_tiktok_order_atomic(uuid, text, uuid) TO authenticated;
+
+-- ============================================================
+-- 091 (sesi 53, 2026-08-15): Shopee Seller — mirror TikTok
+-- (settings, orders + escrow per order, RPC atomic, akun/mapping)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.shopee_shop_settings (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  shop_name       VARCHAR(255),
+  shop_region     VARCHAR(10) DEFAULT 'ID',
+  partner_id      TEXT NOT NULL,
+  partner_key     TEXT NOT NULL,
+  shop_id         VARCHAR(50),
+  access_token    TEXT,
+  refresh_token   TEXT,
+  token_expires_at TIMESTAMPTZ,
+  seller_name     VARCHAR(255),
+  oauth_state     TEXT,
+  is_active       BOOLEAN DEFAULT false,
+  created_at      TIMESTAMPTZ DEFAULT now(),
+  updated_at      TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.shopee_shop_orders (
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_sn         VARCHAR(100) UNIQUE NOT NULL,
+  order_status     VARCHAR(50),
+  payment_status   VARCHAR(50),
+  total_amount     NUMERIC(15,2) DEFAULT 0,
+  shipping_amount  NUMERIC(15,2) DEFAULT 0,
+  commission_fee   NUMERIC(15,2) DEFAULT 0,
+  transaction_fee  NUMERIC(15,2) DEFAULT 0,
+  service_fee      NUMERIC(15,2) DEFAULT 0,
+  escrow_amount    NUMERIC(15,2) DEFAULT 0,
+  escrow_release_time TIMESTAMPTZ,
+  currency         VARCHAR(10) DEFAULT 'IDR',
+  buyer_name       VARCHAR(255),
+  buyer_phone      VARCHAR(50),
+  shipping_address TEXT,
+  order_data       JSONB,
+  is_synced        BOOLEAN DEFAULT false,
+  piutang_id       UUID REFERENCES public.piutang(id) ON DELETE SET NULL,
+  synced_at        TIMESTAMPTZ DEFAULT now(),
+  created_at       TIMESTAMPTZ DEFAULT now(),
+  updated_at       TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_shopee_orders_synced ON public.shopee_shop_orders(is_synced);
+CREATE INDEX IF NOT EXISTS idx_shopee_orders_status ON public.shopee_shop_orders(order_status);
+
+-- Akun kas & beban baru
+INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account, description)
+VALUES
+  ('22222222-2222-4222-8222-222222222209', '1105', 'E Wallet Shopee', 'asset',
+   '11111111-1111-4111-8111-111111111101', true, 'Saldo E Wallet Shopee (settlement marketplace)'),
+  ('66666666-6666-4666-8666-666666666611', '5305', 'Beban Transaksi Marketplace', 'expense',
+   '11111111-1111-4111-8111-111111111110', false, 'Transaction fee Shopee/TikTok dipotong dari settlement'),
+  ('66666666-6666-4666-8666-666666666612', '5306', 'Beban Layanan Marketplace', 'expense',
+   '11111111-1111-4111-8111-111111111110', false, 'Service fee Shopee dipotong dari settlement')
+ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name, type = EXCLUDED.type, description = EXCLUDED.description;
+
+INSERT INTO public.account_mappings (transaction_type, debit_account_id, credit_account_id, description, is_active)
+VALUES
+  ('shopee_settlement_received',
+   '22222222-2222-4222-8222-222222222209', '22222222-2222-4222-8222-222222222205',
+   'Settlement Shopee masuk — E Wallet Shopee (Debit) / Piutang (Kredit)', true),
+  ('ecommerce_transaction_fee',
+   '66666666-6666-4666-8666-666666666611', '22222222-2222-4222-8222-222222222205',
+   'Transaction fee marketplace — Beban Transaksi (Debit) / Piutang (Kredit)', true),
+  ('ecommerce_service_fee',
+   '66666666-6666-4666-8666-666666666612', '22222222-2222-4222-8222-222222222205',
+   'Service fee marketplace — Beban Layanan (Debit) / Piutang (Kredit)', true)
+ON CONFLICT (transaction_type) DO UPDATE SET
+  debit_account_id = EXCLUDED.debit_account_id, credit_account_id = EXCLUDED.credit_account_id,
+  description = EXCLUDED.description, is_active = true;
+
+-- RLS (mirror TikTok)
+ALTER TABLE public.shopee_shop_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.shopee_shop_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Shopee staff read settings" ON public.shopee_shop_settings;
+DROP POLICY IF EXISTS "Shopee manage settings" ON public.shopee_shop_settings;
+DROP POLICY IF EXISTS "Shopee staff read orders" ON public.shopee_shop_orders;
+DROP POLICY IF EXISTS "Shopee manage orders" ON public.shopee_shop_orders;
+CREATE POLICY "Shopee staff read settings" ON public.shopee_shop_settings
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
+CREATE POLICY "Shopee manage settings" ON public.shopee_shop_settings
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+CREATE POLICY "Shopee staff read orders" ON public.shopee_shop_orders
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('owner','admin','finance')));
+CREATE POLICY "Shopee manage orders" ON public.shopee_shop_orders
+  FOR ALL USING (public.is_finance_role()) WITH CHECK (public.is_finance_role());
+REVOKE ALL ON public.shopee_shop_settings FROM anon;
+REVOKE ALL ON public.shopee_shop_orders FROM anon;
+GRANT SELECT, INSERT, UPDATE ON public.shopee_shop_settings TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.shopee_shop_orders TO authenticated;
+
+-- RPC: proses order Shopee → main order
+CREATE OR REPLACE FUNCTION public.process_shopee_order_atomic(p_order_sn text, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_so record;
+  v_order_id uuid;
+  v_order_number text;
+  v_was_new boolean := false;
+  v_line jsonb;
+  v_price numeric;
+  v_qty int;
+  v_items int := 0;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+
+  SELECT * INTO v_so FROM public.shopee_shop_orders WHERE order_sn = p_order_sn FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order Shopee tidak ditemukan'; END IF;
+  IF v_so.payment_status <> 'paid' OR v_so.order_status = 'CANCELLED' THEN
+    RAISE EXCEPTION 'Order Shopee belum dibayar / sudah dibatalkan';
+  END IF;
+
+  SELECT id INTO v_order_id FROM public.orders WHERE order_id_external = p_order_sn;
+  IF v_order_id IS NULL THEN
+    v_was_new := true;
+    SELECT public.generate_order_number() INTO v_order_number;
+    IF v_order_number IS NULL THEN
+      v_order_number := 'ORD-' || to_char(now(), 'YYYY') || '-' || lpad(floor(random()*10000)::text, 4, '0');
+    END IF;
+    INSERT INTO public.orders (
+      order_number, order_id_external, source, customer_id, classification, status,
+      total_amount, dp_amount, lunas_amount, shipping_cost, payment_status, order_date, notes, shipping_address
+    ) VALUES (
+      v_order_number, p_order_sn, 'shopee', NULL, 'kirim',
+      CASE WHEN v_so.order_status = 'COMPLETED' THEN 'done' ELSE 'sorted' END,
+      COALESCE(v_so.total_amount, 0), 0, COALESCE(v_so.total_amount, 0),
+      COALESCE(v_so.shipping_amount, 0), 'paid', v_so.synced_at,
+      'Shopee order - ' || COALESCE(v_so.buyer_name, 'Unknown'),
+      v_so.shipping_address
+    ) RETURNING id INTO v_order_id;
+  END IF;
+
+  -- Payment lunas (platform): verified_by NULL — dibayar platform, bukan admin.
+  INSERT INTO public.payments (order_id, type, amount, date, verified_by, verified_at, notes, idempotency_key)
+  VALUES (v_order_id, 'lunas', COALESCE(v_so.total_amount, 0), CURRENT_DATE, NULL, NULL,
+    'Auto-catat Shopee (settlement platform) - ' || p_order_sn,
+    'shopee_sync_payment:' || p_order_sn)
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING;
+
+  -- Jurnal order_created (revenue) — idempotent per order
+  IF COALESCE(v_so.total_amount, 0) > 0 AND NOT EXISTS (
+    SELECT 1 FROM public.journal_entries WHERE idempotency_key = 'shopee_sync_order_created:' || v_order_id::text
+  ) THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'order_created' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+      RAISE EXCEPTION 'Mapping order_created belum dikonfigurasi';
+    END IF;
+    PERFORM public.create_journal_atomic(
+      'shopee_sync_order_created:' || v_order_id::text,
+      'order', v_order_id,
+      'Order Shopee ' || p_order_sn || ' - ' || COALESCE(v_so.buyer_name, 'Unknown'),
+      COALESCE(v_so.synced_at::date, CURRENT_DATE), true,
+      jsonb_build_array(
+        jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_so.total_amount, 'credit', 0),
+        jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', 0, 'credit', v_so.total_amount)
+      ),
+      p_actor
+    );
+  END IF;
+
+  -- Line items — HANYA saat order baru dibuat (v_was_new). Sync ulang tidak menduplikat.
+  IF v_was_new THEN
+    FOR v_line IN SELECT value FROM jsonb_array_elements(COALESCE(v_so.order_data->'item_list', '[]'::jsonb))
+    LOOP
+      IF v_line->>'item_name' IS NULL AND v_line->>'model_name' IS NULL THEN CONTINUE; END IF;
+      v_price := COALESCE((v_line->>'model_discounted_price')::numeric, (v_line->>'model_original_price')::numeric, 0);
+      v_qty := COALESCE((v_line->>'model_quantity_purchased')::int, 1);
+      INSERT INTO public.order_items (order_id, product_id, item_type, qty, price, custom_specs, size)
+      VALUES (
+        v_order_id, NULL, 'perabot', v_qty, v_price,
+        v_line->>'item_name', NULLIF(v_line->>'model_name', v_line->>'item_name')
+      );
+      v_items := v_items + 1;
+    END LOOP;
+  END IF;
+
+  RETURN jsonb_build_object('order_id', v_order_id, 'items', v_items, 'status', 'processed', 'was_new', v_was_new);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.process_shopee_order_atomic(text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_shopee_order_atomic(text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_shopee_order_atomic(text, uuid) TO authenticated;
+
+-- RPC: cancel order Shopee (void payment + reversal jurnal)
+CREATE OR REPLACE FUNCTION public.cancel_shopee_order_atomic(p_order_id uuid, p_reason text, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_order_no text;
+  v_total numeric := 0;
+  v_status text;
+  v_has_journal boolean;
+  v_mapping record;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+  IF p_reason IS NULL OR btrim(p_reason) = '' THEN RAISE EXCEPTION 'Alasan pembatalan wajib diisi'; END IF;
+
+  SELECT order_number, total_amount, status INTO v_order_no, v_total, v_status
+  FROM public.orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+  IF v_status = 'cancelled' THEN RAISE EXCEPTION 'Order sudah dibatalkan'; END IF;
+
+  UPDATE public.payments
+  SET notes = 'VOIDED - Shopee order cancelled (' || p_reason || ') - ' || NOW(), voided_at = NOW()
+  WHERE order_id = p_order_id AND voided_at IS NULL;
+
+  UPDATE public.orders
+  SET status = 'cancelled', return_reason = p_reason, payment_status = 'pending',
+      dp_amount = 0, lunas_amount = 0
+  WHERE id = p_order_id;
+
+  SELECT EXISTS (SELECT 1 FROM public.journal_entries WHERE idempotency_key = 'shopee_sync_order_created:' || p_order_id::text)
+  INTO v_has_journal;
+  IF v_has_journal AND v_total > 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'order_created' AND is_active = true;
+    IF v_mapping.debit_account_id IS NOT NULL AND v_mapping.credit_account_id IS NOT NULL THEN
+      PERFORM public.create_journal_atomic(
+        'cancel_shopee_order_created:' || p_order_id::text,
+        'order_cancelled', p_order_id,
+        'Reversal order Shopee - ' || COALESCE(v_order_no, left(p_order_id::text, 8)) || ' dibatalkan',
+        CURRENT_DATE, true,
+        jsonb_build_array(
+          jsonb_build_object('account_id', v_mapping.credit_account_id, 'debit', v_total, 'credit', 0),
+          jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', 0, 'credit', v_total)
+        ),
+        p_actor
+      );
+    END IF;
+  END IF;
+
+  INSERT INTO public.order_logs (order_id, action, notes, staff_id)
+  VALUES (p_order_id, 'cancelled', 'Order Shopee dibatalkan secara atomic. Alasan: ' || p_reason, p_actor);
+
+  RETURN jsonb_build_object('order_id', p_order_id, 'cancelled', true);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.cancel_shopee_order_atomic(uuid, text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.cancel_shopee_order_atomic(uuid, text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.cancel_shopee_order_atomic(uuid, text, uuid) TO authenticated;
+
+-- RPC: escrow settlement per order (fee per kategori + Dr E Wallet Shopee / Cr Piutang)
+CREATE OR REPLACE FUNCTION public.process_shopee_escrow_atomic(p_order_sn text, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_so record;
+  v_escrow numeric := 0;
+  v_commission numeric := 0;
+  v_txn_fee numeric := 0;
+  v_service_fee numeric := 0;
+  v_shipping numeric := 0;
+  v_lines jsonb := '[]'::jsonb;
+  v_mapping record;
+  v_kas_id uuid;
+  v_piutang_id uuid;
+  v_order_id uuid;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+
+  SELECT * INTO v_so FROM public.shopee_shop_orders WHERE order_sn = p_order_sn FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order Shopee tidak ditemukan'; END IF;
+  IF v_so.is_synced THEN RETURN jsonb_build_object('order_sn', p_order_sn, 'idempotent', true, 'escrow_amount', v_so.escrow_amount); END IF;
+  IF COALESCE(v_so.escrow_amount, 0) <= 0 THEN RAISE EXCEPTION 'Belum ada escrow untuk order ini — jalankan Sync Escrow dulu'; END IF;
+
+  v_escrow := COALESCE(v_so.escrow_amount, 0);
+  v_commission := COALESCE(v_so.commission_fee, 0);
+  v_txn_fee := COALESCE(v_so.transaction_fee, 0);
+  v_service_fee := COALESCE(v_so.service_fee, 0);
+  v_shipping := COALESCE(v_so.shipping_amount, 0);
+  v_lines := jsonb_build_array();
+
+  -- Kas masuk: Dr E Wallet Shopee / Cr Piutang (escrow = nominal bersih diterima)
+  SELECT debit_account_id, credit_account_id INTO v_mapping
+  FROM public.account_mappings WHERE transaction_type = 'shopee_settlement_received' AND is_active = true;
+  IF v_mapping.debit_account_id IS NULL OR v_mapping.credit_account_id IS NULL THEN
+    RAISE EXCEPTION 'Mapping shopee_settlement_received belum dikonfigurasi';
+  END IF;
+  v_kas_id := v_mapping.debit_account_id;
+  v_piutang_id := v_mapping.credit_account_id;
+  v_lines := v_lines || jsonb_build_object('account_id', v_kas_id, 'debit', v_escrow, 'credit', 0)
+                     || jsonb_build_object('account_id', v_piutang_id, 'debit', 0, 'credit', v_escrow);
+
+  -- Fee per kategori: Dr Beban / Cr Piutang
+  IF v_commission > 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_commission' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL THEN RAISE EXCEPTION 'Mapping ecommerce_commission belum dikonfigurasi'; END IF;
+    v_lines := v_lines || jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_commission, 'credit', 0)
+                       || jsonb_build_object('account_id', v_piutang_id, 'debit', 0, 'credit', v_commission);
+  END IF;
+  IF v_txn_fee > 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_transaction_fee' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL THEN RAISE EXCEPTION 'Mapping ecommerce_transaction_fee belum dikonfigurasi'; END IF;
+    v_lines := v_lines || jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_txn_fee, 'credit', 0)
+                       || jsonb_build_object('account_id', v_piutang_id, 'debit', 0, 'credit', v_txn_fee);
+  END IF;
+  IF v_service_fee > 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_service_fee' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL THEN RAISE EXCEPTION 'Mapping ecommerce_service_fee belum dikonfigurasi'; END IF;
+    v_lines := v_lines || jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_service_fee, 'credit', 0)
+                       || jsonb_build_object('account_id', v_piutang_id, 'debit', 0, 'credit', v_service_fee);
+  END IF;
+  IF v_shipping > 0 THEN
+    SELECT debit_account_id, credit_account_id INTO v_mapping
+    FROM public.account_mappings WHERE transaction_type = 'ecommerce_shipping' AND is_active = true;
+    IF v_mapping.debit_account_id IS NULL THEN RAISE EXCEPTION 'Mapping ecommerce_shipping belum dikonfigurasi'; END IF;
+    v_lines := v_lines || jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_shipping, 'credit', 0)
+                       || jsonb_build_object('account_id', v_piutang_id, 'debit', 0, 'credit', v_shipping);
+  END IF;
+
+  SELECT id INTO v_order_id FROM public.orders WHERE order_id_external = p_order_sn;
+
+  PERFORM public.create_journal_atomic(
+    'shopee_escrow:' || p_order_sn,
+    'order', COALESCE(v_order_id, v_so.id),
+    'Settlement Shopee ' || p_order_sn || ' - escrow Rp' || v_escrow || ' (komisi Rp' || v_commission || ', txn Rp' || v_txn_fee || ', service Rp' || v_service_fee || ', ongkir Rp' || v_shipping || ')',
+    CURRENT_DATE, true, v_lines, p_actor
+  );
+
+  UPDATE public.shopee_shop_orders SET is_synced = true, updated_at = NOW() WHERE order_sn = p_order_sn;
+
+  RETURN jsonb_build_object('order_sn', p_order_sn, 'escrow_amount', v_escrow, 'synced', true);
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.process_shopee_escrow_atomic(text, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.process_shopee_escrow_atomic(text, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.process_shopee_escrow_atomic(text, uuid) TO authenticated;
 
 NOTIFY pgrst, 'reload schema';

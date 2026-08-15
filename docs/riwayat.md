@@ -1,6 +1,6 @@
 # Riwayat Perbaikan & Bug — KJ Homedecor
 
-> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-131)** + **audit modul finance** + **backlog**.
+> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-132)** + **audit modul finance** + **backlog**.
 > File ini menggabungkan `bug.md`, `todo.md`, `audit-finance.md`, dan bagian "Riwayat Perbaikan" README (dikonsolidasi 2026-08-13, sesi 37).
 >
 > Cara pakai: cari bug berdasarkan ID (tabel di bawah) → status & cara fix langsung terlihat di kolom "Cara Fix". Untuk konteks fase, lihat "Riwayat Perbaikan per Fase". Untuk temuan audit finance, lihat bagian "Audit Modul Finance".
@@ -22,6 +22,15 @@
 - **Owner "Tren Omzet 12 Bulan" kosong**: `loadTrend` mengelompokkan hanya tahun kalender `year-1` (2025) padahal live hanya punya paid order 2022 & 2026 → semua titik 0. Fix: **jendela 12 bulan berakhir di periode terpilih** (trailing 12 bulan).
 - Test `mobile-charts.spec` diperkuat: assert bar chart admin punya bar height > 0.
 - **Verifikasi**: tsc + build + vitest 27/27 + E2E chromium 38/38 (sekali run sempat flaky 5 gagal karena dev recompile lambat 11 menit — lolos penuh di run berikutnya).
+
+### 2026-08-15 — Sesi 53: Shopee Seller — mirror lengkap TikTok Shop (pakai @congminh1254/shopee-sdk)
+- **Keputusan user**: (1) kredensial Shopee Open Platform belum ada → kode dibuat penuh, tinggal isi Partner ID/Key di `/owner/shopee`; (2) settlement = **escrow per order** (Shopee tidak punya statement periodik seperti TikTok); (3) arsitektur = **mirror** (bukan generalisasi) — tabel/RPC/route `shopee_*` pola identik TikTok, tanpa risiko regresi jalur TikTok.
+- **SDK pihak ketiga** `@congminh1254/shopee-sdk@1.15.0` (MIT, ESM, Node ≥ 20): signing HMAC otomatis, token refresh otomatis, region GLOBAL (`partner.shopeemobile.com` — berlaku utk ID). Token via `TokenStorage` custom → **`SupabaseTokenStorage`** (tabel `shopee_shop_settings`). Wrap di `src/lib/shopee.ts` — isolasi agar bisa diganti tanpa ubah route.
+- **DB**: `shopee_shop_settings` (partner_id/partner_key/shop_id/oauth_state nonce) + `shopee_shop_orders` (`order_sn` UNIQUE, fee per kategori + `escrow_amount`/`escrow_release_time`/`is_synced`/`piutang_id`) + akun **E Wallet Shopee (1105)** & **Beban Transaksi (5305)** / **Beban Layanan (5306)** + mapping `shopee_settlement_received`/`ecommerce_transaction_fee`/`ecommerce_service_fee` (komisi/ongkir/adjustment reuse mapping generik sesi 43) + RLS mirror TikTok + `reset_transactional_data` + tabel.
+- **RPC atomic** (SECURITY DEFINER + `actor_is_active_with_role` + idempotent): `process_shopee_order_atomic` (main order `source='shopee'` auto-paid `verified_by NULL`, langsung sorted/done, items hanya `v_was_new`), `cancel_shopee_order_atomic` (void payment + reversal), `process_shopee_escrow_atomic` (guard `is_synced` + Dr E Wallet Shopee / Cr Piutang + Dr Beban fee per kategori).
+- **Routes**: `auth` (OAuth callback nonce single-use), `auth/reauthorize` (`getAuthorizationUrl` + state), `sync-orders` (get_order_list cursor + detail, status UNPAID→pending, READY_TO_SHIP+→paid), `sync-escrow` (get_escrow_list + get_escrow_detail_batch), `sync-to-main-orders` (RPC, BLOCK on error + sync cancel), `webhook` (verifikasi `Authorization: SHA256 <hmac>` body raw + code 3/4 status), `settings` (simpan kredensial).
+- **Frontend**: `/admin/shopee` (sync + link + daftar), `/owner/shopee` (kredensial + authorize/re-auth + sync + catat escrow), `/finance/shopee` (escrow & jurnal) + nav 3 role.
+- **Verifikasi**: tsc + build + vitest + **E2E baru `shopee.spec.ts`** (user-level setara jalur server: process → order done/paid + 1 item + 1 payment; process ulang idempotent item tetap 1; escrow → jurnal + is_synced; escrow ulang idempotent; cancel → cancelled + payment voided; cleanup; render halaman). ⚠️ **CDN `link.kjhomedecor.com` down saat verifikasi** (port 443 unreachable — outage hosting, bukan kode): 2 spec pipeline (kirim/pasang) gagal hanya karena upload foto bukti ke CDN; `shopee.spec` lolos. **Full E2E 39/39 wajib di-rerun setelah CDN pulih.** OAuth end-to-end **belum bisa diuji** (belum ada kredensial) — siap dipakai setelah daftar di open.shopee.com & isi redirect URL `https://kjhomedecor.com/api/shopee/auth`.
 
 ### 2026-08-15 — Sesi 52: Audit ulang menyeluruh (22 temuan, 3 wave) — Wave 1–3 selesai
 - **Wave 1 — kebenaran angka (12 fix, semuanya ✅)**: finance/payments stat `neq('payment_status','cancelled')` (cancelled ikut terhitung); admin/customers `c.phone.includes` null-crash; kronologi-omzet (reset page via effect terpisah, filter cancelled/returned, boundary `T00:00:00`); performa-tag filter cancelled; umur-piutang select `invoice_number` + filter `invoice_date` (ganda 500); mutasi-kas label "Mutasi (Periode)" (web+PDF); owner trend deps `[period.year, period.month]`; pdf-brand font per-doc WeakSet (anti-font bocor antar dokumen); survey-pdf `getBrandRgb()`; use-order-detail payKeyRef reset saat modal tutup + qty return ≤0 ditolak; finance aging anchor kosong jangan '>90'.
@@ -213,7 +222,7 @@
 
 ---
 
-## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-131)
+## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-132)
 
 > Semua bug sudah **Fixed** kecuali BUG-020 (bukan bug — false positive). Bagian detail Gejala/Akar per bug sudah diringkas ke kolom "Cara Fix".
 
@@ -348,6 +357,7 @@
 | BUG-129 | **Pagination tidak tampil di mobile** — 5 halaman finance (hutang, faktur, journal, cash, cash/mutation) menaruh `<Pagination>` di dalam `.data-table.desktop-only`; daftar mobile (`MobileCards`) di-slice `page*pageSize` tanpa kontrol halaman → user HP terkunci di 10 baris pertama; search/filter juga tidak reset page → "halaman kosong" saat hasil filter pendek | ✅ Fixed (2026-08-15) | Pagination dipindah keluar `.desktop-only` (render desktop + mobile); `setPage(0)` di onChange search/filter (4 halaman). **Verifikasi**: tsc + build + vitest 27/27 + E2E 38/38 |
 | BUG-130 | **CSV export mojok di Excel Windows & parse pecah saat newline dalam quote** — `exportToCSV`/template tanpa BOM `\uFEFF` → karakter Indonesia (Rp, é) garbled; `parseCSV` split `/\r?\n/` polos → field ber-quote berisi newline dipecah jadi record salah | ✅ Fixed (2026-08-15) | BOM prepend di `downloadCSV`; `parseCSV` pakai `splitCSVRecords` stateful (menghormati quote saat split record) + buang BOM input. **Verifikasi**: tsc + build + E2E 38/38 (ImportModal customers/products/materials/suppliers tetap jalan) |
 | BUG-131 | **Font brand & logo tidak termuat (CORS CDN)** — CDN `link.kjhomedecor.com` tanpa `Access-Control-Allow-Origin` → browser blokir `@font-face` & `fetch` cross-origin: header mobile tampil Inter (bukan TTF brand), PDF nama brand helvetica, logo `brand_logo_url` hilang dari laporan (sebelumnya `/kjlogo.png` same-origin jalan) | ✅ Fixed (2026-08-15) | Proxy **`/api/brand-asset`** (`?kind=font|logo`): fetch CDN server-side (tanpa CORS) + ACAO `*` + cache; `BrandFontLoader`/`registerBrandFont`/`loadLogo` pakai proxy; `loadLogo` fallback `/kjlogo.png` bila CDN mati. **Verifikasi**: proxy 200 (png 30KB / ttf 22KB), `document.fonts.load('16px BrandFont')` → `loaded`, E2E 38/38 |
+| BUG-132 | **Shopee Seller belum terintegrasi** — orders enum & piutang channel sudah dukung `source='shopee'` tapi tidak ada OAuth/API/sync (hanya TikTok) | ✅ Fixed (2026-08-15) | Fitur lengkap mirror TikTok (sesi 53): SDK `@congminh1254/shopee-sdk`, tabel `shopee_shop_*`, RPC atomic process/cancel/escrow, 6 route API + 3 halaman. **Verifikasi**: E2E shopee.spec (user-level setara server) + tsc + build + vitest |
 
 ---
 
@@ -450,4 +460,4 @@ git add -A
 git commit -m "..."
 ```
 
-_Dokumen konsolidasi: 2026-08-15 (sesi 52) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_
+_Dokumen konsolidasi: 2026-08-15 (sesi 53) · Menggantikan `bug.md`, `todo.md`, `audit-finance.md`_

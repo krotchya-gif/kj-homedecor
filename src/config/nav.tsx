@@ -81,6 +81,7 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       items: [
         { label: 'Pengiriman', href: '/admin/shipping', icon: Truck },
         { label: 'TikTok Shop', href: '/admin/tiktok', icon: ShoppingBag },
+        { label: 'Shopee', href: '/admin/shopee', icon: ShoppingBag },
         { label: 'Laundry', href: '/admin/laundry', icon: WashingMachine },
         { label: 'Staff', href: '/admin/staff', icon: Users }
       ]
@@ -155,7 +156,8 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
         { label: 'Piutang', href: '/finance/piutang', icon: ArrowLeftRight },
         { label: 'Cek Pembayaran', href: '/finance/payments', icon: DollarSign },
         { label: 'Marketplace', href: '/owner/marketplace', icon: ShoppingBag },
-        { label: 'TikTok Shop', href: '/finance/tiktok', icon: ShoppingBag }
+        { label: 'TikTok Shop', href: '/finance/tiktok', icon: ShoppingBag },
+        { label: 'Shopee', href: '/finance/shopee', icon: ShoppingBag }
       ]
     },
     {
@@ -226,7 +228,8 @@ export const NAV_BY_ROLE: Record<string, NavGroup[]> = {
       title: 'Sales & Marketplace',
       items: [
         { label: 'Marketplace', href: '/owner/marketplace', icon: ShoppingCart },
-        { label: 'TikTok Shop', href: '/owner/tiktok', icon: ShoppingBag }
+        { label: 'TikTok Shop', href: '/owner/tiktok', icon: ShoppingBag },
+        { label: 'Shopee', href: '/owner/shopee', icon: ShoppingBag }
       ]
     },
     {

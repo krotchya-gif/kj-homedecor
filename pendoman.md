@@ -413,19 +413,21 @@ Semua bisa di-filter tanggal & diunduh PDF.
 
 ---
 
-## 11. Marketplace TikTok
+## 11. Marketplace TikTok & Shopee
 
-### Admin (`/admin/tiktok`)
-- **Sync Orders** — tarik pesanan dari TikTok ke daftar
-- **Link to Main Orders** — ubah pesanan TikTok (yang sudah dibayar platform) menjadi pesanan utama di sistem
+### Admin (`/admin/tiktok` & `/admin/shopee`)
+- **Sync Orders** — tarik pesanan dari marketplace ke daftar
+- **Link to Main Orders** — ubah pesanan marketplace (yang sudah dibayar platform) menjadi pesanan utama di sistem
 
-### Owner (`/owner/tiktok`)
+### Owner (`/owner/tiktok` & `/owner/shopee`)
 - Hubungkan/putuskan koneksi toko (OAuth)
-- **Sync Orders** · **Sync Settlement** (uang masuk) · **Buat Piutang** (catat tagihan channel)
+- **Sync Orders** · **Sync Settlement/Escrow** (uang masuk) · **Buat Piutang** (catat tagihan channel)
 - Lihat pesanan & settlement per bulan (gross → fee → net)
 - Token kedaluwarsa → **Re-authorize**
 
-> Pembayaran TikTok masuk akun **E-Wallet Tiktok** di pembukuan. Pesanan TikTok yang sudah lunas langsung masuk pipeline (status sortir), tanpa perlu approve cek bayar.
+> Pembayaran TikTok masuk akun **E-Wallet Tiktok**, Shopee masuk **E-Wallet Shopee** di pembukuan. Pesanan marketplace yang sudah lunas langsung masuk pipeline (status sortir), tanpa perlu approve cek bayar.
+>
+> **Koneksi Shopee pertama kali:** daftar di `open.shopee.com` (Shopee Open Platform) → buat aplikasi → isi redirect URL `https://kjhomedecor.com/api/shopee/auth` → bind toko → masukkan **Partner ID** & **Partner Key** di `/owner/shopee` → klik **Authorize Toko** → lalu gunakan tombol Sync Orders / Sync Escrow / Link to Main Orders.
 
 ---
 
