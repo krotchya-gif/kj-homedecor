@@ -23,7 +23,8 @@ import {
   LayoutGrid,
   Award,
   Megaphone,
-  RotateCcw
+  RotateCcw,
+  Mail
 } from 'lucide-react'
 import { uploadToLocal } from '@/lib/upload'
 import ColorPicker from '@/components/ui/ColorPicker'
@@ -64,6 +65,7 @@ export default function AdminLandingSettingsPage() {
     tokopedia: '',
     address: '',
     phone: '',
+    email: '',
     // Categories
     categories_label: '',
     categories_title: '',
@@ -133,6 +135,7 @@ export default function AdminLandingSettingsPage() {
         tokopedia: data.tokopedia ?? '',
         address: data.address ?? '',
         phone: data.phone ?? '',
+        email: data.email ?? '',
         categories_label: data.categories_label ?? '',
         categories_title: data.categories_title ?? '',
         categories_subtitle: data.categories_subtitle ?? '',
@@ -195,6 +198,7 @@ export default function AdminLandingSettingsPage() {
         tokopedia: form.tokopedia,
         address: form.address,
         phone: form.phone,
+        email: form.email,
         categories_label: form.categories_label,
         categories_title: form.categories_title,
         categories_subtitle: form.categories_subtitle,
@@ -1821,6 +1825,34 @@ export default function AdminLandingSettingsPage() {
                     outline: 'none'
                   }}
                   placeholder="cth: +62 812-3456-7890"
+                />
+              </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: 'var(--neutral-700)',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  <Mail size={13} style={{ display: 'inline', marginRight: '0.3rem', verticalAlign: 'middle' }} />
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.625rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    outline: 'none'
+                  }}
+                  placeholder="cth: kj@homedecor.com"
                 />
               </div>
             </div>

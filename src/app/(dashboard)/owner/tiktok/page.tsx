@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   Clock,
   Info,
+  Calendar,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react'
@@ -33,6 +34,8 @@ interface TikTokSetting {
   shop_cipher?: string
   access_token?: string
   token_expires_at?: string
+  /** Wave 2: batas bawah sync — data sebelum tanggal ini tidak ikut disinkronkan. */
+  sync_start_date?: string | null
 }
 
 interface TikTokOrder {
@@ -150,7 +153,7 @@ export default function TikTokDashboardPage() {
         // F-19 fix: app_secret & access_token TIDAK boleh ke browser — batasi kolom
         supabase
           .from('tiktok_shop_settings')
-          .select('id, shop_name, is_active, seller_name, open_id, token_expires_at, shop_cipher'),
+          .select('id, shop_name, is_active, seller_name, open_id, token_expires_at, shop_cipher, sync_start_date'),
         orderQuery,
         countQuery,
         // Fetch total_amount grouped by order_status
@@ -297,6 +300,18 @@ export default function TikTokDashboardPage() {
     if (!confirm('Hapus TikTok Shop ini? Data orders & statements tetap tersimpan.')) return
     const { error } = await supabase.from('tiktok_shop_settings').delete().eq('id', shopId)
     if (error) { toast('error', 'Gagal hapus shop: ' + error.message); return }
+    fetchData()
+  }
+
+  // Wave 2: simpan Tanggal Mulai Sync per-shop (batas bawah semua operasi sync)
+  async function handleSyncStartDate(shopId: string, value: string) {
+    if (!value) {
+      toast('warning', 'Pilih tanggal dahulu')
+      return
+    }
+    const { error } = await supabase.from('tiktok_shop_settings').update({ sync_start_date: value }).eq('id', shopId)
+    if (error) { toast('error', 'Gagal simpan tanggal mulai sync: ' + error.message); return }
+    toast('success', `Tanggal mulai sync disimpan (${value}) — data sebelum tanggal ini tidak ikut sync`)
     fetchData()
   }
 
@@ -531,6 +546,32 @@ export default function TikTokDashboardPage() {
                             }}
                           >
                             <CheckCircle2 size={10} /> Siap sync
+                          </span>
+                        )}
+                      </div>
+                      {/* Wave 2: Tanggal Mulai Sync — batas bawah semua operasi sync */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.4rem' }}>
+                        <Calendar size={12} style={{ color: 'var(--neutral-500)', flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.72rem', color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}>
+                          Sync mulai:
+                        </span>
+                        <input
+                          type="date"
+                          value={s.sync_start_date?.slice(0, 10) ?? ''}
+                          onChange={(e) => handleSyncStartDate(s.id, e.target.value)}
+                          title="Tanggal mulai sync — data sebelum tanggal ini (sudah diinput manual/saldo awal) TIDAK ikut tersinkronkan"
+                          style={{
+                            padding: '0.2rem 0.4rem',
+                            border: '1px solid var(--input-border)',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.72rem',
+                            background: 'var(--surface)',
+                            color: 'var(--neutral-800)'
+                          }}
+                        />
+                        {s.sync_start_date && (
+                          <span style={{ fontSize: '0.68rem', color: '#92400e', background: '#fef3c7', padding: '0.1rem 0.4rem', borderRadius: '999px' }}>
+                            Order/statement sebelum {s.sync_start_date.slice(0, 10)} di-skip
                           </span>
                         )}
                       </div>

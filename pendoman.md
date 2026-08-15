@@ -420,14 +420,15 @@ Semua bisa di-filter tanggal & diunduh PDF.
 - **Link to Main Orders** — ubah pesanan marketplace (yang sudah dibayar platform) menjadi pesanan utama di sistem
 
 ### Owner (`/owner/tiktok` & `/owner/shopee`)
-- Hubungkan/putuskan koneksi toko (OAuth)
-- **Sync Orders** · **Sync Settlement/Escrow** (uang masuk) · **Buat Piutang** (catat tagihan channel)
+- Hubungkan/putuskan koneksi toko (OAuth) — **multi-toko** (Tambah Toko / Authorize / Re-authorize / Hapus)
+- **Sync Orders** · **Sync Settlement/Escrow** (uang masuk, tampil sebagai "Settlement / Pencairan Dana") · **Buat Piutang** (khusus TikTok, catat tagihan channel)
+- **Tanggal Mulai Sync** per toko — data sebelum tanggal ini (sudah diinput manual/saldo awal) tidak ikut tersinkronkan
 - Lihat pesanan & settlement per bulan (gross → fee → net)
 - Token kedaluwarsa → **Re-authorize**
 
 > Pembayaran TikTok masuk akun **E-Wallet Tiktok**, Shopee masuk **E-Wallet Shopee** di pembukuan. Pesanan marketplace yang sudah lunas langsung masuk pipeline (status sortir), tanpa perlu approve cek bayar.
 >
-> **Koneksi Shopee pertama kali:** daftar di `open.shopee.com` (Shopee Open Platform) → buat aplikasi → isi redirect URL `https://kjhomedecor.com/api/shopee/auth` → bind toko → masukkan **Partner ID** & **Partner Key** di `/owner/shopee` → klik **Authorize Toko** → lalu gunakan tombol Sync Orders / Sync Escrow / Link to Main Orders.
+> **Koneksi Shopee pertama kali:** daftar di `open.shopee.com` (Shopee Open Platform) → buat aplikasi → isi redirect URL `https://kjhomedecor.com/api/shopee/auth` → bind toko → di `/owner/shopee` klik **Tambah Toko** → masukkan **Partner ID** & **Partner Key** → klik **Authorize** → lalu gunakan tombol Sync Orders / Sync Settlement / Link to Main Orders.
 
 ---
 
@@ -452,7 +453,9 @@ Semua bisa di-filter tanggal & diunduh PDF.
 3. **Stok awal** → `Gudang → Stock Opname` → buat sesi → isi fisik → Kirim → Finance **Approve**
    (alternatif: mutasi barang masuk di `Gudang → Stock`)
 4. **TikTok** → `/owner/tiktok` → cek koneksi; token kedaluwarsa → Re-authorize
-5. **Mulai transaksi** → buat pesanan di `/admin/orders`, ikuti alur (bagian 3)
+5. **Shopee** → `/owner/shopee` → Tambah Toko → Authorize (bila akun sudah tersedia)
+6. **Tanggal Mulai Sync** (TikTok & Shopee) → set di kartu toko (`/owner/tiktok` & `/owner/shopee`) — data sebelum tanggal tersebut dianggap sudah diinput manual & tidak ikut sync
+7. **Mulai transaksi** → buat pesanan di `/admin/orders`, ikuti alur (bagian 3)
 
 ---
 

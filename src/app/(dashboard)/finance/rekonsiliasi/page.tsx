@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Scale, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { formatRp } from '@/lib/utils'
+import { piutangSisa } from '@/lib/ledger'
 
 
 interface DiffRow {
@@ -38,12 +39,7 @@ export default function RekonsiliasiPage() {
             .neq('status', 'cancelled')
         ])
         const piutangTabel = (piutang ?? []).reduce(
-          (s, p) =>
-            s +
-            Math.max(
-              0,
-              Number(p.amount ?? 0) - Number(p.paid_amount ?? 0) - Number(p.return_amount ?? 0) - Number(p.fee_amount ?? 0)
-            ),
+          (s, p) => s + piutangSisa(p as { amount?: number | null; paid_amount?: number | null; return_amount?: number | null; fee_amount?: number | null }),
           0
         )
         const piutangOrders = (orders ?? []).reduce(

@@ -27,14 +27,15 @@ export async function POST(req: NextRequest) {
   const partnerId = String(body.partner_id ?? '').trim()
   const partnerKey = String(body.partner_key ?? '').trim()
   const shopName = String(body.shop_name ?? '').trim() || null
+  // Multi-shop (sesi 55): shop_id → update toko itu; tanpa shop_id → TAMBAH toko baru
+  const settingsId = String(body.shop_id ?? '').trim() || null
 
   if (!partnerId || !partnerKey) {
     return NextResponse.json({ error: 'partner_id dan partner_key wajib diisi' }, { status: 400 })
   }
 
   try {
-    const { data: existing } = await supabase.from('shopee_shop_settings').select('id').limit(1).maybeSingle()
-    if (existing) {
+    if (settingsId) {
       const { error } = await supabase
         .from('shopee_shop_settings')
         .update({
@@ -43,9 +44,9 @@ export async function POST(req: NextRequest) {
           shop_name: shopName,
           updated_at: new Date().toISOString()
         })
-        .eq('id', existing.id)
+        .eq('id', settingsId)
       if (error) return NextResponse.json({ error: toClientError(error) }, { status: 500 })
-      return NextResponse.json({ success: true, id: existing.id, message: 'Kredensial Shopee diperbarui' })
+      return NextResponse.json({ success: true, id: settingsId, message: 'Kredensial Shopee diperbarui' })
     }
 
     const { data: inserted, error } = await supabase

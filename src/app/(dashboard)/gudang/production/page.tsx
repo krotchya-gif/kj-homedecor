@@ -90,50 +90,83 @@ export default function GudangProductionPage() {
     setPenjahits((penjahitData ?? []) as UserType[])
     setLoading(false)
 
-    // Pre-load BOM materials for all jobs that are waiting/in_progress
+    // Pre-load BOM materials untuk semua job aktif — WAVE 5 (2026-08-15): BATCH
+    // (sebelumnya per job: 1 query order_items + per item 1 query bom = N+1;
+    // dengan 20 job aktif bisa 100+ query per load). Sekarang 2 query total:
+    // order_items by order_ids + bom by product_ids.
     const activeJobs = ((data ?? []) as ProductionJob[]).filter((j) => j.status === 'waiting' || j.status === 'in_progress')
-    const materialsMap: Record<string, JobMaterial[]> = {}
-    for (const job of activeJobs) {
-      if (job.order_id) materialsMap[job.id] = await loadJobMaterials(job.order_id)
-    }
+    const materialsMap = await loadMaterialsBatch(activeJobs)
     setJobMaterials(materialsMap)
   }
 
-  async function loadJobMaterials(orderId: string): Promise<JobMaterial[]> {
-    const { data: orderItems } = await supabase.from('order_items').select('product_id, qty').eq('order_id', orderId)
+  /** WAVE 5: ambil material BOM untuk banyak job sekaligus (anti N+1). */
+  async function loadMaterialsBatch(activeJobs: ProductionJob[]): Promise<Record<string, JobMaterial[]>> {
+    const map: Record<string, JobMaterial[]> = {}
+    const orderIds = activeJobs.map((j) => j.order_id).filter(Boolean) as string[]
+    if (orderIds.length === 0) return map
 
-    const materials: JobMaterial[] = []
-    for (const item of orderItems ?? []) {
-      if (!item.product_id) continue
+    const { data: orderItems } = await supabase
+      .from('order_items')
+      .select('order_id, product_id, qty')
+      .in('order_id', orderIds)
+
+    const productIds = [...new Set((orderItems ?? []).map((i) => i.product_id).filter(Boolean))] as string[]
+    let bomByProduct: Record<string, Array<{ material_id: string; qty_per_unit: number; material_name: string; unit: string; stock_gudang: number }>> = {}
+    if (productIds.length > 0) {
       const { data: bomItems } = await supabase
         .from('bom')
-        .select('material_id, qty_per_unit, material:materials(name, unit, stock_gudang)')
-        .eq('product_id', item.product_id)
-
+        .select('product_id, material_id, qty_per_unit, material:materials(name, unit, stock_gudang)')
+        .in('product_id', productIds)
       for (const bom of bomItems ?? []) {
-        // material join bisa ARRAY (to-many PostgREST) — ambil baris pertama
         const mat = Array.isArray(bom.material) ? bom.material[0] : bom.material
-        materials.push({
+        ;(bomByProduct[bom.product_id] ??= []).push({
           material_id: bom.material_id,
+          qty_per_unit: Number(bom.qty_per_unit ?? 0),
           material_name: mat?.name ?? 'Unknown',
           unit: mat?.unit ?? 'unit',
-          qty_needed: Number(bom.qty_per_unit) * Number(item.qty),
-          stock_gudang: mat?.stock_gudang ?? 0
+          stock_gudang: Number(mat?.stock_gudang ?? 0)
         })
       }
     }
-    return materials
+
+    for (const job of activeJobs) {
+      const items = (orderItems ?? []).filter((i) => i.order_id === job.order_id)
+      const mats: JobMaterial[] = []
+      for (const item of items) {
+        if (!item.product_id) continue
+        for (const bom of bomByProduct[item.product_id] ?? []) {
+          mats.push({
+            material_id: bom.material_id,
+            material_name: bom.material_name,
+            unit: bom.unit,
+            qty_needed: bom.qty_per_unit * Number(item.qty ?? 1),
+            stock_gudang: bom.stock_gudang
+          })
+        }
+      }
+      map[job.id] = mats
+    }
+    return map
   }
 
   useEffect(() => {
     load()
-    // Realtime: auto-refresh saat ada job baru atau status berubah
+    // Realtime: auto-refresh saat ada job baru atau status berubah.
+    // WAVE 5 (2026-08-15): DEBOUNCE 600ms — sebelumnya setiap event memicu load()
+    // penuh (termasuk N+1 material) → banyak event beruntun (mulai/selesai/assign)
+    // membanjiri query. Hasil akhir sama, query jauh lebih sedikit.
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined
+    const scheduleReload = () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => load(false), 600)
+    }
     const channel = supabase
       .channel('production_jobs_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, () => load(false))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load(false))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'production_jobs' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, scheduleReload)
       .subscribe()
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer)
       supabase.removeChannel(channel)
     }
   }, [])

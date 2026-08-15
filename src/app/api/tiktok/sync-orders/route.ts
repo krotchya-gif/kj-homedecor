@@ -33,6 +33,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'TikTok Shop not configured' }, { status: 400 })
   }
 
+  // WAVE 2 (2026-08-15): Tanggal Mulai Sync per-shop — data sebelum tanggal ini
+  // dianggap sudah diinput manual (saldo awal) → jepit start_date ke batas bawah.
+  // start_date kosong → pakai sync_start_date; user pilih lebih awal → di-jepit.
+  let effectiveStart = start_date as string | undefined
+  if (settings.sync_start_date) {
+    const minDate = new Date(settings.sync_start_date).toISOString().slice(0, 10)
+    if (!effectiveStart || effectiveStart < minDate) effectiveStart = minDate
+  }
+
   const token = await getValidToken(settings)
   if (!token) {
     return NextResponse.json({ error: 'Access token not available' }, { status: 400 })
@@ -55,8 +64,8 @@ export async function POST(req: NextRequest) {
         reqBody.cursor = cursor
         extraQs.cursor = cursor
       }
-      if (start_date) {
-        reqBody.create_time_ge = Math.floor(new Date(start_date).getTime() / 1000)
+      if (effectiveStart) {
+        reqBody.create_time_ge = Math.floor(new Date(effectiveStart).getTime() / 1000)
       }
       if (end_date) {
         reqBody.create_time_lt = Math.floor(new Date(end_date).getTime() / 1000)

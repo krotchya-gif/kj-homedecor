@@ -2,7 +2,7 @@
 import autoTable from 'jspdf-autotable'
 import type { Order, OrderItem, Customer , SurveyRoom } from '@/types'
 import { drawDocHeader, addPageNumbers, getBrandRgb } from '@/lib/report-pdf'
-import { getBrandSettings } from '@/lib/pdf-brand'
+import { getBrandSettings, companyContactLine } from '@/lib/pdf-brand'
 
 // Kode brand untuk nama file & nomor dokumen (sesi 47): "KJ Homedecor" → "kj".
 async function brandCode(): Promise<string> {
@@ -27,11 +27,13 @@ interface InvoiceData {
 
 export async function generateInvoicePDF({ order, orderNumber }: InvoiceData) {
   const doc = new jsPDF()
+  const brand = await getBrandSettings()
 
   // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  // Kontak dari landing_settings (Admin → Landing Settings) — bukan hardcode (sesi 54)
   await drawDocHeader(doc, {
     title: 'INVOICE',
-    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com'],
+    meta: [companyContactLine(brand)],
     metaRight: [`No: ${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
   })
 
@@ -176,11 +178,13 @@ interface PackingListData {
 
 export async function generatePackingListPDF({ order, orderNumber, courier, waybill }: PackingListData) {
   const doc = new jsPDF()
+  const brand = await getBrandSettings()
 
   // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  // Kontak dari landing_settings (Admin → Landing Settings) — bukan hardcode (sesi 54)
   await drawDocHeader(doc, {
     title: 'PACKING LIST',
-    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567'],
+    meta: [companyContactLine(brand)],
     metaRight: [`No: ${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
   })
 
@@ -261,12 +265,14 @@ export async function generatePackingListPDF({ order, orderNumber, courier, wayb
 // Tanpa PPN (bisnis non-PKP). Nomor: KJ-FAKTUR-<orderNumber>.
 export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
   const doc = new jsPDF()
+  const brand = await getBrandSettings()
 
   // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  // Kontak dari landing_settings (Admin → Landing Settings) — bukan hardcode (sesi 54)
   await drawDocHeader(doc, {
     title: 'FAKTUR',
-    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567 | kj@homedecor.com'],
-    metaRight: [`No: ${(await getBrandSettings()).short.toUpperCase()}-FAKTUR-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+    meta: [companyContactLine(brand)],
+    metaRight: [`No: ${brand.short.toUpperCase()}-FAKTUR-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
   })
 
   // Bill To
@@ -356,12 +362,14 @@ export async function generateFakturPDF({ order, orderNumber }: InvoiceData) {
 // Nomor: KJ-SURATJALAN-<orderNumber>.
 export async function generateSuratJalanPDF({ order, orderNumber, courier, waybill }: PackingListData) {
   const doc = new jsPDF()
+  const brand = await getBrandSettings()
 
   // Header seragam (sesi 46): logo + KJ Homedecor + judul brand + meta
+  // Kontak dari landing_settings (Admin → Landing Settings) — bukan hardcode (sesi 54)
   await drawDocHeader(doc, {
     title: 'SURAT JALAN',
-    meta: ['Jl. Contoh No.1, Jakarta | (021) 123-4567'],
-    metaRight: [`No: ${(await getBrandSettings()).short.toUpperCase()}-SURATJALAN-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
+    meta: [companyContactLine(brand)],
+    metaRight: [`No: ${brand.short.toUpperCase()}-SURATJALAN-${orderNumber}`, `Tanggal: ${new Date(order.created_at).toLocaleDateString('id-ID')}`]
   })
 
   // Recipient

@@ -32,6 +32,7 @@ import {
 } from 'recharts'
 import { SOURCE_LABELS } from '@/types'
 import { formatRp } from '@/lib/utils'
+import { piutangSisa } from '@/lib/ledger'
 
 const COLORS = ['#cc7030', '#2563eb', '#16a34a', '#9333ea', '#0d9488']
 
@@ -173,9 +174,7 @@ export default function OwnerDashboard() {
       0
     )
     const piutangTabel = (rekonPiutangTable.data ?? []).reduce(
-      (s, p) =>
-        s +
-        Math.max(0, Number(p.amount ?? 0) - Number(p.paid_amount ?? 0) - Number(p.return_amount ?? 0) - Number(p.fee_amount ?? 0)),
+      (s, p) => s + piutangSisa(p as { amount?: number | null; paid_amount?: number | null; return_amount?: number | null; fee_amount?: number | null }),
       0
     )
     const kasJournal = (rekonKasLines.data ?? [])

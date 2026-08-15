@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
   const oauthState = crypto.randomBytes(24).toString('hex')
   await supabase.from('shopee_shop_settings').update({ oauth_state: oauthState }).eq('id', settings.id)
 
-  const { sdk } = (await createShopeeSDK()) ?? {}
+  // Multi-shop (sesi 55): SDK dibuat untuk shop yang di-reauthorize, bukan toko pertama
+  const { sdk } = (await createShopeeSDK(settings.id)) ?? {}
   if (!sdk) throw new Error('Shopee belum dikonfigurasi')
 
   const oauthUrl = sdk.getAuthorizationUrl(shopeeCallbackUrl(), { state: oauthState })

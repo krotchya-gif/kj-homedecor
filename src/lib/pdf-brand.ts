@@ -13,6 +13,10 @@ export interface BrandSettings {
   color: string
   fontUrl: string | null
   logoUrl: string | null
+  /** Kontak perusahaan (diatur Admin → Landing Settings) — dipakai header PDF. */
+  address: string
+  phone: string
+  email: string
 }
 
 export const DEFAULT_BRAND: BrandSettings = {
@@ -20,7 +24,10 @@ export const DEFAULT_BRAND: BrandSettings = {
   short: 'KJ',
   color: '#b37a60',
   fontUrl: '/bright-darling-sans.ttf',
-  logoUrl: '/kjlogo.png'
+  logoUrl: '/kjlogo.png',
+  address: 'Jakarta, Indonesia',
+  phone: '+62 812-3456-7890',
+  email: ''
 }
 
 let cache: BrandSettings | null = null
@@ -33,7 +40,7 @@ export async function getBrandSettings(): Promise<BrandSettings> {
     const supabase = createClient()
     const { data } = await supabase
       .from('landing_settings')
-      .select('brand_name, brand_short, brand_color, brand_font_url, brand_logo_url')
+      .select('brand_name, brand_short, brand_color, brand_font_url, brand_logo_url, address, phone, email')
       .eq('key', 'hero')
       .maybeSingle()
     cache = {
@@ -41,13 +48,26 @@ export async function getBrandSettings(): Promise<BrandSettings> {
       short: (data?.brand_short || DEFAULT_BRAND.short).trim() || DEFAULT_BRAND.short,
       color: data?.brand_color || DEFAULT_BRAND.color,
       fontUrl: data?.brand_font_url || null,
-      logoUrl: data?.brand_logo_url || DEFAULT_BRAND.logoUrl
+      logoUrl: data?.brand_logo_url || DEFAULT_BRAND.logoUrl,
+      address: data?.address || DEFAULT_BRAND.address,
+      phone: data?.phone || DEFAULT_BRAND.phone,
+      email: data?.email || ''
     }
     return cache
   } catch {
     failed = true
     return DEFAULT_BRAND
   }
+}
+
+/**
+ * Baris kontak perusahaan untuk header PDF (Invoice/Packing/Faktur/Surat Jalan):
+ * "Alamat | Telp | Email" — bagian kosong dilewati, tanpa pipe ganda.
+ * Sebelumnya di-hardcode di invoice.ts (4 tempat) — kini satu sumber dari
+ * landing_settings (Admin → Landing Settings).
+ */
+export function companyContactLine(brand: BrandSettings): string {
+  return [brand.address, brand.phone, brand.email].filter((s) => s && s.trim()).join(' | ')
 }
 
 /** '#b37a60' → [179,122,96]. Input tidak valid → default. */

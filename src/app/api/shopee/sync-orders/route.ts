@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { sdk, settings } = (await createShopeeSDK()) ?? {}
+  const body = await req.json().catch(() => ({}))
+  const { shop_id } = body as { shop_id?: string }
+
+  const { sdk, settings } = (await createShopeeSDK(shop_id)) ?? {}
   if (!sdk) {
     return NextResponse.json({ error: 'Shopee belum dikonfigurasi — isi Partner ID/Key di /owner/shopee' }, { status: 400 })
   }
@@ -38,7 +41,14 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const now = Math.floor(Date.now() / 1000)
     const timeTo = Number(body.time_to ?? now)
-    const timeFrom = Number(body.time_from ?? timeTo - 15 * 86400)
+    // WAVE 2 (2026-08-15): Tanggal Mulai Sync per-shop — data sebelum tanggal ini
+    // dianggap sudah diinput manual (saldo awal). Default 15 hari terakhir, di-jepit
+    // ke sync_start_date bila user memilih rentang lebih awal.
+    let timeFrom = Number(body.time_from ?? timeTo - 15 * 86400)
+    if (settings.sync_start_date) {
+      const minTs = Math.floor(new Date(settings.sync_start_date).getTime() / 1000)
+      if (timeFrom < minTs) timeFrom = minTs
+    }
 
     let cursor = ''
     let total = 0
@@ -94,6 +104,7 @@ export async function POST(req: NextRequest) {
               buyer_phone: addr.phone ?? null,
               shipping_address: addressParts || null,
               order_data: od,
+              order_date: od.pay_time ? new Date(od.pay_time * 1000).toISOString() : null,
               synced_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             },

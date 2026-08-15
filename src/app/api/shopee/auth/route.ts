@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const shopId = shopIdRaw ? Number(shopIdRaw) : settings.shop_id ? Number(settings.shop_id) : undefined
-    const { sdk } = (await createShopeeSDK()) ?? {}
+    // Multi-shop (sesi 55): SDK dibuat untuk SETTING yang match oauth_state — bukan toko pertama
+    const { sdk } = (await createShopeeSDK(settings.id)) ?? {}
     if (!sdk) throw new Error('Shopee belum dikonfigurasi (partner_id/partner_key)')
     const token = await sdk.authenticateWithCode(code, shopId)
     if (!token?.access_token) throw new Error('Gagal tukar kode OAuth — cek partner credentials')

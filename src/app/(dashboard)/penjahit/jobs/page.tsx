@@ -25,6 +25,8 @@ interface JobRow {
       qty?: number
       meter_gorden?: number
       meter_vitras?: number
+      meter_roman?: number
+      meter_kupu_kupu?: number
       custom_specs?: string | null
       size?: string | null
     }[] | null
@@ -61,7 +63,7 @@ export default function PenjahitJobsPage() {
     const { data, error } = await supabase
       .from('production_jobs')
       .select(
-        '*, order:orders(id, status, order_number, customer:customers(name), order_items(id, size, product:products(name)))'
+        '*, order:orders(id, status, order_number, customer:customers(name), order_items(id, size, product:products(name), meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu))'
       )
       .eq('penjahit_id', user.id)
       .neq('status', 'done')
@@ -100,9 +102,44 @@ export default function PenjahitJobsPage() {
     toast('success', 'Pekerjaan dimulai')
   }
 
+  // Prefill form laporan dari meter job (job revisi sudah disalin meter-nya oleh
+  // API saat re-queue) + fallback dari order_items — penjahit tidak perlu input
+  // ulang dari nol & terhindar dari laporan meter 0 (upah hilang).
+  function openReport(job: JobRow) {
+    setReportForm((prev) => {
+      if (prev[job.id] && Object.keys(prev[job.id]).length > 0) return prev // jangan timpa input user
+      const items = job.order?.order_items ?? []
+      const pick = (jobVal?: number, itemKey: 'meter_gorden' | 'meter_vitras' | 'meter_roman' | 'meter_kupu_kupu' = 'meter_gorden') => {
+        const v = Number(jobVal ?? 0) || (items as Record<string, unknown>[]).reduce((s, i) => s + Number(i[itemKey] ?? 0), 0)
+        return v > 0 ? String(v) : ''
+      }
+      return {
+        ...prev,
+        [job.id]: {
+          meter_gorden: pick(job.meter_gorden, 'meter_gorden'),
+          meter_vitras: pick(job.meter_vitras, 'meter_vitras'),
+          meter_roman: pick(job.meter_roman, 'meter_roman'),
+          meter_kupu_kupu: pick(job.meter_kupu_kupu, 'meter_kupu_kupu'),
+          poni_lurus: job.poni_lurus ? '1' : '',
+          poni_gel: job.poni_gel ? '1' : ''
+        }
+      }
+    })
+    setShowReport(job.id)
+  }
+
   async function submitReport(jobId: string) {
     setSaving(jobId)
     const rf = (reportForm[jobId] ?? {}) as ReportForm
+    // Fallback anti-upah-hilang (fix revisi 2026-08-15): kalau input meter dibiarkan
+    // 0/kosong padahal job punya meter (job revisi meter-nya disalin API saat
+    // re-queue), pakai nilai job supaya laporan & upah penjahit tidak 0.
+    const job = jobs.find((j) => j.id === jobId)
+    const pick = (field: keyof ReportForm, jobField: 'meter_gorden' | 'meter_vitras' | 'meter_roman' | 'meter_kupu_kupu') => {
+      const v = Number(rf[field] ?? 0)
+      if (v > 0) return v
+      return Number(job?.[jobField] ?? 0)
+    }
     const {
       data: { user }
     } = await supabase.auth.getUser()
@@ -117,10 +154,10 @@ export default function PenjahitJobsPage() {
     const { error: repErr } = await supabase.from('production_reports').insert({
       production_job_id: jobId,
       ...reportMeta,
-      meter_gorden: Number(rf.meter_gorden ?? 0),
-      meter_vitras: Number(rf.meter_vitras ?? 0),
-      meter_roman: Number(rf.meter_roman ?? 0),
-      meter_kupu_kupu: Number(rf.meter_kupu_kupu ?? 0),
+      meter_gorden: pick('meter_gorden', 'meter_gorden'),
+      meter_vitras: pick('meter_vitras', 'meter_vitras'),
+      meter_roman: pick('meter_roman', 'meter_roman'),
+      meter_kupu_kupu: pick('meter_kupu_kupu', 'meter_kupu_kupu'),
       poni_lurus: Number(rf.poni_lurus ?? 0),
       poni_gel: Number(rf.poni_gel ?? 0),
       notes: rf.notes || null
@@ -131,10 +168,10 @@ export default function PenjahitJobsPage() {
         console.warn('[Penjahit Jobs] production_job_id column missing, retrying without it. Apply migration 046!')
         const { error: retryErr } = await supabase.from('production_reports').insert({
           ...reportMeta,
-          meter_gorden: Number(rf.meter_gorden ?? 0),
-          meter_vitras: Number(rf.meter_vitras ?? 0),
-          meter_roman: Number(rf.meter_roman ?? 0),
-          meter_kupu_kupu: Number(rf.meter_kupu_kupu ?? 0),
+          meter_gorden: pick('meter_gorden', 'meter_gorden'),
+          meter_vitras: pick('meter_vitras', 'meter_vitras'),
+          meter_roman: pick('meter_roman', 'meter_roman'),
+          meter_kupu_kupu: pick('meter_kupu_kupu', 'meter_kupu_kupu'),
           poni_lurus: Number(rf.poni_lurus ?? 0),
           poni_gel: Number(rf.poni_gel ?? 0),
           notes: rf.notes || null
@@ -308,7 +345,7 @@ export default function PenjahitJobsPage() {
                     )}
                     {job.status === 'in_progress' && (
                       <button
-                        onClick={() => setShowReport(job.id)}
+                        onClick={() => openReport(job)}
                         style={{
                           padding: '0.5rem 1.25rem',
                           background: '#cc7030',

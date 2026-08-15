@@ -21,10 +21,24 @@ export default function OwnerSettingsPage() {
   async function handleReset() {
     if (typeInput !== 'RESET') return
     setResetting(true)
-    const { data, error } = await supabase.rpc('reset_transactional_data')
+    // Wave 4 (2026-08-15): reset via route server (/api/owner/reset-data) — fungsi
+    // destruktif tidak dipanggil langsung dari browser; route cek role owner + rate limit.
+    let data: unknown = null
+    let error: string | null = null
+    try {
+      const res = await fetch('/api/owner/reset-data', { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        error = json.error ?? `HTTP ${res.status}`
+      } else {
+        data = (json as { data?: unknown }).data ?? null
+      }
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e)
+    }
     if (error) {
       setResetting(false)
-      toast('error', 'Gagal reset data: ' + error.message)
+      toast('error', 'Gagal reset data: ' + error)
       return
     }
     setResetting(false)

@@ -187,30 +187,30 @@ export default function ProductsPage() {
         return payload
       })
 
-      // Upsert by SKU
-      for (const payload of upserts) {
-        try {
-          if (payload.sku) {
-            // Check if exists by SKU
-            const { data: existing } = await supabase.from('products').select('id').eq('sku', payload.sku).maybeSingle()
-            if (existing) {
-              const { error } = await supabase.from('products').update(payload).eq('id', existing.id)
-              if (error) errors.push(`Update SKU ${payload.sku}: ${error.message}`)
-              else updated++
-            } else {
-              const { error } = await supabase.from('products').insert(payload)
-              if (error) errors.push(`Insert ${payload.name}: ${error.message}`)
-              else inserted++
-            }
-          } else {
-            // No SKU = always insert
-            const { error } = await supabase.from('products').insert(payload)
-            if (error) errors.push(`Insert ${payload.name}: ${error.message}`)
-            else inserted++
-          }
-        } catch (e) {
-          errors.push(`Error: ${e instanceof Error ? e.message : String(e)}`)
-        }
+      // Upsert by SKU — WAVE 5 (2026-08-15): BATCH. Sebelumnya per baris:
+      // 1 SELECT by sku + 1 UPDATE/INSERT = 2 query/baris (import 1000 baris =
+      // ±2000 query berurutan). Sekarang per batch 50 baris: 1 SELECT existing +
+      // 1 upsert-by-id (update) + 1 insert = 3 query total.
+      const skus = upserts.map((p) => p.sku).filter(Boolean) as string[]
+      let existingBySku: Record<string, string> = {}
+      if (skus.length > 0) {
+        const { data: existingRows } = await supabase.from('products').select('id, sku').in('sku', skus)
+        existingBySku = Object.fromEntries((existingRows ?? []).map((r) => [r.sku as string, r.id]))
+      }
+      const toUpdate = upserts.filter((p) => p.sku && existingBySku[String(p.sku)])
+      const toInsert = upserts.filter((p) => !p.sku || !existingBySku[String(p.sku)])
+
+      if (toInsert.length > 0) {
+        const { error } = await supabase.from('products').insert(toInsert)
+        if (error) errors.push(`Insert batch: ${error.message}`)
+        else inserted += toInsert.length
+      }
+      if (toUpdate.length > 0) {
+        const { error } = await supabase
+          .from('products')
+          .upsert(toUpdate.map((p) => ({ id: existingBySku[p.sku as string], ...p })), { onConflict: 'id' })
+        if (error) errors.push(`Update batch: ${error.message}`)
+        else updated += toUpdate.length
       }
     }
 

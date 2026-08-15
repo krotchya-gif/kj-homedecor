@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { sdk, settings } = (await createShopeeSDK()) ?? {}
+  const body = await req.json().catch(() => ({}))
+  const { sdk, settings } = (await createShopeeSDK(body?.shop_id as string | undefined)) ?? {}
   if (!sdk) {
     return NextResponse.json({ error: 'Shopee belum dikonfigurasi' }, { status: 400 })
   }
@@ -34,10 +35,14 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json().catch(() => ({}))
     const now = Math.floor(Date.now() / 1000)
     const timeTo = Number(body.time_to ?? now)
-    const timeFrom = Number(body.time_from ?? timeTo - 30 * 86400)
+    // WAVE 2 (2026-08-15): Tanggal Mulai Sync per-shop — jepit rentang escrow ke batas bawah
+    let timeFrom = Number(body.time_from ?? timeTo - 30 * 86400)
+    if (settings.sync_start_date) {
+      const minTs = Math.floor(new Date(settings.sync_start_date).getTime() / 1000)
+      if (timeFrom < minTs) timeFrom = minTs
+    }
 
     const db = createServiceClient()
     const escrowList = await sdk.payment.getEscrowList({

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
+import { getTikTokSettings } from '@/lib/tiktok'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 interface TikTokOrderRow {
@@ -30,18 +31,39 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const body = await req.json().catch(() => ({}))
+    const { shop_id, order_ids } = body as { shop_id?: string; order_ids?: string[] }
+
+    // WAVE 2 (2026-08-15): Tanggal Mulai Sync per-shop — staging order dengan
+    // order_date SEBELUM tanggal mulai dilewati (data lama = sudah diinput manual).
+    let minDate = ''
+    const settings = await getTikTokSettings(shop_id).catch(() => null)
+    if (settings?.sync_start_date) minDate = new Date(settings.sync_start_date).toISOString().slice(0, 10)
+
     // Ambil semua tiktok orders yg status PAID dan belum di-link ke main orders
-    const { data: tiktokOrders, error: fetchErr } = await supabase
+    // WAVE 3 (2026-08-15): kalau `order_ids` dikirim → proses hanya order terpilih
+    let query = supabase
       .from('tiktok_shop_orders')
-      .select('tiktok_order_id')
+      .select('tiktok_order_id, order_date')
       .eq('payment_status', 'PAID')
       .neq('order_status', 'CANCELLED')
+    if (Array.isArray(order_ids) && order_ids.length > 0) {
+      query = query.in('tiktok_order_id', order_ids)
+    }
+    const { data: tiktokOrders, error: fetchErr } = await query
 
     if (fetchErr) {
       return NextResponse.json({ error: toClientError(fetchErr) }, { status: 500 })
     }
 
-    console.log('tiktokOrders count:', tiktokOrders?.length)
+    // Filter order sebelum tanggal mulai (skip)
+    const eligible = (tiktokOrders ?? []).filter((o) => {
+      if (!minDate) return true
+      const od = o.order_date ? new Date(o.order_date).toISOString().slice(0, 10) : ''
+      return !od || od >= minDate
+    })
+
+    console.log('tiktokOrders count:', eligible.length)
 
     let created = 0
     let skipped = 0
@@ -51,7 +73,7 @@ export async function POST(req: NextRequest) {
     // platform sudah verifikasi → auto-skip Cek Bayar) + jurnal order_created +
     // order_items (hanya saat order BARU — sync ulang tidak menduplikat).
     // Payment & jurnal idempotent per order → aman di-call berulang (repair crash).
-    for (const to of tiktokOrders || []) {
+    for (const to of eligible) {
       const { data, error: rpcErr } = await supabase.rpc('process_tiktok_order_atomic', {
         p_tiktok_order_id: to.tiktok_order_id,
         p_actor: user.id
@@ -116,7 +138,7 @@ export async function POST(req: NextRequest) {
       created,
       skipped,
       cancelled,
-      total: (tiktokOrders || []).length,
+      total: eligible.length,
       message: `Linked ${created} TikTok orders to main orders, ${skipped} already linked, ${cancelled} cancelled`
     })
   } catch (err) {

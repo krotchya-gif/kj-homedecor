@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { Users, Search } from 'lucide-react'
 import { formatRp } from '@/lib/utils'
+import { piutangSisa } from '@/lib/ledger'
 
 
 interface ChannelRow {
@@ -114,7 +115,7 @@ export default function ChannelPage() {
             </thead>
             <tbody>
               {channels.map((c) => {
-                const sisa = (c.total_amount ?? 0) - (c.total_paid ?? 0) - (c.total_return ?? 0) - (c.total_fee ?? 0)
+                const sisa = piutangSisa({ amount: c.total_amount, paid_amount: c.total_paid, return_amount: c.total_return, fee_amount: c.total_fee })
                 return (
                   <tr key={c.channel}>
                     <td style={{ fontWeight: '600', textTransform: 'capitalize' }}>{c.channel}</td>

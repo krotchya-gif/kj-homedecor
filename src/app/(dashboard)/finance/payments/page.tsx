@@ -12,6 +12,7 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { StatCard } from '@/components/ui/StatCard'
+import { piutangSisa } from '@/lib/ledger'
 import { MotionStagger } from '@/components/ui/Motion'
 import { Modal } from '@/components/ui/Modal'
 
@@ -389,12 +390,7 @@ export default function FinancePaymentsPage() {
           },
           {
             label: 'Total Piutang',
-            val: fmt(
-              Math.max(
-                0,
-                piutangData.reduce((s, p) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0), 0)
-              )
-            ),
+            val: fmt(piutangData.reduce((s, p) => s + piutangSisa(p), 0)),
             color: '#cc7030'
           }
         ].map((s, i) => (

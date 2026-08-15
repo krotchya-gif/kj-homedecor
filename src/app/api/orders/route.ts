@@ -107,27 +107,48 @@ export async function POST(request: Request) {
 
   // Auto-create journal entry for new order (piutang usaha debit, penjualan kredit)
   // BUG-009: wajib baseUrl di server context (fetch relatif throw di Node/Next route handler)
-  // F-62 fix: kegagalan jurnal TIDAK boleh diam-diam â€” return warning agar terlihat di client
-  let journalWarning: string | null = null
+  // #2 opsi b (sesi 55): jurnal GAGAL → HAPUS order yang baru dibuat (rollback penuh).
+  // Sebelumnya (F-62) order tetap tersimpan + warning → pembukuan bocor (order tanpa
+  // piutang/jurnal). Order baru belum punya payment/item/log → hapus aman; client retry.
   if (order && data.total_amount && data.total_amount > 0) {
     try {
       await createSimpleJournal({
         transaction_type: 'order_created',
         reference_type: 'order',
         reference_id: order.id,
-        description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} â€” ${data.customer_id ?? ''}`,
+        description: `Order baru ${orderNumber ?? order.id.slice(0, 8)} — ${data.customer_id ?? ''}`,
         amount: data.total_amount,
         baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-        // F-54 fix: idempotent per order â€” retry tidak bikin jurnal ganda
+        // F-54 fix: idempotent per order — retry tidak bikin jurnal ganda
         idempotency_key: `order_created:${order.id}`,
         supabase
       })
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
       console.error('Gagal buat jurnal order_created:', errMsg)
-      journalWarning = 'Order tersimpan, TAPI jurnal order_created GAGAL: ' + errMsg
+      const { error: rollbackErr } = await supabase.from('orders').delete().eq('id', order.id)
+      if (rollbackErr) {
+        console.error('Rollback order gagal:', rollbackErr.message)
+        return NextResponse.json(
+          {
+            data: null,
+            error: {
+              message: `Jurnal order_created GAGAL: ${errMsg}. Rollback order juga gagal: ${rollbackErr.message} — hubungi admin`
+            }
+          },
+          { status: 500 }
+        )
+      }
+      return NextResponse.json(
+        {
+          data: null,
+          error: { message: `Jurnal order_created GAGAL: ${errMsg}. Order dibatalkan (rollback) — silakan coba lagi.` }
+        },
+        { status: 500 }
+      )
     }
   }
 
-  return NextResponse.json({ data: order, error: null, warning: journalWarning })
+  return NextResponse.json({ data: order, error: null })
 }
+

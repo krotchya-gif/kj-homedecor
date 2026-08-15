@@ -12,6 +12,8 @@ export interface TikTokSettings {
   open_id?: string | null
   token_expires_at: string | null
   is_active: boolean
+  /** Batas bawah sync (Wave 2): data sebelum tanggal ini tidak ikut disinkronkan. */
+  sync_start_date?: string | null
 }
 
 /**

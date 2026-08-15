@@ -43,11 +43,37 @@ export default function AdminTikTokPage() {
   const [syncing, setSyncing] = useState<string | null>(null)
   const [syncResult, setSyncResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [dateRange, setDateRange] = useState({ start: '', end: '' })
+  // Wave 3: pilih per-order utk Link to Main Orders (Set tiktok_order_id)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const supabase = createClient()
 
   const activeShop = settings.find((s) => s.is_active)
   const orderPageCount = Math.max(1, Math.ceil(orderTotal / orderPageSize))
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // "pilih semua" per halaman (hanya yang berstatus PAID — yang bisa di-link)
+  function toggleSelectAllPage() {
+    const pagePaid = orders.filter((o) => o.payment_status === 'PAID')
+    const allSelected = pagePaid.length > 0 && pagePaid.every((o) => selected.has(o.tiktok_order_id ?? ''))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      for (const o of pagePaid) {
+        if (!o.tiktok_order_id) continue
+        if (allSelected) next.delete(o.tiktok_order_id)
+        else next.add(o.tiktok_order_id)
+      }
+      return next
+    })
+  }
 
   function isTokenExpired(s?: TikTokSetting) {
     if (!s?.token_expires_at) return true
@@ -115,11 +141,14 @@ export default function AdminTikTokPage() {
   async function handleLinkToMain() {
     setSyncing('orders_backfill')
     setSyncResult(null)
+    // Wave 3: kalau ada order terpilih → link hanya yang dipilih; kosong → bulk semua
+    const orderIds = selected.size > 0 ? Array.from(selected) : undefined
     const res = await fetch('/api/tiktok/sync-to-main-orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         shop_id: activeShop?.id,
+        ...(orderIds ? { order_ids: orderIds } : {}),
         ...(dateRange.start ? { start_date: dateRange.start } : {}),
         ...(dateRange.end ? { end_date: dateRange.end } : {})
       })
@@ -131,6 +160,7 @@ export default function AdminTikTokPage() {
       setSyncResult({ type: 'success', text: json.message || 'Link to Main Orders selesai' })
     }
     setSyncing(null)
+    setSelected(new Set())
     fetchOrders()
   }
 
@@ -254,10 +284,10 @@ export default function AdminTikTokPage() {
               ) : (
                 <Link2 size={14} />
               )}
-              Link to Main Orders
+              {selected.size > 0 ? `Link Terpilih (${selected.size})` : 'Link to Main Orders'}
             </span>
             <span style={{ fontSize: '0.68rem', fontWeight: '400', color: 'var(--neutral-500)', lineHeight: 1.3 }}>
-              Ubah order yang sudah dibayar jadi pesanan utama
+              {selected.size > 0 ? 'Proses hanya order yang dicentang' : 'Ubah order yang sudah dibayar jadi pesanan utama'}
             </span>
           </button>
         </div>
@@ -416,6 +446,17 @@ export default function AdminTikTokPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th style={{ width: 36 }}>
+                        <input
+                          type="checkbox"
+                          checked={
+                            orders.filter((o) => o.payment_status === 'PAID').length > 0 &&
+                            orders.filter((o) => o.payment_status === 'PAID').every((o) => selected.has(o.tiktok_order_id ?? ''))
+                          }
+                          onChange={toggleSelectAllPage}
+                          title="Pilih semua order lunas di halaman ini"
+                        />
+                      </th>
                       <th>Order ID</th>
                       <th>Status</th>
                       <th>Payment</th>
@@ -427,6 +468,15 @@ export default function AdminTikTokPage() {
                   <tbody>
                     {orders.map((o) => (
                       <tr key={o.id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selected.has(o.tiktok_order_id ?? '')}
+                            onChange={() => o.tiktok_order_id && toggleSelect(o.tiktok_order_id)}
+                            disabled={o.payment_status !== 'PAID'}
+                            title={o.payment_status === 'PAID' ? 'Pilih order ini untuk di-link' : 'Hanya order lunas yang bisa di-link'}
+                          />
+                        </td>
                         <td style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>
                           {o.tiktok_order_id?.slice(0, 16)}...
                         </td>

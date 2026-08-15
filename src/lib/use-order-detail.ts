@@ -58,9 +58,6 @@ export const EMPTY_ITEM_FORM: ItemFormState = {
   description: ''
 }
 
-export const ORDER_FMT = (n: number) =>
-  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n)
-
 // Phase 6B-4: semua state & handlers order detail dipindah ke hook useOrderDetail
 // dari page.tsx (behavior-preserving). Page jadi komposisi murni.
 export function useOrderDetail(id: string) {

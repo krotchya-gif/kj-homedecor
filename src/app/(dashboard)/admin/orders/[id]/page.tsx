@@ -28,7 +28,8 @@ import OrderSummarySection from '@/components/orders/OrderSummarySection'
 import OrderItemsTable from '@/components/orders/OrderItemsTable'
 import PreparationChecklist from '@/components/orders/PreparationChecklist'
 import AddItemModal from '@/components/orders/AddItemModal'
-import { useOrderDetail, ORDER_FMT } from '@/lib/use-order-detail'
+import { useOrderDetail } from '@/lib/use-order-detail'
+import { formatRp } from '@/lib/utils'
 
 // Phase 6B-4: page jadi KOMPOSISI murni — semua state & handlers di
 // useOrderDetail (src/lib/use-order-detail.ts). Behavior-preserving.
@@ -43,7 +44,7 @@ export default function OrderDetailPage() {
 
   const order = d.order
   const items = d.items
-  const fmt = ORDER_FMT
+  const fmt = formatRp
 
   return (
     <div>

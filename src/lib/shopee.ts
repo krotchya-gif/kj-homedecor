@@ -21,6 +21,8 @@ export interface ShopeeSettingsRow {
   shop_name?: string | null
   oauth_state?: string | null
   is_active: boolean
+  /** Batas bawah sync (Wave 2): data sebelum tanggal ini tidak ikut disinkronkan. */
+  sync_start_date?: string | null
 }
 
 /** TokenStorage SDK → kolom shopee_shop_settings. */
@@ -74,15 +76,20 @@ export class SupabaseTokenStorage implements TokenStorage {
   }
 }
 
-export async function getShopeeSettings(): Promise<ShopeeSettingsRow | null> {
+export async function getShopeeSettings(shopId?: string): Promise<ShopeeSettingsRow | null> {
   const supabase = await createClient()
-  const { data } = await supabase.from('shopee_shop_settings').select('*').limit(1).maybeSingle()
+  let q = supabase.from('shopee_shop_settings').select('*')
+  if (shopId) q = q.eq('id', shopId)
+  else q = q.limit(1)
+  const { data } = await q.maybeSingle()
   return (data ?? null) as ShopeeSettingsRow | null
 }
 
-/** Buat SDK instance (region GLOBAL = partner.shopeemobile.com, berlaku untuk ID). */
-export async function createShopeeSDK(): Promise<{ sdk: ShopeeSDK; settings: ShopeeSettingsRow } | null> {
-  const settings = await getShopeeSettings()
+/** Buat SDK instance (region GLOBAL = partner.shopeemobile.com, berlaku untuk ID).
+ *  Multi-shop (sesi 55): `shopId` opsional — kosong = toko pertama (kompatibel
+ *  dengan panggilan lama yang tidak kirim shop_id). */
+export async function createShopeeSDK(shopId?: string): Promise<{ sdk: ShopeeSDK; settings: ShopeeSettingsRow } | null> {
+  const settings = await getShopeeSettings(shopId)
   if (!settings) return null
   const partnerId = Number(settings.partner_id)
   if (!Number.isFinite(partnerId) || !settings.partner_key) return null

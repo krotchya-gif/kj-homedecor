@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import ActionMenu from '@/components/ui/ActionMenu'
+import { piutangSisa } from '@/lib/ledger'
 import Pagination from '@/components/ui/Pagination'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
 
@@ -226,7 +227,7 @@ const [pageSize, setPageSize] = useState(10)
   }
 
   function openPay(p: Piutang) {
-    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
+    const sisa = piutangSisa(p)
     setPayItem(p)
     setPayForm({ amount: String(sisa > 0 ? sisa : '') })
     payKeyRef.current = null
@@ -306,7 +307,7 @@ const [pageSize, setPageSize] = useState(10)
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0))}</span>
+                  <span className="mobile-card-value">{formatRp(piutangSisa(p))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -347,7 +348,7 @@ const [pageSize, setPageSize] = useState(10)
             <tbody>
               {filtered.slice(page * pageSize, (page + 1) * pageSize).map((p) => {
                 const sc = STATUS_COLORS[p.status] ?? STATUS_COLORS.pending
-                const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
+                const sisa = piutangSisa(p)
                 return (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
@@ -680,7 +681,7 @@ const [pageSize, setPageSize] = useState(10)
           <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
             {payItem?.customer?.name ?? '—'} — {payItem?.invoice_number ?? 'Faktur'} · Sisa{' '}
             <strong style={{ color: '#cc7030' }}>
-              {formatRp((payItem?.amount ?? 0) - (payItem?.paid_amount ?? 0) - (payItem?.return_amount ?? 0) - (payItem?.fee_amount ?? 0))}
+              {formatRp(payItem ? piutangSisa(payItem) : 0)}
             </strong>
           </p>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>

@@ -35,7 +35,8 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Customer database + WhatsApp integration
 - Booking calendar + assign installer
 - Portfolio, SEO, Landing settings (theme customization), Staff, Reports, Laundry
-- **TikTok Shop** (`/admin/tiktok`): tarik order dari TikTok (**Sync Orders**) & jadikan pesanan utama (**Link to Main Orders**) — tugas admin; settlement/piutang di `/owner/tiktok`
+- **TikTok Shop** (`/admin/tiktok`): tarik order dari TikTok (**Sync Orders**) & jadikan pesanan utama (**Link to Main Orders**) — tugas admin; settlement/piutang di `/owner/tiktok` & `/finance/tiktok`
+- **Shopee Seller** (sesi 53-55, `/admin/shopee`, `/owner/shopee`, `/finance/shopee`): mirror TikTok — OAuth multi-shop (Tambah Toko/Authorize), sync order + **Settlement/Pencairan Dana per order** (escrow: uang ditahan Shopee, dicairkan setelah order selesai — Dr E Wallet Shopee/Cr Piutang + fee per kategori), pilih-per-order utk Link ke Main Orders, Tanggal Mulai Sync per-shop
 
 ### Finance (`/finance`)
 - Payment tracking (DP → Lunas) + **Approve Cek Bayar** (verifikasi manual)
@@ -140,13 +141,13 @@ src/
 │   ├── (auth)/login/             # Staff login
 │   ├── setup/                    # Bootstrap akun awal
 │   ├── (dashboard)/              # Protected dashboard group
-│   │   ├── admin/                # Orders, catalog, booking, customers, staff, landing-settings, seo, shipping, laundry, portfolio, reports, surveys, tiktok
-│   │   ├── finance/              # Payments, cash, hutang, piutang, accounts, journal, assets, laundry-payroll, laporan(10)
+│   │   ├── admin/                # Orders, catalog, booking, customers, staff, landing-settings, seo, shipping, laundry, portfolio, reports, surveys, tiktok, shopee
+│   │   ├── finance/              # Payments, cash, hutang, piutang, accounts, journal, assets, laundry-payroll, laporan(10), tiktok, shopee
 │   │   ├── gudang/               # Production, steam, qc, stock, stock-opname, alerts, lembur, reports
 │   │   ├── penjahit/             # Jobs, reports, history
 │   │   ├── installer/            # Schedule, checklist, reports
 │   │   ├── surveyor/             # Survey new/[id]/edit, history
-│   │   └── owner/                # Overview, hpp, materials, suppliers(3 tab), products, staff, marketplace, tiktok, surveys, laporan(10)
+│   │   └── owner/                # Overview, hpp, materials, suppliers(3 tab), products, staff, marketplace, tiktok, shopee, surveys, laporan(10), settings
 │   ├── catalog/                  # Public catalog
 │   ├── products/[slug]/          # Public product detail
 │   ├── booking/                  # Public booking
@@ -159,6 +160,8 @@ src/
 │       ├── seo/upload-robots/ seo/upload-sitemap/
 │       ├── setup-accounts/ upload/
 │       ├── tiktok/               # auth, auth/reauthorize, webhook, sync-orders, sync-finance, sync-to-main-orders, create-piutang
+│       ├── shopee/               # auth, auth/reauthorize, webhook, settings, sync-orders, sync-escrow, sync-to-main-orders
+│       ├── owner/reset-data/     # Reset data transaksional (hanya owner)
 │       └── webhooks/tiktok/      # Alias
 ├── components/
 │   ├── ui/                       # button, card, dialog, modal, table, toast(sonner), Lightbox, BookingCalendar, DateRangePicker, StatCard, PageHeader, ImportModal, Pagination, dll
@@ -238,8 +241,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–53), tracker bug lengkap **BUG-001 s/d BUG-132**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–53), tracker bug lengkap **BUG-001 s/d BUG-135**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-15 (sesi 53 — Shopee Seller mirror TikTok: OAuth + sync order/escrow + RPC atomic via @congminh1254/shopee-sdk) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-15 (sesi 55 — Shopee UI mirror TikTok: multi-shop, Settlement/Pencairan Dana per order, stat cards; sesi 54: Tanggal Mulai Sync, pilih-per-order, RLS initplan; BUG-133..135) · Dev server: `npm run dev` → http://localhost:3000_

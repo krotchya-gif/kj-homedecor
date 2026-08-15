@@ -48,18 +48,6 @@ export interface BomRow {
   material?: { name: string; unit?: string; cost_per_unit?: number; stock_gudang?: number; min_stock_level?: number } | null
 }
 
-export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  new: { bg: '#dbeafe', text: '#1e40af' },
-  sorted: { bg: '#e0e7ff', text: '#3730a3' },
-  payment_ok: { bg: '#d1fae5', text: '#065f46' },
-  production: { bg: '#fef3c7', text: '#92400e' },
-  steam: { bg: '#fef3c7', text: '#92400e' },
-  ready: { bg: '#cffafe', text: '#155e75' },
-  packed: { bg: '#ede9fe', text: '#5b21b6' },
-  shipped: { bg: '#dbeafe', text: '#1e3a8a' },
-  done: { bg: '#f0fdf4', text: '#166534' }
-}
-
 export const PAYMENT_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: '#fef2f2', text: '#991b1b' },
   partial: { bg: '#fffbeb', text: '#92400e' },

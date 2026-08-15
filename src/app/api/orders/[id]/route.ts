@@ -261,13 +261,59 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         .maybeSingle()
 
       let originalPenjahitId: string | null = null
+      // Salin data meter dari job asli (fix revisi 2026-08-15): job revisi sebelumnya
+      // dibuat tanpa meter → penjahit harus input ulang dari nol & berisiko upah 0
+      // (production_reports.meter = 0). Sumber = job asli (revision_of), fallback order_items.
+      let originalMeters: {
+        meter_gorden: number
+        meter_vitras: number
+        meter_roman: number
+        meter_kupu_kupu: number
+        poni_lurus: boolean
+        poni_gel: boolean
+      } = { meter_gorden: 0, meter_vitras: 0, meter_roman: 0, meter_kupu_kupu: 0, poni_lurus: false, poni_gel: false }
       if (latestSteamJob?.production_job_id) {
         const { data: origJob } = await db
           .from('production_jobs')
-          .select('penjahit_id')
+          .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, poni_lurus, poni_gel, penjahit_id')
           .eq('id', latestSteamJob.production_job_id)
           .single()
         originalPenjahitId = origJob?.penjahit_id ?? null
+        if (origJob) {
+          originalMeters = {
+            meter_gorden: Number(origJob.meter_gorden ?? 0),
+            meter_vitras: Number(origJob.meter_vitras ?? 0),
+            meter_roman: Number(origJob.meter_roman ?? 0),
+            meter_kupu_kupu: Number(origJob.meter_kupu_kupu ?? 0),
+            poni_lurus: Boolean(origJob.poni_lurus),
+            poni_gel: Boolean(origJob.poni_gel)
+          }
+        }
+      }
+      // Fallback: job asli tidak ditemukan / meternya 0 → hitung dari order_items
+      // (pola blok sorted→production) supaya meter revisi tidak pernah kosong.
+      if (
+        originalMeters.meter_gorden + originalMeters.meter_vitras + originalMeters.meter_roman + originalMeters.meter_kupu_kupu ===
+        0
+      ) {
+        const { data: orderItems } = await db
+          .from('order_items')
+          .select('meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter')
+          .eq('order_id', id)
+        originalMeters = {
+          meter_gorden: (orderItems ?? []).reduce(
+            (s: number, i: { meter_gorden?: number; meter?: number }) => s + Number(i.meter_gorden ?? i.meter ?? 0),
+            0
+          ),
+          meter_vitras: (orderItems ?? []).reduce((s: number, i: { meter_vitras?: number }) => s + Number(i.meter_vitras ?? 0), 0),
+          meter_roman: (orderItems ?? []).reduce((s: number, i: { meter_roman?: number }) => s + Number(i.meter_roman ?? 0), 0),
+          meter_kupu_kupu: (orderItems ?? []).reduce(
+            (s: number, i: { meter_kupu_kupu?: number }) => s + Number(i.meter_kupu_kupu ?? 0),
+            0
+          ),
+          poni_lurus: false,
+          poni_gel: false
+        }
       }
 
       // Calculate revision round
@@ -279,7 +325,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         .limit(1)
       const nextRound = (priorRevisions?.[0]?.revision_round ?? -1) + 1
 
-      // Create new production_job for re-do
+      // Create new production_job for re-do (meter disalin dari job asli/order_items)
       const { data: newJob, error: newJobErr } = await db
         .from('production_jobs')
         .insert({
@@ -288,7 +334,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
           status: 'waiting',
           revision_of: latestSteamJob?.production_job_id ?? null,
           revision_round: nextRound,
-          revision_reason: latestSteamJob?.fail_reason ?? 'Steam QC revision'
+          revision_reason: latestSteamJob?.fail_reason ?? 'Steam QC revision',
+          meter_gorden: originalMeters.meter_gorden,
+          meter_vitras: originalMeters.meter_vitras,
+          meter_roman: originalMeters.meter_roman,
+          meter_kupu_kupu: originalMeters.meter_kupu_kupu,
+          poni_lurus: originalMeters.poni_lurus,
+          poni_gel: originalMeters.poni_gel
         })
         .select('id')
         .single()

@@ -1,10 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { toClientError } from '@/lib/api-errors'
 import { createClient } from '@/utils/supabase/server'
+import { getShopeeSettings } from '@/lib/shopee'
 import { checkRateLimit, getClientIp } from '@/lib/auth'
 
 // POST /api/shopee/sync-to-main-orders — proses order Shopee → main order via RPC
 // process_shopee_order_atomic / cancel_shopee_order_atomic (BLOCK on error, mirror TikTok).
+// Body opsional: { order_ids?: string[] } — proses hanya order terpilih (Wave 3).
 export async function POST(req: NextRequest) {
   const rateLimit = checkRateLimit(getClientIp(req))
   if (rateLimit.blocked) {
@@ -24,19 +26,37 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { data: paidOrders, error: fetchErr } = await supabase
+    const body = await req.json().catch(() => ({}))
+    const { order_ids, shop_id } = body as { order_ids?: string[]; shop_id?: string }
+
+    // WAVE 2 (2026-08-15): Tanggal Mulai Sync per-shop — skip order sebelum tanggal mulai
+    let minDate = ''
+    const settings = await getShopeeSettings(shop_id)
+    if (settings?.sync_start_date) minDate = new Date(settings.sync_start_date).toISOString().slice(0, 10)
+
+    let query = supabase
       .from('shopee_shop_orders')
-      .select('order_sn')
+      .select('order_sn, order_date')
       .eq('payment_status', 'paid')
       .neq('order_status', 'CANCELLED')
+    if (Array.isArray(order_ids) && order_ids.length > 0) {
+      query = query.in('order_sn', order_ids)
+    }
+    const { data: paidOrders, error: fetchErr } = await query
     if (fetchErr) {
       return NextResponse.json({ error: toClientError(fetchErr) }, { status: 500 })
     }
 
+    const eligible = (paidOrders ?? []).filter((o) => {
+      if (!minDate) return true
+      const od = o.order_date ? new Date(o.order_date).toISOString().slice(0, 10) : ''
+      return !od || od >= minDate
+    })
+
     let created = 0
     let skipped = 0
 
-    for (const so of paidOrders ?? []) {
+    for (const so of eligible) {
       const { data, error: rpcErr } = await supabase.rpc('process_shopee_order_atomic', {
         p_order_sn: so.order_sn,
         p_actor: user.id
@@ -84,7 +104,7 @@ export async function POST(req: NextRequest) {
       created,
       skipped,
       cancelled,
-      total: (paidOrders ?? []).length,
+      total: eligible.length,
       message: `Linked ${created} Shopee orders to main orders, ${skipped} already linked, ${cancelled} cancelled`
     })
   } catch (err) {

@@ -142,7 +142,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   installed_by        UUID REFERENCES public.users(id),
   return_reason       TEXT,
   returned_at         TIMESTAMPTZ,
-  estimated_completion         TIMESTAMPTZ,
+  estimated_completion         DATE,
   scheduled_installation_date  DATE,
   scheduled_installation_time TIME,
   created_at                   TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -209,7 +209,7 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   dimension_l       NUMERIC,
   dimension_t       NUMERIC,
   weight            NUMERIC,
-  item_type         TEXT DEFAULT 'gorden' CHECK (item_type IN ('gorden','perabot','laundry')),
+  item_type         TEXT NOT NULL DEFAULT 'product' CHECK (item_type IN ('product','laundry','steam','gorden','vitras','roman','kupu_kupu','perabot','custom')),
   linked_laundry_id UUID REFERENCES public.laundry_orders(id),
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -329,15 +329,16 @@ CREATE TABLE IF NOT EXISTS public.install_bookings (
   time              TIME,
   source            TEXT DEFAULT 'website' CHECK (source IN ('website','manual','whatsapp')),
   type              TEXT NOT NULL DEFAULT 'pasang' CHECK (type IN ('survey','pasang')),
-  status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','scheduled','in_progress','done','revision','cancelled')),
+  status            TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('pending','scheduled','in_progress','done','revision','cancelled')),
   installer_id      UUID REFERENCES public.users(id),
   scheduled_date    DATE,
   scheduled_time    TIME,
-  revision          INTEGER DEFAULT 0,
-  completed_at      TIMESTAMPTZ,
-  notes             TEXT,
+  revision          TEXT,
   revision_reason   TEXT,
   revision_photos   TEXT[],
+  photo_evidence    JSONB DEFAULT '[]',
+  completed_at      TIMESTAMPTZ,
+  notes             TEXT,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -376,7 +377,7 @@ CREATE TABLE IF NOT EXISTS public.returns (
   order_item_id   UUID REFERENCES public.order_items(id),
   reason          TEXT NOT NULL,
   condition       TEXT NOT NULL DEFAULT 'good' CHECK (condition IN ('good','damaged')),
-  qty             NUMERIC DEFAULT 1,
+  qty             INTEGER NOT NULL DEFAULT 1,
   refund_amount   NUMERIC DEFAULT 0,
   refund_status   TEXT DEFAULT 'pending' CHECK (refund_status IN ('pending','approved','rejected','completed')),
   approved_by     UUID REFERENCES public.users(id),
@@ -514,6 +515,7 @@ CREATE TABLE IF NOT EXISTS public.landing_settings (
   tokopedia TEXT,
   address TEXT DEFAULT 'Jakarta, Indonesia',
   phone TEXT DEFAULT '+62 812-3456-7890',
+  email TEXT,
   seo_pixel_id TEXT,
   seo_ga4_id TEXT,
   seo_title TEXT,
@@ -574,7 +576,7 @@ CREATE TABLE IF NOT EXISTS public.steam_jobs (
   laundry_id        UUID,
   customer_name     TEXT,
   item              TEXT,
-  qty               NUMERIC,
+  qty               INTEGER NOT NULL DEFAULT 1,
   order_id          UUID REFERENCES public.orders(id) ON DELETE CASCADE,
   production_job_id UUID REFERENCES public.production_jobs(id) ON DELETE SET NULL,
   status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','done','revision')),
@@ -651,7 +653,7 @@ CREATE TABLE IF NOT EXISTS public.order_material_consumption (
 CREATE TABLE IF NOT EXISTS public.account_categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        VARCHAR(100) NOT NULL,
-  type        VARCHAR(20) NOT NULL CHECK (type IN ('asset','liability','equity','revenue','expense')),
+  type        VARCHAR(20) NOT NULL CHECK (type IN ('asset','liability','equity','income','revenue','expense')),
   description TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -686,9 +688,9 @@ CREATE TABLE IF NOT EXISTS public.account_mappings (
 -- JOURNAL ENTRIES
 CREATE TABLE IF NOT EXISTS public.journal_entries (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  entry_date      DATE NOT NULL DEFAULT CURRENT_DATE,
+  entry_date      DATE,
   description     TEXT,
-  reference_type  VARCHAR(50),
+  reference_type  TEXT,
   reference_id    UUID,
   total_debit     NUMERIC DEFAULT 0,
   total_credit    NUMERIC DEFAULT 0,
@@ -698,10 +700,10 @@ CREATE TABLE IF NOT EXISTS public.journal_entries (
   -- kolom legacy (kondisi live — tidak dipakai codebase tapi ada di DB)
   date            DATE,
   account         TEXT,
-  debit           NUMERIC DEFAULT 0,
-  credit          NUMERIC DEFAULT 0,
-  is_posted       BOOLEAN DEFAULT false,
-  entry_type      TEXT,
+  debit           NUMERIC NOT NULL DEFAULT 0,
+  credit          NUMERIC NOT NULL DEFAULT 0,
+  is_posted       BOOLEAN NOT NULL DEFAULT false,
+  entry_type      TEXT NOT NULL DEFAULT 'manual' CHECK (entry_type IN ('manual','auto','correction')),
   account_id      UUID REFERENCES public.accounts(id),
   cash_account_id UUID REFERENCES public.cash_accounts(id),
   idempotency_key TEXT
@@ -728,14 +730,14 @@ CREATE TABLE IF NOT EXISTS public.hutang (
   amount          NUMERIC NOT NULL DEFAULT 0,
   paid_amount     NUMERIC DEFAULT 0,
   return_amount   NUMERIC DEFAULT 0,
-  status          VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
+  status          TEXT DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
   notes           TEXT,
   description     TEXT,
   remaining       NUMERIC DEFAULT 0,
   paid_at         TIMESTAMPTZ,
   created_by      UUID REFERENCES public.users(id),
   return_reason   TEXT,
-  return_date     DATE,
+  return_date     TIMESTAMPTZ,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -752,7 +754,7 @@ CREATE TABLE IF NOT EXISTS public.piutang (
   paid_amount     NUMERIC DEFAULT 0,
   return_amount   NUMERIC DEFAULT 0,
   fee_amount      NUMERIC DEFAULT 0,
-  status          VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
+  status          TEXT DEFAULT 'pending' CHECK (status IN ('pending','partial','paid','cancelled')),
   order_id        UUID REFERENCES public.orders(id),
   notes           TEXT,
   description     TEXT,
@@ -1670,6 +1672,7 @@ CREATE TABLE IF NOT EXISTS public.tiktok_shop_settings (
   open_id         VARCHAR(255),
   oauth_state     TEXT,
   is_active       BOOLEAN DEFAULT false,
+  sync_start_date DATE,
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
@@ -4424,6 +4427,7 @@ CREATE TABLE IF NOT EXISTS public.shopee_shop_settings (
   seller_name     VARCHAR(255),
   oauth_state     TEXT,
   is_active       BOOLEAN DEFAULT false,
+  sync_start_date DATE,
   created_at      TIMESTAMPTZ DEFAULT now(),
   updated_at      TIMESTAMPTZ DEFAULT now()
 );
@@ -4445,6 +4449,7 @@ CREATE TABLE IF NOT EXISTS public.shopee_shop_orders (
   buyer_phone      VARCHAR(50),
   shipping_address TEXT,
   order_data       JSONB,
+  order_date       TIMESTAMPTZ,
   is_synced        BOOLEAN DEFAULT false,
   piutang_id       UUID REFERENCES public.piutang(id) ON DELETE SET NULL,
   synced_at        TIMESTAMPTZ DEFAULT now(),
@@ -4454,6 +4459,40 @@ CREATE TABLE IF NOT EXISTS public.shopee_shop_orders (
 
 CREATE INDEX IF NOT EXISTS idx_shopee_orders_synced ON public.shopee_shop_orders(is_synced);
 CREATE INDEX IF NOT EXISTS idx_shopee_orders_status ON public.shopee_shop_orders(order_status);
+
+-- WAVE 4c (2026-08-15): index covering foreign key (advisor 0001_unindexed_foreign_keys)
+CREATE INDEX IF NOT EXISTS idx_account_mappings_credit_account_id ON public.account_mappings(credit_account_id);
+CREATE INDEX IF NOT EXISTS idx_account_mappings_debit_account_id  ON public.account_mappings(debit_account_id);
+CREATE INDEX IF NOT EXISTS idx_accounts_category_id ON public.accounts(category_id);
+CREATE INDEX IF NOT EXISTS idx_accounts_parent_id   ON public.accounts(parent_id);
+CREATE INDEX IF NOT EXISTS idx_bom_material_id     ON public.bom(material_id);
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON public.categories(parent_id);
+CREATE INDEX IF NOT EXISTS idx_install_checklists_booking_id ON public.install_checklists(booking_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_created_by ON public.inventory_movements(created_by);
+CREATE INDEX IF NOT EXISTS idx_laundry_records_created_by ON public.laundry_records(created_by);
+CREATE INDEX IF NOT EXISTS idx_lembur_records_created_by ON public.lembur_records(created_by);
+CREATE INDEX IF NOT EXISTS idx_lembur_records_staff_id   ON public.lembur_records(staff_id);
+CREATE INDEX IF NOT EXISTS idx_low_stock_alerts_material_id ON public.low_stock_alerts(material_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_linked_laundry_id ON public.order_items(linked_laundry_id);
+CREATE INDEX IF NOT EXISTS idx_omc_consumed_by ON public.order_material_consumption(consumed_by);
+CREATE INDEX IF NOT EXISTS idx_opc_order_id ON public.order_preparation_checklists(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_progress_photos_order_id ON public.order_progress_photos(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_progress_photos_uploaded_by ON public.order_progress_photos(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_payments_verified_by ON public.payments(verified_by);
+CREATE INDEX IF NOT EXISTS idx_production_jobs_penjahit_id ON public.production_jobs(penjahit_id);
+CREATE INDEX IF NOT EXISTS idx_products_category_id ON public.products(category_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_orders_paid_by ON public.purchase_orders(paid_by);
+CREATE INDEX IF NOT EXISTS idx_purchase_requests_approved_by ON public.purchase_requests(approved_by);
+CREATE INDEX IF NOT EXISTS idx_purchase_requests_created_by ON public.purchase_requests(created_by);
+CREATE INDEX IF NOT EXISTS idx_returns_approved_by ON public.returns(approved_by);
+CREATE INDEX IF NOT EXISTS idx_returns_created_by  ON public.returns(created_by);
+CREATE INDEX IF NOT EXISTS idx_shopee_orders_piutang_id ON public.shopee_shop_orders(piutang_id);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_items_material_id ON public.stock_opname_items(material_id);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_items_session_id ON public.stock_opname_items(session_id);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_sessions_approved_by ON public.stock_opname_sessions(approved_by);
+CREATE INDEX IF NOT EXISTS idx_stock_opname_sessions_created_by ON public.stock_opname_sessions(created_by);
+CREATE INDEX IF NOT EXISTS idx_surveys_surveyor_id ON public.surveys(surveyor_id);
 
 -- Akun kas & beban baru
 INSERT INTO public.accounts (id, code, name, type, category_id, is_cash_account, description)
@@ -4481,6 +4520,15 @@ VALUES
 ON CONFLICT (transaction_type) DO UPDATE SET
   debit_account_id = EXCLUDED.debit_account_id, credit_account_id = EXCLUDED.credit_account_id,
   description = EXCLUDED.description, is_active = true;
+
+-- Sesi 55: cash_accounts E Wallet Shopee (1105) — saldo settlement Shopee di-track oleh
+-- create_journal_atomic (cocokkan account_id dengan baris jurnal). Reset data hanya
+-- zero-kan balance, TIDAK menghapus baris ini (seed tahan reset).
+INSERT INTO public.cash_accounts (account_id, bank_name, account_number, is_active)
+SELECT '22222222-2222-4222-8222-222222222209', 'E Wallet Shopee', '', TRUE
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.cash_accounts WHERE account_id = '22222222-2222-4222-8222-222222222209'
+);
 
 -- RLS (mirror TikTok)
 ALTER TABLE public.shopee_shop_settings ENABLE ROW LEVEL SECURITY;

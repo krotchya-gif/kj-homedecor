@@ -23,8 +23,6 @@ export type PaymentStatus = 'pending' | 'partial' | 'paid'
 
 export type ProductionStatus = 'waiting' | 'in_progress' | 'done'
 
-export type StockLocation = 'gudang' | 'toko'
-
 export interface User {
   id: string
   name: string
@@ -330,29 +328,6 @@ export interface PurchaseRequest {
   approved_by?: string
   created_at: string
   material?: Material
-}
-
-export interface LemburRecord {
-  id: string
-  staff_name: string
-  date: string
-  time_start: string
-  time_end: string
-  total_hours: number
-  notes?: string
-  created_at: string
-}
-
-export interface QCRecord {
-  id: string
-  order_id: string
-  order_item_id?: string
-  result: 'pass' | 'fail'
-  fail_reason?: string
-  photo_evidence?: string[]
-  revision_notes?: string
-  checked_by: string
-  checked_at: string
 }
 
 export interface Return {

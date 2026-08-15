@@ -8,6 +8,7 @@ import { createClient } from '@/utils/supabase/client'
 import { RefreshCw, Undo2 } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { formatRp } from '@/lib/utils'
+import { piutangSisa } from '@/lib/ledger'
 
 
 interface LooseRow {
@@ -49,7 +50,7 @@ export default function ProcessReturPage() {
   }, [])
 
   function openRetur(p: LooseRow) {
-    const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
+    const sisa = piutangSisa(p)
     setReturItem(p)
     setReturForm({ amount: String(sisa > 0 ? sisa : ''), reason: '' })
   }
@@ -124,7 +125,7 @@ export default function ProcessReturPage() {
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Sisa</span>
-                  <span className="mobile-card-value">{formatRp((p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0))}</span>
+                  <span className="mobile-card-value">{formatRp(piutangSisa(p))}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Status</span>
@@ -162,7 +163,7 @@ export default function ProcessReturPage() {
             </thead>
             <tbody>
               {piutang.map((p) => {
-                const sisa = (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0)
+                const sisa = piutangSisa(p)
                 return (
                   <tr key={p.id}>
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
@@ -215,7 +216,7 @@ export default function ProcessReturPage() {
           <p style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', marginBottom: '1rem' }}>
             {returItem?.customer?.name ?? '—'} — {returItem?.invoice_number ?? 'Faktur'} · Sisa{' '}
             <strong style={{ color: '#cc7030' }}>
-              {formatRp((returItem?.amount ?? 0) - (returItem?.paid_amount ?? 0) - (returItem?.return_amount ?? 0))}
+              {formatRp(returItem ? piutangSisa(returItem) : 0)}
             </strong>
           </p>
           <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.3rem' }}>

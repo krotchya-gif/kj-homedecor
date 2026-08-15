@@ -8,6 +8,7 @@ import { Settings, Save, X } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
 import { formatRp } from '@/lib/utils'
 import { getAccountIdByCode } from '@/config/accounts'
+import { piutangSisa } from '@/lib/ledger'
 
 
 
@@ -55,7 +56,7 @@ export default function FinanceSettingsPage() {
     setHutangData({ total: hutTotal, count: (hutangRes.data ?? []).length })
 
     const piuTotal = (piutangRes.data ?? []).reduce(
-      (s: number, p: { amount?: number; fee_amount?: number; paid_amount?: number; return_amount?: number }) => s + (p.amount ?? 0) - (p.paid_amount ?? 0) - (p.return_amount ?? 0) - (p.fee_amount ?? 0),
+      (s: number, p: { amount?: number; fee_amount?: number; paid_amount?: number; return_amount?: number }) => s + piutangSisa(p),
       0
     )
     setPiutangData({ total: piuTotal, count: (piutangRes.data ?? []).length })

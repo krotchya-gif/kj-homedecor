@@ -96,3 +96,5 @@ supabase/migrations/*
 !supabase/migrations/000_full_schema.sql
 
 tests/e2e/.auth/
+
+dev-server.log
