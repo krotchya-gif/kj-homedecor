@@ -59,15 +59,15 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
   return (
     <div>
       {!maxProducts && (
-        /* Search & Filter Bar - Improved */
+        /* Search & Filter Bar */
         <div
           style={{
-            background: 'var(--surface)',
+            background: 'var(--landing-surface)',
             borderRadius: '1rem',
             padding: '1.25rem',
-            border: '1px solid #e5e7eb',
+            border: '1px solid var(--landing-border)',
             marginBottom: '2rem',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+            boxShadow: '0 1px 4px var(--landing-shadow)'
           }}
         >
           <div style={{ display: 'flex', gap: '0.875rem', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -91,14 +91,16 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                 style={{
                   width: '100%',
                   padding: '0.75rem 1rem 0.75rem 2.5rem',
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--landing-border)',
                   borderRadius: '0.5rem',
                   fontSize: '0.875rem',
+                  background: 'var(--landing-surface)',
+                  color: 'var(--landing-heading)',
                   outline: 'none',
                   transition: 'border-color 0.15s'
                 }}
-                onFocus={(e) => (e.target.style.borderColor = 'var(--brand-500)')}
-                onBlur={(e) => (e.target.style.borderColor = 'var(--neutral-200)')}
+                onFocus={(e) => (e.target.style.borderColor = 'var(--landing-accent)')}
+                onBlur={(e) => (e.target.style.borderColor = 'var(--landing-border)')}
               />
             </div>
 
@@ -108,17 +110,17 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               onChange={(e) => setSelectedCategory(e.target.value)}
               style={{
                 padding: '0.75rem 1rem',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--landing-border)',
                 borderRadius: '0.5rem',
                 fontSize: '0.875rem',
                 outline: 'none',
-                background: 'var(--surface)',
+                background: 'var(--landing-surface)',
                 cursor: 'pointer',
-                color: 'var(--neutral-700)',
+                color: 'var(--landing-heading)',
                 transition: 'border-color 0.15s'
               }}
-              onFocus={(e) => (e.target.style.borderColor = 'var(--brand-500)')}
-              onBlur={(e) => (e.target.style.borderColor = 'var(--neutral-200)')}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--landing-accent)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--landing-border)')}
             >
               <option value="">Semua Kategori</option>
               {categories.map((c) => (
@@ -140,17 +142,23 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   alignItems: 'center',
                   gap: '0.25rem',
                   padding: '0.625rem 1rem',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
+                  background: 'transparent',
+                  border: '1px solid var(--danger)',
                   borderRadius: '0.5rem',
                   cursor: 'pointer',
                   fontSize: '0.8rem',
-                  color: '#dc2626',
+                  color: 'var(--danger)',
                   fontWeight: '500',
-                  transition: 'background 0.15s'
+                  transition: 'background 0.15s, color 0.15s'
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#fee2e2')}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = '#fef2f2')}
+                onMouseEnter={(e) => {
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'var(--danger)'
+                  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--landing-on-dark)'
+                }}
+                onMouseLeave={(e) => {
+                  ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+                  ;(e.currentTarget as HTMLButtonElement).style.color = 'var(--danger)'
+                }}
               >
                 <X size={13} /> Reset
               </button>
@@ -161,13 +169,13 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                 marginLeft: 'auto',
                 fontSize: '0.8rem',
                 color: 'var(--neutral-400)',
-                background: 'var(--neutral-100)',
+                background: 'var(--landing-surface-muted)',
                 padding: '0.5rem 0.875rem',
                 borderRadius: '0.5rem',
-                border: '1px solid #e5e7eb'
+                border: '1px solid var(--landing-border)'
               }}
             >
-              <span style={{ fontWeight: '600', color: 'var(--neutral-700)' }}>{filtered.length}</span> produk
+              <span style={{ fontWeight: '600', color: 'var(--landing-heading)' }}>{filtered.length}</span> produk
             </div>
           </div>
         </div>
@@ -180,17 +188,17 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
             textAlign: 'center',
             padding: '4rem',
             color: 'var(--neutral-400)',
-            background: 'var(--surface)',
+            background: 'var(--landing-surface)',
             borderRadius: '1rem',
-            border: '1px solid #e5e7eb'
+            border: '1px solid var(--landing-border)'
           }}
         >
           <div
             style={{
               width: 40,
               height: 40,
-              border: '3px solid #e5e7eb',
-              borderTopColor: 'var(--brand-500)',
+              border: '3px solid var(--landing-border)',
+              borderTopColor: 'var(--landing-accent)',
               borderRadius: '50%',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 1rem'
@@ -204,13 +212,13 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
             textAlign: 'center',
             padding: '4rem',
             color: 'var(--neutral-400)',
-            background: 'var(--surface)',
+            background: 'var(--landing-surface)',
             borderRadius: '1rem',
-            border: '1px solid #e5e7eb'
+            border: '1px solid var(--landing-border)'
           }}
         >
           <Package size={40} style={{ opacity: 0.3, margin: '0 auto 1rem' }} />
-          <p style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--neutral-600)', marginBottom: '0.25rem' }}>
+          <p style={{ fontSize: '1rem', fontWeight: '600', color: 'var(--landing-body)', marginBottom: '0.25rem' }}>
             Tidak ada produk ditemukan
           </p>
           <p style={{ fontSize: '0.875rem' }}>Coba ubah kata kunci atau filter kategori</p>
@@ -222,16 +230,16 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
               <div
                 key={p.id}
                 style={{
-                  background: 'var(--surface)',
+                  background: 'var(--landing-surface)',
                   borderRadius: '1rem',
                   overflow: 'hidden',
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--landing-border)',
                   transition: 'transform 0.2s, box-shadow 0.2s',
                   cursor: 'pointer'
                 }}
                 onMouseEnter={(e) => {
                   ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
-                  ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.1)'
+                  ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 12px 32px var(--landing-shadow)'
                 }}
                 onMouseLeave={(e) => {
                   ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
@@ -260,7 +268,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                         sizes="(max-width: 640px) 50vw, 25vw"
                       />
                     ) : (
-                      <Package size={40} style={{ color: '#DDC0B433' }} />
+                      <Package size={40} style={{ color: 'var(--landing-secondary)' }} />
                     )}
                     {/* Category badge overlay */}
                     <div
@@ -268,12 +276,13 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                         position: 'absolute',
                         top: '0.75rem',
                         left: '0.75rem',
-                        background: 'rgba(255,255,255,0.95)',
+                        background: 'var(--landing-surface)',
+                        border: '1px solid var(--landing-border)',
                         padding: '0.25rem 0.625rem',
                         borderRadius: '999px',
                         fontSize: '0.75rem',
                         fontWeight: '600',
-                        color: 'var(--brand-500)'
+                        color: 'var(--landing-accent)'
                       }}
                     >
                       {p.category?.name ?? 'Produk'}
@@ -288,7 +297,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                       style={{
                         fontSize: '1rem',
                         fontWeight: '700',
-                        color: 'var(--neutral-800)',
+                        color: 'var(--landing-heading)',
                         marginBottom: '0.5rem',
                         lineHeight: 1.3
                       }}
@@ -297,36 +306,25 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                     </div>
                   </Link>
                   <div
-                    style={{ fontSize: '1.25rem', fontWeight: '800', color: 'var(--brand-500)', marginBottom: '1rem' }}
+                    style={{
+                      fontSize: '1.25rem',
+                      fontWeight: '800',
+                      color: 'var(--landing-accent)',
+                      marginBottom: '1rem'
+                    }}
                   >
                     {formatRp(p.price)}
-                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--neutral-600)', marginLeft: '0.25rem' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: '500', color: 'var(--landing-muted)', marginLeft: '0.25rem' }}>
                       /unit
                     </span>
                   </div>
 
-                  {/* WhatsApp order button */}
+                  {/* WhatsApp order button (theme-adaptive, brand accent) */}
                   <a
                     href={getWhatsAppLink(p)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      width: '100%',
-                      padding: '0.75rem',
-                      background: '#22c55e',
-                      color: '#fff',
-                      borderRadius: '0.5rem',
-                      textDecoration: 'none',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      transition: 'background 0.15s'
-                    }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#16a34a')}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.background = '#22c55e')}
+                    className="btn-card"
                   >
                     <MessageCircle size={16} /> Pesan via WhatsApp
                   </a>
@@ -346,21 +344,21 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   gap: '0.5rem',
                   padding: '1rem 2.5rem',
                   background: 'transparent',
-                  color: 'var(--brand-500)',
+                  color: 'var(--landing-accent)',
                   borderRadius: '0.625rem',
                   textDecoration: 'none',
                   fontSize: '1rem',
                   fontWeight: '600',
-                  border: '2px solid var(--brand-500)',
+                  border: '2px solid var(--landing-accent)',
                   transition: 'all 0.2s'
                 }}
                 onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLAnchorElement).style.background = 'var(--brand-500)'
-                  ;(e.currentTarget as HTMLAnchorElement).style.color = '#fff'
+                  ;(e.currentTarget as HTMLAnchorElement).style.background = 'var(--landing-accent)'
+                  ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--landing-on-dark)'
                 }}
                 onMouseLeave={(e) => {
                   ;(e.currentTarget as HTMLAnchorElement).style.background = 'transparent'
-                  ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--brand-500)'
+                  ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--landing-accent)'
                 }}
               >
                 <Search size={18} /> Lihat Semua Katalog ({filtered.length} produk)

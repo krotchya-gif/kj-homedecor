@@ -90,12 +90,12 @@ export default function AdminLandingSettingsPage() {
     cta_badge: '',
     cta_title: '',
     cta_subtitle: '',
-    // Theme customization
-    theme_primary_color: '#DDC0B4',
-    theme_secondary_color: '#C9A98C',
-    theme_accent_color: '#f4a857',
-    theme_background_color: '#FAF5EE',
-    theme_text_color: '#2B2321',
+    // Theme customization (default: palet Rosé-Cokelat — rekomendasi utama)
+    theme_primary_color: '#F6C8CC',
+    theme_secondary_color: '#CAB6B1',
+    theme_accent_color: '#E7486A',
+    theme_background_color: '#EDEFF0',
+    theme_text_color: '#595F61',
     theme_preset: 'default',
     // Brand (sesi 47) — nama, singkatan, warna & font dipakai web + semua PDF
     brand_name: 'KJ Homedecor',
@@ -156,12 +156,12 @@ export default function AdminLandingSettingsPage() {
         cta_badge: data.cta_badge ?? '',
         cta_title: data.cta_title ?? '',
         cta_subtitle: data.cta_subtitle ?? '',
-        // Theme customization
-        theme_primary_color: data.theme_primary_color ?? '#DDC0B4',
-        theme_secondary_color: data.theme_secondary_color ?? '#C9A98C',
-        theme_accent_color: data.theme_accent_color ?? '#f4a857',
-        theme_background_color: data.theme_background_color ?? '#FAF5EE',
-        theme_text_color: data.theme_text_color ?? '#2B2321',
+        // Theme customization (fallback: palet Rosé-Cokelat)
+        theme_primary_color: data.theme_primary_color ?? '#F6C8CC',
+        theme_secondary_color: data.theme_secondary_color ?? '#CAB6B1',
+        theme_accent_color: data.theme_accent_color ?? '#E7486A',
+        theme_background_color: data.theme_background_color ?? '#EDEFF0',
+        theme_text_color: data.theme_text_color ?? '#595F61',
         theme_preset: data.theme_preset ?? 'default',
         // Brand (sesi 47-48)
         brand_name: data.brand_name ?? 'KJ Homedecor',

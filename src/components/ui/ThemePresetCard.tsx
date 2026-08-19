@@ -15,65 +15,103 @@ export interface ThemePreset {
   }
 }
 
+// Kombinasi warna diambil dari colorpalet.md (referensi palet landing page).
+// Preset pertama ("Rosé Cokelat") = rekomendasi utama (default).
 export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'default',
-    name: 'Default Brown',
-    description: 'Warm & elegant brown palette (KJ Homedecor original)',
+    name: 'Rosé Cokelat',
+    description: 'Rekomendasi utama: lembut-feminin + netral tenang + bold rose',
     colors: {
-      primary: '#DDC0B4',
-      secondary: '#C9A98C',
-      accent: '#f4a857',
-      background: '#FAF5EE',
-      text: '#2B2321'
+      primary: '#F6C8CC',
+      secondary: '#CAB6B1',
+      accent: '#E7486A',
+      background: '#EDEFF0',
+      text: '#595F61'
     }
   },
   {
-    id: 'modern',
-    name: 'Modern Minimalis',
-    description: 'Clean & professional dark gray with blue accent',
+    id: 'tenang',
+    name: 'Tenang',
+    description: 'Sage hijau lembut dipadu biru muda yang kalem',
     colors: {
-      primary: '#1f2937',
-      secondary: '#374151',
-      accent: '#3b82f6',
-      background: '#f3f4f6',
-      text: '#111827'
+      primary: '#9ACBAA',
+      secondary: '#C1DBED',
+      accent: '#7BA388',
+      background: '#F5F4F4',
+      text: '#60806A'
     }
   },
   {
-    id: 'gold',
-    name: 'Elegant Gold',
-    description: 'Luxurious gold & cream for premium feel',
+    id: 'lembut',
+    name: 'Lembut',
+    description: 'Nuansa pink lembut yang ramah dan hangat',
     colors: {
-      primary: '#d4af37',
-      secondary: '#c5a572',
-      accent: '#ffd700',
-      background: '#fffef7',
-      text: '#3d2f1f'
+      primary: '#F7E6EB',
+      secondary: '#E7B4C5',
+      accent: '#DA7DA0',
+      background: '#F5F4F4',
+      text: '#BB567F'
     }
   },
   {
-    id: 'green',
-    name: 'Fresh Green',
-    description: 'Natural & eco-friendly green palette',
+    id: 'sejuk',
+    name: 'Sejuk',
+    description: 'Biru sejuk & profesional dengan sentuhan segar',
     colors: {
-      primary: '#16a34a',
-      secondary: '#22c55e',
-      accent: '#86efac',
-      background: '#f0fdf4',
-      text: '#14532d'
+      primary: '#C1DBED',
+      secondary: '#81B8DC',
+      accent: '#5D93B5',
+      background: '#EDEFF0',
+      text: '#2F4E62'
     }
   },
   {
-    id: 'purple',
-    name: 'Royal Purple',
-    description: 'Bold & creative purple for modern brands',
+    id: 'gelap-netral',
+    name: 'Gelap Netral',
+    description: 'Lat belakang gelap elegan dengan aksen wine',
     colors: {
-      primary: '#7c3aed',
-      secondary: '#9333ea',
-      accent: '#c084fc',
-      background: '#faf5ff',
-      text: '#581c87'
+      primary: '#445B4B',
+      secondary: '#6E5E5E',
+      accent: '#572439',
+      background: '#191B1C',
+      text: '#F5F4F4'
+    }
+  },
+  {
+    id: 'earthy',
+    name: 'Hangat Earthy',
+    description: 'Olive hangat & earthy untuk kesan alami',
+    colors: {
+      primary: '#F1DFA3',
+      secondary: '#A4935A',
+      accent: '#807245',
+      background: '#F5F4F4',
+      text: '#5B502F'
+    }
+  },
+  {
+    id: 'bold',
+    name: 'Kontras Bold',
+    description: 'Rose kontras tinggi yang berani menonjol',
+    colors: {
+      primary: '#E7486A',
+      secondary: '#E0E5DA',
+      accent: '#B33650',
+      background: '#EDEFF0',
+      text: '#48101C'
+    }
+  },
+  {
+    id: 'rose-premium',
+    name: 'Rosé Premium',
+    description: 'Aksen premium rosé & cokelat yang eksklusif',
+    colors: {
+      primary: '#EF8F9B',
+      secondary: '#AF8D84',
+      accent: '#8B6D66',
+      background: '#F5F4F4',
+      text: '#3B2D29'
     }
   }
 ]

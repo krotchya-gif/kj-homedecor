@@ -1,23 +1,15 @@
 import { createClient } from '@/utils/supabase/server'
-import {
-  Phone,
-  MessageCircle,
-  MapPin,
-  Sparkles,
-  Shield,
-  Truck,
-  Star,
-  Calendar,
-  ShoppingBag
-} from 'lucide-react'
+import { Phone, MessageCircle, MapPin, Sparkles, Shield, Truck, Star, Calendar, ShoppingBag } from 'lucide-react'
 import type { Category, PortfolioPost } from '@/types'
 import ProductCatalog from '@/components/landing/ProductCatalog'
 import ScrollNav from '@/components/landing/ScrollNav'
 import ScrollHero from '@/components/ScrollHero'
-import AnimatedCounter from '@/components/landing/AnimatedCounter'
+import TrustStrip, { type TrustStat } from '@/components/landing/TrustStrip'
+import CategoryBento from '@/components/landing/CategoryBento'
+import WhyUsEditorial, { type WhyUsItem } from '@/components/landing/WhyUsEditorial'
+import PortfolioGallery from '@/components/landing/PortfolioGallery'
+import SectionHeader from '@/components/landing/SectionHeader'
 import BrandFontLoader from '@/components/brand/BrandFontLoader'
-
-const CATEGORY_COLORS = ['#DDC0B4', '#2563eb', '#16a34a', '#9333ea', '#0d9488', '#dc2626']
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -32,10 +24,7 @@ export default async function LandingPage() {
   const portfolio = (portfolioRes.data ?? []) as PortfolioPost[]
   // landing_settings: row `{ key:'hero', value:{...}, hero_title, theme_primary_color, ... }`.
   // BUG-078 fix: kolom terpisah (ditulis /admin/landing-settings) adalah sumber UTAMA,
-  // `value` JSON (legacy) jadi fallback. Sebelumnya hanya baca `data?.value` → semua
-  // setting admin (tema preset, hero title, konten) terabaikan & landing selalu default.
-  // Merge hati-hati: kolom terpisah yang TERISI menang; kolom NULL/'' → fallback value JSON
-  // (mis. hero_image_url di value JSON terisi tapi kolom kosong → jangan hilang).
+  // `value` JSON (legacy) jadi fallback. Merge: kolom terisi menang; NULL/'' → fallback value JSON.
   const valueObj = (settingsRes.data?.value ?? {}) as Record<string, unknown>
   const rowObj = (settingsRes.data ?? {}) as Record<string, unknown>
   const heroSettings: Record<string, unknown> = { ...valueObj }
@@ -53,11 +42,19 @@ export default async function LandingPage() {
     'Spesialis gorden, curtain, dan roman blind custom berkualitas tinggi.\nPemasangan profesional ke seluruh Jabodetabek.'
   const heroCtaText = String(settingsMap.hero_cta_text ?? 'Lihat Katalog')
   const heroCtaLink = String(settingsMap.hero_cta_link ?? '#products')
+  const heroImageUrl = String(settingsMap.hero_image_url ?? '')
+  const heroVideoUrl = String(settingsMap.hero_video_url ?? '')
   const whatsappNumber = String(settingsMap.whatsapp_number ?? '6281234567890')
   const whatsappMessage = String(settingsMap.whatsapp_message ?? 'Halo KJ Homedecor, saya ingin konsultasi gorden')
-  // Sesi 47: brand dinamis (nama/warna/font) — diatur Admin → Landing Settings
   const brandName = String(settingsMap.brand_name ?? 'KJ Homedecor')
-  const brandColor = String(settingsMap.brand_color ?? '#b37a60')
+
+  // Brand accent — di-inject ke CSS var runtime (zero hex di JSX: fallback ada di :root)
+  const themePrimary = String(settingsMap.theme_primary_color ?? '')
+  const themeSecondary = String(settingsMap.theme_secondary_color ?? '')
+  const themeAccent = String(settingsMap.theme_accent_color ?? '')
+  const themeBackground = String(settingsMap.theme_background_color ?? '')
+  const themeText = String(settingsMap.theme_text_color ?? '')
+  const brandColor = String(settingsMap.brand_color ?? '')
 
   // Social media & contact
   const instagram = String(settingsMap.instagram ?? '')
@@ -68,511 +65,183 @@ export default async function LandingPage() {
   const address = String(settingsMap.address ?? 'Jakarta, Indonesia')
   const phone = String(settingsMap.phone ?? '+62 812-3456-7890')
 
-  // Theme customization
-  const themePrimary = String(settingsMap.theme_primary_color ?? '#DDC0B4')
-  const themeSecondary = String(settingsMap.theme_secondary_color ?? '#C9A98C')
-  const themeAccent = String(settingsMap.theme_accent_color ?? '#f4a857')
-  const themeBackground = String(settingsMap.theme_background_color ?? '#FAF5EE')
-  const themeText = String(settingsMap.theme_text_color ?? '#2B2321')
-
-  // Trust badges (dari DB, di-render di hero stats; fallback ke angka hardcoded di ScrollHero).
-  // Dibaca langsung dari row (bukan settingsMap — itu sudah di-String-kan).
+  // Trust badges (dari DB) — fallback ke angka hardcoded statis (bukan warna)
   const rawTrust = settingsRes.data?.trust_badges as unknown
   const trustBadges = Array.isArray(rawTrust)
     ? (rawTrust as { icon: string; label: string }[]).filter((b) => b && typeof b.label === 'string')
     : []
+  const trustStats: TrustStat[] =
+    trustBadges.length > 0
+      ? trustBadges.map((b) => ({ icon: b.icon, label: b.label }))
+      : [
+          { n: '500+', label: 'Pelanggan Puas' },
+          { n: '8+', label: 'Tahun Pengalaman' },
+          { n: '100%', label: 'Garansi Kualitas' }
+        ]
+
+  const marketplaces = [shopee && 'Shopee', tokopedia && 'Tokopedia', tiktok && 'TikTok Shop'].filter(
+    Boolean
+  ) as string[]
+
+  // Inject brand accent hanya saat settings terisi — kalau kosong, fallback :root dipakai.
+  const brandVars = [
+    themePrimary && `--landing-primary: ${themePrimary};`,
+    themeSecondary && `--landing-secondary: ${themeSecondary};`,
+    themeAccent && `--landing-accent: ${themeAccent};`,
+    themeBackground && `--landing-background: ${themeBackground};`,
+    themeText && `--landing-heading: ${themeText};`,
+    brandColor && `--brand-color: ${brandColor};`
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const whyusItems: WhyUsItem[] = [
+    {
+      title: String(settingsMap.whyus_card1_title ?? 'Kualitas Premium'),
+      desc: String(
+        settingsMap.whyus_card1_desc ?? 'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman'
+      ),
+      icon: <Sparkles size={26} />
+    },
+    {
+      title: String(settingsMap.whyus_card2_title ?? 'Ratusan Pelanggan'),
+      desc: String(settingsMap.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek'),
+      icon: <Star size={26} />
+    },
+    {
+      title: String(settingsMap.whyus_card3_title ?? 'Pasang Profesional'),
+      desc: String(settingsMap.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda'),
+      icon: <Truck size={26} />
+    },
+    {
+      title: String(settingsMap.whyus_card4_title ?? 'Garansi Resmi'),
+      desc: String(settingsMap.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan'),
+      icon: <Shield size={26} />
+    }
+  ]
 
   return (
     <>
-      {/* Inject theme CSS variables */}
-      <style>{`
-        :root {
-          --landing-primary: ${themePrimary};
-          --landing-secondary: ${themeSecondary};
-          --landing-accent: ${themeAccent};
-          --landing-background: ${themeBackground};
-          --landing-text: ${themeText};
-          --brand-color: ${brandColor};
-        }
-      `}</style>
+      {brandVars && (
+        <style>{`:root {\n${brandVars}\n}`}</style>
+      )}
       <BrandFontLoader />
 
       <div className="landing-root" style={{ fontFamily: 'Inter, sans-serif' }}>
         {/* ===== NAVBAR ===== */}
         <ScrollNav whatsappNumber={whatsappNumber} whatsappMessage={whatsappMessage} />
 
-        {/* ===== HERO ===== */}
+        {/* ===== HERO (split editorial, theme-adaptive) ===== */}
         <ScrollHero
-          videoUrl={String(settingsMap.hero_video_url ?? '')}
-          overlayOpacity={Number(settingsMap.hero_background_overlay_opacity ?? 0.4)}
           title={heroTitle}
           subtitle={String(heroSubtitle)}
           ctaText={heroCtaText}
           ctaLink={heroCtaLink}
           whatsappNumber={whatsappNumber}
           whatsappMessage={whatsappMessage}
-          trustBadges={trustBadges}
+          heroImageUrl={heroImageUrl}
+          heroVideoUrl={heroVideoUrl}
         />
 
-        {/* ===== CATEGORIES ===== */}
-        <section id="categories" style={{ padding: '5rem 0' }}>
-          <div className="landing-section" style={{ padding: '0 1.5rem' }}>
-            <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-              <div className="landing-section-label" style={{ color: themePrimary }}>
-                {settingsMap.categories_label ?? 'Koleksi Kami'}
-              </div>
-              <h2
-                className="landing-section-title"
-                style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}
-              >
-                {settingsMap.categories_title ?? 'Temukan Gaya Favoritmu'}
-              </h2>
-              <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-                {settingsMap.categories_subtitle ?? 'Pilihan gorden dan aksesoris premium untuk setiap ruangan'}
-              </p>
-            </div>
+        {/* ===== TRUST STRIP ===== */}
+        <TrustStrip stats={trustStats} marketplaces={marketplaces} />
 
-            {(() => {
-              const names =
-                categories.length > 0
-                  ? categories.map((c) => c.name)
-                  : ['Gorden', 'Vitras', 'Roman Blind', 'Kupu-Kupu', 'Kait & Aksesoris', 'Custom']
-              const styles = [
-                {
-                  bg: `linear-gradient(135deg, ${themePrimary} 0%, ${themeSecondary} 100%)`,
-                  icon: '🪟',
-                  sub: 'Pilihan terlengkap'
-                },
-                {
-                  bg: `linear-gradient(135deg, ${themeSecondary} 0%, ${themeAccent} 100%)`,
-                  icon: '🌿',
-                  sub: 'Elegan & ringan'
-                },
-                {
-                  bg: `linear-gradient(135deg, ${themeAccent} 0%, ${themePrimary} 100%)`,
-                  icon: '✨',
-                  sub: 'Modern minimalis'
-                },
-                {
-                  bg: `linear-gradient(135deg, ${themePrimary}dd 0%, ${themeSecondary}dd 100%)`,
-                  icon: '🎨',
-                  sub: 'Unik & eksklusif'
-                },
-                {
-                  bg: `linear-gradient(135deg, ${themeSecondary}dd 0%, ${themeAccent}dd 100%)`,
-                  icon: '⚡',
-                  sub: 'Fungsional & stylish'
-                },
-                {
-                  bg: `linear-gradient(135deg, ${themeAccent}dd 0%, ${themePrimary}dd 100%)`,
-                  icon: '🏠',
-                  sub: 'Sesuai permintaan'
-                }
-              ]
-              return (
-                <div className="category-grid">
-                  {names.map((name, i) => (
-                    <a
-                      key={name}
-                      href="#products"
-                      className="category-card"
-                      style={{ background: styles[i % styles.length].bg }}
-                    >
-                      <div className="category-card-inner">
-                        <div className="category-card-icon">{styles[i % styles.length].icon}</div>
-                        <div className="category-card-name">{name}</div>
-                        <div className="category-card-sub">{styles[i % styles.length].sub}</div>
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              )
-            })()}
+        {/* ===== CATEGORIES (bento asimetris) ===== */}
+        <section id="categories" style={{ padding: '6rem 0' }}>
+          <div className="landing-section">
+            <SectionHeader
+              title={String(settingsMap.categories_title ?? 'Temukan Gaya Favoritmu')}
+              subtitle={String(
+                settingsMap.categories_subtitle ?? 'Pilihan gorden dan aksesoris premium untuk setiap ruangan'
+              )}
+            />
+            <CategoryBento
+              categories={categories}
+              fallbackNames={['Gorden', 'Vitras', 'Roman Blind', 'Kupu-Kupu', 'Kait & Aksesoris', 'Custom']}
+            />
           </div>
         </section>
 
-        {/* ===== PRODUCT CATALOG (Featured Only) ===== */}
-        <section id="products" style={{ padding: '6rem 0' }}>
-          <div className="landing-section" style={{ padding: '0 1.5rem' }}>
-            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <div className="landing-section-label" style={{ color: themePrimary }}>
-                Rekomendasi
-              </div>
-              <h2 className="landing-section-title" style={{ margin: '0 auto 0.75rem' }}>
-                Produk Pilihan
-              </h2>
-              <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-                Pilihan gorden, vitras, roman blind, dan aksesoris berkualitas tinggi
-              </p>
-            </div>
+        {/* ===== PRODUCT CATALOG ===== */}
+        <section id="products" style={{ padding: '6rem 0', background: 'var(--landing-surface-muted)' }}>
+          <div className="landing-section">
+            <SectionHeader
+              label={String(settingsMap.categories_label ?? 'Koleksi Kami')}
+              title="Produk Pilihan"
+              subtitle="Pilihan gorden, vitras, roman blind, dan aksesoris berkualitas tinggi"
+            />
             <ProductCatalog maxProducts={8} showViewAll />
           </div>
         </section>
 
-        {/* ===== WHY US ===== */}
-        <section
-          style={{
-            padding: '6rem 0',
-            background: `linear-gradient(160deg, ${themeText} 0%, color-mix(in srgb, ${themeText} 80%, ${themePrimary} 20%) 40%, color-mix(in srgb, ${themeText} 70%, ${themeSecondary} 30%) 100%)`
-          }}
-        >
-          <div className="landing-section" style={{ padding: '0 1.5rem', textAlign: 'center' }}>
-            <div className="landing-section-label" style={{ color: themeAccent }}>
-              {settingsMap.whyus_label ?? 'Keunggulan Kami'}
-            </div>
-            <h2
-              className="landing-section-title"
-              style={{
-                color: '#fff',
-                textAlign: 'center',
-                margin: '0 auto 1rem'
-              }}
-            >
-              {settingsMap.whyus_title ?? 'Dipercaya'} <AnimatedCounter target={500} suffix="+" /> Pelanggan
-            </h2>
-            <p className="why-us-subtitle">
-              {settingsMap.whyus_subtitle ??
-                'Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan'}
-            </p>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
-                gap: '1.25rem'
-              }}
-            >
-              {[
-                {
-                  icon: <Sparkles size={34} />,
-                  title: settingsMap.whyus_card1_title ?? 'Kualitas Premium',
-                  desc:
-                    settingsMap.whyus_card1_desc ??
-                    'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman',
-                  color: themeAccent
-                },
-                {
-                  icon: <Star size={34} />,
-                  title: settingsMap.whyus_card2_title ?? 'Ratusan Pelanggan',
-                  desc: settingsMap.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek',
-                  color: themePrimary
-                },
-                {
-                  icon: <Truck size={34} />,
-                  title: settingsMap.whyus_card3_title ?? 'Pasang Profesional',
-                  desc:
-                    settingsMap.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda',
-                  color: themeSecondary
-                },
-                {
-                  icon: <Shield size={34} />,
-                  title: settingsMap.whyus_card4_title ?? 'Garansi Resmi',
-                  desc: settingsMap.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan',
-                  color: themeAccent
-                }
-              ].map((f, i) => (
-                <div key={i} className="why-us-card">
-                  <div
-                    style={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: '50%',
-                      background: `${f.color}22`,
-                      border: `2px solid ${f.color}44`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 1.25rem',
-                      color: f.color,
-                      animation: 'pulseGlow 3s ease-in-out infinite'
-                    }}
-                  >
-                    {f.icon}
-                  </div>
-                  <div className="why-us-card-title">{f.title}</div>
-                  <div className="why-us-card-desc">{f.desc}</div>
-                </div>
-              ))}
+        {/* ===== WHY US (numbered editorial rows) ===== */}
+        <section id="keunggulan" style={{ padding: '6rem 0' }}>
+          <div className="landing-section">
+            <div className="whyus-split">
+              <SectionHeader
+                title={String(settingsMap.whyus_title ?? 'Dipercaya 500+ Pelanggan')}
+                subtitle={String(
+                  settingsMap.whyus_subtitle ??
+                    'Dengan pengalaman bertahun-tahun, kami berkomitmen memberikan kualitas terbaik untuk setiap pesanan'
+                )}
+              />
+              <WhyUsEditorial items={whyusItems} />
             </div>
           </div>
         </section>
 
-        {/* ===== PORTFOLIO ===== */}
-        <section id="portfolio" style={{ padding: '6rem 0' }}>
-          <div className="landing-section" style={{ padding: '0 1.5rem' }}>
-            <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <div className="landing-section-label" style={{ color: themePrimary }}>
-                {settingsMap.portfolio_label ?? 'Inspirasi'}
-              </div>
-              <h2
-                className="landing-section-title"
-                style={{ textAlign: 'center', margin: '0 auto 0.75rem' }}
-              >
-                {settingsMap.portfolio_title ?? 'Portofolio Kami'}
-              </h2>
-              <p className="landing-muted" style={{ fontSize: '0.95rem', maxWidth: 480, margin: '0 auto' }}>
-                {settingsMap.portfolio_subtitle ?? 'Hasil karya dan instalasi dari tim profesional KJ Homedecor'}
-              </p>
-            </div>
-            {portfolio.length === 0 ? (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                  gap: '1.5rem'
-                }}
-              >
-                {['Instalasi Gorden Mewah', 'Roman Blind Modern', 'Vitras Elegan'].map((title, i) => {
-                  const colors = [themePrimary, themeSecondary, themeAccent]
-                  return (
-                    <div key={title} className="portfolio-card">
-                      <div className="portfolio-card-img-wrap">
-                        <div
-                          className="portfolio-placeholder"
-                          style={{
-                            height: 240,
-                            background: `linear-gradient(135deg, ${colors[i]}33, ${colors[i]}77)`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          <Sparkles size={44} style={{ color: colors[i], opacity: 0.7 }} />
-                        </div>
-                        <div className="portfolio-card-overlay">
-                          <span
-                            style={{
-                              color: '#fff',
-                              fontWeight: '700',
-                              fontSize: '0.95rem'
-                            }}
-                          >
-                            {title}
-                          </span>
-                        </div>
-                      </div>
-                      <div style={{ padding: '1.25rem' }}>
-                        <h3 className="landing-card-title" style={{ fontWeight: '700', marginBottom: '0.4rem', fontSize: '1.05rem' }}>
-                          {title}
-                        </h3>
-                        <p className="landing-card-desc" style={{ fontSize: '0.85rem' }}>
-                          Hasil pemasangan terbaru oleh tim KJ Homedecor
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                  gap: '1.5rem'
-                }}
-              >
-                {portfolio.map((post) => (
-                  <div key={post.id} className="portfolio-card">
-                    <div className="portfolio-card-img-wrap">
-                      <div
-                        style={{
-                          height: 240,
-                          background: `linear-gradient(135deg, ${themePrimary}33, ${themeSecondary}77)`,
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {(post.images as string[])?.[0] ? (
-                          <img
-                            src={(post.images as string[])[0]}
-                            alt={post.title}
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'cover'
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <Sparkles size={44} style={{ color: themePrimary, opacity: 0.5 }} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="portfolio-card-overlay">
-                        <span
-                          style={{
-                            color: '#fff',
-                            fontWeight: '700',
-                            fontSize: '0.95rem'
-                          }}
-                        >
-                          {post.title}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ padding: '1.25rem' }}>
-                      <h3 className="landing-card-title" style={{ fontWeight: '700', marginBottom: '0.4rem', fontSize: '1.05rem' }}>
-                        {post.title}
-                      </h3>
-                      <p className="landing-card-desc" style={{ fontSize: '0.85rem' }}>
-                        {new Date(post.created_at).toLocaleDateString('id-ID', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {/* ===== PORTFOLIO (gallery asimetris) ===== */}
+        <section id="portfolio" style={{ padding: '6rem 0', background: 'var(--landing-surface-muted)' }}>
+          <div className="landing-section">
+            <SectionHeader
+              title={String(settingsMap.portfolio_title ?? 'Portofolio Kami')}
+              subtitle={String(
+                settingsMap.portfolio_subtitle ?? 'Hasil karya dan instalasi dari tim profesional KJ Homedecor'
+              )}
+            />
+            <PortfolioGallery posts={portfolio} />
           </div>
         </section>
 
-        {/* ===== CTA Banner ===== */}
-        <section
-          className="landing-cta"
-          style={{
-            padding: '6rem 1.5rem',
-            textAlign: 'center',
-            position: 'relative',
-            overflow: 'hidden'
-          }}
-        >
-          {/* Animated blobs */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '-30%',
-              right: '-15%',
-              width: 500,
-              height: 500,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-              animation: 'blobMove 10s ease-in-out infinite',
-              pointerEvents: 'none'
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              bottom: '-40%',
-              left: '-10%',
-              width: 450,
-              height: 450,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.07)',
-              animation: 'blobMove 14s ease-in-out infinite reverse',
-              pointerEvents: 'none'
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: '20%',
-              left: '50%',
-              width: 200,
-              height: 200,
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.05)',
-              animation: 'blobMove 8s ease-in-out infinite 2s',
-              pointerEvents: 'none'
-            }}
-          />
-          {/* Decorative ring */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%,-50%)',
-              width: 600,
-              height: 600,
-              borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.08)',
-              pointerEvents: 'none'
-            }}
-          />
-
-          <div
-            style={{
-              maxWidth: 640,
-              margin: '0 auto',
-              position: 'relative',
-              zIndex: 1
-            }}
-          >
+        {/* ===== CTA (theme-adaptive) ===== */}
+        <section className="landing-cta" style={{ padding: '6rem 1.5rem', textAlign: 'center' }}>
+          <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <div
               style={{
                 display: 'inline-block',
-                background: 'rgba(255,255,255,0.18)',
-                borderRadius: '999px',
                 padding: '0.5rem 1.25rem',
+                borderRadius: '999px',
                 marginBottom: '1.75rem',
-                backdropFilter: 'blur(8px)'
+                background: 'var(--landing-surface-muted)',
+                border: '1px solid var(--landing-border)',
+                color: 'var(--landing-accent)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase'
               }}
             >
-              <span
-                style={{
-                  color: '#fff',
-                  fontSize: '0.82rem',
-                  fontWeight: '700',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase'
-                }}
-              >
-                {settingsMap.cta_badge ?? '✨ Konsultasi Gratis'}
-              </span>
+              {String(settingsMap.cta_badge ?? 'Konsultasi Gratis')}
             </div>
-            <h2
-              style={{
-                fontFamily: 'Playfair Display, Georgia, serif',
-                fontSize: 'clamp(2.2rem, 5vw, 3.5rem)',
-                color: '#fff',
-                fontWeight: '700',
-                marginBottom: '1.25rem',
-                lineHeight: 1.15,
-                textShadow: '0 2px 20px rgba(0,0,0,0.15)'
-              }}
-            >
-              {settingsMap.cta_title ?? 'Siap Mempercantik Ruanganmu?'}
+            <h2 className="cta-title" style={{ marginBottom: '1.25rem' }}>
+              {String(settingsMap.cta_title ?? 'Siap Mempercantik Ruanganmu?')}
             </h2>
-            <p
-              style={{
-                color: 'rgba(255,255,255,0.88)',
-                marginBottom: '2.5rem',
-                fontSize: '1.05rem',
-                lineHeight: 1.8,
-                maxWidth: 500,
-                margin: '0 auto 2.5rem'
-              }}
-            >
-              {settingsMap.cta_subtitle ??
-                'Hubungi kami sekarang untuk konsultasi gratis. Tim kami siap membantu pilihkan gorden, vitras, atau roman blind terbaik sesuai kebutuhan dan budget Anda.'}
+            <p className="cta-subtitle" style={{ maxWidth: 520, margin: '0 auto 2.5rem' }}>
+              {String(
+                settingsMap.cta_subtitle ??
+                  'Hubungi kami sekarang untuk konsultasi gratis. Tim kami siap membantu pilihkan gorden, vitras, atau roman blind terbaik sesuai kebutuhan dan budget Anda.'
+              )}
             </p>
-            <div
-              style={{
-                display: 'flex',
-                gap: '1rem',
-                justifyContent: 'center',
-                flexWrap: 'wrap'
-              }}
-            >
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <a
                 href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="cta-btn-primary"
+                className="btn-cta-solid"
               >
                 <MessageCircle size={18} /> Chat WhatsApp
               </a>
-              <a href="/booking" className="cta-btn-outline">
+              <a href="/booking" className="btn-cta-ghost">
                 <Calendar size={18} /> Buat Janji
               </a>
             </div>
@@ -580,18 +249,13 @@ export default async function LandingPage() {
         </section>
 
         {/* ===== FOOTER ===== */}
-        <footer
-          id="contact"
-          style={{
-            background: `color-mix(in srgb, ${themeText} 95%, #000 5%)`,
-            padding: '4rem 1.5rem 2rem'
-          }}
-        >
+        <footer id="contact" style={{ background: 'var(--landing-inverse-bg)', padding: '4rem 1.5rem 2rem' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1fr] gap-10 mb-12 footer-grid">
+            <div className="footer-grid">
               {/* Brand column */}
               <div>
                 <div style={{ marginBottom: '1.5rem' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={String(settingsMap.brand_logo_url ?? '/kjlogo.png')}
                     alt={brandName}
@@ -599,28 +263,13 @@ export default async function LandingPage() {
                     suppressHydrationWarning
                   />
                 </div>
-                <p
-                  style={{
-                    fontSize: '0.875rem',
-                    lineHeight: 1.7,
-                    color: 'rgba(255,255,255,0.5)',
-                    maxWidth: 280,
-                    marginBottom: '1.5rem'
-                  }}
-                >
+                <p style={{ fontSize: '0.875rem', lineHeight: 1.7, color: 'var(--landing-on-dark-faint)', maxWidth: 280, marginBottom: '1.5rem' }}>
                   Spesialis gorden, curtain, roman blind, dan vitras premium. Pemasangan profesional ke seluruh
                   Jabodetabek.
                 </p>
-                {/* Social media icons */}
                 <div style={{ display: 'flex', gap: '0.625rem', flexWrap: 'wrap' }}>
                   {whatsappNumber && (
-                    <a
-                      href={`https://wa.me/${whatsappNumber}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="footer-social"
-                      title="WhatsApp"
-                    >
+                    <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="footer-social" title="WhatsApp">
                       <MessageCircle size={18} />
                     </a>
                   )}
@@ -682,12 +331,10 @@ export default async function LandingPage() {
                       className="footer-social"
                       title="Tokopedia"
                     >
+                      {/* Warna logo Tokopedia = identitas brand pihak ketiga (pengecualian zero-hex) */}
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                         <circle cx="12" cy="12" r="10" fill="#03ac0e" />
-                        <path
-                          d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"
-                          fill="#fff"
-                        />
+                        <path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" fill="#fff" />
                       </svg>
                     </a>
                   )}
@@ -696,23 +343,10 @@ export default async function LandingPage() {
 
               {/* Products column */}
               <div>
-                <div
-                  style={{
-                    fontWeight: '600',
-                    color: '#fff',
-                    marginBottom: '1rem',
-                    fontSize: '0.875rem'
-                  }}
-                >
+                <div style={{ fontWeight: 600, color: 'var(--landing-on-dark)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                   Produk
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.5rem'
-                  }}
-                >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {['Gorden', 'Vitras', 'Roman Blind', 'Kupu-Kupu', 'Custom & Aksesoris'].map((item) => (
                     <a key={item} href="#categories" className="footer-link">
                       {item}
@@ -724,23 +358,10 @@ export default async function LandingPage() {
               {/* Marketplace column */}
               {(shopee || tokopedia || tiktok) && (
                 <div>
-                  <div
-                    style={{
-                      fontWeight: '600',
-                      color: '#fff',
-                      marginBottom: '1rem',
-                      fontSize: '0.875rem'
-                    }}
-                  >
+                  <div style={{ fontWeight: 600, color: 'var(--landing-on-dark)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                     Marketplace
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem'
-                    }}
-                  >
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {shopee && (
                       <a
                         href={shopee.startsWith('http') ? shopee : `https://shopee.co.id/${shopee}`}
@@ -777,73 +398,23 @@ export default async function LandingPage() {
 
               {/* Contact column */}
               <div>
-                <div
-                  style={{
-                    fontWeight: '600',
-                    color: '#fff',
-                    marginBottom: '1rem',
-                    fontSize: '0.875rem'
-                  }}
-                >
+                <div style={{ fontWeight: 600, color: 'var(--landing-on-dark)', marginBottom: '1rem', fontSize: '0.875rem' }}>
                   Kontak
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.75rem'
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.5rem',
-                      alignItems: 'flex-start'
-                    }}
-                  >
-                    <MapPin
-                      size={15}
-                      style={{
-                        color: themeAccent,
-                        marginTop: 2,
-                        flexShrink: 0
-                      }}
-                    />
-                    <span
-                      style={{
-                        color: 'rgba(255,255,255,0.5)',
-                        fontSize: '0.8rem'
-                      }}
-                    >
-                      {address}
-                    </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                    <MapPin size={15} style={{ color: 'var(--landing-accent)', marginTop: 2, flexShrink: 0 }} />
+                    <span style={{ color: 'var(--landing-on-dark-faint)', fontSize: '0.8rem' }}>{address}</span>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.5rem',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Phone size={15} style={{ color: themeAccent, flexShrink: 0 }} />
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <Phone size={15} style={{ color: 'var(--landing-accent)', flexShrink: 0 }} />
                     <a href={`tel:${phone.replace(/[^+\d]/g, '')}`} className="footer-link">
                       {phone}
                     </a>
                   </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '0.5rem',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <MessageCircle size={15} style={{ color: themeAccent, flexShrink: 0 }} />
-                    <a
-                      href={`https://wa.me/${whatsappNumber}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="footer-link"
-                    >
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <MessageCircle size={15} style={{ color: 'var(--landing-accent)', flexShrink: 0 }} />
+                    <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="footer-link">
                       WhatsApp
                     </a>
                   </div>
@@ -851,14 +422,8 @@ export default async function LandingPage() {
               </div>
             </div>
 
-            <div
-              style={{
-                borderTop: '1px solid rgba(255,255,255,0.08)',
-                paddingTop: '1.5rem',
-                textAlign: 'center'
-              }}
-            >
-              <p style={{ fontSize: '0.8rem', color: brandColor }}>
+            <div style={{ borderTop: '1px solid var(--landing-on-dark-border)', paddingTop: '1.5rem', textAlign: 'center' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--landing-accent)' }}>
                 © {new Date().getFullYear()} {brandName}. All rights reserved.
               </p>
             </div>

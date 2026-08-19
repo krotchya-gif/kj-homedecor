@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { MessageCircle, Menu, X } from 'lucide-react'
 import ThemeToggle from '@/components/ui/ThemeToggle'
-import { useTheme } from 'next-themes'
 import { useBrandSettings } from '@/components/brand/BrandFontLoader'
 
 interface ScrollNavProps {
@@ -15,18 +14,7 @@ interface ScrollNavProps {
 export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNavProps) {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const brand = useBrandSettings()
-  const { resolvedTheme } = useTheme()
-  // Hydration fix: saat SSR, resolvedTheme = undefined → server selalu render
-  // versi terang. Kalau client langsung pakai tema gelap (dari localStorage),
-  // style berbeda → hydration mismatch. Gate dengan mounted: render pertama
-  // selalu identik dgn server, setelah mount baru pakai tema asli.
-  const isDark = mounted && resolvedTheme === 'dark'
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -41,12 +29,15 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
     { href: '#contact', label: 'Kontak' }
   ]
 
-  const navBg = scrolled ? (isDark ? 'rgba(10,10,10,0.94)' : 'rgba(255,255,255,0.94)') : 'transparent'
-  const navBorder = scrolled ? (isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)') : 'transparent'
-  const navShadow = scrolled ? (isDark ? '0 4px 24px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.07)') : 'none'
-  const linkColor = scrolled ? (isDark ? '#a1a1aa' : '#4b4b4b') : 'rgba(255,255,255,0.88)'
-  const linkHoverBg = scrolled ? (isDark ? 'rgba(249,115,22,0.1)' : '#fdf3e8') : 'rgba(255,255,255,0.12)'
-  const linkHoverColor = isDark ? '#DDC0B4' : '#C9A98C'
+  // Semua warna lewat token (zero hex). Tema inverted otomatis oleh CSS vars.
+  const navBg = scrolled ? 'var(--landing-surface)' : 'transparent'
+  const navBorder = scrolled ? 'var(--landing-border)' : 'transparent'
+  const navShadow = scrolled ? '0 4px 24px var(--landing-shadow)' : 'none'
+  const linkColor = scrolled ? 'var(--landing-body)' : 'var(--landing-heading)'
+  const linkHoverBg = 'var(--landing-surface-muted)'
+  const linkHoverColor = 'var(--landing-accent)'
+  const btnBg = 'var(--landing-heading)'
+  const btnColor = 'var(--landing-on-dark)'
 
   return (
     <>
@@ -79,6 +70,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             flexShrink: 0
           }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={brand.logoUrl ?? '/kjlogo.png'}
             alt={brand.name}
@@ -135,26 +127,20 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               fontWeight: 600,
               textDecoration: 'none',
               transition: 'all 0.25s',
-              background: scrolled
-                ? 'linear-gradient(135deg, var(--landing-primary, #DDC0B4), var(--landing-secondary, #C9A98C))'
-                : 'rgba(255,255,255,0.15)',
-              color: '#fff',
-              border: scrolled ? 'none' : '1px solid rgba(255,255,255,0.35)',
-              backdropFilter: scrolled ? 'none' : 'blur(8px)',
-              boxShadow: scrolled ? '0 4px 14px rgba(221,192,132,0.35)' : 'none'
+              background: btnBg,
+              color: btnColor,
+              boxShadow: scrolled ? '0 4px 14px var(--landing-shadow)' : 'none'
             }}
             onMouseEnter={(e) => {
               const t = e.currentTarget
               t.style.transform = 'translateY(-1px)'
-              t.style.boxShadow = scrolled ? '0 6px 20px rgba(204,112,48,0.45)' : '0 4px 16px rgba(0,0,0,0.15)'
             }}
             onMouseLeave={(e) => {
               const t = e.currentTarget
               t.style.transform = 'translateY(0)'
-              t.style.boxShadow = scrolled ? '0 4px 14px rgba(204,112,48,0.35)' : 'none'
             }}
           >
-            <MessageCircle size={15} /> WhatsApp
+            <MessageCircle size={15} /> Chat WhatsApp
           </a>
 
           {/* Hamburger (mobile) */}
@@ -184,7 +170,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
             position: 'fixed',
             inset: 0,
             zIndex: 190,
-            background: 'rgba(0,0,0,0.5)',
+            background: 'var(--landing-scrim)',
             backdropFilter: 'blur(4px)'
           }}
           onClick={() => setMenuOpen(false)}
@@ -200,8 +186,8 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
           bottom: 0,
           width: 280,
           zIndex: 195,
-          background: isDark ? '#141414' : '#fff',
-          boxShadow: '-8px 0 32px rgba(0,0,0,0.15)',
+          background: 'var(--landing-surface)',
+          boxShadow: '-8px 0 32px var(--landing-shadow)',
           transform: menuOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
           padding: '5rem 1.5rem 2rem',
@@ -221,20 +207,20 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               borderRadius: '0.75rem',
               fontSize: '1rem',
               fontWeight: 500,
-              color: isDark ? '#a1a1aa' : 'var(--neutral-700)',
+              color: 'var(--landing-heading)',
               textDecoration: 'none',
               transition: 'all 0.15s',
               display: 'block'
             }}
             onMouseEnter={(e) => {
               const t = e.currentTarget
-              t.style.background = isDark ? 'rgba(249,115,22,0.1)' : '#fdf3e8'
-              t.style.color = isDark ? '#DDC0B4' : '#C9A98C'
+              t.style.background = linkHoverBg
+              t.style.color = linkHoverColor
             }}
             onMouseLeave={(e) => {
               const t = e.currentTarget
               t.style.background = 'transparent'
-              t.style.color = isDark ? '#a1a1aa' : 'var(--neutral-700)'
+              t.style.color = 'var(--landing-heading)'
             }}
           >
             {l.label}
@@ -252,8 +238,8 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
               gap: '0.5rem',
               padding: '0.875rem',
               borderRadius: '0.75rem',
-              background: 'linear-gradient(135deg,#DDC0B4,#C9A98C)',
-              color: '#fff',
+              background: btnBg,
+              color: btnColor,
               fontSize: '0.95rem',
               fontWeight: 600,
               textDecoration: 'none'
@@ -271,7 +257,7 @@ export default function ScrollNav({ whatsappNumber, whatsappMessage }: ScrollNav
         }
         .nav-desktop-links a:focus-visible,
         .nav-drawer a:focus-visible {
-          outline: 2px solid var(--brand-500);
+          outline: 2px solid var(--landing-accent);
           outline-offset: 2px;
         }
       `}</style>
