@@ -17,6 +17,14 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-19 — E2E full chromium 43/43 (setelah konsolidasi team) — fix bug kalender booking + 2 fix spec
+- **BUG-136 — BookingCalendar `isPast` salah saat navigasi bulan** (`src/components/ui/BookingCalendar.tsx:112`): `const isPast = dateStr < formatDate(today.getDate())` memakai `currentMonth/currentYear` (bulan yang sedang ditampilkan), bukan tanggal aktual → saat user navigasi ke bulan lain, semua tanggal sebelum tanggal-19 di bulan itu salah dianggap `cal-past`/disabled (contoh: Jan 2027 → 1-18 nonaktif). Ketangkap E2E `booking.spec.ts` (test pilih tanggal 15 gagal). Fix: referensi "hari ini" dihitung dari `today.getFullYear()/getMonth()/getDate()` langsung.
+- **Fix spec (bukan bug app)**:
+  - `auth.setup.ts:58`: pacing `page.waitForTimeout(3000)` dipanggil SETELAH `ctx.close()` (page sudah ikut tertutup) → `Target page closed`. Ganti timer Node `setTimeout`.
+  - `booking.spec.ts` rate-limit: assert 429 jadi **invariant robust** (min 1 blok + semua request setelah blok pertama tetap 429) — karena test 1-2 dalam serial describe sudah memakai 2 dari 5 kuota window 60s yang sama (rate limiter in-memory fixed-window), posisi 429 tidak deterministik.
+  - `pipeline-kirim/pasang.spec.ts`: klik approve di baris gagal karena modal "Input Bayar" masih terbuka (overlay intercept) → setelah verifikasi `img[alt^="Bukti"]`, tutup modal via tombol "Batal" sebelum klik approve.
+- **Verifikasi**: `tsc --noEmit` 0 · `npm run build` 0 · vitest 27/27 · **E2E chromium 43/43** (run awal 37/43 → 4 gagal semua sudah di-fix & diverifikasi → run final 43/43, 3.4 menit). `finance.spec.ts` sempat gagal 1× (timeout 240s di modal supplier) — **flaky** (beban dev server saat run serial panjang), lulus di re-run & run final.
+
 ### 2026-08-19 — Konsolidasi commit team (june-arch) via rebase + selesaikan P1 gap multi-shop Shopee
 - **Latar**: team push 3 commit di atas `78f9ed9` (sesi 56): `27b8f55` fix(shopee), `0057df2` fix(shopee), `0499efe` docs(shopee). Branch lokal (sesi 58 `0285414` + sesi 59 `f927b8c` setelah rebase) **divergen** sejak `78f9ed9` → direbase di atas `origin/main` (`0499efe`). **Tidak ada konflik** — file team (sync-orders/sync-escrow/webhook/docs/09/.env.example) tidak disentuh sesi 58/59; satu-satunya file sama (`000_full_schema.sql`) hunk-nya tidak tumpang tindih → auto-merge bersih.
 - **Isi commit team yang dikonsolidasi**:
