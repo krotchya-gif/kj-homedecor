@@ -2,7 +2,7 @@
 
 > Panduan penggunaan **lengkap** untuk semua orang yang memakai aplikasi.
 > Ditulis dengan **bahasa sederhana** — siapa mengerjakan apa, di halaman mana, dan bagaimana.
-> Terakhir diperbarui: **2026-08-15** · Riwayat perbaikan & bug: `docs/riwayat.md` · Alur teknis: `docs/flows/`
+> Terakhir diperbarui: **2026-08-19** · Riwayat perbaikan & bug: `docs/riwayat.md` · Alur teknis: `docs/flows/`
 
 ---
 

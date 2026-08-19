@@ -17,6 +17,13 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-19 — Sesi 58: Keputusan BATAL sesi 57 (SEO hub 5 tab) — revert kode + rollback DB live ke sesi 56
+- **Keputusan user (2026-08-19)**: fitur sesi 57 (Admin SEO hub 5 tab: SEO/GEO AI-crawler, Analytics GA4/GSC, Marketing, Event Monitor, Campaign UTM) **dibatalkan** — sudah di-backup user sebagai template project terbaru, tidak perlu dipertahankan di repo ini.
+- **Revert kode**: `git reset --hard 78f9ed9` — buang 4 commit sesi 57 (`7fcd9a1` SEO hub, `b66cbe6` docs, `cb9f214` WaTrackLink, `e8525d9` status riset) + perubahan uncommitted. Main kembali = `origin/main` (sesi 56).
+- **Rollback DB live (migration `rollback_sesi57_to_sesi56`)**: `DROP TABLE event_logs, utm_visits` (data event_logs 25 baris hilang — sudah di-backup user) · `landing_settings` rename `tracking_pixel_id→seo_pixel_id`, `tracking_ga4_id→seo_ga4_id` (nilai dipertahankan) + drop 10 kolom (`tracking_gtm_id`, `tracking_clarity_id`, `tracking_ads_id`, `tracking_tiktok_id`, `gsc_verification`, `ga_service_account`, `tracking_ga4_property_id`, `tracking_gsc_site_url`, `ai_crawlers_block`, `geo_lat`, `geo_lng`) · `orders` drop `utm_source/medium/campaign` · policy `payments` kembali ke `"Finance manage payments"` (sesuai file sesi 56).
+- **Verifikasi**: 56 tabel file = 56 tabel live (nama identik), semua kolom cocok, 44 fungsi repo identik (live + `rls_auto_enable` platform), policy `payments` = `is_finance_role()` ALL. tsc + build + vitest OK.
+- **Backlog sesi berikutnya** (BUG ditemukan saat audit 2026-08-19, belum dikerjakan): (1) booking publik `/booking` memanggil `create_public_booking` langsung dari client **tanpa rate limit** → risiko spam booking; fix yang direncanakan: wrap via route server `/api/booking` + `checkRateLimit` (RPC tetap executor tunggal); (2) fungsi DB dead `increment_stock_gudang`/`increment_stock_toko` (0 caller, semua via `adjust_stock_atomic`) masih diexpose di live → opsi drop + sinkron file.
+
 ### 2026-08-15 — Sesi 56: Verifikasi sinkron penuh (skema live = file = codebase) + commit
 - **Keputusan user**: 11b konsolidasi STATUS_COLORS **opsi A** (biarkan 15 definisi lokal per domain — statis hex, risiko visual > manfaat; dead code sudah dihapus sesi 55). Dicatat, tidak dieksekusi.
 - **Verifikasi skema**: 56 tabel live = 56 tabel `000_full_schema.sql` (nama identik); kolom fitur terbaru ada semua (`landing_settings.email`, `shopee_shop_settings.sync_start_date`, `tiktok_shop_settings.sync_start_date`, `shopee_shop_orders.order_date`, `install_bookings.photo_evidence`).

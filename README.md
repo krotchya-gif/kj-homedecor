@@ -245,4 +245,4 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ---
 
-_Last updated: 2026-08-15 (sesi 55 — Shopee UI mirror TikTok: multi-shop, Settlement/Pencairan Dana per order, stat cards; sesi 54: Tanggal Mulai Sync, pilih-per-order, RLS initplan; BUG-133..135) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-19 (sesi 58 — keputusan BATAL sesi 57: SEO hub 5 tab di-revert ke sesi 56, DB live di-rollback sesuai sesi 56, schema 100% sinkron; riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_
