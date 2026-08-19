@@ -107,9 +107,16 @@ export default function BookingCalendar({
         {cells.map((day, idx) => {
           if (!day) return <div key={`empty-${idx}`} className="cal-cell cal-cell-empty" />
           const dateStr = formatDate(day)
-          const isToday = dateStr === formatDate(today.getDate())
+          // Referensi "hari ini" harus pakai tanggal aktual (bukan month/year yang sedang
+          // ditampilkan) — sebelumnya formatDate(today.getDate()) memakai currentMonth/
+          // currentYear sehingga saat user navigasi bulan, semua tanggal sebelum tgl-19
+          // di bulan itu salah dianggap isPast/disabled (bug ketangkap E2E booking).
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(
+            today.getDate()
+          ).padStart(2, '0')}`
+          const isToday = dateStr === todayStr
           const isSelected = dateStr === selectedDate
-          const isPast = dateStr < formatDate(today.getDate())
+          const isPast = dateStr < todayStr
           const level = getDateOccupiedLevel(dateStr)
 
           return (

@@ -51,6 +51,9 @@ test.describe.serial('Pipeline Pasang', () => {
     // sesi 59: finance verifikasi bukti foto di Riwayat Pembayaran sebelum approve
     await finRow.getByRole('button', { name: /input bayar/i, exact: true }).click()
     await expect(fin.locator('img[alt^="Bukti"]').first()).toBeVisible({ timeout: 15000 })
+    // tutup modal dulu — overlay-nya menutupi tombol approve di baris (kalau tidak, click ter-intercept)
+    await fin.locator('.modal-panel').getByRole('button', { name: /batal/i, exact: true }).click()
+    await expect(fin.locator('.modal-panel')).toHaveCount(0)
     await fin.locator('tr', { hasText: customerName }).first().getByRole('button', { name: /approve/i, exact: true }).click()
     await expectToast(fin, /Pembayaran diverifikasi|approved/i)
 
