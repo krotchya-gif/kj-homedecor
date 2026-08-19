@@ -31,6 +31,9 @@ test.describe.serial('Steam QC Fail -> revisi (BUG-133)', () => {
     await createModal.locator('select').nth(1).selectOption('kirim')
     await createModal.locator('input[type="number"]').nth(0).fill('500000')
     await createModal.locator('input[type="number"]').nth(1).fill('500000') // DP = total → paid
+    // sesi 59: bukti foto WAJIB utk DP (RPC add_order_payment_atomic menolak tanpa foto)
+    await uploadPhoto(createModal)
+    await expect(createModal.getByText('Bukti ter-upload').first()).toBeVisible({ timeout: 30000 })
     await createModal.getByRole('button', { name: /buat pesanan/i }).click()
     await expectToast(admin, /Pesanan berhasil dibuat/i)
 

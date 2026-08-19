@@ -24,6 +24,9 @@ test.describe.serial('Pipeline Pasang', () => {
     await createModal.locator('select').nth(1).selectOption('pasang')
     await createModal.locator('input[type="number"]').nth(0).fill('400000')
     await createModal.locator('input[type="number"]').nth(1).fill('400000') // DP = total → paid
+    // sesi 59: bukti foto WAJIB utk DP (RPC add_order_payment_atomic menolak tanpa foto)
+    await uploadPhoto(createModal)
+    await expect(createModal.getByText('Bukti ter-upload').first()).toBeVisible({ timeout: 30000 })
     await createModal.getByRole('button', { name: /buat pesanan/i }).click()
     await expectToast(admin, /Pesanan berhasil dibuat/i)
 
@@ -45,7 +48,10 @@ test.describe.serial('Pipeline Pasang', () => {
     const fin = await finCtx.newPage()
     await gotoDashboard(fin, '/finance/payments')
     const finRow = fin.locator('tr', { hasText: customerName }).first()
-    await finRow.getByRole('button', { name: /approve/i, exact: true }).click()
+    // sesi 59: finance verifikasi bukti foto di Riwayat Pembayaran sebelum approve
+    await finRow.getByRole('button', { name: /input bayar/i, exact: true }).click()
+    await expect(fin.locator('img[alt^="Bukti"]').first()).toBeVisible({ timeout: 15000 })
+    await fin.locator('tr', { hasText: customerName }).first().getByRole('button', { name: /approve/i, exact: true }).click()
     await expectToast(fin, /Pembayaran diverifikasi|approved/i)
 
     // ---------- ADMIN: payment_ok → sorted (foto) → production (foto) ----------
