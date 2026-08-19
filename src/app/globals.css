@@ -1277,8 +1277,8 @@ select option {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--landing-on-dark-border);
+  background: var(--landing-surface-muted);
+  border: 1px solid var(--landing-border);
   color: var(--landing-accent);
   font-size: 0.78rem;
   font-weight: 700;
@@ -1288,22 +1288,33 @@ select option {
   border-radius: 999px;
   backdrop-filter: blur(10px);
 }
+.dark .hero-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--landing-on-dark-border);
+}
 .hero-title {
   font-family: var(--font-serif);
   font-size: clamp(2.4rem, 6vw, 4.4rem);
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.02em;
-  color: var(--landing-on-dark);
+  color: var(--landing-heading);
   text-wrap: balance;
+  text-shadow: none;
+}
+.dark .hero-title {
+  color: var(--landing-on-dark);
   text-shadow: 0 2px 30px rgba(20, 12, 8, 0.25);
 }
 .hero-subtitle {
-  color: var(--landing-on-dark-soft);
+  color: var(--landing-body);
   font-size: clamp(1rem, 1.6vw, 1.15rem);
   line-height: 1.8;
   max-width: 52ch;
   text-wrap: pretty;
+}
+.dark .hero-subtitle {
+  color: var(--landing-on-dark-soft);
 }
 
 /* ===== TRUST STRIP ===== */
@@ -1446,44 +1457,61 @@ select option {
 /* ===== PORTFOLIO GALLERY ===== */
 .portfolio-gallery {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: 220px;
   gap: 1.25rem;
 }
-.portfolio-featured { grid-column: span 7; }
-.portfolio-side { grid-column: span 5; display: grid; gap: 1.25rem; }
+.portfolio-lg { grid-column: span 2; grid-row: span 2; }
+.portfolio-sm { grid-column: span 1; grid-row: span 1; }
 @media (max-width: 900px) {
-  .portfolio-featured, .portfolio-side { grid-column: span 12; }
+  .portfolio-gallery { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 180px; }
+  .portfolio-lg { grid-column: span 2; }
 }
 .portfolio-card {
+  position: relative;
   border-radius: 1.25rem;
   overflow: hidden;
   background: var(--landing-surface);
   border: 1px solid var(--landing-border);
   box-shadow: 0 4px 16px rgba(20, 12, 8, 0.05);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  text-decoration: none;
   display: block;
 }
 .portfolio-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 44px rgba(20, 12, 8, 0.1);
 }
-.portfolio-card-imgwrap { position: relative; overflow: hidden; }
-.portfolio-card-imgwrap img {
+.portfolio-card-media { position: absolute; inset: 0; overflow: hidden; }
+.portfolio-card-media img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   transition: transform 0.4s ease;
 }
-.portfolio-card:hover .portfolio-card-imgwrap img { transform: scale(1.05); }
-.portfolio-card-body { padding: 1.25rem 1.5rem; }
-.portfolio-card-title {
+.portfolio-card:hover .portfolio-card-media img { transform: scale(1.05); }
+.portfolio-card-ph {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.portfolio-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  background: linear-gradient(to top, var(--landing-shade-strong), transparent 45%);
+}
+.portfolio-card-overlay .portfolio-card-title {
   font-family: var(--font-serif);
   font-weight: 700;
-  color: var(--landing-heading);
-  margin-bottom: 0.35rem;
+  color: var(--landing-on-dark);
+  margin-bottom: 0.25rem;
 }
-.portfolio-card-date { font-size: 0.8rem; color: var(--landing-muted); }
+.portfolio-card-overlay .portfolio-card-date { font-size: 0.8rem; color: var(--landing-on-dark-muted); }
 
 /* ===== CTA BANNER (theme-adaptive) ===== */
 .landing-cta {
@@ -1576,9 +1604,18 @@ select option {
 .dark .btn-card:hover {
   background: var(--landing-accent);
   color: var(--landing-on-accent);
+}/* ===== FOOTER ===== */
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 3rem;
 }
-
-/* ===== FOOTER ===== */
+@media (max-width: 900px) {
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
 .footer-link {
   color: var(--landing-on-dark-faint);
   text-decoration: none;
