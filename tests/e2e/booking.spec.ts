@@ -50,7 +50,12 @@ test.describe.serial('Booking publik (gate /api/booking sesi 59)', () => {
   })
 
   test('rate limit: request beruntun → 429 (anti-spam sesi 59)', async ({ page }) => {
-    // 8 request cepat; yang ke-6 SELALU 429 (6+permintaan sebelumnya dalam 1 window 60s)
+    // 8 request cepat berturut-turut. Karena test 1 & 2 di atas sudah memakai
+    // 2 dari 5 kuota window 60s yang sama (rate limiter in-memory per proses,
+    // fixed-window `checkRateLimit(ip, 5, 60_000)`), posisi 429 TIDAK deterministik
+    // (bisa di index 3, 4, atau 5) — assert invariant yang pasti:
+    //   a) minimal 1 request diblokir 429,
+    //   b) setelah blok pertama, semua request berikutnya tetap 429 (budget habis).
     const statuses: number[] = []
     for (let i = 0; i < 8; i++) {
       const res = await page.request.post('/api/booking', {
@@ -58,6 +63,8 @@ test.describe.serial('Booking publik (gate /api/booking sesi 59)', () => {
       })
       statuses.push(res.status())
     }
-    expect(statuses[5]).toBe(429)
+    const firstBlock = statuses.indexOf(429)
+    expect(firstBlock).toBeGreaterThanOrEqual(0)
+    expect(statuses.slice(firstBlock).every((s) => s === 429)).toBe(true)
   })
 })
