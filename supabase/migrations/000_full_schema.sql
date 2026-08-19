@@ -4434,6 +4434,7 @@ CREATE TABLE IF NOT EXISTS public.shopee_shop_settings (
 
 CREATE TABLE IF NOT EXISTS public.shopee_shop_orders (
   id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  shop_id          TEXT,
   order_sn         VARCHAR(100) UNIQUE NOT NULL,
   order_status     VARCHAR(50),
   payment_status   VARCHAR(50),
@@ -4456,6 +4457,10 @@ CREATE TABLE IF NOT EXISTS public.shopee_shop_orders (
   created_at       TIMESTAMPTZ DEFAULT now(),
   updated_at       TIMESTAMPTZ DEFAULT now()
 );
+
+-- P1 gap multi-shop: shopee_shop_orders.shop_id + index (migration live — apply via Dashboard SQL Editor if needed)
+ALTER TABLE public.shopee_shop_orders ADD COLUMN IF NOT EXISTS shop_id TEXT;
+CREATE INDEX IF NOT EXISTS idx_shopee_orders_shop_id ON public.shopee_shop_orders(shop_id);
 
 CREATE INDEX IF NOT EXISTS idx_shopee_orders_synced ON public.shopee_shop_orders(is_synced);
 CREATE INDEX IF NOT EXISTS idx_shopee_orders_status ON public.shopee_shop_orders(order_status);
