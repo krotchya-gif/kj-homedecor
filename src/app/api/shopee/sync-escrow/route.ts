@@ -45,13 +45,25 @@ export async function POST(req: NextRequest) {
     }
 
     const db = createServiceClient()
-    const escrowList = await sdk.payment.getEscrowList({
-      release_time_from: timeFrom,
-      release_time_to: timeTo,
-      page_size: 100,
-      page_no: 1
-    })
-    const list = escrowList.response?.escrow_list ?? []
+    // Paginated escrow — Shopee get_escrow_list page_no loop (mirror order pagination)
+    let pageNo = 1
+    let moreEscrow = true
+    const allEscrow: Awaited<ReturnType<typeof sdk.payment.getEscrowList>>['response']['escrow_list'] = []
+    while (moreEscrow) {
+      const escrowList = await sdk.payment.getEscrowList({
+        release_time_from: timeFrom,
+        release_time_to: timeTo,
+        page_size: 100,
+        page_no: pageNo
+      })
+      const batch = escrowList.response?.escrow_list ?? []
+      allEscrow.push(...(batch as typeof allEscrow))
+      const more = (escrowList.response as unknown as { more?: boolean })?.more
+      if (more === false || batch.length < 100) moreEscrow = false
+      else pageNo++
+      if (pageNo > 50) break // safety cap 5000 escrow
+    }
+    const list = allEscrow
     let updated = 0
 
     // Simpan escrow_amount & release_time per order

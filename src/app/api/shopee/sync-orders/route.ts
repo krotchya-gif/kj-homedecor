@@ -26,8 +26,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await req.json().catch(() => ({}))
-  const { shop_id } = body as { shop_id?: string }
+  const body = (await req.json().catch(() => ({}))) as {
+    shop_id?: string
+    time_from?: number
+    time_to?: number
+  }
+  const { shop_id } = body
 
   const { sdk, settings } = (await createShopeeSDK(shop_id)) ?? {}
   if (!sdk) {
@@ -38,7 +42,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json().catch(() => ({}))
     const now = Math.floor(Date.now() / 1000)
     const timeTo = Number(body.time_to ?? now)
     // WAVE 2 (2026-08-15): Tanggal Mulai Sync per-shop — data sebelum tanggal ini
