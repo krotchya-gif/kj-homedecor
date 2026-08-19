@@ -13,11 +13,11 @@ App `kjhomedecor` (Shopee Open Platform `239264`, `Developing` → Go Live revie
    - Setelah Go Live: Live Partner ID/Key (beda dari Test `1241478`) → ganti `shopee_shop_settings` Test → Live → Authorize Live → baru sinkronisasi jalan
 
 2. **Pesanan masuk**
-   - `POST /api/shopee/sync-orders` → `get_order_list` (cursor `more/next_cursor`, `time_range_field=update_time`, `page_size 100`) + `getOrdersDetail` batch 50 → `upsert shopee_shop_orders` (paid = `READY_TO_SHIP/PROCESSED/SHIPPED/COMPLETED`). **P0 fix 27b8f55**: `time_from/time_to` dari UI kini terpakai (sebelumnya double `req.json()` jadi `{}`).
+   - `POST /api/shopee/sync-orders` → `get_order_list` (cursor `more/next_cursor`, `time_range_field=update_time`, `page_size 100`) + `getOrdersDetail` batch 50 → `upsert shopee_shop_orders` (paid = `READY_TO_SHIP/PROCESSED/SHIPPED/COMPLETED`). **P0 fix 27b8f55**: `time_from/time_to` dari UI kini terpakai (sebelumnya double `req.json()` jadi `{}`). **P1 multi-shop (2026-08-19)**: upsert kini mengisi `shopee_shop_orders.shop_id` dari `settings.shop_id` (kolom + index sudah di-apply ke live).
    - `POST /api/shopee/sync-to-main-orders` → RPC `process_shopee_order_atomic` (paid → main order `orders`, `order_id_external=order_sn`, `source=shopee`) / `cancel_shopee_order_atomic` (CANCELLED → void). BLOCK on error, `sync_start_date` dijepit.
 
 3. **Settlement (Pencairan Dana / Escrow)**
-   - `POST /api/shopee/sync-escrow` → `get_escrow_list` (paginasi `page_no` loop, fix `0057df2` — sebelumnya hanya page 1) + `getEscrowDetailBatch` (commission/transaction/service/actual_shipping_fee) → `shopee_shop_orders.escrow_amount/escrow_release_time/fee`
+   - `POST /api/shopee/sync-escrow` → `get_escrow_list` (paginasi `page_no` loop, fix `0057df2` — sebelumnya hanya page 1) + `getEscrowDetailBatch` (commission/transaction/service/actual_shipping_fee) → `shopee_shop_orders.escrow_amount/escrow_release_time/fee` (update escrow juga mengisi `shop_id` dari `settings.shop_id`)
    - **Catat Settlement** → `process_shopee_escrow_atomic` (per order): `Dr E Wallet Shopee (1105) / Cr Piutang` + fee per kategori. Halaman: `/owner/shopee` (Owner, multi-shop + settlement per bulan), `/admin/shopee` (Admin, sync + checkbox Link), `/finance/shopee` (Finance, settlement → jurnal)
 
 4. **Webhook**
@@ -64,6 +64,7 @@ App `kjhomedecor` (Shopee Open Platform `239264`, `Developing` → Go Live revie
 
 - Source order ditandai: `shopee | tokopedia | tiktok | offline | landing_page`
 - Token Shopee: `shopee_shop_settings` (partner_id/key, shop_id, access_token, token_expires_at, is_active, sync_start_date) — `is_active=false` sebelum Authorize Live
+- Tag asal toko: `shopee_shop_orders.shop_id TEXT` + `idx_shopee_orders_shop_id` (P1 multi-shop, 2026-08-19) — diisi saat sync-orders/sync-escrow (dari `settings.shop_id`) & webhook (dari `body.shop_id`); order lama yang ter-sync sebelum kolom ada tetap NULL (tidak di-backfill)
 - Token TikTok tersimpan di tabel `tiktok_shop_settings`
 - Order dari marketplace tetap harus **lunas** sebelum dikemas/dikirim (payment gate sama)
 - Fix P0 sesi 56: `sync-orders` date range + `sync-escrow` pagination (lebih dari 100)

@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       const { error } = await db
         .from('shopee_shop_orders')
         .update({
+          shop_id: settings.shop_id ?? null,
           escrow_amount: Number(esc.payout_amount ?? 0),
           escrow_release_time: esc.escrow_release_time
             ? new Date(esc.escrow_release_time * 1000).toISOString()

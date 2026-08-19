@@ -98,6 +98,7 @@ export async function POST(req: NextRequest) {
 
           await db.from('shopee_shop_orders').upsert(
             {
+              shop_id: settings.shop_id ?? null,
               order_sn: od.order_sn,
               order_status: od.order_status ?? null,
               payment_status: paymentStatus,
