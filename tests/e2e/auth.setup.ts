@@ -54,7 +54,8 @@ for (const c of CREDS) {
     expect(new URL(page.url()).pathname).toMatch(new RegExp(`^${c.dash}`))
     await ctx.storageState({ path: path.join(AUTH_DIR, `${c.role}.json`) })
     await ctx.close()
-    // pacing antar role (hindari lonjakan login → rate-limit auth)
-    await page.waitForTimeout(3000)
+    // pacing antar role (hindari lonjakan login → rate-limit auth) — pakai timer
+    // Node, karena `page` sudah ikut ditutup oleh ctx.close().
+    await new Promise((resolve) => setTimeout(resolve, 3000))
   })
 }
