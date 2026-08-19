@@ -1,4 +1,7 @@
+'use client'
+
 import type { ReactNode } from 'react'
+import Reveal from './Reveal'
 
 interface SectionHeaderProps {
   label?: string
@@ -11,8 +14,17 @@ interface SectionHeaderProps {
 /**
  * Header section landing — token-driven (zero hex).
  * `label` (eyebrow) dipakai hemat: maksimal 1 per 3 section (aturan design-taste).
+ * Scroll reveal: label -> title -> subtitle staggered + garis aksen scaleX.
  */
 export default function SectionHeader({ label, title, subtitle, align = 'left', children }: SectionHeaderProps) {
+  const accentLine: React.CSSProperties = {
+    width: 56,
+    height: 2,
+    background: 'var(--landing-accent)',
+    marginTop: '1.25rem',
+    transformOrigin: 'left center'
+  }
+
   return (
     <div
       style={{
@@ -22,10 +34,25 @@ export default function SectionHeader({ label, title, subtitle, align = 'left', 
         textAlign: align
       }}
     >
-      {label ? <div className="landing-section-label">{label}</div> : null}
-      <h2 className="landing-section-title">{title}</h2>
-      {subtitle ? <p className="landing-section-subtitle" style={{ marginTop: '0.75rem' }}>{subtitle}</p> : null}
-      {children}
+      {label ? (
+        <Reveal delay={0}>
+          <div className="landing-section-label">{label}</div>
+        </Reveal>
+      ) : null}
+      <Reveal delay={0.08}>
+        <h2 className="landing-section-title">{title}</h2>
+      </Reveal>
+      {subtitle ? (
+        <Reveal delay={0.16}>
+          <p className="landing-section-subtitle" style={{ marginTop: '0.75rem' }}>
+            {subtitle}
+          </p>
+        </Reveal>
+      ) : null}
+      <Reveal delay={0.24}>
+        <div style={align === 'center' ? { ...accentLine, marginInline: 'auto' } : accentLine} />
+      </Reveal>
+      {children ? <Reveal delay={0.28}>{children}</Reveal> : null}
     </div>
   )
 }

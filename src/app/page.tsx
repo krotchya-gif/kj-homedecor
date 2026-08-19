@@ -9,6 +9,7 @@ import CategoryBento from '@/components/landing/CategoryBento'
 import WhyUsEditorial, { type WhyUsItem } from '@/components/landing/WhyUsEditorial'
 import PortfolioGallery from '@/components/landing/PortfolioGallery'
 import SectionHeader from '@/components/landing/SectionHeader'
+import Reveal from '@/components/landing/Reveal'
 import BrandFontLoader from '@/components/brand/BrandFontLoader'
 
 export default async function LandingPage() {
@@ -205,6 +206,7 @@ export default async function LandingPage() {
 
         {/* ===== CTA (theme-adaptive) ===== */}
         <section className="landing-cta" style={{ padding: '6rem 1.5rem', textAlign: 'center' }}>
+          <Reveal>
           <div style={{ maxWidth: 640, margin: '0 auto' }}>
             <div
               style={{
@@ -246,10 +248,12 @@ export default async function LandingPage() {
               </a>
             </div>
           </div>
+          </Reveal>
         </section>
 
         {/* ===== FOOTER ===== */}
         <footer id="contact" style={{ background: 'var(--landing-inverse-bg)', padding: '4rem 1.5rem 2rem' }}>
+          <Reveal>
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div className="footer-grid">
               {/* Brand column */}
@@ -428,6 +432,7 @@ export default async function LandingPage() {
               </p>
             </div>
           </div>
+          </Reveal>
         </footer>
       </div>
     </>

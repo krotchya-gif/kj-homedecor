@@ -7,6 +7,7 @@ import { createClient } from '@/utils/supabase/client'
 import { Search, MessageCircle, Package, X } from 'lucide-react'
 import type { Product, Category } from '@/types'
 import { formatRp } from '@/lib/utils'
+import Reveal from './Reveal'
 
 interface ProductCatalogProps {
   maxProducts?: number
@@ -227,8 +228,8 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1.5rem' }}>
             {displayProducts.map((p) => (
+              <Reveal key={p.id} delay={(displayProducts.indexOf(p) % 8) * 0.05}>
               <div
-                key={p.id}
                 style={{
                   background: 'var(--landing-surface)',
                   borderRadius: '1rem',
@@ -330,6 +331,7 @@ export default function ProductCatalog({ maxProducts, showViewAll }: ProductCata
                   </a>
                 </div>
               </div>
+              </Reveal>
             ))}
           </div>
 
