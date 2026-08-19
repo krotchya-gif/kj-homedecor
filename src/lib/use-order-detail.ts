@@ -123,6 +123,9 @@ export function useOrderDetail(id: string) {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [paymentForm, setPaymentForm] = useState({ type: 'dp' as 'dp' | 'lunas', amount: '' })
   const [savingPayment, setSavingPayment] = useState(false)
+  // Sesi 59: bukti foto pembayaran (wajib untuk DP & pelunasan)
+  const [paymentProofUrl, setPaymentProofUrl] = useState('')
+  const [paymentUploading, setPaymentUploading] = useState(false)
   // Idempotency key per sesi submit: retry setelah timeout TIDAK membuat
   // pembayaran kedua (audit 2026-08-14). Direset saat sukses / modal ditutup.
   const payKeyRef = useRef<string | null>(null)
@@ -130,6 +133,10 @@ export function useOrderDetail(id: string) {
   // dengan nominal berbeda, jangan dianggap idempotent dari submit sebelumnya.
   useEffect(() => {
     if (!showPaymentForm) payKeyRef.current = null
+  }, [showPaymentForm])
+  // Sesi 59: reset bukti foto saat modal pembayaran dibuka/ditutup
+  useEffect(() => {
+    if (!showPaymentForm) setPaymentProofUrl('')
   }, [showPaymentForm])
 
   const [checklist, setChecklist] = useState<PreparationChecklistItem[]>([])
@@ -582,6 +589,11 @@ export function useOrderDetail(id: string) {
       toast('warning', 'Jumlah pembayaran wajib diisi.')
       return
     }
+    // Sesi 59: bukti foto WAJIB untuk DP & pelunasan (RPC juga menolak tanpa foto)
+    if (!paymentProofUrl) {
+      toast('error', 'Bukti pembayaran (foto) wajib diunggah.')
+      return
+    }
     const amount = Number(paymentForm.amount)
     if (amount <= 0) {
       toast('error', 'Nominal pembayaran harus lebih dari 0.')
@@ -610,7 +622,8 @@ export function useOrderDetail(id: string) {
       p_type: paymentForm.type,
       p_amount: amount,
       p_actor: user.id,
-      p_idempotency_key: payKeyRef.current
+      p_idempotency_key: payKeyRef.current,
+      p_proof_photo_url: paymentProofUrl
     })
     if (payErr) {
       setSavingPayment(false)
@@ -621,6 +634,7 @@ export function useOrderDetail(id: string) {
     toast('success', 'Pembayaran berhasil dicatat.')
     payKeyRef.current = null
     setShowPaymentForm(false)
+    setPaymentProofUrl('')
     setPaymentForm({ type: 'dp', amount: '' })
     setSavingPayment(false)
     load()
@@ -630,6 +644,23 @@ export function useOrderDetail(id: string) {
     setItemType('gorden')
     setItemForm(EMPTY_ITEM_FORM)
     setSearchProduct('')
+  }
+
+  // Sesi 59: upload bukti foto pembayaran (folder payment-proofs, role admin/finance/owner)
+  async function handlePaymentProofUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPaymentUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'payment-proofs', { compress: true, maxSizeMB: 1.5 })
+      setPaymentProofUrl(result.url)
+      toast('success', 'Bukti pembayaran ter-upload')
+    } catch (err) {
+      toast('error', 'Gagal upload bukti: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setPaymentUploading(false)
+      if (e.target) e.target.value = ''
+    }
   }
 
   function openItemForm() {
@@ -723,6 +754,10 @@ export function useOrderDetail(id: string) {
     paymentForm,
     setPaymentForm,
     savingPayment,
+    paymentProofUrl,
+    setPaymentProofUrl,
+    paymentUploading,
+    handlePaymentProofUpload,
     checklist,
     showItemForm,
     setShowItemForm,

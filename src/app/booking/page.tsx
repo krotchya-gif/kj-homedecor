@@ -80,22 +80,26 @@ export default function BookingPage() {
     setError('')
 
     try {
-      // Booking publik via RPC create_public_booking — policy INSERT publik
-      // sudah DROP (audit 2026-08-14). RPC hanya menerima field publik dan
-      // memaksa status='pending', source='website', installer/order/customer NULL.
-      const { error: insertError } = await supabase.rpc('create_public_booking', {
-        p_customer_name: form.name,
-        p_customer_phone: form.phone,
-        p_address: form.service_type === 'survey' ? null : form.address,
-        p_scheduled_date: form.date || null,
-        p_scheduled_time: form.time || null,
-        p_type: form.service_type,
-        p_notes: form.notes
+      // Sesi 59: booking lewat route server /api/booking (rate limit 5/menit/IP)
+      // — RPC create_public_booking tetap satu-satunya eksekutor write di server.
+      const res = await fetch('/api/booking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          address: form.service_type === 'survey' ? null : form.address,
+          date: form.date || null,
+          time: form.time || null,
+          service_type: form.service_type,
+          notes: form.notes
+        })
       })
+      const resJson = await res.json().catch(() => ({ data: null, error: { message: 'Respons tidak valid dari server' } }))
 
-      if (insertError) {
-        console.error('Insert error:', insertError)
-        throw new Error('Gagal menyimpan booking')
+      if (!res.ok || !resJson.data) {
+        console.error('Booking error:', resJson)
+        throw new Error(resJson?.error?.message ?? 'Gagal menyimpan booking')
       }
 
       setSuccess(true)

@@ -366,7 +366,10 @@ CREATE TABLE IF NOT EXISTS public.payments (
   -- 088 (audit 2026-08-14): idempotency per payment (anti double-pay retry) +
   -- flag void untuk cancel (jangan andalkan parsing notes).
   idempotency_key   TEXT,
-  voided_at         TIMESTAMPTZ
+  voided_at         TIMESTAMPTZ,
+  -- 059: bukti foto pembayaran (WAJIB utk pembayaran manual — enforce di
+  -- add_order_payment_atomic; marketplace/refund/retur pakai RPC sendiri)
+  proof_photo_url   TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS payments_idempotency_unique ON public.payments (idempotency_key) WHERE idempotency_key IS NOT NULL;
 
@@ -993,31 +996,12 @@ AS $$
       0) + 1 AS TEXT), 4, '0');
 $$;
 
--- increment_stock_toko: add stock to products
-CREATE OR REPLACE FUNCTION increment_stock_toko(product_id UUID, amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE products
-  SET stock_toko = COALESCE(stock_toko, 0) + amount
-  WHERE id = product_id;
-END;
-$$;
-
--- increment_stock_gudang: add stock to materials
-CREATE OR REPLACE FUNCTION increment_stock_gudang(material_id UUID, amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  UPDATE materials
-  SET stock_gudang = COALESCE(stock_gudang, 0) + amount
-  WHERE id = material_id;
-END;
-$$;
+-- increment_stock_toko/gudang: DROP'd sesi 59 (dead code, 0 caller —
+-- semua adjustment stok lewat adjust_stock_atomic yang mencatat inventory_movements)
+DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, NUMERIC);
+DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, NUMERIC);
+DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, INTEGER);
+DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, INTEGER);
 
 -- consume_materials_for_production: atomic BOM consumption
 CREATE OR REPLACE FUNCTION consume_materials_for_production(
@@ -2319,44 +2303,12 @@ REVOKE ALL ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) FROM aut
 GRANT EXECUTE ON FUNCTION public.search_orders(TEXT, TEXT, UUID, INT, INT) TO service_role;
 
 -- Versi FINAL RPC stock & pipeline dengan role check (067)
-CREATE OR REPLACE FUNCTION public.increment_stock_toko(product_id UUID, amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
-    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
-  END IF;
-  UPDATE public.products SET stock_toko = COALESCE(stock_toko, 0) + GREATEST(amount, 0) WHERE id = product_id;
-END;
-$$;
-
-CREATE OR REPLACE FUNCTION public.increment_stock_gudang(material_id UUID, amount NUMERIC)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM public.users WHERE id = auth.uid() AND status = 'active' AND role IN ('gudang','admin','owner')) THEN
-    RAISE EXCEPTION 'Forbidden: hanya gudang/admin/owner';
-  END IF;
-  UPDATE public.materials SET stock_gudang = COALESCE(stock_gudang, 0) + GREATEST(amount, 0) WHERE id = material_id;
-END;
-$$;
-
--- Drop versi lama RPC stock ber-arg INTEGER (tanpa role check)
+-- Sesi 59: increment_stock_toko/gudang versi public DROP'd (dead code, 0 caller —
+-- ganti: adjust_stock_atomic (inventory_movements + role check anti-spoof))
+DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, NUMERIC);
+DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, NUMERIC);
 DROP FUNCTION IF EXISTS public.increment_stock_toko(UUID, INTEGER);
 DROP FUNCTION IF EXISTS public.increment_stock_gudang(UUID, INTEGER);
-
-REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) FROM anon;
-GRANT EXECUTE ON FUNCTION public.increment_stock_toko(UUID, NUMERIC) TO authenticated;
-REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) FROM anon;
-GRANT EXECUTE ON FUNCTION public.increment_stock_gudang(UUID, NUMERIC) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.adjust_stock_atomic(p_target_type text, p_item_id uuid, p_location text, p_direction text, p_qty numeric, p_reason text, p_notes text, p_actor uuid)
 RETURNS jsonb
@@ -2550,7 +2502,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.add_order_payment_atomic(p_order_id uuid, p_type text, p_amount numeric, p_actor uuid, p_idempotency_key text DEFAULT NULL, p_debit_account_id uuid DEFAULT NULL, p_date date DEFAULT CURRENT_DATE)
+CREATE OR REPLACE FUNCTION public.add_order_payment_atomic(p_order_id uuid, p_type text, p_amount numeric, p_actor uuid, p_idempotency_key text DEFAULT NULL, p_debit_account_id uuid DEFAULT NULL, p_date date DEFAULT CURRENT_DATE, p_proof_photo_url text DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -2580,6 +2532,11 @@ BEGIN
   IF p_debit_account_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.accounts WHERE id = p_debit_account_id AND is_cash_account = true) THEN
     RAISE EXCEPTION 'Akun kas tujuan tidak valid';
   END IF;
+  -- 059: bukti foto WAJIB untuk semua pembayaran manual (DP & pelunasan) —
+  -- finance approve berdasarkan angka + foto, tidak perlu tanya balik ke WhatsApp.
+  IF p_proof_photo_url IS NULL OR btrim(p_proof_photo_url) = '' THEN
+    RAISE EXCEPTION 'Bukti pembayaran (foto) wajib diunggah';
+  END IF;
   SELECT total_amount, dp_amount, lunas_amount, status
   INTO v_total, v_dp, v_lunas, v_status
   FROM public.orders WHERE id = p_order_id FOR UPDATE;
@@ -2599,8 +2556,8 @@ BEGIN
   END IF;
   v_sisa := v_total - v_dp - v_lunas;
   IF p_amount > v_sisa THEN RAISE EXCEPTION 'Nominal pembayaran melebihi sisa tagihan (Rp%)', v_sisa; END IF;
-  INSERT INTO public.payments (order_id, type, amount, date, verified_by, verified_at, idempotency_key)
-  VALUES (p_order_id, v_payment_type, p_amount, p_date, p_actor, NOW(), p_idempotency_key)
+  INSERT INTO public.payments (order_id, type, amount, date, verified_by, verified_at, idempotency_key, proof_photo_url)
+  VALUES (p_order_id, v_payment_type, p_amount, p_date, p_actor, NOW(), p_idempotency_key, p_proof_photo_url)
   RETURNING id INTO v_payment_id;
   SELECT am.debit_account_id, am.credit_account_id INTO v_mapping
   FROM public.account_mappings am
@@ -2635,9 +2592,12 @@ $$;
 REVOKE ALL ON FUNCTION public.cancel_order_atomic(uuid, text, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.cancel_order_atomic(uuid, text, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.cancel_order_atomic(uuid, text, uuid) TO authenticated;
-REVOKE ALL ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date) FROM anon;
-GRANT EXECUTE ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date) TO authenticated;
+REVOKE ALL ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date, text) FROM anon;
+GRANT EXECUTE ON FUNCTION public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date, text) TO authenticated;
+-- 059: drop signature lama (tanpa p_proof_photo_url) — enforcement bukti foto wajib
+-- tidak bisa di-bypass lewat signature lama
+DROP FUNCTION IF EXISTS public.add_order_payment_atomic(uuid, text, numeric, uuid, text, uuid, date);
 
 -- advance_install_booking_status FINAL (067: role check + search_path; 088: p_staff_id terikat session)
 CREATE OR REPLACE FUNCTION public.advance_install_booking_status(

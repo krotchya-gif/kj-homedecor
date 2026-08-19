@@ -26,7 +26,7 @@
 | Concern | Metode FINAL (satu-satunya) |
 |---|---|
 | Jurnal (semua write uang) | RPC `create_journal_atomic` — idempotency key WAJIB, saldo kas di-update di transaksi yang sama |
-| Pembayaran order (DP/lunas) | RPC `add_order_payment_atomic` (bukan insert `payments` langsung dari client) |
+| Pembayaran order (DP/lunas) | RPC `add_order_payment_atomic` (bukan insert `payments` langsung dari client) — **`p_proof_photo_url` WAJIB** (foto bukti; RPC tolak jika kosong; upload via `/api/upload` folder `payment-proofs`; signature final = 8-arg, sesi 59). Marketplace/refund/retur pakai RPC sendiri → tidak terdampak |
 | Refund / return / cancel order | RPC `process_refund_atomic` / `process_order_return_atomic` / `cancel_order_atomic` |
 | Piutang (CRUD + bayar) | RPC `save_piutang_atomic` (create/update/delete) + `pay_piutang_atomic` (bayar, idempotency key) + `retur_piutang_atomic` (retur) — bukan insert/update `piutang` langsung dari client (sesi 52, BUG-128) |
 | Hutang (CRUD + bayar) | RPC `save_hutang_atomic` (create/update/delete) + `pay_hutang_atomic` (bayar, idempotency key) — bukan insert/update `hutang` langsung dari client (sesi 52, BUG-128) |
@@ -39,7 +39,7 @@
 | Jadwal pasang | RPC `schedule_installation_atomic` |
 | Link / unlink survey ke order | RPC `link_survey_atomic` |
 | Simpan HPP/BOM | RPC `save_hpp_bom_atomic` |
-| Booking publik (website) | RPC `create_public_booking` (policy INSERT publik sudah DROP) |
+| Booking publik (website) | Gate: **`POST /api/booking`** (route server, rate limit 5/menit/IP) → RPC `create_public_booking` tetap SATU-SATUNYA eksekutor write (policy INSERT publik sudah DROP). JANGAN panggil RPC langsung dari client |
 | Reset data transaksional (owner) | **`POST /api/owner/reset-data`** (route server, role owner + rate limit) → RPC `reset_transactional_data` (SECURITY DEFINER, guard owner). JANGAN panggil RPC langsung dari browser. Seed master (accounts/account_mappings/cash_accounts/shop_settings) tahan reset |
 | Batas bawah sync marketplace per-shop | Kolom `sync_start_date` di `tiktok_shop_settings` / `shopee_shop_settings` — SEMUA route sync (orders/finance/escrow + Link to Main Orders) WAJIB jepit ke tanggal ini (data sebelum tanggal mulai di-skip; UI di Owner→TikTok/Shopee) |
 | Kontak perusahaan di PDF (alamat/telp/email) | `getBrandSettings()` + `companyContactLine()` di `src/lib/pdf-brand.ts` — sumber = `landing_settings` (Admin → Landing Settings). DILARANG hardcode kontak di invoice.ts |

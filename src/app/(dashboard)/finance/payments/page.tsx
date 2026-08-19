@@ -15,6 +15,7 @@ import { StatCard } from '@/components/ui/StatCard'
 import { piutangSisa } from '@/lib/ledger'
 import { MotionStagger } from '@/components/ui/Motion'
 import { Modal } from '@/components/ui/Modal'
+import { uploadToLocal } from '@/lib/upload'
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', {
@@ -41,6 +42,15 @@ interface ReturnRow {
   order?: { id: string; customer?: { name?: string } | null } | null
 }
 
+interface PaymentRow {
+  id: string
+  type: string
+  amount: number
+  date: string
+  proof_photo_url?: string | null
+  created_at?: string
+}
+
 export default function FinancePaymentsPage() {
   const { toast } = useToast()
   const [PAGE_SIZE, setPageSize] = useState(20)
@@ -58,6 +68,11 @@ export default function FinancePaymentsPage() {
   const [saving, setSaving] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'payment' | 'refund'>('payment')
+  // Sesi 59: bukti foto pembayaran (wajib untuk DP & pelunasan)
+  const [payProofUrl, setPayProofUrl] = useState('')
+  const [payUploading, setPayUploading] = useState(false)
+  const [orderPayments, setOrderPayments] = useState<PaymentRow[]>([])
+  const [zoomPhoto, setZoomPhoto] = useState<string | null>(null)
   const [refundList, setRefundList] = useState<ReturnRow[]>([])
   const [processingRefund, setProcessingRefund] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
@@ -141,6 +156,34 @@ export default function FinancePaymentsPage() {
   function closePayModal() {
     payKeyRef.current = null
     setSelected(null)
+    setOrderPayments([])
+    setPayProofUrl('')
+  }
+
+  // Sesi 59: daftar pembayaran + bukti foto utk order yang dipilih (basis approve finance)
+  async function loadOrderPayments(orderId: string) {
+    const { data } = await supabase
+      .from('payments')
+      .select('id, type, amount, date, proof_photo_url, created_at')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: false })
+    setOrderPayments((data ?? []) as PaymentRow[])
+  }
+
+  async function handleProofUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setPayUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'payment-proofs', { compress: true, maxSizeMB: 1.5 })
+      setPayProofUrl(result.url)
+      toast('success', 'Bukti pembayaran ter-upload')
+    } catch (err) {
+      toast('error', 'Gagal upload bukti: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setPayUploading(false)
+      if (e.target) e.target.value = ''
+    }
   }
 
   async function handlePay(e: React.FormEvent) {
@@ -159,6 +202,12 @@ export default function FinancePaymentsPage() {
     if (payForm.date > todayStr) {
       setSaving(false)
       toast('error', 'Tanggal pembayaran tidak boleh di masa depan.')
+      return
+    }
+    // Sesi 59: bukti foto WAJIB untuk DP & pelunasan (RPC juga menolak tanpa foto)
+    if (!payProofUrl) {
+      setSaving(false)
+      toast('error', 'Bukti pembayaran (foto) wajib diunggah.')
       return
     }
     const {
@@ -185,7 +234,8 @@ export default function FinancePaymentsPage() {
       p_actor: user.id,
       p_idempotency_key: payKeyRef.current,
       p_debit_account_id: payForm.cash_account_id || null,
-      p_date: payForm.date
+      p_date: payForm.date,
+      p_proof_photo_url: payProofUrl
     })
     if (payErr) {
       setSaving(false)
@@ -195,7 +245,9 @@ export default function FinancePaymentsPage() {
 
     setSaving(false)
     payKeyRef.current = null
+    setPayProofUrl('')
     setSelected(null)
+    setOrderPayments([])
     setPayForm({
       type: 'dp',
       amount: '',
@@ -745,12 +797,14 @@ export default function FinancePaymentsPage() {
                             <button
                               onClick={() => {
                                 setSelected(o ?? null)
+                                setPayProofUrl('')
                                 setPayForm({
                                   type: 'dp',
                                   amount: String(sisa > 0 ? sisa : ''),
                                   date: new Date().toISOString().slice(0, 10),
                                   cash_account_id: ''
                                 })
+                                loadOrderPayments(o.id)
                               }}
                               style={{
                                 padding: '0.3rem 0.75rem',
@@ -881,6 +935,76 @@ export default function FinancePaymentsPage() {
                 </span>
               </div>
             </div>
+            {orderPayments.length > 0 && (
+              <div
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.6rem',
+                  padding: '0.75rem',
+                  background: 'var(--surface)'
+                }}
+              >
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: 'var(--neutral-700)', marginBottom: '0.5rem' }}>
+                  Riwayat Pembayaran (bukti foto = dasar verifikasi Approve)
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {orderPayments.map((p) => (
+                    <div
+                      key={p.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        background: '#f9fafb',
+                        border: '1px solid #f3f4f6',
+                        borderRadius: '0.5rem',
+                        padding: '0.5rem'
+                      }}
+                    >
+                      {p.proof_photo_url ? (
+                        <img
+                          src={p.proof_photo_url}
+                          alt={`Bukti ${p.type}`}
+                          onClick={() => setZoomPhoto(p.proof_photo_url!)}
+                          style={{
+                            width: 48,
+                            height: 48,
+                            objectFit: 'cover',
+                            borderRadius: '0.375rem',
+                            cursor: 'zoom-in',
+                            border: '1px solid #e5e7eb'
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: '0.375rem',
+                            background: '#f3f4f6',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.65rem',
+                            color: '#9ca3af',
+                            textAlign: 'center',
+                            border: '1px solid #e5e7eb'
+                          }}
+                        >
+                          Tdk ada foto
+                        </div>
+                      )}
+                      <div style={{ flex: 1, fontSize: '0.8rem' }}>
+                        <div style={{ fontWeight: '600', color: 'var(--neutral-800)' }}>
+                          {p.type === 'dp' ? 'DP (Uang Muka)' : 'Pelunasan'} · {fmt(p.amount)}
+                        </div>
+                        <div style={{ color: 'var(--neutral-500)', fontSize: '0.72rem' }}>{p.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <form onSubmit={handlePay} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label
@@ -1008,6 +1132,72 @@ export default function FinancePaymentsPage() {
                   }}
                 />
               </div>
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '0.8rem',
+                    fontWeight: '600',
+                    color: 'var(--neutral-700)',
+                    marginBottom: '0.3rem'
+                  }}
+                >
+                  Bukti Pembayaran (foto) <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    alignItems: 'center',
+                    padding: '0.5rem',
+                    border: '1px dashed #d1d5db',
+                    borderRadius: '0.5rem',
+                    background: 'var(--surface)'
+                  }}
+                >
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleProofUpload}
+                    disabled={payUploading}
+                    style={{ fontSize: '0.8rem', width: '100%' }}
+                  />
+                </div>
+                {payUploading && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.25rem' }}>
+                    Mengunggah bukti...
+                  </div>
+                )}
+                {payProofUrl && !payUploading && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                    <img
+                      src={payProofUrl}
+                      alt="Bukti pembayaran"
+                      style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: '0.4rem' }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: '#16a34a' }}>✓ Bukti ter-upload</span>
+                    <button
+                      type="button"
+                      onClick={() => setPayProofUrl('')}
+                      style={{
+                        fontSize: '0.7rem',
+                        color: '#dc2626',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                )}
+                {!payProofUrl && !payUploading && (
+                  <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem' }}>
+                    Wajib unggah foto bukti sebelum menyimpan pembayaran.
+                  </div>
+                )}
+              </div>
               <div
                 style={{
                   background: '#f0fdf4',
@@ -1061,6 +1251,28 @@ export default function FinancePaymentsPage() {
           </>
         )}
       </Modal>
+      {zoomPhoto && (
+        <div
+          onClick={() => setZoomPhoto(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.75)',
+            zIndex: 2000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+            cursor: 'zoom-out'
+          }}
+        >
+          <img
+            src={zoomPhoto}
+            alt="Bukti pembayaran (perbesar)"
+            style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '0.5rem', objectFit: 'contain' }}
+          />
+        </div>
+      )}
     </div>
   )
 }

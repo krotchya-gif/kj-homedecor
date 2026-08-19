@@ -17,9 +17,27 @@ interface Props {
   sisa: number
   fmt: (n: number) => string
   onSubmit: (e: React.FormEvent) => void
+  // Sesi 59: bukti foto pembayaran (wajib untuk DP & pelunasan)
+  proofUrl: string
+  uploading: boolean
+  onProofUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onRemoveProof: () => void
 }
 
-export default function PaymentModal({ open, onClose, paymentForm, setPaymentForm, saving, sisa, fmt, onSubmit }: Props) {
+export default function PaymentModal({
+  open,
+  onClose,
+  paymentForm,
+  setPaymentForm,
+  saving,
+  sisa,
+  fmt,
+  onSubmit,
+  proofUrl,
+  uploading,
+  onProofUpload,
+  onRemoveProof
+}: Props) {
   return (
     <Modal open={open} onClose={onClose} maxWidth={400} padding="2rem">
       <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1rem' }}>+ Tambah Pembayaran</h2>
@@ -98,6 +116,72 @@ export default function PaymentModal({ open, onClose, paymentForm, setPaymentFor
           <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--neutral-600)' }}>
             Sisa: {fmt(sisa)}
           </div>
+        </div>
+        <div>
+          <label
+            style={{
+              display: 'block',
+              fontSize: '0.8rem',
+              fontWeight: '600',
+              color: 'var(--neutral-700)',
+              marginBottom: '0.3rem'
+            }}
+          >
+            Bukti Pembayaran (foto) <span style={{ color: '#dc2626' }}>*</span>
+          </label>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5rem',
+              alignItems: 'center',
+              padding: '0.5rem',
+              border: '1px dashed #d1d5db',
+              borderRadius: '0.5rem',
+              background: 'var(--surface)'
+            }}
+          >
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={onProofUpload}
+              disabled={uploading}
+              style={{ fontSize: '0.8rem', width: '100%' }}
+            />
+          </div>
+          {uploading && (
+            <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.25rem' }}>
+              Mengunggah bukti...
+            </div>
+          )}
+          {proofUrl && !uploading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+              <img
+                src={proofUrl}
+                alt="Bukti pembayaran"
+                style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: '0.4rem' }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#16a34a' }}>✓ Bukti ter-upload</span>
+              <button
+                type="button"
+                onClick={onRemoveProof}
+                style={{
+                  fontSize: '0.7rem',
+                  color: '#dc2626',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  textDecoration: 'underline'
+                }}
+              >
+                Hapus
+              </button>
+            </div>
+          )}
+          {!proofUrl && !uploading && (
+            <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem' }}>
+              Wajib unggah foto bukti sebelum menyimpan pembayaran.
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
           <button

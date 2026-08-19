@@ -23,11 +23,12 @@ Order **Pasang** punya 10 tahap: ... Dikemas → **Terjadwal Pasang → Sedang D
    - Ketik nama pelanggan (bisa langsung ketik nama baru → otomatis dibuat, atau pilih dari dropdown)
    - Isi No. HP & alamat, sumber, jenis (Kirim/Pasang), total, DP
    - Status awal: **Baru**
-   - ⚡ Jika admin input DP > 0 → otomatis tercatat di tabel pembayaran (jejak akuntansi). Ini BUKAN approve — Finance tetap harus klik Approve.
+   - ⚡ Jika admin input DP > 0 → **wajib upload foto bukti pembayaran** (tanpa foto tidak bisa simpan) → otomatis tercatat di tabel pembayaran (jejak akuntansi). Ini BUKAN approve — Finance tetap harus klik Approve.
 2. **Approve pembayaran (Cek Bayar)** — Finance klik "Approve Pembayaran" di halaman Finance → Pembayaran:
-   - Klik Approve = verifikasi manual Finance bahwa pembayaran (DP/lunas) sudah masuk
+   - Finance melihat **riwayat pembayaran + foto bukti** (klik untuk perbesar) di modal order
+   - Klik Approve = verifikasi manual Finance bahwa pembayaran (DP/lunas) **sudah masuk + foto bukti sesuai**
    - Order pindah: Baru → **Cek Bayar**
-   - ⚠️ Order belum lunas → Finance yang wajib input pelunasan; hanya Finance yang bisa approve
+   - ⚠️ Order belum lunas → Finance yang wajib input pelunasan (juga **wajib foto bukti**); hanya Finance yang bisa approve
    - ⚠️ Gate: order **harus lunas (paid)** sebelum bisa Dikemas/Terkirim/Selesai
 3. **Sortir (Sudah Disortir)** — Gudang/Admin:
    - Upload foto barang pesanan (wajib 1 foto)

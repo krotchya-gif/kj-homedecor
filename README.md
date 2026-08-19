@@ -187,7 +187,7 @@ src/
 │   ├── server.ts                 # SSR client + createServiceClient
 │   └── middleware.ts             # Proxy supabase client (request cookies)
 ├── scripts/
-│   └── upload.php                # Upload handler utk subdomain link.kjhomedecor.com — copy ke public_html/link/upload.php (folder 'survey' + magic video)
+│   └── upload.php                # Upload handler utk subdomain link.kjhomedecor.com — copy ke public_html/link/upload.php (folder 'payment-proofs' + magic video + magic bytes font)
 └── types/index.ts                # TypeScript interfaces + STATUS_LABELS dll
 ```
 
@@ -241,8 +241,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–53), tracker bug lengkap **BUG-001 s/d BUG-135**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–59), tracker bug lengkap **BUG-001 s/d BUG-135**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-19 (sesi 58 — keputusan BATAL sesi 57: SEO hub 5 tab di-revert ke sesi 56, DB live di-rollback sesuai sesi 56, schema 100% sinkron; riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-19 (sesi 59 — booking anti-spam via route + rate limit, drop dead function increment_stock_*, bukti foto pembayaran DP/lunasan WAJIB dengan approve finance berbasis foto; riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_

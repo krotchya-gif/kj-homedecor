@@ -22,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Validasi folder (11 folder = sama dengan FolderSchema di Next.js route)
-$allowed_folders = ['products','banners','portfolio','evidence','documents','videos','order_progress','returns','qc','install','survey','fonts'];
+// Validasi folder (13 folder = sama dengan FolderSchema di Next.js route)
+$allowed_folders = ['products','banners','portfolio','evidence','documents','videos','order_progress','returns','qc','install','survey','fonts','payment-proofs'];
 $folder = isset($_POST['folder']) ? $_POST['folder'] : '';
 
 if (!in_array($folder, $allowed_folders)) {
@@ -84,6 +84,8 @@ $folder_mimes = [
     // fonts: finfo kadang mengembalikan octet-stream untuk font kecil/subset —
     // keamanan tetap dijaga via validasi MAGIC BYTES font di bawah (folder fonts saja).
     'fonts' => ['font/ttf','font/otf','font/woff','font/woff2','application/x-font-ttf','application/font-sfnt','application/vnd.ms-fontobject','font/sfnt','application/octet-stream'],
+    // Sesi 59: bukti foto pembayaran (DP/pelunasan) — wajib per add_order_payment_atomic
+    'payment-proofs' => ['image/jpeg','image/png','image/webp'],
 ];
 
 if (!in_array($detected_mime, $folder_mimes[$folder], true)) {
@@ -122,6 +124,7 @@ $max_sizes = [
     'install' => 2 * 1024 * 1024,
     'survey' => 5 * 1024 * 1024,
     'fonts' => 5 * 1024 * 1024,
+    'payment-proofs' => 2 * 1024 * 1024,
 ];
 
 if ($file['size'] > $max_sizes[$folder]) {

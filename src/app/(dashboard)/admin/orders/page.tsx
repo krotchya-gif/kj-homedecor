@@ -14,6 +14,7 @@ import { useToast } from '@/components/ui/Toast'
 import Pagination from '@/components/ui/Pagination'
 import MobileCards from '@/components/ui/MobileCards'
 import { formatRp } from '@/lib/utils'
+import { uploadToLocal } from '@/lib/upload'
 
 
 const COURIERS = [
@@ -103,6 +104,25 @@ export default function OrdersPage() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
   const [customerOpen, setCustomerOpen] = useState(false)
   const customerBoxRef = useRef<HTMLDivElement>(null)
+  // Sesi 59: bukti foto pembayaran (wajib jika DP > 0) — di-upload ke folder payment-proofs
+  const [proofUrl, setProofUrl] = useState('')
+  const [uploadingProof, setUploadingProof] = useState(false)
+
+  async function handleProofUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingProof(true)
+    try {
+      const result = await uploadToLocal(file, 'payment-proofs', { compress: true, maxSizeMB: 1.5 })
+      setProofUrl(result.url)
+      toast('success', 'Bukti pembayaran ter-upload')
+    } catch (err) {
+      toast('error', 'Gagal upload bukti: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setUploadingProof(false)
+      if (e.target) e.target.value = ''
+    }
+  }
 
   // Tutup dropdown customer saat klik di luar area input+dropdown (fix UX 2026-08-10).
   // PENTING: hanya menutup TAMPILAN — teks ketikan (searchCustomer) & form.customer_name
@@ -273,6 +293,14 @@ export default function OrdersPage() {
     const dpAmt = Number(form.dp_amount) || 0
     const totalAmt = Number(form.total_amount) || 0
 
+    // Sesi 59: bukti foto pembayaran WAJIB jika ada DP — finance approve berdasarkan
+    // angka + foto (RPC add_order_payment_atomic juga menolak tanpa foto).
+    if (dpAmt > 0 && !proofUrl) {
+      setSaving(false)
+      toast('error', 'Bukti pembayaran (foto) wajib diunggah jika ada DP.')
+      return
+    }
+
     // SESI 52 (#13): konsolidasi ke POST /api/orders (server-side) + add_order_payment_atomic.
     // Alasan: sebelumnya admin/orders insert `orders` langsung dari client + payments insert
     // + createSimpleJournal ×2 (rollback manual di client) → jalur paralel dari POST /api/orders
@@ -328,7 +356,8 @@ export default function OrdersPage() {
         p_type: payType,
         p_amount: dpRecorded,
         p_actor: adminUser?.id ?? null,
-        p_idempotency_key: `admin_dp_auto:${newOrder.id}`
+        p_idempotency_key: `admin_dp_auto:${newOrder.id}`,
+        p_proof_photo_url: proofUrl
       })
       if (payErr) {
         console.error('Auto-catat pembayaran gagal:', payErr)
@@ -435,6 +464,7 @@ export default function OrdersPage() {
               customer_phone: '',
               customer_address: ''
             })
+            setProofUrl('')
             setSelectedCustomerId(null)
             setSearchCustomer('')
             setShowForm(true)
@@ -983,6 +1013,72 @@ export default function OrdersPage() {
                       outline: 'none'
                     }}
                   />
+                </div>
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      color: 'var(--neutral-700)',
+                      marginBottom: '0.3rem'
+                    }}
+                  >
+                    Bukti Pembayaran (foto) <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '0.5rem',
+                      alignItems: 'center',
+                      padding: '0.5rem',
+                      border: '1px dashed #d1d5db',
+                      borderRadius: '0.5rem',
+                      background: 'var(--surface)'
+                    }}
+                  >
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleProofUpload}
+                      disabled={uploadingProof}
+                      style={{ fontSize: '0.8rem', width: '100%' }}
+                    />
+                  </div>
+                  {uploadingProof && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)', marginTop: '0.25rem' }}>
+                      Mengunggah bukti...
+                    </div>
+                  )}
+                  {proofUrl && !uploadingProof && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
+                      <img
+                        src={proofUrl}
+                        alt="Bukti pembayaran"
+                        style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: '0.4rem' }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: '#16a34a' }}>✓ Bukti ter-upload</span>
+                      <button
+                        type="button"
+                        onClick={() => setProofUrl('')}
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#dc2626',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  )}
+                  {Number(form.dp_amount) > 0 && !proofUrl && !uploadingProof && (
+                    <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem' }}>
+                      Wajib unggah foto bukti DP sebelum simpan.
+                    </div>
+                  )}
                 </div>
               </div>
               <div>

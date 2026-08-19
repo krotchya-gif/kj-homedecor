@@ -435,6 +435,10 @@ export default function OrderDetailPage() {
         sisa={order.total_amount - order.dp_amount - order.lunas_amount}
         fmt={fmt}
         onSubmit={d.handleAddPayment}
+        proofUrl={d.paymentProofUrl}
+        uploading={d.paymentUploading}
+        onProofUpload={d.handlePaymentProofUpload}
+        onRemoveProof={() => d.setPaymentProofUrl('')}
       />
 
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

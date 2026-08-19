@@ -21,7 +21,8 @@ const FolderSchema = z.enum([
   'qc',
   'install',
   'survey',
-  'fonts'
+  'fonts',
+  'payment-proofs'
 ])
 
 const ALLOWED_TYPES = {
@@ -37,7 +38,9 @@ const ALLOWED_TYPES = {
   install: ['image/jpeg', 'image/png', 'image/webp'],
   survey: ['image/jpeg', 'image/png', 'image/webp'],
   // Sesi 47: font brand (nama "KJ Homedecor" di PDF/web) — ttf/otf/woff/woff2
-  fonts: ['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/x-font-ttf', 'application/font-sfnt', 'application/vnd.ms-fontobject']
+  fonts: ['font/ttf', 'font/otf', 'font/woff', 'font/woff2', 'application/x-font-ttf', 'application/font-sfnt', 'application/vnd.ms-fontobject'],
+  // Sesi 59: bukti foto pembayaran (DP/pelunasan) — wajib per add_order_payment_atomic
+  'payment-proofs': ['image/jpeg', 'image/png', 'image/webp']
 }
 
 const MAX_SIZES = {
@@ -52,7 +55,8 @@ const MAX_SIZES = {
   qc: 2 * 1024 * 1024,
   install: 2 * 1024 * 1024,
   survey: 5 * 1024 * 1024,
-  fonts: 5 * 1024 * 1024
+  fonts: 5 * 1024 * 1024,
+  'payment-proofs': 2 * 1024 * 1024
 }
 
 // Role check per folder (Security fix 2026-08-12):
@@ -69,7 +73,8 @@ const FOLDER_ROLES: Record<string, string[]> = {
   qc: ['admin', 'owner', 'gudang'],
   install: ['admin', 'owner', 'installer'],
   survey: ['surveyor', 'admin', 'owner'],
-  fonts: ['admin', 'owner']
+  fonts: ['admin', 'owner'],
+  'payment-proofs': ['admin', 'owner', 'finance']
 }
 
 export async function POST(request: NextRequest) {
@@ -121,7 +126,23 @@ export async function POST(request: NextRequest) {
     // (1) cek MIME dari client (spoofable),
     // (2) cek MAGIC BYTES file (bukti nyata).
     // Folder 'fonts': MIME client sering kosong/octet-stream — validasi utama lewat magic bytes.
-    if (folder !== 'fonts' && !allowedTypes.includes(file.type)) {
+    // Sesi 59: folder gambar false-negative umum — image/jpg (Android/Windows), image/heic
+    // (iPhone), MIME kosong (file hasil download WA). Folder gambar menerima semua image/*
+    // + MIME kosong; keamanan FINAL tetap magic bytes di bawah. HEIC ditolak dgn pesan jelas
+    // (magic bytes tidak mengenali heic → gagal 'Konten file tidak sesuai tipe').
+    if (file.type === 'image/heic' || file.type === 'image/heif') {
+      return NextResponse.json(
+        { data: null, error: { message: 'Format HEIC/HEIF tidak didukung — simpan/konversi ke JPEG atau PNG dulu' } },
+        { status: 400 }
+      )
+    }
+    const imageOnlyFolder = allowedTypes.every((t) => t.startsWith('image/'))
+    const mimeOk =
+      folder === 'fonts' ||
+      (imageOnlyFolder && (file.type.startsWith('image/') || file.type === '')) ||
+      allowedTypes.includes(file.type)
+    if (!mimeOk) {
+      console.error(`Upload 400: folder=${folder} mime="${file.type}" size=${file.size}`)
       return NextResponse.json(
         { data: null, error: { message: `Invalid file type. Allowed: ${allowedTypes.join(', ')}` } },
         { status: 400 }
@@ -129,6 +150,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.size > maxSize) {
+      console.error(`Upload 400: folder=${folder} too-large size=${file.size} max=${maxSize}`)
       return NextResponse.json(
         { data: null, error: { message: `File too large. Max: ${maxSize / 1024 / 1024}MB` } },
         { status: 400 }
@@ -157,6 +179,7 @@ export async function POST(request: NextRequest) {
             (buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46) || // webp RIFF
             (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46)) // pdf
     if (!isAllowedMagic) {
+      console.error(`Upload 400: folder=${folder} bad-magic mime="${file.type}" size=${file.size}`)
       return NextResponse.json(
         { data: null, error: { message: 'Konten file tidak sesuai tipe yang diizinkan' } },
         { status: 400 }

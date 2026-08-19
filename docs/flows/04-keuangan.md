@@ -21,9 +21,11 @@
 ## 2. Pembayaran Order (Opsi A — finance approve di depan)
 1. **Input pembayaran** (Finance/Admin): nominal → status pembayaran: pending/partial/paid
    - Nominal tidak boleh melebihi sisa tagihan (ditolak)
-   - ⚡ Jika Admin buat order dengan DP → otomatis tercatat di tabel pembayaran (jejak akuntansi)
+   - **Wajib upload foto bukti pembayaran** (DP & pelunasan) — tanpa foto, RPC menolak (sejak sesi 59)
+   - ⚡ Jika Admin buat order dengan DP → wajib upload foto bukti + otomatis tercatat di tabel pembayaran (jejak akuntansi)
 2. **Approve (Cek Bayar)**: Finance klik "Approve Pembayaran" di halaman Finance → Pembayaran:
-   - Klik Approve = verifikasi manual Finance bahwa pembayaran sudah masuk (DP/lunas)
+   - Finance melihat **riwayat pembayaran + foto bukti** (klik untuk perbesar) di modal order
+   - Klik Approve = verifikasi manual Finance bahwa pembayaran sudah masuk (DP/lunas) **dan foto bukti sesuai**
    - Order pindah: Baru → Cek Bayar (bisa lanjut sortir/produksi)
    - ⚠️ Gate: order **harus lunas** sebelum Dikemas/Terkirim/Selesai
    - ⚠️ Order belum lunas: **hanya Finance** yang bisa approve / input pelunasan — admin tidak bisa bypass

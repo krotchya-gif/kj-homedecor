@@ -38,4 +38,4 @@ Order masuk (09) ──► Buat Order (01) ──► Bayar & Approve (04) ──
                                             Retur/Refund (08) ◄── (jika ada masalah)
 ```
 
-> Dibuat: 2026-08-11 · Update: 2026-08-15 (sesi 52 — piutang/hutang & TikTok pindah ke RPC atomic; alur status order tidak berubah)
+> Dibuat: 2026-08-11 · Update: 2026-08-19 (sesi 59 — bukti foto pembayaran DP/lunas WAJIB, approve finance berbasis foto; booking publik via `/api/booking` + rate limit; alur status order tidak berubah)

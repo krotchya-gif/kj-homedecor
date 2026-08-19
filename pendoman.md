@@ -71,7 +71,7 @@ Baru → Cek Bayar → Sudah Disortir → Produksi → Steam/QC → Siap → Dik
 
 | Tahap | Pengerja | Halaman | Syarat |
 |---|---|---|---|
-| Baru → **Cek Bayar** | Finance | `/finance/payments` | Sudah ada pembayaran masuk |
+| Baru → **Cek Bayar** | Finance | `/finance/payments` | Sudah ada pembayaran masuk + **foto bukti** |
 | Cek Bayar → **Sudah Disortir** | Gudang | halaman gudang | **Wajib foto** barang |
 | Sudah Disortir → **Produksi** | Gudang | halaman gudang | Otomatis dibuat kerjaan penjahit |
 | Produksi → **Steam/QC** | Otomatis | — | Saat penjahit lapor selesai |
@@ -87,7 +87,7 @@ Baru → Cek Bayar → Sudah Disortir → Produksi → Steam/QC → Siap → Dik
 ### Aturan penting
 
 - **Belum lunas = tidak bisa dikemas/dikirim/selesai.** Pesanan wajib lunas penuh sebelum barang keluar.
-- **Foto wajib** di tahap: Sudah Disortir, Steam/QC, Terkirim (foto + resi).
+- **Foto wajib** di tahap: Sudah Disortir, Steam/QC, Terkirim (foto + resi). **Foto bukti pembayaran** (DP/lunas) juga wajib — di form buat pesanan (jika DP), form pembayaran finance, dan order detail.
 - Semua transisi tercatat di riwayat pesanan (audit trail).
 
 ---
@@ -306,15 +306,17 @@ LANGKAH 4 — OTOMATIS MUNCUL DI WEBSITE
 
 ```
 1. Admin buat pesanan → boleh isi DP (otomatis tercatat utk pembukuan)
-   Catatan: tercatat BUKAN berarti disetujui.
+   - WAJIB upload foto bukti pembayaran (DP & pelunasan) — tanpa foto tidak bisa simpan
+   - Catatan: tercatat BUKAN berarti disetujui.
 2. Finance /finance/payments:
-   - pastikan ada pembayaran masuk
-   - klik "Approve" = uang sudah masuk
+   - pastikan ada pembayaran masuk + foto bukti (klik foto untuk perbesar)
+   - klik "Approve" = uang sudah masuk & foto bukti sesuai
    - pesanan maju: Baru → Cek Bayar
 3. Aturan:
    - Tercatat otomatis ≠ disetujui. Pesanan TIDAK maju tanpa klik Finance.
    - Pesanan tanpa DP = TIDAK BISA maju sampai Finance terima DP/lunas + approve.
    - Pesanan belum lunas TIDAK BISA dikemas/dikirim/selesai.
+   - Setiap catat pembayaran (DP/lunas) WAJIB foto bukti — di form pembayaran finance maupun order detail.
 ```
 
 ### Contoh
