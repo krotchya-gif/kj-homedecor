@@ -18,7 +18,7 @@ export default function WhyUsEditorial({ items }: WhyUsEditorialProps) {
   return (
     <div>
       {items.map((f, i) => (
-        <div key={f.title} className="whyus-row">
+        <div key={`whyus-${i}`} className="whyus-row">
           <div className="whyus-num">{String(i + 1).padStart(2, '0')}</div>
           <div className="whyus-icon">{f.icon}</div>
           <div className="whyus-body">

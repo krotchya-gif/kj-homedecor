@@ -60,7 +60,7 @@ export default function TrustStrip({ stats, marketplaces }: TrustStripProps) {
               }}
             >
               <span className="trust-label" style={{ letterSpacing: '0.12em' }}>
-                Juga di
+                Juga Hadir di
               </span>
               {marketplaces.map((m) => (
                 <span key={m} className="trust-brandmark">

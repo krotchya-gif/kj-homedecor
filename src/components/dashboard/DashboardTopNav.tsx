@@ -119,8 +119,6 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
               })}
             </div>
             <div className="mobile-drawer-footer">
-              {/* Bell notifikasi — satu-satunya instance di mobile (di sidebar/drawer, BUG-119 Opsi C) */}
-              <NotificationBell dropUp />
               <ThemeToggle />
               <button
                 className="mobile-logout-btn"
@@ -132,6 +130,9 @@ export default function DashboardTopNav({ role, userName, onMenuClick }: Dashboa
                 <LogOut size={16} />
                 <span>Keluar</span>
               </button>
+              {/* Bell notifikasi — paling kanan (urutan: theme, logout, bell) supaya
+                  dropdown (right:0) terbaca saat muncul; jangan taruh di tengah (meluber kiri) */}
+              <NotificationBell dropUp />
             </div>
           </div>
         </>

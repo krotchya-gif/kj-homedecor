@@ -97,24 +97,24 @@ export default async function LandingPage() {
 
   const whyusItems: WhyUsItem[] = [
     {
-      title: String(settingsMap.whyus_card1_title ?? 'Kualitas Premium'),
+      title: String(settingsMap.whyus_card1_title || 'Kualitas Premium'),
       desc: String(
         settingsMap.whyus_card1_desc ?? 'Bahan pilihan import dengan jahitan rapi oleh tenaga ahli berpengalaman'
       ),
       icon: <Sparkles size={26} />
     },
     {
-      title: String(settingsMap.whyus_card2_title ?? 'Ratusan Pelanggan'),
+      title: String(settingsMap.whyus_card2_title || 'Ratusan Pelanggan'),
       desc: String(settingsMap.whyus_card2_desc ?? 'Telah melayani ratusan pelanggan puas di seluruh Jabodetabek'),
       icon: <Star size={26} />
     },
     {
-      title: String(settingsMap.whyus_card3_title ?? 'Pasang Profesional'),
+      title: String(settingsMap.whyus_card3_title || 'Pasang Profesional'),
       desc: String(settingsMap.whyus_card3_desc ?? 'Tim installer bersertifikat siap membantu langsung ke rumah Anda'),
       icon: <Truck size={26} />
     },
     {
-      title: String(settingsMap.whyus_card4_title ?? 'Garansi Resmi'),
+      title: String(settingsMap.whyus_card4_title || 'Garansi Resmi'),
       desc: String(settingsMap.whyus_card4_desc ?? 'Garansi kualitas penuh untuk setiap produk yang kami hasilkan'),
       icon: <Shield size={26} />
     }

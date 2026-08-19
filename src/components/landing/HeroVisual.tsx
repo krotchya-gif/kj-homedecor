@@ -11,7 +11,8 @@ interface HeroVisualProps {
 }
 
 /**
- * Panel visual hero (kanan) — gambar/video/placeholder warm dengan parallax halus.
+ * Panel visual hero (kanan) — video (prioritas) / gambar / placeholder warm dengan parallax halus.
+ * Jika user mengisi video → video yang tampil; image jadi fallback saat video tidak ada.
  * Semua warna lewat token CSS (zero hex). Reduced-motion: tanpa parallax.
  */
 export default function HeroVisual({ imageUrl, videoUrl, alt = 'Interior KJ Homedecor' }: HeroVisualProps) {
@@ -33,14 +34,7 @@ export default function HeroVisual({ imageUrl, videoUrl, alt = 'Interior KJ Home
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <motion.div style={{ ...frameStyle, y: reduce ? 0 : y }}>
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            alt={alt}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          />
-        ) : videoUrl ? (
+        {videoUrl ? (
           <video
             src={videoUrl}
             autoPlay
@@ -50,6 +44,13 @@ export default function HeroVisual({ imageUrl, videoUrl, alt = 'Interior KJ Home
             preload="metadata"
             aria-hidden="true"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageUrl}
+            alt={alt}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         ) : (
           <div

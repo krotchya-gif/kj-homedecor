@@ -5,8 +5,9 @@ import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Edit, Trash2, X, Loader2, Tag } from 'lucide-react'
+import { Plus, Edit, Trash2, X, Loader2, Tag, Upload, Trash } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
+import { uploadToLocal } from '@/lib/upload'
 
 interface Category {
   id: string
@@ -24,9 +25,10 @@ export default function CategoriesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Category | null>(null)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  const [form, setForm] = useState({ name: '', slug: '' })
+  const [form, setForm] = useState({ name: '', slug: '', image_url: '' })
   const supabase = createClient()
 
   useEffect(() => {
@@ -47,8 +49,11 @@ export default function CategoriesPage() {
     if (editing) {
       // UPDATE optimistic
       const prev = categories
-      setCategories((curr) => curr.map((c) => (c.id === editing.id ? { ...c, name: form.name, slug: form.slug } : c)))
-      const res = await supabase.from('categories').update({ name: form.name, slug: form.slug }).eq('id', editing.id)
+      setCategories((curr) => curr.map((c) => (c.id === editing.id ? { ...c, name: form.name, slug: form.slug, image_url: form.image_url || null } : c)))
+      const res = await supabase
+        .from('categories')
+        .update({ name: form.name, slug: form.slug, image_url: form.image_url || null })
+        .eq('id', editing.id)
       if (res.error) {
         setCategories(prev)
         setSaving(false)
@@ -58,9 +63,13 @@ export default function CategoriesPage() {
     } else {
       // CREATE optimistic: id sementara dulu, diganti id asli dari server
       const tempId = crypto.randomUUID()
-      const tempItem = { id: tempId, name: form.name, slug: form.slug } as Category
+      const tempItem = { id: tempId, name: form.name, slug: form.slug, image_url: form.image_url || null } as Category
       setCategories((curr) => [tempItem, ...curr])
-      const res = await supabase.from('categories').insert({ name: form.name, slug: form.slug }).select('id').single()
+      const res = await supabase
+        .from('categories')
+        .insert({ name: form.name, slug: form.slug, image_url: form.image_url || null })
+        .select('id')
+        .single()
       if (res.error) {
         setCategories((curr) => curr.filter((c) => c.id !== tempId))
         setSaving(false)
@@ -74,7 +83,7 @@ export default function CategoriesPage() {
     setSaving(false)
     setShowForm(false)
     setEditing(null)
-    setForm({ name: '', slug: '' })
+    setForm({ name: '', slug: '', image_url: '' })
     toast('success', editing ? 'Kategori berhasil diperbarui' : 'Kategori berhasil ditambahkan')
     }
 
@@ -93,8 +102,23 @@ export default function CategoriesPage() {
 
   function openEdit(cat: Category) {
     setEditing(cat)
-    setForm({ name: cat.name, slug: cat.slug })
+    setForm({ name: cat.name, slug: cat.slug, image_url: cat.image_url ?? '' })
     setShowForm(true)
+  }
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const result = await uploadToLocal(file, 'banners', { compress: true, maxSizeMB: 2 })
+      setForm((f) => ({ ...f, image_url: result.url }))
+      toast('success', 'Gambar ter-upload. Simpan untuk menerapkan.')
+    } catch (err) {
+      toast('error', 'Gagal upload gambar: ' + (err instanceof Error ? err.message : 'unknown'))
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -106,7 +130,7 @@ export default function CategoriesPage() {
           <button
             onClick={() => {
               setEditing(null)
-              setForm({ name: '', slug: '' })
+              setForm({ name: '', slug: '', image_url: '' })
               setShowForm(true)
             }}
             style={{
@@ -156,6 +180,15 @@ export default function CategoriesPage() {
                   <span className="mobile-card-label">Slug</span>
                   <span className="mobile-card-value">{cat.slug}</span>
                 </div>
+                <div className="mobile-card-row">
+                  <span className="mobile-card-label">Gambar</span>
+                  {cat.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={cat.image_url} alt={cat.name} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: '0.375rem' }} />
+                  ) : (
+                    <span className="mobile-card-value">—</span>
+                  )}
+                </div>
             </div>
           )} />
         )}
@@ -166,6 +199,7 @@ export default function CategoriesPage() {
                 <tr>
                   <th>Nama</th>
                   <th>Slug</th>
+                  <th>Gambar</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
@@ -174,6 +208,14 @@ export default function CategoriesPage() {
                   <tr key={cat.id}>
                     <td style={{ fontWeight: '600' }}>{cat.name}</td>
                     <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace' }}>{cat.slug}</td>
+                    <td>
+                      {cat.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cat.image_url} alt={cat.name} style={{ width: 64, height: 48, objectFit: 'cover', borderRadius: '0.375rem' }} />
+                      ) : (
+                        <span style={{ color: 'var(--neutral-400)', fontSize: '0.8rem' }}>—</span>
+                      )}
+                    </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
@@ -297,6 +339,76 @@ export default function CategoriesPage() {
                 outline: 'none'
               }}
             />
+          </div>
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: '0.8rem',
+                fontWeight: '600',
+                color: 'var(--neutral-700)',
+                marginBottom: '0.3rem'
+              }}
+            >
+              Gambar Kategori
+            </label>
+            {form.image_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={form.image_url}
+                alt="Preview kategori"
+                style={{
+                  width: '100%',
+                  maxHeight: 140,
+                  objectFit: 'cover',
+                  borderRadius: '0.5rem',
+                  marginBottom: '0.5rem'
+                }}
+              />
+            )}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <label
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 1rem',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.5rem',
+                  background: 'var(--surface)',
+                  cursor: uploading ? 'not-allowed' : 'pointer',
+                  fontWeight: '500',
+                  fontSize: '0.85rem',
+                  color: 'var(--neutral-700)'
+                }}
+              >
+                <Upload size={14} /> {uploading ? 'Mengunggah...' : 'Upload Gambar'}
+                <input type="file" accept="image/*" hidden disabled={uploading} onChange={handleImageUpload} />
+              </label>
+              {form.image_url && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, image_url: '' }))}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    padding: '0.5rem 0.875rem',
+                    border: '1px solid #fca5a5',
+                    borderRadius: '0.5rem',
+                    background: 'var(--surface)',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    color: '#ef4444'
+                  }}
+                >
+                  <Trash size={14} /> Hapus
+                </button>
+              )}
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', marginTop: '0.35rem' }}>
+              Gambar tampil di kartu kategori landing page. (JPEG/PNG/WebP, maks 2MB)
+            </p>
           </div>
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
             <button
