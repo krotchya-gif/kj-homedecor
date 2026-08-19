@@ -73,7 +73,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Role `laundry` dilayani lewat menu **Admin → Laundry**; gaji di **Finance → Laundry Payroll**
 
 ### Public Pages
-- `/` — Landing page (hero, categories, products, portfolio, CTA, footer; konten + tema + trust badges dari DB)
+- `/` — Landing page redesain (sesi 60): ScrollNav → ScrollHero split (video/image hero, theme-adaptive) → TrustStrip → CategoryBento (foto kategori bila ada) → ProductCatalog → WhyUsEditorial → PortfolioGallery (mozaik 5) → CTA → Footer grid; konten + tema (palet Rosé-Cokelat default, 8 preset) + trust badges dari DB
 - `/catalog` — Katalog publik (hanya produk dengan harga > 0)
 - `/products/[slug]` — Detail produk (fallback "Harga: Hubungi via WhatsApp")
 - `/booking` — Form booking publik (date + time slot)
@@ -241,8 +241,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–59), tracker bug lengkap **BUG-001 s/d BUG-135**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–60), tracker bug lengkap **BUG-001 s/d BUG-143**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-19 (sesi 59 — booking anti-spam via route + rate limit, drop dead function increment_stock_*, bukti foto pembayaran DP/lunasan WAJIB dengan approve finance berbasis foto; riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-20 (sesi 60 — redesign landing: palet Rosé-Cokelat dari colorpalet.md, token-driven theme zero-hardcoded-color, hero video prioritas, portfolio mozaik 5, footer grid, upload gambar kategori, bell mobile drawer paling kanan; fix 400 theme_preset CHECK; riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_

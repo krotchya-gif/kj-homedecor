@@ -52,6 +52,7 @@
 | Brand (nama/singkatan/warna/font/logo) | `landing_settings` (key='hero') — diatur Admin → Landing Settings → Brand; dipakai web (`BrandFontLoader` + `useBrandSettings`) + semua PDF (`src/lib/pdf-brand.ts` + `pdf-logo.ts`); jsPDF hanya mendukung font **TTF** (OTF/WOFF fallback Helvetica) (sesi 47-48) |
 | **Akses asset brand di web/PDF (font TTF & logo)** | **WAJIB lewat proxy `/api/brand-asset?kind=font|logo`** — CDN `link.kjhomedecor.com` tidak kirim CORS → fetch/@font-face langsung dari browser pasti diblokir (BUG-131). DILARANG fetch URL CDN langsung dari client (sesi 52) |
 | Referensi schema | `supabase/migrations/000_full_schema.sql` (= live, dijaga selalu sinkron) |
+| Palet warna landing | `colorpalet.md` (referensi 8 kombinasi) — token `--landing-*` di `globals.css` `:root`/`.dark` (komponen landing zero hex); warna default Rosé-Cokelat, bisa diganti user via Admin → Landing Settings → Theme Preset (8 preset + custom). Hero visual: video > image > placeholder |
 | Mapping akun jurnal | Tabel `account_mappings` via `createSimpleJournal` (jangan hardcode UUID akun) |
 
 ## Aturan

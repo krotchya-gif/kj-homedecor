@@ -122,12 +122,12 @@ Halaman `/admin` — pusat kegiatan toko.
 | **Pesanan** | ⭐ Buat pesanan baru (Kirim/Pasang), cari, filter status |
 | **Detail Pesanan** | Alur (anak tangga), upload foto, cetak dokumen, jadwal pasang, batalkan, return, catat pembayaran |
 | **Booking** | Kalender jadwal pasang + pilih installer |
-| **Katalog** | Produk, kategori, banner |
+| **Katalog** | Produk, kategori (bisa upload gambar — tampil di kartu kategori landing), banner |
 | **Pelanggan** | Database pelanggan + WhatsApp |
 | **Shipping** | Input resi + foto untuk pesanan kirim |
 | **Laundry** | Buat tugas laundry + atur tarif/kg |
 | **Staff** | Buat/ubah/nonaktifkan akun karyawan |
-| **Landing Settings** | Atur tampilan website (hero, tema, WhatsApp, trust badges) |
+| **Landing Settings** | Atur tampilan website (hero: isi video → video tampil / image fallback, tema: pilih preset warna atau custom, WhatsApp, trust badges) |
 | **Portfolio / SEO / Reports** | Konten website, SEO (meta, sitemap, robots), laporan penjualan |
 | **Surveys** | Melihat semua survey dari surveyor |
 | **TikTok Shop** | Sync order TikTok → link ke pesanan utama |
