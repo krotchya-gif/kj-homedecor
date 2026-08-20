@@ -36,7 +36,7 @@ Sistem manajemen operasional lengkap untuk KJ Homedecor — spesialis gorden, cu
 - Booking calendar + assign installer
 - Portfolio, SEO, Landing settings (theme customization), Staff, Reports, Laundry
 - **TikTok Shop** (`/admin/tiktok`): tarik order dari TikTok (**Sync Orders**) & jadikan pesanan utama (**Link to Main Orders**) — tugas admin; settlement/piutang di `/owner/tiktok` & `/finance/tiktok`
-- **Shopee Seller** (sesi 53-55, `/admin/shopee`, `/owner/shopee`, `/finance/shopee`): mirror TikTok — OAuth multi-shop (Tambah Toko/Authorize), sync order + **Settlement/Pencairan Dana per order** (escrow: uang ditahan Shopee, dicairkan setelah order selesai — Dr E Wallet Shopee/Cr Piutang + fee per kategori), pilih-per-order utk Link ke Main Orders, Tanggal Mulai Sync per-shop, tag asal toko di `shopee_shop_orders.shop_id` (P1 multi-shop, sesi konsolidasi 2026-08-19)
+- **Shopee Seller** (sesi 53-55, `/admin/shopee`, `/owner/shopee`, `/finance/shopee`): mirror TikTok — OAuth multi-shop (Tambah Toko/Authorize), sync order + **Settlement/Pencairan Dana per order** (escrow: uang ditahan Shopee, dicairkan setelah order selesai — Dr E Wallet Shopee/Cr Piutang + fee per kategori), pilih-per-order utk Link ke Main Orders, Tanggal Mulai Sync per-shop, tag asal toko di `shopee_shop_orders.shop_id` (P1 multi-shop, sesi konsolidasi 2026-08-19), filter **Start/End** settlement di `/finance/shopee` (2026-08-20)
 
 ### Finance (`/finance`)
 - Payment tracking (DP → Lunas) + **Approve Cek Bayar** (verifikasi manual)
@@ -241,7 +241,7 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–60), tracker bug lengkap **BUG-001 s/d BUG-143**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–61), tracker bug lengkap **BUG-001 s/d BUG-144**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 

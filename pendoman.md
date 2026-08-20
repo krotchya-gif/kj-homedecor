@@ -156,6 +156,7 @@ Halaman `/finance` — semua urusan uang.
 | **Laundry Payroll** | Gaji karyawan laundry |
 | **Rekonsiliasi** | Cek kesesuaian catatan keuangan |
 | **Stock Opname** | Menyetujui hasil hitung stok fisik dari Gudang |
+| **Marketplace/TikTok/Shopee** | Settlement marketplace → catat ke pembukuan: `/finance/tiktok`, `/finance/shopee` (filter Start/End tanggal), overview `/owner/marketplace` |
 | **Laporan (10)** | Laporan keuangan + PDF |
 
 **Tugas utama Finance:**
@@ -431,6 +432,10 @@ Semua bisa di-filter tanggal & diunduh PDF.
 > Pembayaran TikTok masuk akun **E-Wallet Tiktok**, Shopee masuk **E-Wallet Shopee** di pembukuan. Pesanan marketplace yang sudah lunas langsung masuk pipeline (status sortir), tanpa perlu approve cek bayar.
 >
 > **Koneksi Shopee pertama kali:** daftar di `open.shopee.com` (Shopee Open Platform) → buat aplikasi → isi redirect URL `https://kjhomedecor.com/api/shopee/auth` → bind toko → di `/owner/shopee` klik **Tambah Toko** → masukkan **Partner ID** & **Partner Key** → klik **Authorize** → lalu gunakan tombol Sync Orders / Sync Settlement / Link to Main Orders.
+
+### Finance (`/finance/tiktok` & `/finance/shopee`)
+- **Catat Settlement** TikTok/Shopee ke pembukuan (Dr E-Wallet / Cr Piutang + fee per kategori) — akses juga `/owner/marketplace` (overview) & `/owner/tiktok` (whitelist khusus finance).
+- Halaman Shopee punya filter **Start/End tanggal** (2026-08-20): membatasi tampilan & tombol Sync Settlement berdasar rentang `escrow_release_time` — kosongkan untuk tampilkan/sync semua.
 
 ---
 

@@ -14,6 +14,22 @@ const ROLE_DASHBOARD_MAP: Record<string, string> = {
   owner: '/owner'
 }
 
+// Matriks akses per prefix dashboard — WAJIB identik dengan src/proxy.ts
+// (SOP single-source-of-truth: layout hanya lapisan defense-in-depth, bukan penentu akses).
+// owner diizinkan di semua dashboard; role lain hanya di prefix-nya sendiri.
+const DASHBOARD_ROLE_MAP: Record<string, string[]> = {
+  '/admin': ['admin', 'owner'],
+  '/finance': ['finance', 'owner'],
+  '/gudang': ['gudang', 'owner'],
+  '/penjahit': ['penjahit', 'owner'],
+  '/installer': ['installer', 'owner'],
+  '/surveyor': ['surveyor', 'owner'],
+  '/laundry': ['laundry', 'owner'],
+  '/owner': ['owner']
+}
+
+const DASHBOARD_ROUTES = Object.keys(DASHBOARD_ROLE_MAP)
+
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const {
@@ -35,15 +51,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
   const name = staffData?.name ?? user.email ?? 'Staff'
 
-  // Validate that user's role matches the dashboard path segment
-  const expectedPrefix = ROLE_DASHBOARD_MAP[role]
-  if (expectedPrefix) {
-    const { headers } = await import('next/headers')
-    const headersList = await headers()
-    const pathname = headersList.get('x-pathname') ?? headersList.get('x-next-pathname') ?? ''
-    const dashboardSegment = '/' + pathname.split('/').filter(Boolean)[0]
-    if (dashboardSegment && dashboardSegment !== expectedPrefix) {
-      redirect(expectedPrefix)
+  // Validate that user's role is allowed on the requested dashboard prefix
+  // (BUG-144 fix: sebelumnya cek "prefix == dashboard sendiri" → owner di-block dari
+  // /finance/* (link Rekonsiliasi dashboard owner), dan finance di-block dari
+  // /owner/marketplace & /owner/tiktok padahal proxy sudah mengizinkan. Sekarang
+  // matriks akses diselaraskan persis dengan proxy.ts.)
+  const { headers } = await import('next/headers')
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') ?? headersList.get('x-next-pathname') ?? ''
+  const dashboardPrefix = DASHBOARD_ROUTES.find(
+    (route) => pathname === route || pathname.startsWith(route + '/')
+  )
+  if (dashboardPrefix) {
+    const allowedRoles = DASHBOARD_ROLE_MAP[dashboardPrefix]
+    // Identik dengan isFinanceAllowedOwnerPath di proxy.ts
+    const isFinanceAllowedOwnerPath =
+      role === 'finance' && (pathname.startsWith('/owner/marketplace') || pathname.startsWith('/owner/tiktok'))
+    const allowed = allowedRoles.includes(role) || isFinanceAllowedOwnerPath
+    if (!allowed) {
+      redirect(ROLE_DASHBOARD_MAP[role] ?? '/login')
     }
   }
 

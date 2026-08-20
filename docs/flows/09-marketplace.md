@@ -31,7 +31,7 @@ App `kjhomedecor` (Shopee Open Platform `239264`, `Developing` → Go Live revie
 
 - **Admin** (`/admin/shopee`): **Sync Orders** → **Link ke Main Orders** (checkbox per-order) → order Shopee jadi pesanan utama (pipeline Flow 01).
 - **Owner** (`/owner/shopee`): sync lengkap termasuk **Sync Settlement (Pencairan Dana)** & per-order **Catat Settlement** → jurnal `shopee_settlement_received` (`Dr E Wallet Shopee / Cr Piutang`).
-- **Finance** (`/finance/shopee`): Settlement per order → **Catat** → jurnal + `is_synced=true`.
+- **Finance** (`/finance/shopee`): Settlement per order → **Catat** → jurnal + `is_synced=true`. Ada filter **Start/End** (mirror `/finance/tiktok`, 2026-08-20) — membatasi tampilan & tombol Sync Settlement berdasarkan rentang `escrow_release_time` (kosongkan = semua; end inklusif sampai akhir hari).
 
 > Catatan pembukuan: revenue Shopee dicatat **saat order** (Link to Main Orders → jurnal `shopee_sync_order_created`), kas masuk E-Wallet Shopee dicatat **saat settlement** (`shopee_escrow:*`) — tidak dobel.
 

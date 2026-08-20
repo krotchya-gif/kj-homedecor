@@ -14,7 +14,7 @@
 |---|---|
 | `owner` | Semua menu + kelola staff |
 | `admin` | Pesanan, katalog, pelanggan, booking, pengiriman, laundry, **staff**, dll |
-| `finance` | Pembayaran, kas, hutang, piutang, laporan |
+| `finance` | Pembayaran, kas, hutang, piutang, laporan + akses **`/owner/marketplace` & `/owner/tiktok`** (whitelist — data settlement untuk piutang channel) |
 | `gudang` | Sortir, produksi, steam/QC, packing, pembelian |
 | `penjahit` | Job produksi miliknya |
 | `installer` | Jadwal pemasangan |
@@ -39,6 +39,7 @@
 
 ## Keamanan
 - Semua halaman dashboard dilindungi `proxy.ts` (login wajib + role per halaman)
+- **Matriks akses dashboard** (BUG-144, 2026-08-20): **owner** diizinkan di semua dashboard (`/admin`, `/finance`, `/gudang`, `/penjahit`, `/installer`, `/surveyor`, `/laundry`, `/owner`); **finance** tambahan boleh `/owner/marketplace` & `/owner/tiktok` (BUKAN `/owner/shopee` — pakai `/finance/shopee`); role lain hanya prefix-nya sendiri (deny-by-default). `src/proxy.ts` & `src/app/(dashboard)/layout.tsx` memakai matriks yang sama (single source of truth).
 - Surveyor hanya melihat data miliknya (RLS `surveyor_id = auth.uid()`)
 - Admin/Owner melihat semua
 - API mutasi diberi role check (admin/owner/gudang/finance sesuai konteks) — audit security `docs/riwayat.md` BUG-021/031/040–046

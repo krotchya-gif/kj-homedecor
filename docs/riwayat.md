@@ -1,6 +1,6 @@
 # Riwayat Perbaikan & Bug — KJ Homedecor
 
-> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-143)** + **audit modul finance** + **backlog**.
+> Satu dokumen konsolidasi: **riwayat perbaikan per fase** + **tracker bug lengkap (BUG-001 s/d BUG-144)** + **audit modul finance** + **backlog**.
 > File ini menggabungkan `bug.md`, `todo.md`, `audit-finance.md`, dan bagian "Riwayat Perbaikan" README (dikonsolidasi 2026-08-13, sesi 37).
 >
 > Cara pakai: cari bug berdasarkan ID (tabel di bawah) → status & cara fix langsung terlihat di kolom "Cara Fix". Untuk konteks fase, lihat "Riwayat Perbaikan per Fase". Untuk temuan audit finance, lihat bagian "Audit Modul Finance".
@@ -30,6 +30,11 @@
 - **Bell notifikasi mobile drawer dipindah paling kanan** (`DashboardTopNav`): urutan ThemeToggle → Logout → Bell — dropdown bell (`right:0`) terbaca saat muncul, tidak meluber ke kiri.
 - **TrustStrip copy**: "Juga di" → "Juga Hadir di".
 - **Verifikasi**: tsc 0 · build 0 · vitest 27/27 · render `/` HTTP 200 (hero-split, trust-strip, bento, whyus, portfolio-lg/sm = 1/4, footer-grid, CTA, inject warna DB). **E2E sengaja dilewati (keputusan user — dijalankan user sendiri)**. Commit: `6f44b65` (redesign+palet), `896078d` (footer-grid/hero/portfolio/CHECK), `1129116` (duplicate key/video/kategori/bell).
+
+### 2026-08-20 — Sesi 61: Perbaikan role-gate layout (BUG-144) + date range settlement finance/shopee + fix 404 cache
+- **BUG-144 — Link "Lihat Detail Rekonsiliasi" di dashboard owner hanya refresh (redirect balik `/owner`)** (`src/app/(dashboard)/owner/page.tsx:567` → `/finance/rekonsiliasi`). Gejala: klik link → URL berubah ke `/finance/rekonsiliasi` lalu langsung balik ke `/owner` (terasa seperti reload). Root cause: validasi role di `src/app/(dashboard)/layout.tsx` memakai cek `dashboardSegment !== expectedPrefix` (prefix path harus SAMA dengan dashboard role) — bertentangan dengan `src/proxy.ts` yang sengaja mengizinkan **owner di semua dashboard** (ROLE_DASHBOARD_MAP) dan **finance ke `/owner/marketplace` & `/owner/tiktok`** (isFinanceAllowedOwnerPath, sesi 2026-08-11/12). Akibat lebih luas (terverifikasi probe HTTP): owner di-block dari `/admin/orders`, `/admin/shipping`, `/gudang/stock` (link nav owner), dan finance di-block dari `/owner/marketplace` & `/owner/tiktok` padahal whitelist proxy mengizinkan. Fix: ganti blok validasi di `layout.tsx` dengan matriks `DASHBOARD_ROLE_MAP` **identik persis dengan proxy** + pengecualian finance (`/owner/marketplace` & `/owner/tiktok`); redirect hanya saat role TIDAK ada di daftar izin. **Keputusan user (2026-08-20)**: finance TIDAK diberi `/owner/shopee` — cukup `/finance/shopee` (halaman finance sendiri sudah punya proses settlement; `/owner/shopee` = manajemen multi-shop milik owner). **Verifikasi probe HTTP (user-level, cookie session live)**: owner → `/finance/rekonsiliasi`, `/admin/orders`, `/admin/shipping`, `/gudang/stock`, `/owner/laporan/neraca` = **200**; finance → `/owner/marketplace`, `/owner/tiktok` = **200**, `/owner/shopee` = **307 → /finance** (tetap, sesuai keputusan); gudang (regresi) → `/admin/orders`, `/finance/rekonsiliasi` = **307 → /gudang** (tetap deny). tsc --noEmit = 0.
+- **Fitur — Finance → Shopee date range settlement (mirror finance/tiktok)**: `src/app/(dashboard)/finance/shopee/page.tsx` sebelumnya tanpa filter tanggal (ambil semua escrow limit 200). Kini tambah state `dateRange {start,end}` + input Start/End + hint "(kosongkan untuk tampilkan/sync semua settlement)"; `fetchOrders` difilter `escrow_release_time` (gte/lte, end inklusif sampai `T23:59:59.999`); tombol "Sync Settlement" mengirim `time_from`/`time_to` (unix) ke `/api/shopee/sync-escrow` (mirror `owner/shopee` runSync; API sudah dukung time_from/time_to, default 30 hari, terjepit `sync_start_date`). Stat card & tabel mengikuti filter otomatis. Verifikasi: tsc 0 · build 0 · GET `/finance/shopee` 200 (sidebar Shopee aktif utk finance); **uji manual browser oleh user — OK**.
+- **Fix 404 `/owner/laporan/*` (bukan bug kode)**: semua subroute laporan owner 404 padahal file ada + route terdaftar di manifest + proxy/layout benar → **cache `.next` basi (Turbopack dev)**, route tidak ter-resolve. Fix: hapus `.next` + `npm run build` + restart `npm run dev` → semua route 200. **Catatan operasional**: kalau halaman 404 padahal file & routing sudah benar, hapus cache `.next` lalu rebuild terlebih dahulu sebelum menyentuh kode.
 
 ### 2026-08-19 — E2E full chromium 43/43 (setelah konsolidasi team) — fix bug kalender booking + 2 fix spec
 - **BUG-136 — BookingCalendar `isPast` salah saat navigasi bulan** (`src/components/ui/BookingCalendar.tsx:112`): `const isPast = dateStr < formatDate(today.getDate())` memakai `currentMonth/currentYear` (bulan yang sedang ditampilkan), bukan tanggal aktual → saat user navigasi ke bulan lain, semua tanggal sebelum tanggal-19 di bulan itu salah dianggap `cal-past`/disabled (contoh: Jan 2027 → 1-18 nonaktif). Ketangkap E2E `booking.spec.ts` (test pilih tanggal 15 gagal). Fix: referensi "hari ini" dihitung dari `today.getFullYear()/getMonth()/getDate()` langsung.
@@ -301,7 +306,7 @@
 
 ---
 
-## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-143)
+## 2. Status Bug — Tabel Lengkap (BUG-001 s/d BUG-144)
 
 > Semua bug sudah **Fixed** kecuali BUG-020 (bukan bug — false positive). Bagian detail Gejala/Akar per bug sudah diringkas ke kolom "Cara Fix".
 
@@ -448,6 +453,7 @@
 | BUG-141 | **Footer desktop menumpuk ke bawah** — CSS `.footer-grid` hilang saat redesign padahal `page.tsx` masih pakai class → 4 kolom jadi blok vertikal | ✅ Fixed (2026-08-20) | Re-add `.footer-grid` (grid 4 kolom desktop `1.6fr 1fr 1fr 1fr`, mobile 1 kolom). **Verifikasi**: render + tsc/build |
 | BUG-142 | **React warning "same key, ''"** — DB `whyus_card*_title` = `''` (kosong, `??` tak aktif) → `key={f.title}` = `''` × 4 → duplicate key di console | ✅ Fixed (2026-08-20) | Key `whyus-${i}` di `WhyUsEditorial`; fallback judul `??` → `||` di `page.tsx`. **Verifikasi**: console bersih (dicek user), tsc/build |
 | BUG-143 | **Kartu kategori polosan (tak bisa isi gambar)** — semua `categories.image_url = NULL` dan Admin → Katalog → Kategori tidak punya field gambar | ✅ Fixed (2026-08-20) | Tambah **upload gambar** di Admin Kategori (upload ke folder `banners` via `/api/upload` — tanpa ubah `upload.php` CDN) + preview + thumbnail; `image_url` ikut create/update. **Verifikasi**: tsc + build + vitest 27/27 |
+| BUG-144 | **Owner dashboard "Lihat Detail Rekonsiliasi" hanya refresh (redirect balik `/owner`)** — layout role-gate terlalu ketat (`dashboardSegment !== expectedPrefix`) vs proxy yang mengizinkan owner di semua dashboard & finance ke `/owner/marketplace` + `/owner/tiktok` | ✅ Fixed (2026-08-20) | Selaraskan `src/app/(dashboard)/layout.tsx` dengan matriks `DASHBOARD_ROLE_MAP` identik `proxy.ts` + pengecualian finance (marketplace/tiktok, BUKAN shopee — keputusan user). **Verifikasi probe HTTP user-level**: owner → `/finance/rekonsiliasi`/`/admin/orders`/`/admin/shipping`/`/gudang/stock` = 200; finance → `/owner/marketplace`/`/owner/tiktok` = 200, `/owner/shopee` = 307; gudang → `/admin/orders` = 307 (regresi aman). tsc 0 |
 
 ---
 

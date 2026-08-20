@@ -34,27 +34,38 @@ export default function FinanceShopeePage() {
   const [orders, setOrders] = useState<ShopeeOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState({ start: '', end: '' })
   const supabase = createClient()
 
   async function fetchOrders() {
     setLoading(true)
-    const { data } = await supabase
+    let query = supabase
       .from('shopee_shop_orders')
       .select('*')
       .gt('escrow_amount', 0)
-      .order('created_at', { ascending: false })
-      .limit(200)
+    // Filter settlement (pencairan) berdasarkan tanggal rilis escrow — mirror finance/tiktok date range
+    if (dateRange.start) query = query.gte('escrow_release_time', `${dateRange.start}T00:00:00`)
+    if (dateRange.end) query = query.lte('escrow_release_time', `${dateRange.end}T23:59:59.999`)
+    const { data } = await query.order('created_at', { ascending: false }).limit(200)
     setOrders((data as ShopeeOrder[]) ?? [])
     setLoading(false)
   }
 
   useEffect(() => {
     fetchOrders()
-  }, [])
+  }, [dateRange.start, dateRange.end])
 
   async function runSync() {
     setBusy('sync')
-    const res = await fetch('/api/shopee/sync-escrow', { method: 'POST' })
+    const body: Record<string, unknown> = {}
+    // Batasi rentang settlement yang ditarik dari Shopee — mirror owner/shopee (time_from/time_to)
+    if (dateRange.start) body.time_from = Math.floor(new Date(dateRange.start).getTime() / 1000)
+    if (dateRange.end) body.time_to = Math.floor(new Date(dateRange.end + 'T23:59:59').getTime() / 1000)
+    const res = await fetch('/api/shopee/sync-escrow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
     const json = await res.json().catch(() => ({}))
     setBusy(null)
     if (!res.ok) {
@@ -119,6 +130,36 @@ export default function FinanceShopeePage() {
       <PageHeader title="Shopee — Settlement (Pencairan Dana)" subtitle="Uang masuk escrow Shopee per order → catat ke pembukuan (mirror TikTok settlement)" />
 
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            background: 'var(--surface)',
+            border: '1px solid var(--neutral-200)',
+            borderRadius: '0.75rem',
+            padding: '0.75rem 1rem'
+          }}
+        >
+          <label style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>Start:</label>
+          <input
+            type="date"
+            value={dateRange.start}
+            onChange={(e) => setDateRange((d) => ({ ...d, start: e.target.value }))}
+            style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8rem' }}
+          />
+          <label style={{ fontSize: '0.8rem', color: 'var(--neutral-600)' }}>End:</label>
+          <input
+            type="date"
+            value={dateRange.end}
+            onChange={(e) => setDateRange((d) => ({ ...d, end: e.target.value }))}
+            style={{ padding: '0.4rem 0.6rem', border: '1px solid #d1d5db', borderRadius: '0.375rem', fontSize: '0.8rem' }}
+          />
+          <span style={{ fontSize: '0.75rem', color: 'var(--neutral-400)', fontStyle: 'italic' }}>
+            (kosongkan untuk tampilkan/sync semua settlement)
+          </span>
+        </div>
         <div style={{ flex: 1, minWidth: 180, background: 'var(--surface)', border: '1px solid var(--neutral-200)', borderRadius: '0.75rem', padding: '1rem' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--neutral-500)' }}>Total Settlement (tampil)</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '700', color: '#16a34a' }}>{formatRp(totalEscrow)}</div>
