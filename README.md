@@ -241,8 +241,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–61), tracker bug lengkap **BUG-001 s/d BUG-144**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–65), tracker bug lengkap **BUG-001 s/d BUG-146**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-20 (sesi 60 — redesign landing: palet Rosé-Cokelat dari colorpalet.md, token-driven theme zero-hardcoded-color, hero video prioritas, portfolio mozaik 5, footer grid, upload gambar kategori, bell mobile drawer paling kanan; fix 400 theme_preset CHECK; riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-08-21 (sesi 62–65 — BUG-145 alur faktur piutang order: auto-faktur offline + guard anti-dobel + Shopee parity + Cetak Faktur PDF; BUG-146 reset-data 500 fix pg-safeupdate `WHERE true` + reset penuh; bersih-bersih data simulasi (produk/material/supplier/akun kas/staff uji) + reseed cash_accounts 1101; restore 6 staff uji; selaraskan account_categories `income`→`revenue`. Riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_
