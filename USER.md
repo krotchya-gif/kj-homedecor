@@ -11,11 +11,11 @@
 | `cici.yunita124@gmail.com` | Cici Yunita | `owner` | `kosongaja` |
 | `owner@kjhomedecor.com` | Owner KJ | `owner` | `owner123` |
 | `admin@kjhomedecor.com` | Admin KJ | `admin` | `admin456` |
-| `gudang@kjhomedecor.com` | admin gudang | `gudang` | `gudang789` |
-| `finance@kjhomedecor.com` | admin Finance | `finance` | `finance321` |
-| `penjahit@kjhomedecor.com` | admin penjahit | `penjahit` | `penjahit654` |
-| `installer@kjhomedecor.com` | admin installer | `installer` | `installer123` |
-| `surveyor@kjhomedecor.com` | admin surveyor | `surveyor` | `surveyor123` |
+| `gudang@kjhomedecor.com` | Admin gudang | `gudang` | `gudang789` |
+| `finance@kjhomedecor.com` | Admin Finance | `finance` | `finance321` |
+| `penjahit@kjhomedecor.com` | Admin penjahit | `penjahit` | `penjahit654` |
+| `installer@kjhomedecor.com` | Admin installer | `installer` | `installer123` |
+| `surveyor@kjhomedecor.com` | Admin surveyor | `surveyor` | `surveyor123` |
 | `laundry@kjhomedecor.com` | Admin Laundry | `laundry` | `laundry123` |
 
 > Akun baru bisa dibuat via menu **Staff** (Admin/Owner → `/admin/staff` atau `/owner/staff`).
