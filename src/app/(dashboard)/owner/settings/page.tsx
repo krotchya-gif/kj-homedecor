@@ -38,7 +38,9 @@ export default function OwnerSettingsPage() {
     }
     if (error) {
       setResetting(false)
-      toast('error', 'Gagal reset data: ' + error)
+      // Route sudah membubuhkan pesan lengkap (mis. "Gagal reset data: <msg>") —
+      // jangan tambahkan prefix lagi agar tidak dobel (BUG-146).
+      toast('error', error)
       return
     }
     setResetting(false)

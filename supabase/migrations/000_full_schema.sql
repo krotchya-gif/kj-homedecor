@@ -2171,9 +2171,10 @@ BEGIN
   IF NOT v_seed_ok THEN
     RAISE EXCEPTION 'Reset GAGAL: seed master (users/accounts/account_mappings) kosong setelah reset — cek migrasi seed.';
   END IF;
-  UPDATE public.cash_accounts SET balance = 0, updated_at = NOW();
-  UPDATE public.materials SET stock_gudang = 0, stock_toko = 0;
-  UPDATE public.products SET stock_toko = 0;
+  -- BUG-146: pg-safeupdate (Safe Update) menolak UPDATE tanpa WHERE → tambah WHERE true
+  UPDATE public.cash_accounts SET balance = 0, updated_at = NOW() WHERE true;
+  UPDATE public.materials SET stock_gudang = 0, stock_toko = 0 WHERE true;
+  UPDATE public.products SET stock_toko = 0 WHERE true;
   DROP TABLE IF EXISTS public.orders_pipeline_reset_backup_20260602;
   RETURN jsonb_build_object('success', true, 'message', 'Data transaksional berhasil di-reset. Seed master (staff, COA, produk, material, supplier, tarif, konten) dipertahankan.', 'counts_before', v_counts);
 END;
