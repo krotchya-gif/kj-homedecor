@@ -17,6 +17,19 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-21 — Sesi 64: Bersih-bersih data simulasi (pasca BUG-146 reset)
+- **Konteks**: setelah reset penuh (BUG-146), masih ada data simulasi/E2E di tabel master. Keputusan user per item:
+  - **Produk**: hapus yang nama mengandung `pasang|simulasi|kirim` (**139**) → sisa **192**.
+  - **Material**: hapus yang mengandung `Simulasi` (**35** × `Kain Simulasi MAT-*`) → sisa **3** asli (Kain archeline, Kain keras, Smokring). Kategori dipertahankan (34).
+  - **Supplier**: hapus semua (**49**, semuanya `Supplier Simulasi FIN-*`) → **0**.
+  - **Portfolio**: tidak ada yang mengandung "simulasi" → **5** dipertahankan.
+  - **Akun kas simulasi**: hapus **25** akun COA `Kas Simulasi FIN-*` + 1 orphan + **24** baris `cash_accounts` → akun **27**, cash_accounts inti 3.
+  - **Akun `5307 "biaya pemasangan"`** (type `expense` tapi `is_cash_account=true` — akun tambahan biaya pasang): **dihapus** (keputusan user — dibuat ulang nanti).
+  - **Staff uji (6)**: `admin Finance/gudang/installer/Laundry/penjahit/surveyor` (`@kjhomedecor.com`) dihapus dari `public.users` + `auth.users` (cascade identity/session). Sisa **3** user asli (Admin KJ, Owner KJ, Cici Yunita).
+  - **Re-seed `cash_accounts` 1101 Kas** (baris sempat hilang → pencatatan kas ke Kas tidak meng-update saldo). Kini 4 inti: 1101/1102/1104/1105.
+- **Catatan penting**: batch MCP `execute_sql` = **1 transaksi** — statement destruktif yang diikuti verifikasi yang ERROR akan **ROLLBACK** (material sempat "tidak terhapus" karena verifikasi `select name` multi-baris error). Pisahkan DELETE dari verifikasi.
+- **Verifikasi**: produk 192 · kategori 34 · material 3 · bom 8 · supplier 0 · portfolio 5 · akun 27 · mapping 17 · cash_accounts 4 · users 3 · transaksional 0 · landing 5. (Tanpa perubahan kode → tsc/build/vitest tidak perlu.)
+
 ### 2026-08-21 — Sesi 63: BUG-146 — Reset Data 500 "UPDATE requires a WHERE clause" (pg-safeupdate)
 - **BUG-146 — Reset Data gagal 500**: `POST /api/owner/reset-data` membalas `500 { error: "Gagal reset data: UPDATE requires a WHERE clause" }`. Root cause: ekstensi **pg-safeupdate** (Supabase **Safe Update** mode, aktif via `session_preload_libraries` — **bukan** `CREATE EXTENSION`, makanya tidak terlihat di `pg_extension`) mewajibkan setiap `UPDATE`/`DELETE` punya `WHERE`. `reset_transactional_data` punya 3 UPDATE seluruh-tabel tanpa WHERE (`cash_accounts SET balance=0`, `materials SET stock=0`, `products SET stock=0`) → TRUNCATE 39 tabel sukses, lalu RPC gagal di UPDATE pertama → route 500. **Bukan** akibat BUG-145 (RPC reset tidak disentuh) — bug laten yang baru terpicu karena Safe Update aktif di project.
 - **Fix**: tambah `WHERE true` pada 3 UPDATE tersebut (pola resmi pg-safeupdate — semantik tetap zero-kan semua baris). Sinkron `000_full_schema.sql` = live.
