@@ -656,7 +656,7 @@ CREATE TABLE IF NOT EXISTS public.order_material_consumption (
 CREATE TABLE IF NOT EXISTS public.account_categories (
   id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name        VARCHAR(100) NOT NULL,
-  type        VARCHAR(20) NOT NULL CHECK (type IN ('asset','liability','equity','income','revenue','expense')),
+  type        VARCHAR(20) NOT NULL CHECK (type IN ('asset','liability','equity','revenue','expense')),
   description TEXT,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

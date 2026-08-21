@@ -17,6 +17,10 @@
 
 ## 1. Riwayat Perbaikan per Fase
 
+### 2026-08-21 — Sesi 65: Restore 6 staff uji + selaraskan tipe kategori akun (income→revenue)
+- **Restore 6 staff uji** (dihapus di sesi 64, dikembalikan atas permintaan user): `auth.users` (6) + `auth.identities` (6) + `public.users` (6) dengan **id asli** + email + role + name. Password dari `USER.md` di-hash bcrypt via pgcrypto `crypt('<pw>', gen_salt('bf',10))` (format `$2a$10$` = sama dgn existing). Catatan: `auth.users.confirmed_at` & `auth.identities.email` adalah **generated column** — tidak boleh di-insert langsung (error 428C9). **Verifikasi**: 9 users total, semua punya identity, hash password `crypt(...) = encrypted_password` → `true` semua (login normal dengan password USER.md).
+- **Kategori akun `income`→`revenue`**: kategori seed **"Penjualan"** (`type='income'`) tidak konsisten dgn `accounts.type` (revenue-only sejak migration 074/BUG-055) & dropdown UI (`ACCOUNT_TYPES` = asset/liability/equity/revenue/expense — tidak ada income). Fix: `UPDATE account_categories SET type='revenue' WHERE type='income'` + kerucutkan CHECK `account_categories_type_check` → 5 tipe (drop `income`, migration `account_categories_type_align_revenue`); sinkron `000_full_schema.sql` (inline CHECK + seed sudah revenue). **Verifikasi**: `type='income'` di account_categories = 0, "Penjualan" → revenue.
+
 ### 2026-08-21 — Sesi 64: Bersih-bersih data simulasi (pasca BUG-146 reset)
 - **Konteks**: setelah reset penuh (BUG-146), masih ada data simulasi/E2E di tabel master. Keputusan user per item:
   - **Produk**: hapus yang nama mengandung `pasang|simulasi|kirim` (**139**) → sisa **192**.
