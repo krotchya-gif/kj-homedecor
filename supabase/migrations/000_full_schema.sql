@@ -2401,6 +2401,8 @@ BEGIN
     UPDATE public.order_items SET returned_at = NOW(), return_reason = p_reason WHERE id = p_order_item_id AND order_id = p_order_id;
   END IF;
   UPDATE public.orders SET status = 'returned', return_reason = p_reason WHERE id = p_order_id;
+  -- BUG-145: faktur piutang order-linked ikut dibatalkan (order sudah diretur)
+  UPDATE public.piutang SET status = 'cancelled' WHERE order_id = p_order_id AND status <> 'cancelled';
   INSERT INTO public.order_logs (order_id, action, notes, staff_id)
   VALUES (p_order_id, 'return_initiated', 'Return diproses secara atomic. Kondisi: ' || p_condition, p_actor);
   RETURN jsonb_build_object('return_id', v_return_id, 'order_id', p_order_id, 'stock_items', v_count, 'refund_amount', v_refund);
@@ -2448,6 +2450,8 @@ BEGIN
   UPDATE public.orders
   SET status = 'cancelled', return_reason = p_reason, dp_amount = 0, lunas_amount = 0, payment_status = 'pending'
   WHERE id = p_order_id;
+  -- BUG-145: faktur piutang order-linked ikut dibatalkan (mirror order)
+  UPDATE public.piutang SET status = 'cancelled' WHERE order_id = p_order_id;
   SELECT EXISTS (
     SELECT 1 FROM public.journal_entries
     WHERE reference_type = 'order' AND reference_id = p_order_id
@@ -2583,6 +2587,17 @@ BEGIN
   SET dp_amount = v_new_dp, lunas_amount = v_new_lunas, payment_status = v_new_status
   WHERE id = p_order_id AND dp_amount = v_dp AND lunas_amount = v_lunas;
   IF NOT FOUND THEN RAISE EXCEPTION 'Order sudah diubah oleh orang lain — silakan muat ulang'; END IF;
+  -- BUG-145: sinkron faktur piutang order-linked (auto-faktur offline).
+  -- paid_amount mengikuti pembayaran order. Marketplace (tiktok/shopee) tidak
+  -- punya piutang order-linked → no-op. Idempotent via early-return idempotency di atas.
+  UPDATE public.piutang
+  SET paid_amount = COALESCE(paid_amount, 0) + p_amount,
+      status = CASE
+        WHEN COALESCE(paid_amount, 0) + p_amount >= amount AND amount > 0 THEN 'paid'
+        WHEN COALESCE(paid_amount, 0) + p_amount > 0 THEN 'partial'
+        ELSE 'pending'
+      END
+  WHERE order_id = p_order_id;
   INSERT INTO public.order_logs (order_id, action, notes, staff_id)
   VALUES (p_order_id, 'payment_added', 'Pembayaran ' || CASE WHEN v_payment_type = 'dp' THEN 'DP' ELSE 'Lunas' END || ' Rp' || p_amount || ' dicatat secara atomic.', p_actor);
   RETURN jsonb_build_object('payment_id', v_payment_id, 'order_id', p_order_id, 'dp_amount', v_new_dp, 'lunas_amount', v_new_lunas, 'payment_status', v_new_status);
@@ -3801,6 +3816,9 @@ ALTER TABLE public.piutang ADD CONSTRAINT piutang_status_check CHECK (status IN 
 ALTER TABLE public.hutang DROP CONSTRAINT IF EXISTS hutang_status_check;
 ALTER TABLE public.hutang ADD CONSTRAINT hutang_status_check CHECK (status IN ('pending','partial','paid','cancelled'));
 
+-- BUG-145: 1 faktur piutang per order (order-linked) — index unique parsial
+CREATE UNIQUE INDEX IF NOT EXISTS piutang_order_unique ON public.piutang (order_id) WHERE order_id IS NOT NULL;
+
 -- RPC bayar piutang (metode final pengganti insert/update langsung dari client)
 CREATE OR REPLACE FUNCTION public.pay_piutang_atomic(p_faktur_id uuid, p_amount numeric, p_actor uuid, p_idempotency_key text DEFAULT NULL, p_notes text DEFAULT NULL)
  RETURNS jsonb
@@ -3825,6 +3843,10 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Faktur piutang tidak ditemukan'; END IF;
   IF v_record.status = 'paid' THEN RAISE EXCEPTION 'Faktur sudah lunas'; END IF;
   IF v_record.status = 'cancelled' THEN RAISE EXCEPTION 'Faktur sudah dibatalkan'; END IF;
+  -- BUG-145: faktur auto dari order → bayar lewat pembayaran order (anti dobel kas)
+  IF v_record.order_id IS NOT NULL THEN
+    RAISE EXCEPTION 'Faktur ini otomatis terhubung ke order — bayar melalui pembayaran order (Finance → Cek Pembayaran), bukan di sini.';
+  END IF;
 
   v_sisa := COALESCE(v_record.amount,0) - COALESCE(v_record.paid_amount,0) - COALESCE(v_record.return_amount,0) - COALESCE(v_record.fee_amount,0);
   IF p_amount > v_sisa THEN
@@ -3945,6 +3967,10 @@ BEGIN
   SELECT * INTO v_record FROM public.piutang WHERE id = p_faktur_id FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Faktur piutang tidak ditemukan'; END IF;
   IF v_record.status = 'cancelled' THEN RAISE EXCEPTION 'Faktur sudah dibatalkan'; END IF;
+  -- BUG-145: faktur auto dari order → retur lewat alur retur order (anti dobel)
+  IF v_record.order_id IS NOT NULL THEN
+    RAISE EXCEPTION 'Faktur ini otomatis terhubung ke order — retur diproses lewat alur retur order, bukan di sini.';
+  END IF;
 
   v_sisa := COALESCE(v_record.amount,0) - COALESCE(v_record.paid_amount,0) - COALESCE(v_record.return_amount,0) - COALESCE(v_record.fee_amount,0);
   IF p_amount > v_sisa THEN
@@ -4014,6 +4040,10 @@ BEGIN
        OR v_existing.status IN ('paid','cancelled') THEN
       RAISE EXCEPTION 'Faktur sudah dibayar/dibatalkan - tidak bisa dihapus';
     END IF;
+    -- BUG-145: faktur auto dari order tidak bisa dihapus manual
+    IF v_existing.order_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Faktur otomatis dari order tidak bisa dihapus manual.';
+    END IF;
     DELETE FROM public.piutang WHERE id = v_id;
     RETURN jsonb_build_object('id', v_id, 'mode', 'delete');
   END IF;
@@ -4024,12 +4054,25 @@ BEGIN
     RAISE EXCEPTION 'Nomor faktur "%" sudah dipakai', p_invoice_number;
   END IF;
 
+  -- BUG-145: jangan link faktur ke order yang SUDAH dibukukan/dibayar
+  -- (jurnal order_created sudah otomatis dibuat → link manual = dobel revenue)
+  IF p_mode <> 'delete' AND p_order_id IS NOT NULL AND (
+    EXISTS (SELECT 1 FROM public.journal_entries WHERE reference_type = 'order' AND reference_id = p_order_id AND idempotency_key LIKE '%order_created%')
+    OR EXISTS (SELECT 1 FROM public.payments WHERE order_id = p_order_id)
+  ) THEN
+    RAISE EXCEPTION 'Order ini sudah dibukukan/dibayar — jangan link faktur ke order tersebut. Jurnal order_created sudah otomatis dibuat. Buat faktur tanpa Order.';
+  END IF;
+
   IF p_mode = 'update' THEN
     SELECT * INTO v_existing FROM public.piutang WHERE id = v_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'Faktur tidak ditemukan'; END IF;
     IF COALESCE(v_existing.paid_amount,0) > 0 OR COALESCE(v_existing.return_amount,0) > 0
        OR v_existing.status IN ('paid','cancelled') THEN
       RAISE EXCEPTION 'Faktur sudah dibayar/dibatalkan - tidak bisa diubah. Buat faktur baru jika perlu.';
+    END IF;
+    -- BUG-145: faktur auto dari order tidak bisa diubah manual
+    IF v_existing.order_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Faktur otomatis dari order tidak bisa diubah manual. Kelola lewat order.';
     END IF;
     v_old_amount := COALESCE(v_existing.amount, 0);
     UPDATE public.piutang
@@ -4093,6 +4136,59 @@ $function$;
 REVOKE ALL ON FUNCTION public.save_piutang_atomic(text, uuid, uuid, text, date, numeric, numeric, text, uuid, text, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.save_piutang_atomic(text, uuid, uuid, text, date, numeric, numeric, text, uuid, text, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.save_piutang_atomic(text, uuid, uuid, text, date, numeric, numeric, text, uuid, text, uuid) TO authenticated;
+
+-- BUG-145: auto-buat faktur piutang dari order manual (offline/landing_page) —
+-- TANPA jurnal (jurnal order_created sudah dibuat saat order dibuat). REGISTER/mirror.
+CREATE OR REPLACE FUNCTION public.create_order_piutang_atomic(p_order_id uuid, p_actor uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_order public.orders%ROWTYPE;
+  v_existing public.piutang%ROWTYPE;
+  v_id uuid;
+BEGIN
+  IF NOT public.actor_is_active_with_role(p_actor, ARRAY['finance','admin','owner']) THEN
+    RAISE EXCEPTION 'Forbidden: hanya finance/admin/owner aktif';
+  END IF;
+
+  SELECT * INTO v_order FROM public.orders WHERE id = p_order_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Order tidak ditemukan'; END IF;
+
+  -- Marketplace (tiktok/shopee/tokopedia) punya alur faktur sendiri → skip
+  IF v_order.source IS NOT NULL AND v_order.source NOT IN ('offline','landing_page') THEN
+    RETURN jsonb_build_object('order_id', p_order_id, 'skipped', true, 'source', v_order.source);
+  END IF;
+
+  -- Idempotent: sudah ada faktur utk order ini → jangan duplikat
+  SELECT * INTO v_existing FROM public.piutang WHERE order_id = p_order_id LIMIT 1;
+  IF v_existing.id IS NOT NULL THEN
+    RETURN jsonb_build_object('piutang_id', v_existing.id, 'order_id', p_order_id, 'idempotent', true);
+  END IF;
+
+  INSERT INTO public.piutang (
+    customer_id, invoice_number, invoice_date, amount, fee_amount, paid_amount,
+    return_amount, channel, order_id, notes, description, status, created_by
+  ) VALUES (
+    v_order.customer_id,
+    'PIU-' || COALESCE(v_order.order_number, left(p_order_id::text, 8)),
+    COALESCE(v_order.order_date, CURRENT_DATE),
+    COALESCE(v_order.total_amount, 0),
+    0, 0, 0,
+    'offline', p_order_id,
+    'Auto dibuat dari order ' || COALESCE(v_order.order_number, ''),
+    'Faktur otomatis untuk order ' || COALESCE(v_order.order_number, ''),
+    'pending', p_actor
+  ) RETURNING id INTO v_id;
+
+  RETURN jsonb_build_object('piutang_id', v_id, 'order_id', p_order_id, 'amount', COALESCE(v_order.total_amount, 0));
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.create_order_piutang_atomic(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.create_order_piutang_atomic(uuid, uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_order_piutang_atomic(uuid, uuid) TO authenticated;
 
 -- RPC save hutang (create/update/delete)
 CREATE OR REPLACE FUNCTION public.save_hutang_atomic(
@@ -4754,6 +4850,25 @@ BEGIN
     v_lines := v_lines || jsonb_build_object('account_id', v_mapping.debit_account_id, 'debit', v_shipping, 'credit', 0)
                        || jsonb_build_object('account_id', v_piutang_id, 'debit', 0, 'credit', v_shipping);
   END IF;
+
+  -- BUG-145: faktur piutang Shopee (parity TikTok) — rekaman settlement paid.
+  -- Idempotent via guard is_synced di atas. order_id NULL (konsisten dgn TikTok).
+  INSERT INTO public.piutang (
+    customer_id, invoice_number, invoice_date, amount, fee_amount, paid_amount,
+    return_amount, channel, notes, description, status
+  ) VALUES (
+    NULL,
+    'SPE-' || left(p_order_sn, 12),
+    CURRENT_DATE,
+    v_escrow + v_commission + v_txn_fee + v_service_fee + v_shipping,
+    v_commission + v_txn_fee + v_service_fee + v_shipping,
+    v_escrow,
+    0,
+    'shopee',
+    'Settlement Shopee ' || p_order_sn,
+    'Settlement escrow Shopee ' || p_order_sn,
+    'paid'
+  );
 
   SELECT id INTO v_order_id FROM public.orders WHERE order_id_external = p_order_sn;
 

@@ -5,12 +5,13 @@ import { Modal } from '@/components/ui/Modal'
 
 import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { Plus, Search, Pencil, Trash2, FileText, CreditCard } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, FileText, CreditCard, Printer } from 'lucide-react'
 import { useToast } from '@/components/ui/Toast'
-import ActionMenu from '@/components/ui/ActionMenu'
+import ActionMenu, { type ActionMenuItem } from '@/components/ui/ActionMenu'
 import { piutangSisa } from '@/lib/ledger'
 import Pagination from '@/components/ui/Pagination'
 import { formatRp, formatDateDDMMYYYY } from '@/lib/utils'
+import { generatePiutangFakturPDF, type PiutangFakturRow } from '@/lib/piutang-pdf'
 
 
 interface Piutang {
@@ -26,7 +27,7 @@ interface Piutang {
   status: string
   order_id: string
   notes?: string
-  customer?: { name: string; phone: string }
+  customer?: { name: string; phone: string; address?: string }
   order?: { order_number: string }
 }
 
@@ -42,7 +43,9 @@ export default function FakturPage() {
   const [piutang, setPiutang] = useState<Piutang[]>([])
   const [customers, setCustomers] = useState<{ id: string; name?: string }[]>([])
   // F-42 fix: dropdown order (valid FK) — bukan free-text yang bikin insert gagal
-  const [orders, setOrders] = useState<{ id: string; order_number?: string; customer?: { name?: string } | null }[]>([])
+  const [orders, setOrders] = useState<{ id: string; order_number?: string; payment_status?: string; customer?: { name?: string } | null }[]>([])
+  // BUG-145: order yang sudah dibukukan (jurnal order_created) tidak boleh di-link manual
+  const [bookedOrderIds, setBookedOrderIds] = useState<Set<string>>(new Set())
 const [loading, setLoading] = useState(true)
 const [search, setSearch] = useState('')
 const [page, setPage] = useState(0)
@@ -74,17 +77,24 @@ const [pageSize, setPageSize] = useState(10)
     setLoading(true)
     const { data } = await supabase
       .from('piutang')
-      .select('*, customer:customers(name, phone), order:orders(order_number)')
+      .select('*, customer:customers(name, phone, address), order:orders(order_number)')
       .order('created_at', { ascending: false })
     setPiutang((data as Piutang[]) ?? [])
     const { data: cust } = await supabase.from('customers').select('id, name').order('name')
     setCustomers(cust ?? [])
     const { data: ord } = await supabase
       .from('orders')
-      .select('id, order_number, customer:customers(name)')
+      .select('id, order_number, payment_status, customer:customers(name)')
       .order('created_at', { ascending: false })
       .limit(500)
-    setOrders((ord ?? []) as { id: string; order_number?: string; customer?: { name?: string } | null }[])
+    setOrders((ord ?? []) as { id: string; order_number?: string; payment_status?: string; customer?: { name?: string } | null }[])
+    // BUG-145: deteksi order yang sudah dibukukan (jurnal order_created) utk di-disable di dropdown
+    const { data: jrn } = await supabase
+      .from('journal_entries')
+      .select('reference_id')
+      .eq('reference_type', 'order')
+      .like('idempotency_key', '%order_created%')
+    setBookedOrderIds(new Set((jrn ?? []).map((r) => String(r.reference_id))))
     setLoading(false)
   }
 
@@ -177,6 +187,15 @@ const [pageSize, setPageSize] = useState(10)
     }
     toast('success', 'Berhasil dihapus')
     fetchData()
+  }
+
+  // Cetak Faktur PDF (BUG-145): generate dokumen faktur piutang via helper baku report-pdf
+  async function handlePrint(p: Piutang) {
+    try {
+      await generatePiutangFakturPDF(p as PiutangFakturRow)
+    } catch (e) {
+      toast('error', 'Gagal cetak PDF: ' + (e instanceof Error ? e.message : String(e)))
+    }
   }
 
   // BUG-014 fix (2026-08-11): bayar piutang faktur — update paid_amount + jurnal Dr Kas / Cr Piutang
@@ -299,7 +318,7 @@ const [pageSize, setPageSize] = useState(10)
             <div className="mobile-card">
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">No. Invoice</span>
-                  <span className="mobile-card-value">{p.invoice_number}</span>
+                  <span className="mobile-card-value">{p.invoice_number}{p.order_id ? ' (Auto)' : ''}</span>
                 </div>
                 <div className="mobile-card-row">
                   <span className="mobile-card-label">Jumlah</span>
@@ -314,9 +333,16 @@ const [pageSize, setPageSize] = useState(10)
                   <span className="mobile-card-value">{p.status === 'paid' ? 'Lunas' : p.status === 'partial' ? 'Sebagian' : 'Belum'}</span>
                 </div>
                 <div className="mobile-card-actions">
-                  <button onClick={() => openPay(p)} style={{ background: '#cc7030', color: '#fff', border: 'none', cursor: 'pointer' }}>Bayar</button>
-                  <button onClick={() => openEdit(p)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
-                  <button onClick={() => handleDelete(p.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
+                  {!p.order_id && (
+                    <button onClick={() => openPay(p)} style={{ background: '#cc7030', color: '#fff', border: 'none', cursor: 'pointer' }}>Bayar</button>
+                  )}
+                  <button onClick={() => handlePrint(p)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Cetak</button>
+                  {!p.order_id && (
+                    <>
+                      <button onClick={() => openEdit(p)} style={{ background: 'var(--neutral-100)', color: 'var(--neutral-700)', border: 'none', cursor: 'pointer' }}>Edit</button>
+                      <button onClick={() => handleDelete(p.id)} style={{ background: '#fef2f2', color: '#dc2626', border: 'none', cursor: 'pointer' }}>Hapus</button>
+                    </>
+                  )}
                 </div>
             </div>
           )} />
@@ -353,7 +379,24 @@ const [pageSize, setPageSize] = useState(10)
                   <tr key={p.id}>
                     <td style={{ fontWeight: '500' }}>{p.customer?.name ?? '—'}</td>
                     <td style={{ textTransform: 'capitalize', color: 'var(--neutral-600)' }}>{p.channel ?? '—'}</td>
-                    <td style={{ fontFamily: 'monospace' }}>{p.invoice_number ?? '—'}</td>
+                    <td style={{ fontFamily: 'monospace' }}>
+                      {p.invoice_number ?? '—'}
+                      {p.order_id && (
+                        <span
+                          style={{
+                            marginLeft: '0.35rem',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '999px',
+                            fontSize: '0.65rem',
+                            fontWeight: '600',
+                            background: 'var(--neutral-100)',
+                            color: 'var(--neutral-500)'
+                          }}
+                        >
+                          Auto
+                        </span>
+                      )}
+                    </td>
                     <td style={{ color: 'var(--neutral-600)' }}>{formatDateDDMMYYYY(p.invoice_date)}</td>
                     <td style={{ fontWeight: '600', textAlign: 'right' }}>{formatRp(p.amount ?? 0)}</td>
                     <td style={{ color: '#dc2626', textAlign: 'right' }}>{formatRp(p.return_amount ?? 0)}</td>
@@ -375,11 +418,20 @@ const [pageSize, setPageSize] = useState(10)
                     </td>
                     <td>
                     <ActionMenu
-                      items={[
-                        { label: 'Bayar', icon: <CreditCard size={14} />, onClick: () => openPay(p) },
-                        { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(p) },
-                        { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(p.id), danger: true }
-                      ]}
+                      items={
+                        [
+                          ...(!p.order_id
+                            ? [{ label: 'Bayar', icon: <CreditCard size={14} />, onClick: () => openPay(p) }]
+                            : []),
+                          { label: 'Cetak Faktur', icon: <Printer size={14} />, onClick: () => handlePrint(p) },
+                          ...(!p.order_id
+                            ? [
+                                { label: 'Edit', icon: <Pencil size={14} />, onClick: () => openEdit(p) },
+                                { label: 'Hapus', icon: <Trash2 size={14} />, onClick: () => handleDelete(p.id), danger: true }
+                              ]
+                            : [])
+                        ] as ActionMenuItem[]
+                      }
                     />
                   </td>
                   </tr>
@@ -592,12 +644,19 @@ const [pageSize, setPageSize] = useState(10)
               }}
             >
               <option value="">— Tanpa Order —</option>
-              {orders.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {o.order_number ?? o.id.slice(0, 8)} — {o.customer?.name ?? 'Tanpa nama'}
-                </option>
-              ))}
+              {orders.map((o) => {
+                const isBooked = bookedOrderIds.has(o.id) || (o.payment_status ?? 'pending') !== 'pending'
+                return (
+                  <option key={o.id} value={o.id} disabled={isBooked}>
+                    {o.order_number ?? o.id.slice(0, 8)} — {o.customer?.name ?? 'Tanpa nama'}
+                    {isBooked ? ' (sudah dibukukan/dibayar)' : ''}
+                  </option>
+                )
+              })}
             </select>
+            <p style={{ fontSize: '0.72rem', color: 'var(--neutral-500)', marginTop: '0.3rem' }}>
+              Order yang sudah dibukukan/dibayar otomatis dinonaktifkan agar tidak dobel dicatat.
+            </p>
           </div>
           <div>
             <label

@@ -123,9 +123,27 @@ export async function POST(request: Request) {
         idempotency_key: `order_created:${order.id}`,
         supabase
       })
+
+      // BUG-145: auto-buat faktur piutang untuk order manual (offline/landing_page).
+      // Jurnal order_created sudah dibuat di atas; faktur ini REGISTER (mirror) tanpa
+      // jurnal — agar piutang order tampil di daftar faktur & umur-piutang. Marketplace
+      // (tiktok/shopee) tidak lewat route ini → tidak terpengaruh.
+      const src = data.source ?? 'offline'
+      if (src === 'offline' || src === 'landing_page') {
+        const { error: piuErr } = await supabase.rpc('create_order_piutang_atomic', {
+          p_order_id: order.id,
+          p_actor: user.id
+        })
+        if (piuErr) {
+          throw new Error(`Auto-faktur piutang gagal: ${piuErr.message}`)
+        }
+      }
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e)
-      console.error('Gagal buat jurnal order_created:', errMsg)
+      console.error('Gagal buat jurnal/faktur order_created:', errMsg)
+      // Rollback penuh: hapus faktur auto dulu (FK piutang.order_id → orders), lalu order
+      const { error: piuRollback } = await supabase.from('piutang').delete().eq('order_id', order.id)
+      if (piuRollback) console.error('Rollback faktur piutang gagal:', piuRollback.message)
       const { error: rollbackErr } = await supabase.from('orders').delete().eq('id', order.id)
       if (rollbackErr) {
         console.error('Rollback order gagal:', rollbackErr.message)
@@ -133,7 +151,7 @@ export async function POST(request: Request) {
           {
             data: null,
             error: {
-              message: `Jurnal order_created GAGAL: ${errMsg}. Rollback order juga gagal: ${rollbackErr.message} — hubungi admin`
+              message: `Pencatatan order GAGAL: ${errMsg}. Rollback order juga gagal: ${rollbackErr.message} — hubungi admin`
             }
           },
           { status: 500 }
@@ -142,7 +160,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           data: null,
-          error: { message: `Jurnal order_created GAGAL: ${errMsg}. Order dibatalkan (rollback) — silakan coba lagi.` }
+          error: { message: `Pencatatan order GAGAL: ${errMsg}. Order dibatalkan (rollback) — silakan coba lagi.` }
         },
         { status: 500 }
       )

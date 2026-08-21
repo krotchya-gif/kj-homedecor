@@ -36,10 +36,13 @@ export default function ProcessReturPage() {
   async function fetchData() {
     setLoading(true)
     // F-41 fix: hanya tampilkan piutang aktif (pending/partial), bukan paid/cancelled
+    // BUG-145: faktur auto dari order (order_id terisi) di-track lewat alur retur order
+    // → dikeluarkan dari daftar retur piutang (retur_piutang_atomic menolak order-linked)
     const { data } = await supabase
       .from('piutang')
       .select('*, customer:customers(name)')
       .in('status', ['pending', 'partial'])
+      .is('order_id', null)
       .order('created_at', { ascending: false })
     setPiutang((data ?? []) as LooseRow[])
     setLoading(false)

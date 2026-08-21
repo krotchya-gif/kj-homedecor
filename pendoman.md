@@ -166,6 +166,11 @@ Halaman `/finance` — semua urusan uang.
 
 > Detail alur cek bayar: bagian 6.
 
+**Faktur Piutang** (`/finance/piutang/faktur`):
+- Faktur **manual** = piutang di luar order (mis. settlement lama) — bisa diisi Customer, Channel, No. Invoice, Jumlah, lalu dibayar/diretur.
+- Order **manual/offline** yang dibuat dari Admin **otomatis** dibuatkan faktur (`PIU-<no order>`, status menunggu). Faktur ini **tidak bisa** dibayar/edit/hapus di sini — bayar lewat **Cek Pembayaran order** (Finance → Payments), retur lewat alur retur order. Badge **"Auto"** menandainya.
+- Setiap faktur punya tombol **Cetak Faktur** (PDF) — header & kontak otomatis dari Landing Settings.
+
 ---
 
 ### 4.4 Gudang
