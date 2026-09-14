@@ -241,8 +241,8 @@ Test: `npm run test:run` (Vitest — unit tests di `tests/unit`) / `npm run test
 
 ## Implementasi & Riwayat Perbaikan
 
-> Riwayat per-fase (Sesi 1–65), tracker bug lengkap **BUG-001 s/d BUG-146**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
+> Riwayat per-fase (Sesi 1–67), tracker bug lengkap **BUG-001 s/d BUG-148**, audit modul finance, dan backlog tersedia di **[`docs/riwayat.md`](./docs/riwayat.md)**.
 
 ---
 
-_Last updated: 2026-08-21 (sesi 62–65 — BUG-145 alur faktur piutang order: auto-faktur offline + guard anti-dobel + Shopee parity + Cetak Faktur PDF; BUG-146 reset-data 500 fix pg-safeupdate `WHERE true` + reset penuh; bersih-bersih data simulasi (produk/material/supplier/akun kas/staff uji) + reseed cash_accounts 1101; restore 6 staff uji; selaraskan account_categories `income`→`revenue`. Riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_
+_Last updated: 2026-09-14 (sesi 66–67 — BUG-147 PO owner bisa dibuat: jalur PR-approved + manual, terima via RPC; BUG-148 kebutuhan kain aktual gorden: rumus L×F/+sambungan, stok ikut ukuran order, flag kain BOM, badge BOM owner, manual book per peran. Riwayat lengkap + backlog di `docs/riwayat.md`) · Dev server: `npm run dev` → http://localhost:3000_

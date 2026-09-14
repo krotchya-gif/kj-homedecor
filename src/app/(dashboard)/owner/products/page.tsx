@@ -15,7 +15,18 @@ interface Product {
   sku: string
   price: number
   stock_toko: number
+  hpp_calculated?: number | null
+  hpp_manual?: number | null
   category?: { name: string }
+}
+
+// BUG-148 follow-up: status kelengkapan BOM+HPP per produk (sebelumnya hanya admin
+// yang tahu lewat badge HPP di katalog; owner tidak tahu mana yang belum diisi).
+export function bomHppStatus(p: { hpp_calculated?: number | null; hpp_manual?: number | null }, hasBom: boolean) {
+  const hasHpp = (p.hpp_calculated ?? 0) > 0 || (p.hpp_manual ?? 0) > 0
+  if (hasBom && hasHpp) return { label: '✅ BOM & HPP', bg: '#d1fae5', text: '#065f46' }
+  if (hasBom) return { label: '📋 BOM saja', bg: '#dbeafe', text: '#1e40af' }
+  return { label: '🟠 BOM kosong', bg: '#ffedd5', text: '#9a3412' }
 }
 
 interface ProductStats {
@@ -33,6 +44,9 @@ export default function OwnerProductsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  // BUG-148 follow-up: set product_id yang punya baris BOM + filter cepat
+  const [bomIds, setBomIds] = useState<Set<string>>(new Set())
+  const [bomFilter, setBomFilter] = useState<'semua' | 'belum'>('semua')
 
   const supabase = createClient()
 
@@ -42,8 +56,12 @@ export default function OwnerProductsPage() {
 
   async function loadProducts() {
     setLoading(true)
-    const { data } = await supabase.from('products').select('*, category:categories(name)').order('name')
+    const [{ data }, { data: bomRows }] = await Promise.all([
+      supabase.from('products').select('*, category:categories(name)').order('name'),
+      supabase.from('bom').select('product_id')
+    ])
     setProducts(data ?? [])
+    setBomIds(new Set(((bomRows ?? []) as { product_id: string | null }[]).map((b) => b.product_id).filter(Boolean) as string[]))
     setLoading(false)
   }
 
@@ -77,10 +95,13 @@ export default function OwnerProductsPage() {
 
   const filtered = products.filter(
     (p) =>
-      !search ||
-      p.name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.sku?.toLowerCase().includes(search.toLowerCase())
+      (!search ||
+        p.name?.toLowerCase().includes(search.toLowerCase()) ||
+        p.sku?.toLowerCase().includes(search.toLowerCase())) &&
+      (bomFilter === 'semua' || !bomIds.has(p.id))
   )
+
+  const bomCount = products.filter((p) => bomIds.has(p.id)).length
 
   const filteredStats = search
     ? stats.filter(
@@ -105,9 +126,9 @@ export default function OwnerProductsPage() {
     <div>
       <PageHeader title="Top Produk" subtitle="Produk terlaris berdasarkan revenue dan quantity" />
 
-      {/* Search */}
-      <div style={{ marginBottom: '1rem', maxWidth: 320 }}>
-        <div style={{ position: 'relative' }}>
+      {/* Search + ringkasan BOM */}
+      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', maxWidth: 320, flex: '1 1 220px' }}>
           <Search
             size={15}
             style={{
@@ -133,6 +154,26 @@ export default function OwnerProductsPage() {
             }}
           />
         </div>
+        {/* BUG-148 follow-up: owner langsung tahu kelengkapan BOM tanpa kira-kira */}
+        <span style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', fontWeight: '600' }}>
+          📋 {bomCount}/{products.length} produk sudah punya BOM
+        </span>
+        <button
+          onClick={() => setBomFilter((f) => (f === 'semua' ? 'belum' : 'semua'))}
+          title="Tampilkan hanya produk yang belum punya BOM"
+          style={{
+            padding: '0.5rem 0.875rem',
+            borderRadius: '0.5rem',
+            border: `1px solid ${bomFilter === 'belum' ? '#cc7030' : '#d1d5db'}`,
+            background: bomFilter === 'belum' ? '#fff7ed' : 'var(--surface)',
+            color: bomFilter === 'belum' ? '#92400e' : 'var(--neutral-700)',
+            fontWeight: '600',
+            fontSize: '0.78rem',
+            cursor: 'pointer'
+          }}
+        >
+          {bomFilter === 'belum' ? '🟠 Hanya belum ada BOM ✓' : '🟠 Hanya belum ada BOM'}
+        </button>
       </div>
 
       {loading ? (
@@ -266,6 +307,19 @@ export default function OwnerProductsPage() {
                     <span className="mobile-card-value">{formatRp(p.price)}</span>
                   </div>
                   <div className="mobile-card-row">
+                    <span className="mobile-card-label">BOM & HPP</span>
+                    <span className="mobile-card-value">
+                      {(() => {
+                        const st = bomHppStatus(p, bomIds.has(p.id))
+                        return (
+                          <span style={{ background: st.bg, color: st.text, padding: '0.1rem 0.5rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: '600' }}>
+                            {st.label}
+                          </span>
+                        )
+                      })()}
+                    </span>
+                  </div>
+                  <div className="mobile-card-row">
                     <span className="mobile-card-label">Stok Toko</span>
                     <span className="mobile-card-value">{p.stock_toko}</span>
                   </div>
@@ -280,6 +334,7 @@ export default function OwnerProductsPage() {
                     <th>SKU</th>
                     <th>Kategori</th>
                     <th>Harga</th>
+                    <th>BOM & HPP</th>
                     <th>Stok Toko</th>
                   </tr>
                 </thead>
@@ -290,6 +345,26 @@ export default function OwnerProductsPage() {
                       <td style={{ color: 'var(--neutral-600)', fontFamily: 'monospace', fontSize: '0.82rem' }}>{p.sku}</td>
                       <td style={{ color: 'var(--neutral-600)', fontSize: '0.85rem' }}>{p.category?.name ?? '—'}</td>
                       <td style={{ fontWeight: '600', color: '#cc7030' }}>{formatRp(p.price)}</td>
+                      <td>
+                        {(() => {
+                          const st = bomHppStatus(p, bomIds.has(p.id))
+                          return (
+                            <span
+                              style={{
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '999px',
+                                fontSize: '0.75rem',
+                                fontWeight: '600',
+                                background: st.bg,
+                                color: st.text,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              {st.label}
+                            </span>
+                          )
+                        })()}
+                      </td>
                       <td>
                         <span
                           style={{
@@ -308,7 +383,7 @@ export default function OwnerProductsPage() {
                   ))}
                   {paginatedProducts.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--neutral-400)', padding: '2rem' }}>
                         <Package size={28} style={{ opacity: 0.3, margin: '0 auto 0.75rem', display: 'block' }} />
                         Tidak ada produk
                       </td>

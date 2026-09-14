@@ -19,6 +19,10 @@ export interface ItemFormState {
   size: string
   meter_gorden: string
   meter: string
+  // BUG-148: kebutuhan kain aktual (m) + cara isi (auto rumus / manual) + faktor kerutan
+  kain_meter: string
+  kain_mode: 'auto' | 'manual'
+  kain_factor: string
   poni_lurus: boolean
   poni_gel: boolean
   style_type: string
@@ -42,6 +46,9 @@ export const EMPTY_ITEM_FORM: ItemFormState = {
   size: '',
   meter_gorden: '0',
   meter: '0',
+  kain_meter: '',
+  kain_mode: 'auto',
+  kain_factor: '2.5',
   poni_lurus: false,
   poni_gel: false,
   style_type: '',
@@ -406,6 +413,12 @@ export function useOrderDetail(id: string) {
         setSavingItem(false)
         return
       }
+      // BUG-148: kebutuhan kain aktual wajib (otomatis dari rumus / input manual di modal)
+      if (!(Number(itemForm.kain_meter) > 0)) {
+        toast('info', 'Isi kebutuhan kain (m) — otomatis dari ukuran atau ketik manual.')
+        setSavingItem(false)
+        return
+      }
       itemForm.qty = '1'
       itemForm.meter_gorden = String(gordenMeter)
     } else if (itemType !== 'laundry' && (!itemForm.product_id || qty < 1)) {
@@ -476,6 +489,8 @@ export function useOrderDetail(id: string) {
         qty: Number(itemForm.qty),
         price: finalPrice,
         size: itemForm.size || null,
+        // BUG-148: kain aktual → konsumsi stok; harga & meter_gorden tetap cara lama
+        kain_meter: itemType === 'gorden' ? Number(itemForm.kain_meter) || null : null,
         meter_gorden: itemType === 'gorden' ? Number(itemForm.meter_gorden) : 0,
         meter: itemType === 'gorden' ? Number(itemForm.meter) || null : null,
         poni_lurus: itemType === 'gorden' ? itemForm.poni_lurus : false,

@@ -216,6 +216,8 @@ export interface OrderItem {
   meter_vitras?: number
   meter_roman?: number
   meter_kupu_kupu?: number
+  // BUG-148: kebutuhan kain aktual gorden (m); NULL = fallback BOM × qty
+  kain_meter?: number | null
   poni_lurus?: boolean
   poni_gel?: boolean
   // New unified meter + style for vitras/kupu-kupu

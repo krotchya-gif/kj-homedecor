@@ -27,6 +27,8 @@ interface JobRow {
       meter_vitras?: number
       meter_roman?: number
       meter_kupu_kupu?: number
+      // BUG-148: kebutuhan kain aktual (info produksi)
+      kain_meter?: number | null
       custom_specs?: string | null
       size?: string | null
     }[] | null
@@ -63,7 +65,7 @@ export default function PenjahitJobsPage() {
     const { data, error } = await supabase
       .from('production_jobs')
       .select(
-        '*, order:orders(id, status, order_number, customer:customers(name), order_items(id, size, product:products(name), meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu))'
+        '*, order:orders(id, status, order_number, customer:customers(name), order_items(id, size, product:products(name), meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, kain_meter))'
       )
       .eq('penjahit_id', user.id)
       .neq('status', 'done')
@@ -269,6 +271,21 @@ export default function PenjahitJobsPage() {
                       {itemSize && <span style={{ marginLeft: '0.75rem' }}>Ukuran: {itemSize}</span>}
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                      {/* BUG-148: kebutuhan kain aktual utk motong kain */}
+                      {(firstItem?.kain_meter ?? 0) > 0 && (
+                        <span
+                          style={{
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '999px',
+                            fontSize: '0.78rem',
+                            fontWeight: '700'
+                          }}
+                        >
+                          🧵 Kain: {Number(firstItem?.kain_meter).toFixed(2)}m
+                        </span>
+                      )}
                       {[
                         { label: 'Gorden', val: job.meter_gorden },
                         { label: 'Vitras', val: job.meter_vitras },

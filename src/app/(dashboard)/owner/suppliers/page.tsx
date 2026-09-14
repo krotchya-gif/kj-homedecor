@@ -32,7 +32,18 @@ interface PRRow {
   id: string
   qty?: number
   estimated_cost?: number
+  material_id?: string
+  status?: string
   material?: { name?: string; supplier_id?: string } | null
+}
+
+interface MaterialRow {
+  id: string
+  name: string
+  unit?: string | null
+  cost_per_unit?: number | null
+  supplier_id?: string | null
+  supplier?: { name?: string } | null
 }
 
 export default function SuppliersPage() {
@@ -52,11 +63,17 @@ const [poPage, setPoPage] = useState(0)
 const [poPageSize, setPoPageSize] = useState(10)
   const [showPOForm, setShowPOForm] = useState(false)
   const [selectedPR, setSelectedPR] = useState<PRRow | null>(null)
+  // BUG-147: poMode membedakan 2 jalur SATU modal/satu fungsi simpan (tanpa duplikasi):
+  // 'from-pr' = PO dari PR approved (jalur A), 'manual' = PO manual + auto-PR approved (jalur B).
+  const [poMode, setPoMode] = useState<'from-pr' | 'manual'>('from-pr')
+  const [approvedPRs, setApprovedPRs] = useState<PRRow[]>([])
+  const [prLoading, setPrLoading] = useState(false)
+  const [materials, setMaterials] = useState<MaterialRow[]>([])
   const [poSaving, setPoSaving] = useState(false)
   const [importModalOpen, setImportModalOpen] = useState(false)
 
   const [form, setForm] = useState({ name: '', contact_person: '', phone: '', email: '', address: '', notes: '' })
-  const [poForm, setPoForm] = useState({ supplier_id: '', actual_cost: '', invoice_document: '', notes: '' })
+  const [poForm, setPoForm] = useState({ supplier_id: '', actual_cost: '', invoice_document: '', notes: '', material_id: '', qty: '' })
 
   const supabase = createClient()
 
@@ -99,8 +116,37 @@ const [poPageSize, setPoPageSize] = useState(10)
     load()
   }, [])
   useEffect(() => {
-    if (tab === 'po') loadPOs()
+    if (tab === 'po') {
+      loadPOs()
+      loadApprovedPRs()
+      loadMaterials()
+    }
   }, [tab])
+
+  // BUG-147 jalur A: daftar PR approved yang BELUM punya PO (1 PR = max 1 PO;
+  // tidak ada unique constraint di DB jadi difilter di sini agar tombol "Buat PO" tidak dobel).
+  async function loadApprovedPRs() {
+    setPrLoading(true)
+    const [{ data: prs }, { data: pos }] = await Promise.all([
+      supabase
+        .from('purchase_requests')
+        .select('id, qty, estimated_cost, material_id, status, material:materials(name, supplier_id)')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false }),
+      supabase.from('purchase_orders').select('pr_id')
+    ])
+    const usedPrIds = new Set(((pos ?? []) as { pr_id: string | null }[]).map((p) => p.pr_id).filter(Boolean))
+    setApprovedPRs((((prs ?? []) as PRRow[])).filter((pr) => !usedPrIds.has(pr.id)))
+    setPrLoading(false)
+  }
+
+  async function loadMaterials() {
+    const { data } = await supabase
+      .from('materials')
+      .select('id, name, unit, cost_per_unit, supplier_id, supplier:suppliers(name)')
+      .order('name')
+    setMaterials((data ?? []) as MaterialRow[])
+  }
 
   const filtered = suppliers.filter(
     (s) =>
@@ -210,27 +256,109 @@ const [poPageSize, setPoPageSize] = useState(10)
     return { inserted, updated: 0, errors }
   }
 
+  // BUG-147: SATU fungsi simpan PO untuk kedua jalur (single source of truth, tanpa duplikasi).
+  // - Jalur A (from-pr): insert purchase_orders langsung (single-row, tanpa pergerakan uang/stok →
+  //   TIDAK perlu RPC atomic; jurnal baru muncul saat bayar via createSimpleJournal idempoten di updatePOStatus).
+  // - Jalur B (manual): insert PR approved dulu lalu PO — WAJIB karena receive_purchase_order_atomic
+  //   menolak PO tanpa material/qty valid ('PO tidak memiliki material/qty valid').
+  //   Rollback best-effort: kalau insert PO gagal setelah PR terbentuk, PR dihapus lagi.
   async function createPO(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedPR) return
     setPoSaving(true)
-    const { error } = await supabase.from('purchase_orders').insert({
-      pr_id: selectedPR.id,
-      supplier_id: poForm.supplier_id,
-      actual_cost: Number(poForm.actual_cost),
-      status: 'pending',
-      invoice_document: poForm.invoice_document || null
-    })
-    if (error) { setPoSaving(false); toast('error', 'Gagal buat PO: ' + error.message); return }
-    // Update PR status to approved (already done by admin)
-    setPoSaving(false)
-    setShowPOForm(false)
-    setSelectedPR(null)
-    setPoForm({ supplier_id: '', actual_cost: '', invoice_document: '', notes: '' })
-    loadPOs()
+    try {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+      const cost = Number(poForm.actual_cost)
+      if (!poForm.supplier_id) { toast('error', 'Pilih supplier dulu.'); return }
+      if (!Number.isFinite(cost) || cost < 0) { toast('error', 'Actual cost tidak valid.'); return }
+
+      let prId: string | null = null
+
+      if (poMode === 'from-pr') {
+        if (!selectedPR) return
+        // Guard anti-dobel: 1 PR = max 1 PO
+        const { data: existing } = await supabase
+          .from('purchase_orders')
+          .select('id')
+          .eq('pr_id', selectedPR.id)
+          .limit(1)
+        if (existing && existing.length > 0) {
+          toast('error', 'PR ini sudah punya PO — muat ulang daftar.')
+          loadApprovedPRs()
+          return
+        }
+        prId = selectedPR.id
+      } else {
+        // Jalur B: PO manual → auto-PR approved di belakang layar (tanpa ubah schema)
+        const qty = Number(poForm.qty)
+        if (!poForm.material_id) { toast('error', 'Pilih material dulu.'); return }
+        if (!Number.isFinite(qty) || qty <= 0) { toast('error', 'Qty harus lebih dari 0.'); return }
+        const { data: pr, error: prError } = await supabase
+          .from('purchase_requests')
+          .insert({
+            material_id: poForm.material_id,
+            qty,
+            estimated_cost: cost,
+            status: 'approved',
+            created_by: user?.id ?? null,
+            approved_by: user?.id ?? null
+          })
+          .select('id')
+          .single()
+        if (prError || !pr) { toast('error', 'Gagal buat PR otomatis: ' + (prError?.message ?? 'unknown')); return }
+        prId = pr.id
+      }
+
+      const { error } = await supabase.from('purchase_orders').insert({
+        pr_id: prId,
+        supplier_id: poForm.supplier_id,
+        actual_cost: cost,
+        status: 'pending',
+        invoice_document: poForm.invoice_document || null
+      })
+      if (error) {
+        // Rollback best-effort jalur manual: PO gagal → hapus PR otomatis yang baru dibuat
+        if (poMode === 'manual' && prId) {
+          await supabase.from('purchase_requests').delete().eq('id', prId)
+        }
+        toast('error', 'Gagal buat PO: ' + error.message)
+        return
+      }
+      toast('success', 'Purchase Order berhasil dibuat')
+      setShowPOForm(false)
+      setSelectedPR(null)
+      setPoForm({ supplier_id: '', actual_cost: '', invoice_document: '', notes: '', material_id: '', qty: '' })
+      loadPOs()
+      loadApprovedPRs()
+    } catch (err) {
+      toast('error', 'Gagal buat PO: ' + (err instanceof Error ? err.message : 'unknown'))
+    } finally {
+      setPoSaving(false)
+    }
   }
 
   async function updatePOStatus(poId: string, status: string) {
+    // BUG-147: terima-barang WAJIB lewat RPC receive_purchase_order_atomic (metode final) —
+    // update langsung status='received' dari owner MELEWATKAN penambahan stock_gudang +
+    // inventory_movements (jalur gudang /api/gudang/po-delivery sudah pakai RPC).
+    if (status === 'received') {
+      try {
+        const res = await fetch('/api/gudang/po-delivery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ po_id: poId })
+        })
+        const json = await res.json()
+        if (!res.ok) { toast('error', 'Gagal terima barang: ' + (json?.error?.message ?? res.statusText)); return }
+      } catch (err) {
+        toast('error', 'Gagal terima barang: ' + (err instanceof Error ? err.message : 'unknown'))
+        return
+      }
+      toast('success', 'Barang diterima — stok gudang bertambah')
+      loadPOs()
+      return
+    }
     // Phase 3 (BUG-096): bayar PO wajib jurnal hutang_paid (Dr Hutang / Cr Kas) —
     // judul tombol mengklaim "jurnal dibuat otomatis" tapi sebelumnya TIDAK dibuat →
     // PO paid tanpa jurnal → liabilitas & ledger bocor. Idempotent per PO.
@@ -263,7 +391,7 @@ const [poPageSize, setPoPageSize] = useState(10)
     }
 
     const updates: Record<string, unknown> = { status }
-    if (status === 'received') updates.received_at = new Date().toISOString()
+    // 'received' ditangani RPC di atas (early return) — tidak pernah sampai sini.
     if (status === 'paid') {
       const {
         data: { user }
@@ -278,13 +406,25 @@ const [poPageSize, setPoPageSize] = useState(10)
   }
 
   async function openCreatePO(pr: PRRow) {
+    setPoMode('from-pr')
     setSelectedPR(pr)
     setPoForm({
       supplier_id: pr.material?.supplier_id ?? '',
-      actual_cost: String(pr.estimated_cost),
+      actual_cost: String(pr.estimated_cost ?? 0),
       invoice_document: '',
-      notes: ''
+      notes: '',
+      material_id: '',
+      qty: ''
     })
+    setShowPOForm(true)
+  }
+
+  // BUG-147 jalur B: PO manual — user pilih material+supplier+harga langsung;
+  // PR approved dibuat otomatis di createPO (tanpa ubah schema).
+  function openManualPO() {
+    setPoMode('manual')
+    setSelectedPR(null)
+    setPoForm({ supplier_id: '', actual_cost: '', invoice_document: '', notes: '', material_id: '', qty: '' })
     setShowPOForm(true)
   }
 
@@ -541,6 +681,97 @@ const [poPageSize, setPoPageSize] = useState(10)
 
       {tab === 'po' && (
         <>
+          {/* BUG-147 toolbar: jalur B (PO manual) + refresh */}
+          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+            <button
+              onClick={openManualPO}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1.25rem',
+                background: '#cc7030',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.875rem',
+                cursor: 'pointer'
+              }}
+            >
+              <Plus size={16} /> Buat PO Manual
+            </button>
+            <button
+              onClick={() => { loadPOs(); loadApprovedPRs(); loadMaterials() }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                padding: '0.625rem 1rem',
+                background: 'var(--surface)',
+                color: 'var(--neutral-700)',
+                border: '1px solid #d1d5db',
+                borderRadius: '0.5rem',
+                fontWeight: 600,
+                fontSize: '0.8rem',
+                cursor: 'pointer'
+              }}
+            >
+              ⟳ Refresh
+            </button>
+          </div>
+
+          {/* BUG-147 jalur A: PR approved yang belum punya PO + tombol "Buat PO" per baris.
+              Sebelumnya openCreatePO tidak pernah dipanggil tombol mana pun (dead code). */}
+          <div style={{ marginBottom: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <div style={{ padding: '0.75rem 1rem', background: 'var(--neutral-100)', fontWeight: '700', fontSize: '0.875rem' }}>
+              ✅ PR Disetujui — Siap Dibuatkan PO ({approvedPRs.length})
+            </div>
+            {prLoading ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)' }}>Memuat PR…</div>
+            ) : approvedPRs.length === 0 ? (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--neutral-400)', fontSize: '0.85rem' }}>
+                Tidak ada PR menunggu — semua PR approved sudah punya PO atau belum ada yang di-approve admin.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: 'var(--neutral-600)' }}>
+                    <th style={{ padding: '0.625rem 1rem' }}>Material</th>
+                    <th style={{ padding: '0.625rem 1rem' }}>Qty</th>
+                    <th style={{ padding: '0.625rem 1rem' }}>Estimasi</th>
+                    <th style={{ padding: '0.625rem 1rem' }}>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {approvedPRs.map((pr) => (
+                    <tr key={pr.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '0.625rem 1rem', fontWeight: '600' }}>{pr.material?.name ?? '—'}</td>
+                      <td style={{ padding: '0.625rem 1rem' }}>{pr.qty ?? 0}</td>
+                      <td style={{ padding: '0.625rem 1rem', color: '#cc7030', fontWeight: '600' }}>{formatRp(pr.estimated_cost ?? 0)}</td>
+                      <td style={{ padding: '0.625rem 1rem' }}>
+                        <button
+                          onClick={() => openCreatePO(pr)}
+                          style={{
+                            padding: '0.375rem 0.875rem',
+                            background: '#cc7030',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.78rem',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Buat PO
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
       {/* Mobile: card list */}
       <div className="mobile-only">
         {poList.length === 0 ? (
@@ -779,17 +1010,20 @@ const [poPageSize, setPoPageSize] = useState(10)
         </form>
       </Modal>
 
-      {/* Create PO Modal */}
+      {/* Create PO Modal — BUG-147: SATU modal untuk jalur A (dari PR) & B (manual + auto-PR) */}
       <Modal
-        open={showPOForm && !!selectedPR}
+        open={showPOForm && (poMode === 'manual' || !!selectedPR)}
         onClose={() => setShowPOForm(false)}
         maxWidth={480}
         padding="2rem"
         zIndex={200}
       >
-        {selectedPR && (
+        {(poMode === 'manual' || selectedPR) && (
           <>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>Buat Purchase Order</h2>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+              {poMode === 'manual' ? 'Buat Purchase Order Manual' : 'Buat Purchase Order'}
+            </h2>
+            {poMode === 'from-pr' && selectedPR ? (
             <div
               style={{
                 background: 'var(--neutral-100)',
@@ -805,7 +1039,87 @@ const [poPageSize, setPoPageSize] = useState(10)
                 Qty: {selectedPR.qty ?? 0} | Estimasi: {formatRp(selectedPR.estimated_cost ?? 0)}
               </div>
             </div>
+            ) : (
+            <div style={{ fontSize: '0.8rem', color: 'var(--neutral-600)', background: 'var(--neutral-100)', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.75rem 1rem', marginBottom: '0.5rem' }}>
+              PO manual otomatis membuatkan PR berstatus approved di belakang layar (qty & material di bawah).
+            </div>
+            )}
             <form onSubmit={createPO} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {poMode === 'manual' && (
+                <>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        color: 'var(--neutral-700)',
+                        marginBottom: '0.3rem'
+                      }}
+                    >
+                      Material *
+                    </label>
+                    <select
+                      required
+                      value={poForm.material_id}
+                      onChange={(e) => {
+                        const m = materials.find((x) => x.id === e.target.value)
+                        setPoForm((f) => ({
+                          ...f,
+                          material_id: e.target.value,
+                          supplier_id: m?.supplier_id ?? f.supplier_id,
+                          actual_cost: m?.cost_per_unit != null ? String(m.cost_per_unit) : f.actual_cost
+                        }))
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        outline: 'none',
+                        background: 'var(--surface)'
+                      }}
+                    >
+                      <option value="">-- Pilih Material --</option>
+                      {materials.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}{m.unit ? ` (${m.unit})` : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        color: 'var(--neutral-700)',
+                        marginBottom: '0.3rem'
+                      }}
+                    >
+                      Qty *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      placeholder="0"
+                      value={poForm.qty}
+                      onChange={(e) => setPoForm((f) => ({ ...f, qty: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.625rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.875rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                </>
+              )}
               <div>
                 <label
                   style={{

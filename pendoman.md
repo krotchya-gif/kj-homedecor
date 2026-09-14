@@ -2,7 +2,7 @@
 
 > Panduan penggunaan **lengkap** untuk semua orang yang memakai aplikasi.
 > Ditulis dengan **bahasa sederhana** — siapa mengerjakan apa, di halaman mana, dan bagaimana.
-> Terakhir diperbarui: **2026-08-19** · Riwayat perbaikan & bug: `docs/riwayat.md` · Alur teknis: `docs/flows/`
+> Terakhir diperbarui: **2026-09-14** · Riwayat perbaikan & bug: `docs/riwayat.md` · Alur teknis: `docs/flows/`
 
 ---
 
@@ -101,9 +101,10 @@ Halaman `/owner` — melihat & mengatur bisnis.
 | Menu | Kegunaan |
 |---|---|
 | **Dashboard** | Ringkasan: pesanan hari ini, pemasangan berjalan, omzet 12 bulan, produk terlaris |
-| **HPP** | ⭐ Menentukan **harga jual** produk (lihat bagian 5) |
+| **HPP** | ⭐ Menentukan **harga jual** produk + tandai bahan kain (lihat bagian 5) |
+| **Produk** | Daftar semua produk + status **BOM & HPP** per produk (sudah lengkap / belum) |
 | **Material** | Mengisi bahan baku + harga beli |
-| **Supplier** | Daftar pemasok + Purchase Order (PO) + riwayat harga |
+| **Supplier** | Daftar pemasok + Purchase Order (PO) + riwayat harga (lihat bagian 7) |
 | **Marketplace** | Performa penjualan per platform (Shopee/Tokopedia/TikTok/offline) |
 | **TikTok Shop** | Menghubungkan toko TikTok, sync order & settlement |
 | **Staff** | Melihat daftar karyawan (kelola akun di Admin → Staff) |
@@ -134,6 +135,7 @@ Halaman `/admin` — pusat kegiatan toko.
 
 **Tugas utama Admin:**
 - Membuat pesanan (pelanggan, produk, total, DP, Kirim/Pasang)
+- **Tambah item gorden**: di detail pesanan klik **Tambah Item** → pilih Gorden → isi ukuran `lebar x tinggi` (cm) → **kebutuhan kain terisi otomatis** (bisa diketik manual bila perlu) → Simpan. Aturan kain: lebar × 2,5/3; kalau tinggi di atas 250 cm otomatis ditambah setengah untuk sambungan. Angka kain ini untuk info penjahit & potong stok — harga tetap seperti biasa.
 - Mengurus katalog — **jangan isi harga jual** (tugas Owner)
 - Menjadwalkan pemasangan (tanggal + installer)
 - Input resi untuk pesanan kirim
@@ -204,7 +206,7 @@ Halaman `/penjahit`.
 
 | Menu | Kegunaan |
 |---|---|
-| **Jobs** | ⭐ Daftar jahitan saya: **Mulai** → kerjakan → **Selesai** + isi meter |
+| **Jobs** | ⭐ Daftar jahitan saya: **Mulai** → kerjakan → **Selesai** + isi meter. Label **🧵 Kain: …m** = kain yang harus dipotong untuk job itu |
 | **Reports** | Rekap bulan ini |
 | **History** | Riwayat jahitan selesai |
 
@@ -279,9 +281,16 @@ LANGKAH 2 — Admin buat NAMA PRODUK (tanpa harga!)
 
 LANGKAH 3 — Owner hitung HARGA JUAL (HPP)
   /owner/hpp → pilih produk → tambahkan bahan + jumlah
+  → kalau bahannya KAIN, centang kotak "🧵 Kain" di barisnya
+    (supaya potong stok ikut ukuran gorden pesanan, bukan angka patokan)
   → sistem hitung: harga pokok = (bahan × jumlah) + biaya
                    harga jual = harga pokok + untung
   → Simpan → badge hijau "HPP: Rp ..."
+
+CEK KELENGKAPAN (tidak perlu kira-kira)
+  /owner/products → di atas tabel ada tulisan "📋 X/Y produk sudah punya BOM"
+  → tiap produk ada label: ✅ BOM & HPP (lengkap) / 📋 BOM saja / 🟠 BOM kosong
+  → klik tombol "Hanya belum ada BOM" untuk melihat yang belum diisi
 
 LANGKAH 4 — OTOMATIS MUNCUL DI WEBSITE
   Produk berharga langsung tampil di katalog
@@ -338,16 +347,33 @@ LANGKAH 4 — OTOMATIS MUNCUL DI WEBSITE
 
 ## 7. Pembelian & Stok Bahan
 
-### Alur beli (ketika stok menipis)
+### Alur beli (ketika stok menipis) — langkah per peran
 
 ```
-1. Gudang melihat peringatan di /gudang/alerts → klik "Buat Permintaan"
-   → tercipta Purchase Request (PR)
-2. Admin dashboard → setujui PR (approve/reject)
-3. Owner/supplier → buat Purchase Order (PO): pilih supplier + barang + harga
-4. PO dikirim → status "Dikirim" → barang datang → "Diterima" (stok otomatis masuk)
-5. Bayar PO → "Dibayar" (jurnal hutang otomatis tercatat)
+1. GUDANG minta barang (/gudang/alerts)
+   Stok menipis (merah) → klik "Buat Permintaan Pembelian"
+   → tercipta Purchase Request (PR), status menunggu
+
+2. ADMIN setujui (dashboard /admin)
+   Lihat PR menunggu → Approve (lanjut) / Tolak (berhenti)
+
+3. OWNER buat pesanan beli — 2 cara (/owner/suppliers → tab "Purchase Orders")
+   CARA A (dari permintaan): di kotak "PR Disetujui" klik "Buat PO"
+     → isi Supplier + Harga Asli + No. Invoice → Buat PO
+   CARA B (langsung): klik "Buat PO Manual"
+     → pilih Bahan + Jumlah + Supplier + Harga → Buat PO
+     (permintaan otomatis dibuatkan di belakang layar)
+
+4. BARANG DIKIRIM supplier → Owner klik "Dikirim" di tabel PO
+
+5. BARANG DATANG → terima di Gudang (Stok → daftar terkirim) atau Owner klik "Terima"
+   → status Diterima, STOK GUDANG OTOMATIS BERTAMBAH
+
+6. BAYAR → Owner klik "Bayar" (hanya untuk yang sudah Diterima)
+   → status Lunas ✓, catatan utang otomatis tercatat
 ```
+
+> Stok bertambah **hanya** saat barang Diterima (bukan saat PO dibuat). Satu permintaan = satu PO (yang sudah punya PO hilang dari daftar).
 
 ### Stok & mutasi
 
@@ -521,4 +547,18 @@ Sitemap & robots disimpan di database. Setelah upload, tunggu sebentar (cache ~1
 
 ---
 
-*Manual book: 2026-08-15 · Sesuai kode aplikasi yang berjalan · Riwayat perbaikan & bug: `docs/riwayat.md` · Panduan per role singkat: `USER.md`*
+**16. Cara buat PO (Purchase Order)?**
+Dua cara di Owner → Suppliers → tab Purchase Orders: (A) dari kotak "PR Disetujui" klik **Buat PO** per baris; (B) klik **Buat PO Manual** lalu pilih bahan + jumlah + supplier + harga. Setelah supplier kirim → klik **Dikirim**, barang datang → klik **Terima** (stok masuk), lalu klik **Bayar** (lunas + catatan utang otomatis).
+
+**17. Angka "Meter Kain" di tambah item gorden dari mana?**
+Otomatis dari ukuran: lebar × 2,5/3. Kalau tinggi di atas 250 cm ditambah setengah untuk sambungan. Bisa juga diketik manual (pilih mode Manual). Angka ini untuk info penjahit & potong stok — harga tidak berubah.
+
+**18. Bagaimana tahu produk mana yang BOM-nya belum diisi?**
+Owner → Produk: lihat tulisan "📋 X/Y produk sudah punya BOM" + label tiap produk (✅ lengkap / 🟠 kosong) + tombol filter "Hanya belum ada BOM". Di HPP Calculator, daftar produk juga ada label `✅ BOM (n)` / `🟠 tanpa BOM`.
+
+**19. Di HPP ada centang "🧵 Kain" — untuk apa?**
+Menandai baris bahan mana yang kain. Gunanya: saat produksi selesai, stok kain dipotong sebesar kebutuhan kain aktual pesanan (bukan angka patokan). Centang sekali per produk, bahan lain (rel, kait, dsb) tetap dipotong sesuai BOM.
+
+---
+
+*Manual book: 2026-09-14 · Sesuai kode aplikasi yang berjalan · Riwayat perbaikan & bug: `docs/riwayat.md` · Panduan per role singkat: `USER.md`*

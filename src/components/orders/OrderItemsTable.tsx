@@ -91,6 +91,10 @@ export default function OrderItemsTable({ items, fmt, onAddItem, onToggleReady, 
                           {Number(item.meter_gorden ?? 0) > 0 && (
                             <span>Gorden: {Number(item.meter_gorden).toFixed(2)}m</span>
                           )}
+                          {/* BUG-148: kebutuhan kain aktual (ikut potong stok) */}
+                          {item.kain_meter != null && Number(item.kain_meter) > 0 && (
+                            <span> • 🧵 Kain: {Number(item.kain_meter).toFixed(2)}m</span>
+                          )}
                           {item.style_type && <span> • {item.style_type}</span>}
                           {item.meter && <span> • {Number(item.meter).toFixed(2)}m</span>}
                           {(item.poni_lurus || item.poni_gel) && (

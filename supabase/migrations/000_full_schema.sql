@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS public.bom (
   product_id    UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
   material_id   UUID NOT NULL REFERENCES public.materials(id) ON DELETE CASCADE,
   qty_per_unit  NUMERIC NOT NULL DEFAULT 1,
+  -- BUG-148: penanda material kain (konsumsi produksi pakai kain aktual utk baris ini)
+  is_fabric     BOOLEAN NOT NULL DEFAULT false,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE(product_id, material_id)
@@ -201,6 +203,8 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   returned_at       TIMESTAMPTZ,
   return_reason     TEXT,
   meter             NUMERIC DEFAULT 0,
+  -- BUG-148: kebutuhan kain aktual gorden (m); NULL = cara lama (BOM × qty)
+  kain_meter        NUMERIC,
   style_type        TEXT,
   smokring_color    TEXT,
   variant_color     TEXT,
@@ -1628,6 +1632,42 @@ DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
 CREATE TRIGGER trg_orders_updated_at BEFORE UPDATE ON public.orders
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- Event trigger ensure_rls (= live): otomatis ENABLE RLS di tabel public baru.
+-- Dipertahankan (bukan dead code) — fungsi sudah ada di live, sebelumnya belum tercatat di file ini.
+CREATE OR REPLACE FUNCTION public.rls_auto_enable()
+RETURNS event_trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'pg_catalog'
+AS $function$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN
+    SELECT *
+    FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      AND object_type IN ('table','partitioned table')
+  LOOP
+     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN
+      BEGIN
+        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);
+        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;
+      EXCEPTION
+        WHEN OTHERS THEN
+          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;
+      END;
+     ELSE
+        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;
+     END IF;
+  END LOOP;
+END;
+$function$;
+DROP EVENT TRIGGER IF EXISTS ensure_rls;
+CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
+  WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+  EXECUTE FUNCTION public.rls_auto_enable();
+
 -- Constraint users_role_check FINAL (070): 8 role
 -- (inline CHECK di CREATE TABLE users otomatis bernama users_role_check —
 --  drop lalu recreate dengan daftar lengkap utk konsistensi)
@@ -2681,7 +2721,7 @@ REVOKE ALL ON FUNCTION public.advance_install_booking_status FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.advance_install_booking_status FROM anon;
 GRANT EXECUTE ON FUNCTION public.advance_install_booking_status TO authenticated;
 
--- consume_materials_for_production FINAL (067: role check; body 051)
+-- consume_materials_for_production FINAL (067: role check; body 051; BUG-148: kain aktual gorden)
 CREATE OR REPLACE FUNCTION public.consume_materials_for_production(
   p_production_job_id UUID,
   p_order_id UUID,
@@ -2713,12 +2753,19 @@ BEGIN
     FROM public.order_material_consumption WHERE production_job_id = p_production_job_id;
     RETURN jsonb_build_object('already_consumed', true, 'consumption_count', v_consumption_count, 'total_qty', v_total_qty);
   END IF;
-  FOR v_item IN SELECT product_id, qty FROM public.order_items
+  FOR v_item IN SELECT id, product_id, item_type, qty, kain_meter FROM public.order_items
     WHERE order_id = p_order_id AND product_id IS NOT NULL
   LOOP
-    FOR v_bom IN SELECT material_id, qty_per_unit FROM public.bom WHERE product_id = v_item.product_id
+    FOR v_bom IN SELECT material_id, qty_per_unit, COALESCE(is_fabric, false) AS is_fabric
+      FROM public.bom WHERE product_id = v_item.product_id
     LOOP
-      v_qty := COALESCE(v_bom.qty_per_unit, 0) * COALESCE(v_item.qty, 0);
+      -- BUG-148: item gorden dgn kain aktual → baris BOM kain dipotong sebesar kain aktual;
+      -- baris lain & item tanpa kain aktual → cara lama (BOM × qty).
+      IF v_item.item_type = 'gorden' AND v_bom.is_fabric AND v_item.kain_meter IS NOT NULL THEN
+        v_qty := v_item.kain_meter * COALESCE(v_item.qty, 0);
+      ELSE
+        v_qty := COALESCE(v_bom.qty_per_unit, 0) * COALESCE(v_item.qty, 0);
+      END IF;
       IF v_qty <= 0 THEN CONTINUE; END IF;
       UPDATE public.materials SET stock_gudang = GREATEST(COALESCE(stock_gudang, 0) - v_qty, 0)
       WHERE id = v_bom.material_id;
@@ -3300,7 +3347,7 @@ $;
 REVOKE ALL ON FUNCTION public.schedule_installation_atomic(uuid, uuid, date, time without time zone, uuid) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.schedule_installation_atomic(uuid, uuid, date, time without time zone, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.schedule_installation_atomic(uuid, uuid, date, time without time zone, uuid) TO authenticated;
--- add_order_item_atomic (P1): insert item + hitung ulang total + log
+-- add_order_item_atomic (P1): insert item + hitung ulang total + log (BUG-148: simpan kain_meter)
 CREATE OR REPLACE FUNCTION public.add_order_item_atomic(p_order_id uuid, p_item jsonb, p_actor uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3311,6 +3358,7 @@ DECLARE
   v_item_id uuid;
   v_total numeric;
   v_item_type text;
+  v_kain numeric;
 BEGIN
   IF NOT public.actor_is_active_with_role(p_actor, ARRAY['admin','owner']) THEN
     RAISE EXCEPTION 'Forbidden: hanya admin/owner aktif';
@@ -3322,12 +3370,14 @@ BEGIN
   IF v_item_type IS NULL OR btrim(v_item_type) = '' THEN RAISE EXCEPTION 'Jenis item wajib diisi'; END IF;
   IF (p_item->>'qty') IS NULL OR ((p_item->>'qty')::numeric) <= 0 THEN RAISE EXCEPTION 'Qty harus lebih dari 0'; END IF;
   IF (p_item->>'price') IS NULL OR ((p_item->>'price')::numeric) < 0 THEN RAISE EXCEPTION 'Harga tidak valid'; END IF;
+  v_kain := NULLIF(p_item->>'kain_meter', '')::numeric;
+  IF v_kain IS NOT NULL AND v_kain <= 0 THEN RAISE EXCEPTION 'Kebutuhan kain harus lebih dari 0'; END IF;
 
   INSERT INTO public.order_items (
     order_id, product_id, item_type, qty, price, size, custom_specs,
     meter_gorden, meter_vitras, meter_roman, meter_kupu_kupu, meter,
     poni_lurus, poni_gel, style_type, smokring_color, variant_color, variant_size,
-    dimension_p, dimension_l, dimension_t, weight, linked_laundry_id
+    dimension_p, dimension_l, dimension_t, weight, linked_laundry_id, kain_meter
   ) VALUES (
     p_order_id,
     NULLIF(p_item->>'product_id', '')::uuid,
@@ -3351,7 +3401,8 @@ BEGIN
     NULLIF(p_item->>'dimension_l', '')::numeric,
     NULLIF(p_item->>'dimension_t', '')::numeric,
     NULLIF(p_item->>'weight', '')::numeric,
-    NULLIF(p_item->>'linked_laundry_id', '')::uuid
+    NULLIF(p_item->>'linked_laundry_id', '')::uuid,
+    v_kain
   ) RETURNING id INTO v_item_id;
 
   SELECT COALESCE(SUM(price * qty), 0) INTO v_total FROM public.order_items WHERE order_id = p_order_id;
@@ -3397,7 +3448,7 @@ REVOKE ALL ON FUNCTION public.remove_order_item_atomic(uuid, uuid, uuid) FROM PU
 REVOKE ALL ON FUNCTION public.remove_order_item_atomic(uuid, uuid, uuid) FROM anon;
 GRANT EXECUTE ON FUNCTION public.remove_order_item_atomic(uuid, uuid, uuid) TO authenticated;
 
--- save_hpp_bom_atomic (P1): BOM + HPP + harga jual dalam satu transaksi
+-- save_hpp_bom_atomic (P1): BOM + HPP + harga jual dalam satu transaksi (BUG-148: flag is_fabric per baris)
 CREATE OR REPLACE FUNCTION public.save_hpp_bom_atomic(p_product_id uuid, p_lines jsonb, p_hpp_calculated numeric, p_hpp_manual numeric, p_price numeric, p_actor uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3418,13 +3469,13 @@ BEGIN
 
   DELETE FROM public.bom WHERE product_id = p_product_id;
   IF p_lines IS NOT NULL AND jsonb_array_length(p_lines) > 0 THEN
-    FOR v_line IN SELECT * FROM jsonb_to_recordset(p_lines) AS x(material_id UUID, qty_per_unit NUMERIC)
+    FOR v_line IN SELECT * FROM jsonb_to_recordset(p_lines) AS x(material_id UUID, qty_per_unit NUMERIC, is_fabric BOOLEAN)
     LOOP
       IF v_line.material_id IS NULL OR COALESCE(v_line.qty_per_unit, 0) <= 0 THEN
         RAISE EXCEPTION 'Baris BOM tidak valid (material/qty wajib)';
       END IF;
-      INSERT INTO public.bom (product_id, material_id, qty_per_unit)
-      VALUES (p_product_id, v_line.material_id, v_line.qty_per_unit);
+      INSERT INTO public.bom (product_id, material_id, qty_per_unit, is_fabric)
+      VALUES (p_product_id, v_line.material_id, v_line.qty_per_unit, COALESCE(v_line.is_fabric, false));
     END LOOP;
   END IF;
 

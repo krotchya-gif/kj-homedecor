@@ -2,7 +2,7 @@
 import { Modal } from '@/components/ui/Modal'
 import { GORDEN_STYLES, SMOKRING_COLORS } from '@/types'
 import type { Product } from '@/types'
-import { parseGordenMeter } from '@/lib/order-detail'
+import { parseGordenMeter, parseGordenSize, calcKainGorden, KAIN_SAMBUNGAN_THRESHOLD_CM } from '@/lib/order-detail'
 import type { ItemType, BomRow } from '@/lib/order-detail'
 
 // Phase 6B-3d-3 (refactor order detail): modal "Tambah Item Pesanan" diekstrak dari
@@ -14,6 +14,10 @@ export interface ItemFormState {
   size: string
   meter_gorden: string
   meter: string
+  // BUG-148: kebutuhan kain aktual + cara isi + faktor kerutan
+  kain_meter: string
+  kain_mode: 'auto' | 'manual'
+  kain_factor: string
   poni_lurus: boolean
   poni_gel: boolean
   style_type: string
@@ -76,6 +80,14 @@ export default function AddItemModal({
       p.name.toLowerCase().includes(searchProduct.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchProduct.toLowerCase()))
   )
+
+  // BUG-148: hitung kebutuhan kain dari ukuran + faktor (mode otomatis)
+  function autoKain(size: string, factorStr: string): string {
+    const { lebarCm, tinggiCm } = parseGordenSize(size)
+    const f = Number(factorStr)
+    if (lebarCm <= 0 || tinggiCm <= 0 || !(f > 0)) return ''
+    return String(calcKainGorden(lebarCm, tinggiCm, f))
+  }
 
   return (
     <Modal open={open} onClose={onClose} maxWidth={580} padding="2rem">
@@ -239,7 +251,15 @@ export default function AddItemModal({
                   type="text"
                   placeholder="120 x 250"
                   value={itemForm.size}
-                  onChange={(e) => setItemForm((f) => ({ ...f, size: e.target.value }))}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setItemForm((f) => ({
+                      ...f,
+                      size: v,
+                      // BUG-148: mode otomatis → kebutuhan kain ikut ukuran
+                      kain_meter: f.kain_mode === 'auto' ? autoKain(v, f.kain_factor) : f.kain_meter
+                    }))
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.625rem',
@@ -315,9 +335,105 @@ export default function AddItemModal({
             {itemType === 'gorden' && (
               <div style={{ background: 'var(--neutral-100)', borderRadius: '0.5rem', padding: '1rem' }}>
                 <div style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--neutral-700)', marginBottom: '0.75rem' }}>
-                  Meteran Gorden (otomatis dari ukuran)
+                  Meteran Gorden
+                </div>
+                {/* BUG-148: mode otomatis (rumus) / manual */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  {(['auto', 'manual'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => {
+                        if (m === 'auto') {
+                          setItemForm((f) => ({ ...f, kain_mode: 'auto', kain_meter: autoKain(f.size, f.kain_factor) }))
+                        } else {
+                          setItemForm((f) => ({ ...f, kain_mode: 'manual' }))
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem',
+                        border: `2px solid ${itemForm.kain_mode === m ? '#cc7030' : 'var(--neutral-200)'}`,
+                        borderRadius: '0.5rem',
+                        background: itemForm.kain_mode === m ? '#fff7ed' : '#fff',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        fontSize: '0.75rem',
+                        color: itemForm.kain_mode === m ? '#92400e' : 'var(--neutral-600)'
+                      }}
+                    >
+                      {m === 'auto' ? '🧮 Otomatis (rumus)' : '✍️ Manual'}
+                    </button>
+                  ))}
+                  {itemForm.kain_mode === 'auto' && (
+                    <select
+                      value={itemForm.kain_factor}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        setItemForm((f) => ({ ...f, kain_factor: v, kain_meter: autoKain(f.size, v) }))
+                      }}
+                      title="Faktor kerutan kain"
+                      style={{
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.5rem',
+                        fontSize: '0.8rem',
+                        outline: 'none',
+                        background: '#fff',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <option value="2.5">× 2.5</option>
+                      <option value="3">× 3</option>
+                    </select>
+                  )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: 'var(--neutral-600)',
+                        marginBottom: '0.25rem'
+                      }}
+                    >
+                      Meter Kain (m) *
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0.00"
+                      value={itemForm.kain_meter}
+                      onChange={(e) => setItemForm((f) => ({ ...f, kain_meter: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        fontSize: '0.8rem',
+                        outline: 'none',
+                        background: '#fff'
+                      }}
+                    />
+                    <div style={{ fontSize: '0.68rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
+                      {(() => {
+                        if (itemForm.kain_mode !== 'auto') return 'Ketik manual sesuai kebutuhan.'
+                        const { lebarCm, tinggiCm } = parseGordenSize(itemForm.size)
+                        if (lebarCm <= 0 || tinggiCm <= 0)
+                          return 'Isi ukuran "lebar x tinggi" agar rumus jalan (>250cm +sambungan).'
+                        const f = Number(itemForm.kain_factor)
+                        const dasar = (lebarCm / 100) * f
+                        return `= ${(lebarCm / 100).toFixed(2)} × ${itemForm.kain_factor}${
+                          tinggiCm > KAIN_SAMBUNGAN_THRESHOLD_CM
+                            ? ` + sambungan ${(dasar / 2).toFixed(2)}`
+                            : ''
+                        } (stok ikut angka ini)`
+                      })()}
+                    </div>
+                  </div>
                   <div>
                     <label
                       style={{
@@ -345,37 +461,37 @@ export default function AddItemModal({
                       }}
                     />
                     <div style={{ fontSize: '0.68rem', color: 'var(--neutral-400)', marginTop: '0.2rem' }}>
-                      = tinggi ukuran ÷ 100 (isi ukuran "lebar x tinggi" di atas)
+                      = tinggi ÷ 100 (cara lama, utk harga)
                     </div>
                   </div>
-                  <div>
-                    <label
-                      style={{
-                        display: 'block',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        color: 'var(--neutral-600)',
-                        marginBottom: '0.25rem'
-                      }}
-                    >
-                      Berat Auto (kg)
-                    </label>
-                    <input
-                      type="text"
-                      value={parseGordenMeter(itemForm.size) > 0 ? (parseGordenMeter(itemForm.size) * 0.4).toFixed(2) : '0'}
-                      readOnly
-                      style={{
-                        width: '100%',
-                        padding: '0.5rem',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '0.375rem',
-                        fontSize: '0.8rem',
-                        outline: 'none',
-                        background: 'var(--neutral-100)',
-                        color: 'var(--neutral-600)'
-                      }}
-                    />
-                  </div>
+                </div>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      color: 'var(--neutral-600)',
+                      marginBottom: '0.25rem'
+                    }}
+                  >
+                    Berat Auto (kg)
+                  </label>
+                  <input
+                    type="text"
+                    value={parseGordenMeter(itemForm.size) > 0 ? (parseGordenMeter(itemForm.size) * 0.4).toFixed(2) : '0'}
+                    readOnly
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '0.375rem',
+                      fontSize: '0.8rem',
+                      outline: 'none',
+                      background: 'var(--neutral-100)',
+                      color: 'var(--neutral-600)'
+                    }}
+                  />
                 </div>
               </div>
             )}

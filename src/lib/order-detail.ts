@@ -99,6 +99,35 @@ export function parseGordenMeter(size: string): number {
   return Number(m[2]) / 100
 }
 
+export interface GordenSize {
+  lebarCm: number
+  tinggiCm: number
+}
+
+/** Pecah ukuran "lebar x tinggi" cm → { lebarCm, tinggiCm }. {0,0} jika format tidak cocok. */
+export function parseGordenSize(size: string): GordenSize {
+  const m = size.match(/(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)/)
+  if (!m) return { lebarCm: 0, tinggiCm: 0 }
+  return { lebarCm: Number(m[1]), tinggiCm: Number(m[2]) }
+}
+
+/** Batas tinggi (cm): di atas ini butuh kain sambungan (+50%). */
+export const KAIN_SAMBUNGAN_THRESHOLD_CM = 250
+
+/**
+ * Kebutuhan kain gorden (meter) — BUG-148, info produksi saja.
+ * Rumus: Lebar(m) × faktor utk tinggi ≤ 250cm; tinggi > 250cm tambah
+ * setengah bagian utk sambungan → 1.5 × Lebar(m) × faktor.
+ * Harga & meter_gorden tetap memakai cara lama (parseGordenMeter).
+ */
+export function calcKainGorden(lebarCm: number, tinggiCm: number, faktor: number): number {
+  if (!Number.isFinite(lebarCm) || !Number.isFinite(tinggiCm) || !Number.isFinite(faktor)) return 0
+  if (lebarCm <= 0 || tinggiCm <= 0 || faktor <= 0) return 0
+  const dasar = (lebarCm / 100) * faktor
+  const total = tinggiCm > KAIN_SAMBUNGAN_THRESHOLD_CM ? dasar * 1.5 : dasar
+  return Math.round(total * 100) / 100
+}
+
 /**
  * Map status order → action di tabel order_logs (constraint chk_action).
  * Phase 6B-1: dipindah dari page.tsx (logika murni, bisa di-unit-test).

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, getOrderLogAction, DEFAULT_CHECKLIST } from '@/lib/order-detail'
+import { canRoleAdvanceNext, getResponsibleRoles, parseGordenMeter, parseGordenSize, calcKainGorden, getOrderLogAction, DEFAULT_CHECKLIST } from '@/lib/order-detail'
 
 describe('canRoleAdvanceNext', () => {
   it('owner = escape hatch, boleh semua stage', () => {
@@ -40,6 +40,44 @@ describe('getResponsibleRoles', () => {
     expect(getResponsibleRoles('payment_ok')).toContain('gudang')
     expect(getResponsibleRoles('packed')).toContain('installer')
     expect(getResponsibleRoles('shipped')).toContain('installer')
+  })
+})
+
+describe('parseGordenSize (BUG-148)', () => {
+  it('pecah "lebar x tinggi" → cm', () => {
+    expect(parseGordenSize('120 x 250')).toEqual({ lebarCm: 120, tinggiCm: 250 })
+    expect(parseGordenSize('240x300')).toEqual({ lebarCm: 240, tinggiCm: 300 })
+    expect(parseGordenSize('150 × 200')).toEqual({ lebarCm: 150, tinggiCm: 200 })
+  })
+
+  it('mengembalikan {0,0} untuk format tidak valid', () => {
+    expect(parseGordenSize('')).toEqual({ lebarCm: 0, tinggiCm: 0 })
+    expect(parseGordenSize('250')).toEqual({ lebarCm: 0, tinggiCm: 0 })
+  })
+})
+
+describe('calcKainGorden (BUG-148)', () => {
+  it('tinggi ≤ 250cm → Lebar(m) × faktor', () => {
+    expect(calcKainGorden(200, 250, 2.5)).toBe(5)
+    expect(calcKainGorden(120, 200, 3)).toBe(3.6)
+  })
+
+  it('tepat 250cm belum kena sambungan, 251cm kena', () => {
+    expect(calcKainGorden(200, 250, 2.5)).toBe(5)
+    expect(calcKainGorden(200, 251, 2.5)).toBe(7.5)
+  })
+
+  it('tinggi > 250cm → 1.5 × Lebar × faktor (sambungan)', () => {
+    expect(calcKainGorden(240, 300, 3)).toBe(10.8)
+    expect(calcKainGorden(100, 260, 2.5)).toBe(3.75)
+  })
+
+  it('input tidak valid → 0', () => {
+    expect(calcKainGorden(0, 250, 2.5)).toBe(0)
+    expect(calcKainGorden(200, 0, 2.5)).toBe(0)
+    expect(calcKainGorden(200, 250, 0)).toBe(0)
+    expect(calcKainGorden(NaN, 250, 2.5)).toBe(0)
+    expect(calcKainGorden(-100, 250, 2.5)).toBe(0)
   })
 })
 

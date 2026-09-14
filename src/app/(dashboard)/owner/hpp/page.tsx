@@ -31,6 +31,8 @@ interface HppBom {
   product_id?: string
   material_id?: string
   qty_per_unit?: number
+  // BUG-148: baris material kain (konsumsi produksi pakai kain aktual)
+  is_fabric?: boolean
   material?: { name?: string; unit?: string; cost_per_unit?: number }[] | null
 }
 
@@ -56,9 +58,9 @@ export default function HPPPage() {
   const [extraCost, setExtraCost] = useState(0) // production cost manual
 
   // Manual BOM lines (in-session, not saved unless clicked)
-  const [lines, setLines] = useState<{ material_id: string; qty: number }[]>([])
+  const [lines, setLines] = useState<{ material_id: string; qty: number; is_fabric: boolean }[]>([])
   const [showAddLine, setShowAddLine] = useState(false)
-  const [newLine, setNewLine] = useState({ material_id: '', qty: '' })
+  const [newLine, setNewLine] = useState({ material_id: '', qty: '', is_fabric: false })
 
   const supabase = createClient()
 
@@ -69,7 +71,7 @@ export default function HPPPage() {
       supabase.from('materials').select('id, name, unit, cost_per_unit').order('name'),
       supabase
         .from('bom')
-        .select('product_id, material_id, qty_per_unit, material:materials(name, unit, cost_per_unit)')
+        .select('product_id, material_id, qty_per_unit, is_fabric, material:materials(name, unit, cost_per_unit)')
     ])
     setProducts((pRes.data ?? []) as HppProduct[])
     setMaterials((mRes.data ?? []) as HppMaterial[])
@@ -89,7 +91,7 @@ export default function HPPPage() {
     const p = products.find((x) => x.id === productId)
     setSelectedProduct(p ?? null)
     const productBom = boms.filter((b) => b.product_id === productId)
-    setLines(productBom.flatMap((b) => (b.material_id ? [{ material_id: b.material_id, qty: b.qty_per_unit ?? 0 }] : [])))
+    setLines(productBom.flatMap((b) => (b.material_id ? [{ material_id: b.material_id, qty: b.qty_per_unit ?? 0, is_fabric: b.is_fabric ?? false }] : [])))
     setMarkup(30)
     setExtraCost(0)
     setMode(p?.hpp_manual ? 'manual' : 'auto')
@@ -113,8 +115,8 @@ export default function HPPPage() {
 
   function addLine() {
     if (!newLine.material_id || !newLine.qty) return
-    setLines((prev) => [...prev, { material_id: newLine.material_id, qty: Number(newLine.qty) }])
-    setNewLine({ material_id: '', qty: '' })
+    setLines((prev) => [...prev, { material_id: newLine.material_id, qty: Number(newLine.qty), is_fabric: newLine.is_fabric }])
+    setNewLine({ material_id: '', qty: '', is_fabric: false })
     setShowAddLine(false)
   }
 
@@ -150,7 +152,7 @@ export default function HPPPage() {
     } = await supabase.auth.getUser()
     const { error: saveErr } = await supabase.rpc('save_hpp_bom_atomic', {
       p_product_id: selectedProduct.id,
-      p_lines: lines.map((l) => ({ material_id: l.material_id, qty_per_unit: l.qty })),
+      p_lines: lines.map((l) => ({ material_id: l.material_id, qty_per_unit: l.qty, is_fabric: l.is_fabric })),
       p_hpp_calculated: Math.round(autoHpp),
       p_hpp_manual: mode === 'manual' ? Math.round(manualHpp) : null,
       p_price: Math.round(hargaJual),
@@ -242,6 +244,25 @@ export default function HPPPage() {
                       >
                         <span style={{ fontWeight: 500 }}>{p.name}</span>
                         {p.sku && <span style={{ color: 'var(--neutral-400)', marginLeft: '0.5rem' }}>({p.sku})</span>}
+                        {/* BUG-148 follow-up: status BOM langsung di daftar pilih */}
+                        {(() => {
+                          const n = boms.filter((b) => b.product_id === p.id).length
+                          return (
+                            <span
+                              style={{
+                                float: 'right',
+                                fontSize: '0.7rem',
+                                fontWeight: '600',
+                                padding: '0.1rem 0.5rem',
+                                borderRadius: '999px',
+                                background: n > 0 ? '#d1fae5' : '#ffedd5',
+                                color: n > 0 ? '#065f46' : '#9a3412'
+                              }}
+                            >
+                              {n > 0 ? `✅ BOM (${n})` : '🟠 tanpa BOM'}
+                            </span>
+                          )
+                        })()}
                       </div>
                     ))
                   })()}
@@ -436,6 +457,35 @@ export default function HPPPage() {
                           {fmtN(line.qty)} {mat?.unit} × {fmt(mat?.cost_per_unit ?? 0)}
                         </div>
                       </div>
+                      {/* BUG-148: tandai material kain → konsumsi produksi pakai kain aktual */}
+                      <label
+                        title="Kain: konsumsi produksi pakai kebutuhan kain aktual (bukan qty BOM)"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          color: line.is_fabric ? '#92400e' : 'var(--neutral-400)',
+                          background: line.is_fabric ? '#fff7ed' : 'transparent',
+                          border: `1px solid ${line.is_fabric ? '#cc7030' : 'var(--neutral-200)'}`,
+                          borderRadius: '0.375rem',
+                          padding: '0.25rem 0.5rem',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={line.is_fabric}
+                          onChange={(e) =>
+                            setLines((prev) =>
+                              prev.map((l, i) => (i === idx ? { ...l, is_fabric: e.target.checked } : l))
+                            )
+                          }
+                          style={{ accentColor: '#cc7030' }}
+                        />
+                        🧵 Kain
+                      </label>
                       <div
                         style={{
                           fontWeight: '700',
@@ -537,6 +587,27 @@ export default function HPPPage() {
                     }}
                   />
                 </div>
+                <label
+                  title="Kain: konsumsi produksi pakai kebutuhan kain aktual (bukan qty BOM)"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    fontSize: '0.75rem',
+                    fontWeight: '600',
+                    color: 'var(--neutral-600)',
+                    padding: '0.5rem 0',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={newLine.is_fabric}
+                    onChange={(e) => setNewLine((f) => ({ ...f, is_fabric: e.target.checked }))}
+                    style={{ accentColor: '#cc7030' }}
+                  />
+                  🧵 Kain
+                </label>
                 <button
                   onClick={addLine}
                   style={{
